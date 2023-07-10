@@ -1,34 +1,50 @@
 # เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
-# หลักๆ ใช้ setup
-import time
-# ไม่รู้คือไร แต่ใช้แล้ว มันทำให้ควบคุม context เมนูได้
-import win32com.client as comclt
-import re
-import multiprocessing
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.keys import Keys
+from pynput.mouse import Listener
+from xml.dom.minidom import Document
+import myFunctions
+from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
+from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
 from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+import multiprocessing
+import re
+import win32com.client as comclt
+import time
+import module_name
+import os
+import sys
+# ดึงเส้นทาง (path) ปัจจุบัน
+current_path = os.getcwd()
+
+# ตัดชื่อโฟลเดอร์ออกจากเส้นทางปัจจุบัน
+parent_path = os.path.dirname(current_path)
+
+# กลับไปยังโฟลเดอร์ก่อนหน้า
+os.chdir(parent_path)
+
+# เพิ่มเส้นทางปัจจุบันเป็นเส้นทางหลัก (main path) ใหม่
+sys.path.insert(0, parent_path)
+sys.path.append('../Python/python_modules3')
+
+# หลักๆ ใช้ setup
+# ไม่รู้คือไร แต่ใช้แล้ว มันทำให้ควบคุม context เมนูได้
+
 
 # ดัก event
-from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
-from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 # Modulesกูเอง
-from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 # from python_modules3.SMCO.cusNameFixer import cusNameFixer ##test พังไหม ทดสอบน่าจะเรียกmoduleผิดวิธี
 # from python_modules3.SMCO.from_commart.python01.pybot01 import SMCO_login ##แค่ import มา ก็ใช้เองแล้ว
-import myFunctions
 
 # ไปๆมาๆไม่ได้ใช้
-from xml.dom.minidom import Document
-from pynput.mouse import Listener
 
 # ใช้ได้ๆ แต่ต้องเปิด web ก่อน
 # ต้องรัน chrome จาก cmd ก่อน chrome.exe --remote-debugging-port=8989 --user-data-dir="C:\bin\chromeprofile
