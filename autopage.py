@@ -18,7 +18,7 @@ import multiprocessing
 import re
 import win32com.client as comclt
 import time
-import module_name
+
 import os
 import sys
 # ดึงเส้นทาง (path) ปัจจุบัน
