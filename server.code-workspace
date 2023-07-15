@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "server",
+			"path": "\\\\192.168.0.25\\d\\pratchaya\\server"
+		},
+		{
+			"name": "Python",
+			"path": "."
+		},
+		{
+			"name": "python_modules3",
+			"path": "../../../Practice/python_projects/python_modules3"
+		}
+	],
+	"settings": {}
+}
