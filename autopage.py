@@ -61,9 +61,11 @@ opt = Options()
 opt.add_experimental_option("debuggerAddress", "localhost:8989")
 # opt.add_argument('--headless') ##สาระ, น่าสนใจ## ยังไม่ได้ลองใช้ แต่ เวลาใช้ เว็บมันจะเปลือยๆมั้ง ซึ่งการเปลืือยในที่นี้คือ มันจะไม่มีลูกเล่นของ JS ทำให้เข้าถึง datacontent ได้ง่าย แต่จะเหมือนโจรยังไงไม่รู้
 # download new ver.
+# driver = webdriver.Chrome(service=Service(
+#     ChromeDriverManager().install()), options=opt)
+# ใส่ r ไว้หน้า path จะให้มันเป็น string ที่แท้จริง string ดิบๆ ถ้าไม่ใช่ มันจะมองบางตัวเป็นตัวอักษรสำหรับ syntaxต่อให้ "" ครอบก็ตาม
 driver = webdriver.Chrome(service=Service(
-    ChromeDriverManager().install()), options=opt)
-# driver= webdriver.Chrome(service=Service(r'C:\Users\ONLINE_MIS\.wdm\drivers\chromedriver\win32\109.0.5414\chromedriver.exe'), options=opt) ## ใส่ r ไว้หน้า path จะให้มันเป็น string ที่แท้จริง string ดิบๆ ถ้าไม่ใช่ มันจะมองบางตัวเป็นตัวอักษรสำหรับ syntaxต่อให้ "" ครอบก็ตาม
+    r'C:\\Users\\ONLINE_MIS\\.wdm\\drivers\\chromedriver\\win64\\116.0.5845.111\\chromedriver.exe'), options=opt)
 # print("มันลงไว้ที่ ",ChromeDriverManager().install()) ##ก้อนนี้ returns path ที่มันลงไว้ ซึ่งมันโหลดตัวลงไว้เฉยๆ เป็น zip แล้วแตกไฟล์
 # service2 = Service(executable_path=ChromeDriverManager().install())
 # driver2= webdriver.Chrome(service=service2)
@@ -107,11 +109,11 @@ taxID = ""
 taxTel = "1"
 
 # หน้า smartCore XPATHlist
-cusNameSpan = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/form/div[1]/span/span[1]/span/span[1]'
+cusNameSpan = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
 cusNameInput = '/html/body/span/span/span[1]/input'
-cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/form/div[2]/a'
+cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
 cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
-cusNameLi = '/html/body/span/span/span[2]/ul/li[1]'
+cusNameLi = '/html/body/span/span/span[2]/ul/li'
 
 # functions
 
@@ -237,6 +239,8 @@ def inputCustomerTaxName():  # ใส่ชื่อลูกค้าใบก�
     element = wait.until(
         EC.visibility_of_element_located((By.XPATH, cusNameSpan)))
     element.click()
+    wait.until(
+        EC.visibility_of_element_located((By.XPATH, cusNameInput)))
     driver.find_element(By().XPATH, cusNameInput).clear()
     driver.find_element(By().XPATH, cusNameInput).send_keys(taxID)
     handles = driver.window_handles
@@ -408,7 +412,7 @@ else:
 
     # 4บรรทัดล่างเป็นการใช้ ชื่อลูกค้าแบบใหม่ที่ไม่รู้มันจะทำมาทำเพื่ออะไร เป็นชื่อแทน เพราะอันบนมัน มี "**" มาแทรกในชื่อ
     wait.until(EC.visibility_of_element_located(
-        (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div/div[2]')))
+        (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')))
     cus_account_Name_element_v2 = driver.find_element(
         By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[2]/div/div[4]/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]')
     cusName = cus_account_Name_element_v2.text  # เก็บชื่อลูกค้า
@@ -428,22 +432,22 @@ time.sleep(1)
 try:
     # แหวก dropdownแบบที่3 เพราะ 1 หรือ 2 ใช้ไม่ได้ ไม่รู้
     element3 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div/div[2]')
+        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')
     element3.click()
     try:
         wait_few_sec = WebDriverWait(driver, 2)
         isShippingCost = wait_few_sec.until(EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[3]'), "ค่าจัดส่ง"))
+            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[3]'), "ค่าจัดส่ง"))
         if (isShippingCost):
             shippingCostValue = driver.find_element(
-                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[4]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[4]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
             shippingCostValue = currencyRemover(shippingCostValue.text)
     except:
         isShippingCost = wait.until(EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[5]'), "ค่าจัดส่ง"))
+            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[5]'), "ค่าจัดส่ง"))
         if (isShippingCost):
             shippingCostValue = driver.find_element(
-                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[6]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[6]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
             shippingCostValue = currencyRemover(shippingCostValue.text)
     # element1 = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div[2]') ##แหวก dropdownแบบที่1
     # element1.click()
@@ -453,11 +457,11 @@ try:
 
 except:
     element2 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div[2]')  # แหวก dropdownแบบที่2
+        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[8]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
     element2.click()
     time.sleep(0.55)
     shippingCostValue = driver.find_element(
-        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div[2]/div[4]')
+        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[8]/div/div/div/div/div[2]/div[4]')
     shippingCostValue = currencyRemover(shippingCostValue.text)
 
 # finally:
@@ -541,19 +545,19 @@ try:
         print("กดที่ SKU ELEMENT 1 สำเร็จ")
 
         changePriceInput = driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
         changePriceInput = changePriceInput.clear()
         changePriceInput = driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input').send_keys(shippingCostValue)
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input').send_keys(shippingCostValue)
         driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys("62078")
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys("62078")
         driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys("ITcity@2022")
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys("ITcity@2022")
         driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
         driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
     else:
         print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
         pass
