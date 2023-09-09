@@ -486,10 +486,6 @@ if taxBool:  # ถ้าเป็นจริง = มีใบกำกับ
     # ตอนแรก รอ 3, 5 วิ แล้วไม่ทัน แต่ 10 ทัน รันสบาย
     print("ครบ 10 วิหลังใช้ เพิ่มชื่อ tax")
 else:  # กรณีเท็จ จะออกลูกค้าปกติ
-    # SMCO go to customer Add Page
-    handles = driver.window_handles
-    driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
-    addNormalCustomer(cusSearchSMCO, cusCreateBtn)
 
     # SMCOMain เอาชื่อลูกค้ามาใส่รอโหลดระหว่างแอดชื่อลูกค้า
     driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
@@ -501,12 +497,31 @@ else:  # กรณีเท็จ จะออกลูกค้าปกติ
     driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]")
     driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 
+try:
+    element = wait.until(EC.text_to_be_present_in_element(
+        (By.XPATH, "/html/body/span/span/span[2]/ul/li"), 'No results found'))
+    print("customername?", element)
+
+    if element == True:
+        print("ไม่มีลูกค้า")
+        # SMCO go to customer Add Page
+        handles = driver.window_handles
+        driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
+        addNormalCustomer(cusSearchSMCO, cusCreateBtn)
+
+    elif element == False:
+        pass
+
+except:
+    pass
 
 # ปิดเพื่อปรับปรุง
 # #Back To MainSMCO page กดเลือกชื่อลูกค้าจาก dropdownlist ที่เพิ่ง add มา
 handles = driver.window_handles
 # เปิดครั้งแรก การสลับมาหน้า 1 มันขึ้น out of range โดย เวลานั้น บรรทัด 281 ยังไม่มี handles = driver.window_handles ตอนนี้ใส่เพิ่มแล้วไม่รู้จะเป็นอีกไหม
 driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
+driver.find_element(By().XPATH, cusNameInput).clear()
+driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 try:
     element = WebDriverWait(driver, 50).until(
         EC.text_to_be_present_in_element(
@@ -517,7 +532,9 @@ try:
         driver.find_element(
             By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
 except:
+    element = driver.find_element_by_xpath(f'//li[text()="{cusName}"]')
     print("driverwait timeout")
+
 
 # ใส่ค่าขนส่ง
 try:

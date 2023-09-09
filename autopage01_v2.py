@@ -1,50 +1,33 @@
 # เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
-from pynput.mouse import Listener
-from xml.dom.minidom import Document
-import myFunctions
-from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
-from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
-from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
-import multiprocessing
-import re
-import win32com.client as comclt
-import time
-
-import os
-import sys
-# ดึงเส้นทาง (path) ปัจจุบัน
-current_path = os.getcwd()
-
-# ตัดชื่อโฟลเดอร์ออกจากเส้นทางปัจจุบัน
-parent_path = os.path.dirname(current_path)
-
-# กลับไปยังโฟลเดอร์ก่อนหน้า
-os.chdir(parent_path)
-
-# เพิ่มเส้นทางปัจจุบันเป็นเส้นทางหลัก (main path) ใหม่
-sys.path.insert(0, parent_path)
-sys.path.append('../Python/python_modules3')
-
 # หลักๆ ใช้ setup
+import time
 # ไม่รู้คือไร แต่ใช้แล้ว มันทำให้ควบคุม context เมนูได้
+import win32com.client as comclt
+import re
+import multiprocessing
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver import ActionChains
 
 # ดัก event
+from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
+from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 # Modulesกูเอง
-# from python_modules3.SMCO.cusNameFixer import cusNameFixer ##test พังไหม ทดสอบน่าจะเรียกmoduleผิดวิธี
-# from python_modules3.SMCO.from_commart.python01.pybot01 import SMCO_login ##แค่ import มา ก็ใช้เองแล้ว
+from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
+# from python_modules3.SMCO.from_commart.python01.pybot01 import SMCO_login ##แค่ import มา ก็ใช้
+import myFunctions
 
 # ไปๆมาๆไม่ได้ใช้
+from xml.dom.minidom import Document
+from pynput.mouse import Listener
 
 # ใช้ได้ๆ แต่ต้องเปิด web ก่อน
 # ต้องรัน chrome จาก cmd ก่อน chrome.exe --remote-debugging-port=8989 --user-data-dir="C:\bin\chromeprofile
@@ -58,15 +41,16 @@ class LoginData:
 # setting
 opt = Options()
 # opt2=Options()
-opt.add_experimental_option("debuggerAddress", "localhost:8989")
+opt.add_experimental_option("debuggerAddress", "localhost:8990")
 # opt.add_argument('--headless') ##สาระ, น่าสนใจ## ยังไม่ได้ลองใช้ แต่ เวลาใช้ เว็บมันจะเปลือยๆมั้ง ซึ่งการเปลืือยในที่นี้คือ มันจะไม่มีลูกเล่นของ JS ทำให้เข้าถึง datacontent ได้ง่าย แต่จะเหมือนโจรยังไงไม่รู้
-# download new ver.
+##! สำหรับDownloadก่อนใช้งาน เป็นการอัพแพทช์ไปในตัว
 # driver = webdriver.Chrome(service=Service(
 #     ChromeDriverManager().install()), options=opt)
-# ใส่ r ไว้หน้า path จะให้มันเป็น string ที่แท้จริง string ดิบๆ ถ้าไม่ใช่ มันจะมองบางตัวเป็นตัวอักษรสำหรับ syntaxต่อให้ "" ครอบก็ตาม
+
+##! แบบ Manual
 driver = webdriver.Chrome(service=Service(
     r'C:\\Users\\ONLINE_MIS\\.wdm\\drivers\\chromedriver\\win64\\116.0.5845.111\\chromedriver.exe'), options=opt)
-# print("มันลงไว้ที่ ",ChromeDriverManager().install()) ##ก้อนนี้ returns path ที่มันลงไว้ ซึ่งมันโหลดตัวลงไว้เฉยๆ เป็น zip แล้วแตกไฟล์
+
 # service2 = Service(executable_path=ChromeDriverManager().install())
 # driver2= webdriver.Chrome(service=service2)
 
@@ -486,10 +470,6 @@ if taxBool:  # ถ้าเป็นจริง = มีใบกำกับ
     # ตอนแรก รอ 3, 5 วิ แล้วไม่ทัน แต่ 10 ทัน รันสบาย
     print("ครบ 10 วิหลังใช้ เพิ่มชื่อ tax")
 else:  # กรณีเท็จ จะออกลูกค้าปกติ
-    # SMCO go to customer Add Page
-    handles = driver.window_handles
-    driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
-    addNormalCustomer(cusSearchSMCO, cusCreateBtn)
 
     # SMCOMain เอาชื่อลูกค้ามาใส่รอโหลดระหว่างแอดชื่อลูกค้า
     driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
@@ -501,12 +481,31 @@ else:  # กรณีเท็จ จะออกลูกค้าปกติ
     driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]")
     driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 
+try:
+    element = wait.until(EC.text_to_be_present_in_element(
+        (By.XPATH, "/html/body/span/span/span[2]/ul/li"), 'No results found'))
+    print("customername?", element)
+
+    if element == True:
+        print("ไม่มีลูกค้า")
+        # SMCO go to customer Add Page
+        handles = driver.window_handles
+        driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
+        addNormalCustomer(cusSearchSMCO, cusCreateBtn)
+
+    elif element == False:
+        pass
+
+except:
+    pass
 
 # ปิดเพื่อปรับปรุง
 # #Back To MainSMCO page กดเลือกชื่อลูกค้าจาก dropdownlist ที่เพิ่ง add มา
 handles = driver.window_handles
 # เปิดครั้งแรก การสลับมาหน้า 1 มันขึ้น out of range โดย เวลานั้น บรรทัด 281 ยังไม่มี handles = driver.window_handles ตอนนี้ใส่เพิ่มแล้วไม่รู้จะเป็นอีกไหม
 driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
+driver.find_element(By().XPATH, cusNameInput).clear()
+driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 try:
     element = WebDriverWait(driver, 50).until(
         EC.text_to_be_present_in_element(
@@ -517,7 +516,9 @@ try:
         driver.find_element(
             By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
 except:
+    element = driver.find_element_by_xpath(f'//li[text()="{cusName}"]')
     print("driverwait timeout")
+
 
 # ใส่ค่าขนส่ง
 try:

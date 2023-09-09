@@ -396,7 +396,7 @@ else:
 
     # 4บรรทัดล่างเป็นการใช้ ชื่อลูกค้าแบบใหม่ที่ไม่รู้มันจะทำมาทำเพื่ออะไร เป็นชื่อแทน เพราะอันบนมัน มี "**" มาแทรกในชื่อ
     wait.until(EC.visibility_of_element_located(
-        (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')))
+        (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[2]/div/div/div/div/div/div[2]')))
     cus_account_Name_element_v2 = driver.find_element(
         By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[2]/div/div[4]/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]')
     cusName = cus_account_Name_element_v2.text  # เก็บชื่อลูกค้า
@@ -416,22 +416,22 @@ time.sleep(1)
 try:
     # แหวก dropdownแบบที่3 เพราะ 1 หรือ 2 ใช้ไม่ได้ ไม่รู้
     element3 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')
+        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div/div[2]')
     element3.click()
     try:
         wait_few_sec = WebDriverWait(driver, 2)
         isShippingCost = wait_few_sec.until(EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[3]'), "ค่าจัดส่ง"))
+            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[3]'), "ค่าจัดส่ง"))
         if (isShippingCost):
             shippingCostValue = driver.find_element(
-                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[4]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[4]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
             shippingCostValue = currencyRemover(shippingCostValue.text)
     except:
         isShippingCost = wait.until(EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[5]'), "ค่าจัดส่ง"))
+            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[5]'), "ค่าจัดส่ง"))
         if (isShippingCost):
             shippingCostValue = driver.find_element(
-                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[6]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[6]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
             shippingCostValue = currencyRemover(shippingCostValue.text)
     # element1 = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div[2]') ##แหวก dropdownแบบที่1
     # element1.click()
@@ -441,11 +441,11 @@ try:
 
 except:
     element2 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[8]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
+        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
     element2.click()
     time.sleep(0.55)
     shippingCostValue = driver.find_element(
-        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[8]/div/div/div/div/div[2]/div[4]')
+        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div/div[2]/div[4]')
     shippingCostValue = currencyRemover(shippingCostValue.text)
 
 # finally:
@@ -478,6 +478,7 @@ else:  # กรณีเท็จ จะออกลูกค้าปกติ
     element.click()
     # driver.find_element(By.XPATH,cusNameInput).clear() น่าจะไม่ต้องใช้
     driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]")
+    time.sleep(1)
     driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 
     # SMCO go to customer Add Page
