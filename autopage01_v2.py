@@ -19,6 +19,7 @@ from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEven
 from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 
 # Modulesกูเอง
 from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
@@ -441,11 +442,11 @@ try:
 
 except:
     element2 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
+        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
     element2.click()
     time.sleep(0.55)
     shippingCostValue = driver.find_element(
-        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div/div[2]/div[4]')
+        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[4]')
     shippingCostValue = currencyRemover(shippingCostValue.text)
 
 # finally:
@@ -457,6 +458,16 @@ except:
 
 # shippingCostValue = wait.until(EC.visibility_of_element_located((By.XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div[2]/div[4]'))) ##ต้องเปิดก่อนมันมองไม่เหน path นี้
 # shippingCostValue = currencyRemover(shippingCostValue.text)
+
+try:
+    seller_voucher = driver.find_element(
+    By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[8]')
+    seller_voucher = currencyRemover(seller_voucher.text)
+except:
+    seller_voucher = driver.find_element(
+    By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[8]')
+    seller_voucher = currencyRemover(seller_voucher.text)
+
 print(cusName)
 print("ค่าจัดส่ง ", shippingCostValue, "บาท")
 time.sleep(1)
@@ -469,6 +480,8 @@ if taxBool:  # ถ้าเป็นจริง = มีใบกำกับ
     time.sleep(8)
     # ตอนแรก รอ 3, 5 วิ แล้วไม่ทัน แต่ 10 ทัน รันสบาย
     print("ครบ 10 วิหลังใช้ เพิ่มชื่อ tax")
+    # driver.find_element(By().XPATH, cusNameInput).clear()
+    # driver.find_element(By.XPATH, cusNameInput).send_keys(taxID)
 else:  # กรณีเท็จ จะออกลูกค้าปกติ
 
     # SMCOMain เอาชื่อลูกค้ามาใส่รอโหลดระหว่างแอดชื่อลูกค้า
@@ -482,9 +495,10 @@ else:  # กรณีเท็จ จะออกลูกค้าปกติ
     driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 
 try:
+    wait_3s = WebDriverWait(driver, 3)
     element = wait.until(EC.text_to_be_present_in_element(
         (By.XPATH, "/html/body/span/span/span[2]/ul/li"), 'No results found'))
-    print("customername?", element)
+    print("No results found?", element)
 
     if element == True:
         print("ไม่มีลูกค้า")
@@ -494,7 +508,8 @@ try:
         addNormalCustomer(cusSearchSMCO, cusCreateBtn)
 
     elif element == False:
-        pass
+        driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]")
+        driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 
 except:
     pass
@@ -507,6 +522,17 @@ driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
 driver.find_element(By().XPATH, cusNameInput).clear()
 driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 try:
+    element = WebDriverWait(driver, 40).until(
+        EC.text_to_be_present_in_element(
+            (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
+    )
+    if element == True:
+
+        driver.find_element(
+            By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+except TimeoutException:
+    driver.find_element(By().XPATH, cusNameInput).clear()
+    driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
     element = WebDriverWait(driver, 50).until(
         EC.text_to_be_present_in_element(
             (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
@@ -515,9 +541,11 @@ try:
 
         driver.find_element(
             By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
-except:
-    element = driver.find_element_by_xpath(f'//li[text()="{cusName}"]')
+except :
+    element = driver.find_element(
+            By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
     print("driverwait timeout")
+
 
 
 # ใส่ค่าขนส่ง
@@ -568,6 +596,35 @@ except:
 
 
 # หน้าจ่ายตัง
+wait2 = WebDriverWait(driver, 3600)
+# * เติม Order ในจุด Remark
+is_final_page = wait2.until(EC.visibility_of_element_located(
+    (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
+try:
+    if seller_voucher:
+        # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(seller_voucher)
+
+    # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
+    driver.find_element(
+        By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(order)
+
+    driver.find_element(
+        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+
+    driver.find_element(
+        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(order)
+
+    if cusName:
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(cusName)
+    else:
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+except:
+    print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
+    pass
 wait2 = WebDriverWait(driver, 3600)
 zeroExpectElmt = wait2.until(EC.text_to_be_present_in_element(
     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[2]/div[4]/div'), "0.00"))
