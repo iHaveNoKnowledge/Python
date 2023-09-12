@@ -414,38 +414,64 @@ else:
 # หาค่าขนส่ง ที่ต้อง try except เพราะ จำนวน div มัน dynamic
 time.sleep(1)
 try:
-    # แหวก dropdownแบบที่3 เพราะ 1 หรือ 2 ใช้ไม่ได้ ไม่รู้
-    element3 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div/div[2]')
-    element3.click()
     try:
-        wait_few_sec = WebDriverWait(driver, 2)
-        isShippingCost = wait_few_sec.until(EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[3]'), "ค่าจัดส่ง"))
-        if (isShippingCost):
-            shippingCostValue = driver.find_element(
-                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[4]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
-            shippingCostValue = currencyRemover(shippingCostValue.text)
-    except:
-        isShippingCost = wait.until(EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[5]'), "ค่าจัดส่ง"))
-        if (isShippingCost):
-            shippingCostValue = driver.find_element(
-                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[6]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
-            shippingCostValue = currencyRemover(shippingCostValue.text)
-    # element1 = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div[2]') ##แหวก dropdownแบบที่1
-    # element1.click()
-    # time.sleep(0.55)
-    # shippingCostValue = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div[2]/div[4]')##ต้องเปิดก่อนมันมองไม่เหน path นี้
-    # shippingCostValue = currencyRemover(shippingCostValue.text)
+        # แหวก dropdownแบบที่3 เพราะ 1 หรือ 2 ใช้ไม่ได้ ไม่รู้
+        element3 = driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div/div[2]')
+        element3.click()
+        try:
+            wait_few_sec = WebDriverWait(driver, 2)
+            isShippingCost = wait_few_sec.until(EC.text_to_be_present_in_element(
+                (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[3]'), "ค่าจัดส่ง"))
+            if (isShippingCost):
+                shippingCostValue = driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[4]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
+                shippingCostValue = currencyRemover(shippingCostValue.text)
+        except:
+            isShippingCost = wait.until(EC.text_to_be_present_in_element(
+                (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[5]'), "ค่าจัดส่ง"))
+            if (isShippingCost):
+                shippingCostValue = driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[6]')  # ต้องเปิดก่อนมันมองไม่เหน path นี้
+                shippingCostValue = currencyRemover(shippingCostValue.text)
+        # element1 = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div[2]') ##แหวก dropdownแบบที่1
+        # element1.click()
+        # time.sleep(0.55)
+        # shippingCostValue = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div[2]/div[4]')##ต้องเปิดก่อนมันมองไม่เหน path นี้
+        # shippingCostValue = currencyRemover(shippingCostValue.text)
+        try:
+            seller_voucher = driver.find_element(
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[8]')
+            seller_voucher = currencyRemover(seller_voucher.text)
+        except:
+            seller_voucher = driver.find_element(
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[8]')
+            seller_voucher = currencyRemover(seller_voucher.text)
 
+    except:
+        element2 = driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
+        element2.click()
+        time.sleep(0.55)
+        shippingCostValue = driver.find_element(
+            By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[4]')
+        shippingCostValue = currencyRemover(shippingCostValue.text)
+
+        try:
+            seller_voucher = driver.find_element(
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[8]')
+            seller_voucher = currencyRemover(seller_voucher.text)
+        except:
+            seller_voucher = driver.find_element(
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[8]')
+            seller_voucher = currencyRemover(seller_voucher.text)
 except:
-    element2 = driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
-    element2.click()
+    element3 = driver.find_element(
+        By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[8]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
+    element3.click()
     time.sleep(0.55)
     shippingCostValue = driver.find_element(
-        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[6]/div/div/div/div/div[2]/div[4]')
+        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[8]/div/div/div/div/div[2]/div[4]')
     shippingCostValue = currencyRemover(shippingCostValue.text)
 
 # finally:
@@ -492,14 +518,39 @@ handles = driver.window_handles
 # เปิดครั้งแรก การสลับมาหน้า 1 มันขึ้น out of range โดย เวลานั้น บรรทัด 281 ยังไม่มี handles = driver.window_handles ตอนนี้ใส่เพิ่มแล้วไม่รู้จะเป็นอีกไหม
 driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
 try:
-    element = WebDriverWait(driver, 50).until(
-        EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
-    )
-    if element == True:
+    try:
+        print("รอชื่อลูกค้าขึ้น")
+        element = WebDriverWait(driver, 3).until(
+            EC.text_to_be_present_in_element(
+                (By.XPATH, '/html/body/span/span/span[2]/ul/li'), taxName | cusName)
+        )    
+        
+        if element == True:
 
-        driver.find_element(
-            By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+            driver.find_element(
+                By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+    except:
+        print("ไม่ขึ้นก็ใส่ใหม่")
+        driver.find_element(By.XPATH, cusNameInput).clear()
+        if taxBool:
+            print("เจอใบกำกับหลังใส่ใหม่")
+            driver.find_element(By.XPATH, cusNameInput).send_keys(taxID)
+            element = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/span/span/span[2]/ul/li'))
+        )
+        else :
+            print("เจอใบชื่อลูกค้าหลังใส่ใหม่")
+            driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
+            element = WebDriverWait(driver, 10).until(
+            EC.text_to_be_present_in_element(
+                (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
+        )
+        print("ออกจาก loop", element)
+        if element != "":
+
+            driver.find_element(
+                By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
 except:
     print("driverwait timeout")
 
@@ -551,6 +602,35 @@ except:
 
 
 # หน้าจ่ายตัง
+wait2 = WebDriverWait(driver, 3600)
+# * เติม Order ในจุด Remark
+is_final_page = wait2.until(EC.visibility_of_element_located(
+    (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
+try:
+    if seller_voucher:
+        # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(seller_voucher)
+
+    # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
+    driver.find_element(
+        By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(order)
+
+    driver.find_element(
+        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+
+    driver.find_element(
+        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(order)
+
+    if cusName:
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(cusName)
+    else:
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+except:
+    print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
+    pass
 wait2 = WebDriverWait(driver, 3600)
 zeroExpectElmt = wait2.until(EC.text_to_be_present_in_element(
     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[2]/div[4]/div'), "0.00"))
@@ -668,3 +748,4 @@ finalSendEmailBtn = "/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/d
 
 # ##login
 # SMCO_login()
+

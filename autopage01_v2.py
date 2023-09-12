@@ -522,7 +522,9 @@ driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
 driver.find_element(By().XPATH, cusNameInput).clear()
 driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
 try:
-    element = WebDriverWait(driver, 40).until(
+    # element = WebDriverWait(driver, 40).until(
+    wait_3s = WebDriverWait(driver, 3)
+    element = wait_3s.until(
         EC.text_to_be_present_in_element(
             (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
     )

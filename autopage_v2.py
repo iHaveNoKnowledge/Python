@@ -237,6 +237,7 @@ def printtingPage():
 def inputCustomerTaxName():  # ใส่ชื่อลูกค้าใบกำกับ
     driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
     wait = WebDriverWait(driver, 30)
+    wait_few = WebDriverWait(driver, 3)
     element = wait.until(
         EC.visibility_of_element_located((By.XPATH, cusNameSpan)))
     element.click()
@@ -244,9 +245,19 @@ def inputCustomerTaxName():  # ใส่ชื่อลูกค้าใบก�
         EC.visibility_of_element_located((By.XPATH, cusNameInput)))
     driver.find_element(By().XPATH, cusNameInput).clear()
     driver.find_element(By().XPATH, cusNameInput).send_keys(taxID)
-    handles = driver.window_handles
-    driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
-    addTaxInvCustomer(cusSearchSMCO, cusCreateBtn)
+    time.sleep(1)
+    element2 = driver.find_element(
+        By.XPATH, "/html/body/span/span/span[2]/ul/li")
+    print("No results found?", element2.text)
+    if element2.text == "No results found?":
+        print("ไม่มีใบกำกับจริง")
+        handles = driver.window_handles
+        driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
+        addTaxInvCustomer(cusSearchSMCO, cusCreateBtn)
+    else:
+        print("มีใบกำกับแล้ว")
+        driver.find_element(
+            By().XPATH, '/html/body/span/span/span[2]/ul/li[1]').click()
 
 
 def remove_text(text):
@@ -507,17 +518,22 @@ time.sleep(1)
 
 # creat and fill customer invName
 if taxBool:  # ถ้าเป็นจริง = มีใบกำกับ
+
     inputCustomerTaxName()
     print("ใช้ฟังชั่น เพิ่มชื่อ tax")
     # แอดไม่ทันเสร็จ มันไปเลือกชื่อลูกค้าแล้ว error เลยเพราะหา element ต่อไปไม่เจอ
     time.sleep(8)
     # ตอนแรก รอ 3, 5 วิ แล้วไม่ทัน แต่ 10 ทัน รันสบาย
     print("ครบ 10 วิหลังใช้ เพิ่มชื่อ tax")
-    driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
-    # driver.find_element(By().XPATH, cusNameInput).clear()
-    # driver.find_element(By.XPATH, cusNameInput).send_keys(taxID)
-    driver.find_element(
-        By().XPATH, cusNameSpan).click()
+    # handles = driver.window_handles
+    # driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
+    # # driver.find_element(By().XPATH, cusNameInput).clear()
+    # # driver.find_element(By.XPATH, cusNameInput).send_keys(taxID)
+    # wait = WebDriverWait(driver, 10)
+    # element = wait.until(EC.text_to_be_present_in_element(
+    #     (By.XPATH, cusNameInput), text_=taxID))
+    # element.click()
+
 else:  # กรณีเท็จ จะออกลูกค้าปกติ
     print("เข้ามาในนี้")
     # SMCOMain เอาชื่อลูกค้ามาใส่รอโหลดระหว่างแอดชื่อลูกค้า
@@ -543,6 +559,16 @@ else:  # กรณีเท็จ จะออกลูกค้าปกติ
             handles = driver.window_handles
             driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย1'])
             addNormalCustomer(cusSearchSMCO, cusCreateBtn)
+            try:
+                driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
+                element = wait.until(EC.text_to_be_present_in_element(
+                    (By.XPATH, "/html/body/span/span/span[2]/ul/li"), cusName))
+                driver.find_element(By().XPATH, cusNameInput).clear()
+                driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
+                driver.find_element(
+                    By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+            except:
+                pass
 
         elif element == False:
             driver.find_element(
@@ -576,35 +602,37 @@ else:  # กรณีเท็จ จะออกลูกค้าปกติ
 handles = driver.window_handles
 # เปิดครั้งแรก การสลับมาหน้า 1 มันขึ้น out of range โดย เวลานั้น บรรทัด 281 ยังไม่มี handles = driver.window_handles ตอนนี้ใส่เพิ่มแล้วไม่รู้จะเป็นอีกไหม
 driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
-try:
-    driver.find_element(By().XPATH, cusNameInput).clear()
-    driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
-except:
-    pass
-try:
-    element = WebDriverWait(driver, 50).until(
-        EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
-    )
-    if element == True:
+# try:
+#     driver.find_element(By().XPATH, cusNameInput).clear()
+#     driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
+# except:
+#     pass
+# try:
+#     # element = WebDriverWait(driver, 50).until(
+#     wait_3s = WebDriverWait(driver, 3)
+#     element = wait_3s.until(
+#         EC.text_to_be_present_in_element(
+#             (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
+#     )
+#     if element == True:
 
-        driver.find_element(
-            By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
-except TimeoutException:
-    driver.find_element(By().XPATH, cusNameInput).clear()
-    driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
-    element = WebDriverWait(driver, 50).until(
-        EC.text_to_be_present_in_element(
-            (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
-    )
-    if element == True:
+#         driver.find_element(
+#             By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+# # except TimeoutException:
+#     driver.find_element(By().XPATH, cusNameInput).clear()
+#     driver.find_element(By.XPATH, cusNameInput).send_keys(cusName)
+#     element = WebDriverWait(driver, 50).until(
+#         EC.text_to_be_present_in_element(
+#             (By.XPATH, '/html/body/span/span/span[2]/ul/li'), cusName)
+#     )
+#     if element == True:
 
-        driver.find_element(
-            By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
-except:
-    element = driver.find_element(
-        By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
-    print("driverwait timeout")
+#         driver.find_element(
+#             By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+# except:
+#     element = driver.find_element(
+#         By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+#     print("driverwait timeout")
 
 
 # ใส่ค่าขนส่ง
