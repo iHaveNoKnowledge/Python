@@ -567,7 +567,7 @@ except:
 # ใส่ค่าขนส่ง
 try:
     if int(shippingCostValue) != int(0):
-        skuInput = wait.until(EC.visibility_of_element_located(
+        skuInput = WebDriverWait(driver, 50).until(EC.visibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
         # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
         skuInput.clear()
