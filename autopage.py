@@ -365,10 +365,10 @@ except:
 time.sleep(1)
 # ย้ายไปหน้า 3 (หน้ารายละเอียดOrder ที่เปิดล่าสุดนั้นแหละ) เพื่อไปเลือกว่าจะเอาข้อมูลปกติ หรือ ใบกำกับ โดยตัดสินจาก boolean
 driver.switch_to.window(driver.window_handles[4])
-wait = WebDriverWait(driver, 30)
+wait = WebDriverWait(driver, 40)
 wait.until(EC.visibility_of_element_located(
     (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[1]')))  # ดูว่า div แรกออกมายัง
-time.sleep(1.5)
+time.sleep(1)
 cusName = ""
 
 # มาตัดสินกันว่า จะใช้ชื่อลูกค้าปกติ หรือ ใช้ ใบกำกับภาษี
@@ -536,7 +536,7 @@ driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
 try:
     try:
         print("รอชื่อลูกค้าขึ้น")
-        element = WebDriverWait(driver, 3).until(
+        element = WebDriverWait(driver, 6).until(
             EC.text_to_be_present_in_element(
                 (By.XPATH, '/html/body/span/span/span[2]/ul/li'), taxName | cusName)
         )
