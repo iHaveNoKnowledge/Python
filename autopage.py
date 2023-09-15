@@ -469,8 +469,16 @@ try:
             By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div/div[2]')  # แหวก dropdownแบบที่2
         element2.click()
         time.sleep(0.55)
-        shippingCostValue = driver.find_element(
-            By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[4]')
+
+        is_shipiing_cost_label = driver.find_element(
+            By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[3]')
+        if is_shipiing_cost_label.text == "ค่าจัดส่ง":
+            shippingCostValue = driver.find_element(
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[4]')
+        else:
+            shippingCostValue = driver.find_element(
+                By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[6]')
+
         shippingCostValue = currencyRemover(shippingCostValue.text)
 
         try:

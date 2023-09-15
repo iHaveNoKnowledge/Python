@@ -1,12 +1,19 @@
 import pandas as pd
 
+# * เตรียม data frame
 file_path = './test_pandas01/Order.toship.20230903_20230914 (1).xlsx'
 data_frame = pd.read_excel(file_path)
+
+# * เลือก Order
 filtered_data = data_frame[(
     data_frame['หมายเลขคำสั่งซื้อ'] == '230909SXC7FH38')]
+
+# * เลือก Column มาแสดงผล
 order_status = filtered_data['สถานะการสั่งซื้อ']
 products = filtered_data['เลขอ้างอิง SKU (SKU Reference No.)']
 # print(filtered_data[['หมายเลขคำสั่งซื้อ','สถานะการสั่งซื้อ']])
+
+# * แสดงผลใน console
 print(filtered_data)
 print(order_status)
 print(order_status == 'ที่ต้องจัดส่ง')
