@@ -603,10 +603,19 @@ try:
         changePriceInput = changePriceInput.clear()
         changePriceInput = driver.find_element(
             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input').send_keys(shippingCostValue)
+
+        driver.find_element(
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').clear()
         driver.find_element(
             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys("62078")
+
+        driver.find_element(
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').clear()
         driver.find_element(
             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys("ITcity@2017")
+
+        driver.find_element(
+            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').clear()
         driver.find_element(
             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
@@ -622,6 +631,7 @@ except:
 # หน้าจ่ายตัง
 wait2 = WebDriverWait(driver, 3600)
 # * เติม Order ในจุด Remark
+# is_final_page2 = wait2.until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea'),)
 is_final_page = wait2.until(EC.visibility_of_element_located(
     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
 try:

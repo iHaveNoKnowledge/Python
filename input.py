@@ -14,14 +14,21 @@ print("boolfilter มี type เป็นไร", type(filtered_row))
 print("ใช้ boolfilter", data_frame[filtered_row]['สถานะการสั่งซื้อ'])
 # print("find in data_frame: ", filter_data)
 
-#* ประเภทใบกำกับภาษี
+# * ############# หาค่าจาก ตาราง ###############################
+# * ประเภทใบกำกับภาษี
 # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
-if data_frame[filtered_row]['ประเภทใบกำกับภาษี HHเป็นตัวบอกHH'].iloc[0] == 'Personal':
+if data_frame[filtered_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
     tax_bool = False
-else :
+else:
     tax_bool = True
 
+# *  ของมีอะไรบ้าง
+# products_list = data_frame[filtered_row]['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า'].to_dict(
+# )
+products_list = data_frame[filtered_row].to_dict(
+)
 
 
-#* แสดงผล
+# * แสดงผล
 print("ใบกำกับ?", tax_bool)
+print("สินค้ามีไรบ้าง", products_list)
