@@ -1,0 +1,81 @@
+# %%
+from tkinter import *
+
+# %%
+window1 = Tk()
+window1.title("Autosamatic")
+
+
+# %% [markdown]
+# ---
+
+# %% [markdown]
+# # CUSTOM WINDOWS
+
+# %% [markdown]
+# > Window1
+
+# %%
+window1.geometry("800x600")
+window1.configure(bg="#444")
+
+
+# %% [markdown]
+# ---
+
+# %% [markdown]
+# # FUNCTIONS
+
+# %%
+def search():
+    search_query = entered_order.get()
+    print(search_query)
+    # report_log.config(text=f"นั่นล่ะOrder: {search_query}")
+
+# %% [markdown]
+# ---
+
+# %% [markdown]
+# # **WIDGETS**
+
+# %% [markdown]
+# > Labels
+
+# %%
+label_order = Label(window1, text="Order: ")
+label_order.pack()
+
+# %% [markdown]
+# > Inputs
+
+# %%
+entered_order = StringVar()
+order_input = Entry(window1, textvariable=entered_order)
+
+order_input.pack()
+
+# %% [markdown]
+# > Buttons
+
+# %%
+search_btn = Button(window1, text="ค้นหา", bg="#747474", command=search)
+search_btn.pack()
+
+# %% [markdown]
+# > Log windows
+
+# %%
+report_log = Text(window1, state=DISABLED)
+report_log.pack(side='bottom', fill=X, padx=10, pady=(0,10))
+
+# %% [markdown]
+# ---
+
+# %% [markdown]
+# # **RUN GUI**
+# 
+
+# %%
+window1.mainloop()
+
+
