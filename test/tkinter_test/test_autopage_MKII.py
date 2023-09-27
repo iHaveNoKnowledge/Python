@@ -11,27 +11,16 @@ get_data_frame()
 window1 = Tk()
 window1.title("Autosamatic")
 
-
-
 # ---
-
  
-# # CUSTOM WINDOWS
-
- 
+# # CUSTOM WINDOWS ##################################################
 # > Window1
 window1.geometry("800x600+400+300")
 window1.configure(bg="#444")
 
 
- 
 
- 
-
-
-# # FUNCTIONS
-
-
+# # FUNCTIONS #########################################
 def search():
     search_query = entered_order.get()  
     print("search() ทำงานและได้ผลลัพธ์: ",search_query)
@@ -49,7 +38,7 @@ def on_subwindow_close(sub_window):
 # ---
 
  
-# # FRAMES
+# # FRAMES ######################################################
 # > Frame1
 entry_frame = Frame(window1, padx=5, pady=5, bg="#444")
 entry_frame.pack()
@@ -60,7 +49,7 @@ log_frame.pack(side='bottom', pady=(0,30))
 
 # ---
 
-# # **WIDGETS**
+# # **WIDGETS** ####################################################
 
 
 # > Labels
@@ -148,16 +137,10 @@ elif (result == "Excel"):
 # ---
 
  
-# # **RUN GUI**
-# 
+# # **RUN GUI** ########################################
 
- 
 # > Check DataFrame
 
-
-
-
- 
 # > Launch Gui
 
 

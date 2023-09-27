@@ -182,10 +182,12 @@ def get_data_frame():
         print(f"ตัวแปร '{e.name}' ไม่มีอยู่จริง")
     except Exception as e:
         print(f"อะไรสักอย่างพัง {e}")
+## Todo 
 get_data_frame()
 
+# * รับ InputOrder ####################################################################
 order= "230909SXCMTRXN"
-# * เลือก Order
+
 def order_receive(order):
     
     order_input = order
@@ -238,7 +240,7 @@ def order_receive(order):
         # print("สินค้ามีไรบ้าง", products_list)
     else :
         print("Orderนี้ ขอยกเลิกมานะ")
-        
+## Todo
 order_receive(order)
 
 # %%
