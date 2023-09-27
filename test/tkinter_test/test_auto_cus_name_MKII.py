@@ -164,11 +164,12 @@ def clean_address(address):
 # cleaned_address = clean_address(address)
 # cleaned_address
 
-# %%
+
 # * เตรียม data frame
 def get_data_frame():
-    global data_frame 
-    file_path = r"../test_pandas01/excel/Order.toship.20230903_20230914 (1).xlsx"
+    global data_frame
+    file_path = r"test\test_pandas01\excel\Order.toship.20230903_20230914 (1).xlsx"
+    
     try:
         data_frame = pd.read_excel(file_path)
         if data_frame.empty :
@@ -183,7 +184,7 @@ def get_data_frame():
         print(f"อะไรสักอย่างพัง {e}")
 get_data_frame()
 
-
+order= "230909SXCMTRXN"
 # * เลือก Order
 def order_receive(order):
     
@@ -221,11 +222,9 @@ def order_receive(order):
 
 
         print("ไม่มีใบกำกับ")
-        filter_data.iat[0,15]
         # cust_name = data_frame[target_row].ชื่อ[0]
         address = filter_data.iat[0,15]
         print("ข้อความ",address)
-        print(type(address))
         # cleaned_address = clean_duplicate_parts(address)
         cleaned_address = clean_address(address)
         # print(data_frame[target_row].ชื่อ[0])
@@ -239,89 +238,92 @@ def order_receive(order):
         # print("สินค้ามีไรบ้าง", products_list)
     else :
         print("Orderนี้ ขอยกเลิกมานะ")
+        
+order_receive(order)
 
 # %%
-import re
+def amphoe_finder():
+    text = '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
 
-text = '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
+    # ใช้ regex เพื่อค้นหาข้อความ 'อ.โคกสำโรง' และ 'อำเภอโคกสำโรง' แยกออกจากกัน
+    matches = re.findall(r'อ\.(.*?) |อำเภอ(.*?) ', text)
 
-# ใช้ regex เพื่อค้นหาข้อความ 'อ.โคกสำโรง' และ 'อำเภอโคกสำโรง' แยกออกจากกัน
-matches = re.findall(r'อ\.(.*?) |อำเภอ(.*?) ', text)
-
-if len(matches) == 2:
-    amphoe = matches[0][0]
-    aumper = matches[1][1]
-    print("อ.{} และ อำเภอ{}".format(amphoe, aumper))
-else:
-    print("ไม่พบข้อมูลที่ต้องการ")
-
-
-# %%
-import re
-
-text = '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
-
-# ใช้ regex เพื่อค้นหาและนับจำนวนข้อความ 'อ.|อำเภอ'
-# matches = re.findall(r'(อ\.(.*?)\ |อำเภอ(.*?) |ต\.(.*?)\ |ตำบล(.*?)\ )', text)
-matches = re.findall(r'(อ\.|อำเภอ)', text)
-
-print(matches)
-
-# หาจำนวนข้อความที่ตรงกับรูปแบบ
-amphoe_count = matches.count('อ.|อำเภอ')
-
-# ถ้ามี 'อ.|อำเภอ' มากกว่า 1 ครั้ง
-if amphoe_count > 1:
-    # หาคำเต็มและคำย่อ
-    full_word = re.search(r'อ\.(.*?) |อำเภอ(.*?) ', text)
-    
-    # ถ้าหากมีคำเต็มให้ใช้คำเต็ม
-    if full_word:
-        amphoe_full = full_word.group(1) if full_word.group(1) else full_word.group(2)
-        
-        # แทนที่ข้อความ 'อ.|อำเภอ' ทั้งหมดในข้อความด้วยคำเต็ม
-        result = re.sub(r'อ\.(.*?) |อำเภอ(.*?) ', amphoe_full, text)
-        
-        print(result)
+    if len(matches) == 2:
+        amphoe = matches[0][0]
+        aumper = matches[1][1]
+        print("อ.{} และ อำเภอ{}".format(amphoe, aumper))
     else:
-        print("ไม่พบคำเต็มที่ต้องการ")
-else:
-    print(text)
+        print("ไม่พบข้อมูลที่ต้องการ")
+
+
 
 
 # %%
-import re
+def cus_address_cleaner():
+    text = '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
 
-text = '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
+    # ใช้ regex เพื่อค้นหาและนับจำนวนข้อความ 'อ.|อำเภอ'
+    # matches = re.findall(r'(อ\.(.*?)\ |อำเภอ(.*?) |ต\.(.*?)\ |ตำบล(.*?)\ )', text)
+    matches = re.findall(r'(อ\.|อำเภอ)', text)
 
-# ใช้ regex เพื่อค้นหาและนับจำนวนครั้งที่พบข้อความ 'อ.|อำเภอ' ใน amphoe
-amphoe_count = len(re.findall(r'อ\.|อำเภอ', text))
+    print(matches)
 
-# ใช้ regex เพื่อค้นหาและนับจำนวนครั้งที่พบข้อความ 'ต.|ตำบล' ใน tambon
-tambon_count = len(re.findall(r'ต\.|ตำบล', text))
+    # หาจำนวนข้อความที่ตรงกับรูปแบบ
+    amphoe_count = matches.count('อ.|อำเภอ')
 
-# ใช้ regex เพื่อค้นหาและนับจำนวนครั้งที่พบข้อความ 'จ.|จังหวัด' ใน province
-province_count = len(re.findall(r'จ\.|จังหวัด', text))
-
-print("จำนวน 'อ.|อำเภอ':", amphoe_count)
-print("จำนวน 'ต.|ตำบล':", tambon_count)
-print("จำนวน 'จ.|จังหวัด':", province_count)
+    # ถ้ามี 'อ.|อำเภอ' มากกว่า 1 ครั้ง
+    if amphoe_count > 1:
+        # หาคำเต็มและคำย่อ
+        full_word = re.search(r'อ\.(.*?) |อำเภอ(.*?) ', text)
+        
+        # ถ้าหากมีคำเต็มให้ใช้คำเต็ม
+        if full_word:
+            amphoe_full = full_word.group(1) if full_word.group(1) else full_word.group(2)
+            
+            # แทนที่ข้อความ 'อ.|อำเภอ' ทั้งหมดในข้อความด้วยคำเต็ม
+            result = re.sub(r'อ\.(.*?) |อำเภอ(.*?) ', amphoe_full, text)
+            
+            print(result)
+        else:
+            print("ไม่พบคำเต็มที่ต้องการ")
+    else:
+        print(text)
 
 
 # %%
-import re
-text= '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
+def issue_address_format():
+    text = '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
 
-is_bangkok = "กรุงเทพ" in text
+    # ใช้ regex เพื่อค้นหาและนับจำนวนครั้งที่พบข้อความ 'อ.|อำเภอ' ใน amphoe
+    amphoe_count = len(re.findall(r'อ\.|อำเภอ', text))
 
-amphoe_count = len(re.findall(r'อ\.|อำเภอ', text))
-tambon_count = len(re.findall(r'ต.|ตำบล', text))
-province_count = len(re.findall(r'จ.|จังหวัด', text))
+    # ใช้ regex เพื่อค้นหาและนับจำนวนครั้งที่พบข้อความ 'ต.|ตำบล' ใน tambon
+    tambon_count = len(re.findall(r'ต\.|ตำบล', text))
 
-print("กรุงเทพปะ", is_bangkok)
-print("อำเภอ", amphoe_count)
+    # ใช้ regex เพื่อค้นหาและนับจำนวนครั้งที่พบข้อความ 'จ.|จังหวัด' ใน province
+    province_count = len(re.findall(r'จ\.|จังหวัด', text))
 
-print("ตำบล",tambon_count)
-print("จังหวัด",province_count)
+    print("จำนวน 'อ.|อำเภอ':", amphoe_count)
+    print("จำนวน 'ต.|ตำบล':", tambon_count)
+    print("จำนวน 'จ.|จังหวัด':", province_count)
+
+
+
+
+# %%
+def issue_address_format2():
+    text= '124/10 ม.4 ต.โคกสำโรง อ.โคกสำโรง จ.ลพบุรี 15120  อำเภอโคกสำโรง จังหวัดลพบุรี 15120'
+
+    is_bangkok = "กรุงเทพ" in text
+
+    amphoe_count = len(re.findall(r'อ\.|อำเภอ', text))
+    tambon_count = len(re.findall(r'ต.|ตำบล', text))
+    province_count = len(re.findall(r'จ.|จังหวัด', text))
+
+    print("กรุงเทพปะ", is_bangkok)
+    print("อำเภอ", amphoe_count)
+
+    print("ตำบล",tambon_count)
+    print("จังหวัด",province_count)
 
 
