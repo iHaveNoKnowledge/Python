@@ -1,192 +1,156 @@
-# %%
-from tkinter import *
-from tkinter import messagebox
-
-# %run test_input_receiver.ipynb
-
-# %%
-window1 = Tk()
-window1.title("Autosamatic")
-
-
 # %% [markdown]
+# ## วิธีใช้  
+# ### ทดลองใช้ฟังชั่นโดยแบ่งเป็นช่องๆ อันไหนดีก็ก้อปออกไปใช้ แต่ละช่องมัน เป็น independence แต่ก็สามารถต่อเนื่องได้ด้วย
 # ---
 
-# %% [markdown]
-# # CUSTOM WINDOWS
-
-# %% [markdown]
-# > Window1
-
 # %%
-window1.geometry("800x600")
-window1.configure(bg="#444")
-
-
-# %% [markdown]
-# >> Window1 sub1 Choose Source
-
-# %% [markdown]
-# ---
-
-# %% [markdown]
-# # FUNCTIONS
-
-# %%
-def search():
-    search_query = entered_order.get()  
-    print("search() ทำงานและได้ผลลัพธ์: ",search_query)
-    entered_order.set("")
-    report_log.config(state=NORMAL)
-    report_log.insert(END, search_query + "\n")
-    report_log.config(state=DISABLED)
-    order_receive(search_query)
-
-# %%
-# Subwindow Close
-def on_subwindow_close(sub_window):
-    sub_window.destroy()
-
-# %% [markdown]
-# ---
-
-# %% [markdown]
-# # FRAMES
-
-# %% [markdown]
-# > Frame1
-
-# %%
-entry_frame = Frame(window1, padx=5, pady=5, bg="#444")
-entry_frame.pack()
-
-# %% [markdown]
-# > Frame2
-
-# %%
-log_frame = Frame(window1, bg="#444")
-log_frame.pack(side='bottom', pady=(0,30))
-
-# %% [markdown]
-# ---
-
-# %% [markdown]
-# # **WIDGETS**
-
-# %% [markdown]
-# > Labels
-
-# %%
-inp1_label_order = Label(entry_frame, text="Order: ", bg="#FFF", width=10)
-inp1_label_order.grid(row=0,column=0, padx=5)
-
-# %% [markdown]
-# > Inputs
-
-# %%
-entered_order = StringVar()
-inp1_order_input = Entry(entry_frame, textvariable=entered_order, width=50)
-
-inp1_order_input.grid(row=0,column=2)
-
-# %% [markdown]
-# > Buttons
-
-# %%
-inp1_search_btn = Button(entry_frame, text="ค้นหา", bg="#747474", command=search, width=10)
-inp1_search_btn.grid(row=0,column=4, padx=5)
-
-# %% [markdown]
-# > Log windows
-
-# %%
-
-report_log = Text(log_frame, state=DISABLED)
-scrollbar= Scrollbar(log_frame, command=report_log.yview)
-scrollbar.pack(side="right", fill="y") 
-scrollbar.config()
-report_log.pack(side='bottom', fill=X)
-report_log.config(yscrollcommand=scrollbar.set)
-
-# %% [markdown]
-# > Subwindow
-
-# %%
-window1_sub1 = Toplevel(window1)
-window1_sub1.transient(window1)
-window1_sub1.geometry("300x200")
-window1_sub1.title("Data Source")
-window1_sub1_label = Label(window1_sub1, text="")
-
-
-
-##*  function
-def on_close():
-    window1_sub1.destroy()
-window1_sub1.protocol("WM_DELETE_WINDOW", on_close)
-
-def select_api():
-    global result
-    result = "API"
-    print("Select API")
-    window1_sub1.destroy()
-window1_sub1.protocol("WM_DELETE_WINDOW", on_close)
+def show_input_order(order):
+    order_name = order
+    print("Orderที่รับเข้ามา: ",order)
+    return order_name
     
 
-def select_excel():
-    global result
-    result = "Excel"
-    print("Select Excel")
-    window1_sub1.destroy()
-window1_sub1.protocol("WM_DELETE_WINDOW", on_close)
+# %% [markdown]
+# ---
+
+# %% [markdown]
+# ## Tricks หาที่อยู่ลูกค้า  
+# > แง่ดี
+# >> 1.ใน export file ของ shopee **_กรณีเป็นใบกำกับ_** จะ มี แขวง เขต จังหวัด ครบ  
+# >> 2.ใน export file ของ shopee **_ค่าจาก column อำเภอ จะเป็น แบบเต็ม_** เสมอ เช่น อำเภอธัญบุรี, เขตคลองสามวา
+# 
+# > แง่เลว
+# >> 1.ใน export file ของ shopee ค่าใน Column อาจจะเป็นภาษาอังกฤษ ทุก column  
+# >> 2.ใน Tambon_Data Columnตำบล ไม่มีคำว่าตำบล แต่ Columnอำเภอมีคำว่า อำเภอ แต่ เขต กับ แขวง มีทั้งคู่ สรุปถ้าใช้เพียวๆจะได้  "โพหัก อำเภอบางแพ ราชบุรี 70160"
+
+# %%
+import pandas as pd
+import re
+import os 
+
+def clean_address(address):
+    keywords = ["เขต", "แขวง", "ต.", "ตำบล", "อ.", "อำเภอ", "จ.", "จังหวัด"]
+
+    # ตรวจสอบว่าสตริงมีคำ "จังหวัด" และ ("เขต" หรือ "แขวง") หรือไม่
+    if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
+        # ลบคำ "จังหวัด" ออกจากสตริง
+        address = address.replace("จังหวัด", "")
+        
+    if "\n" in address:
+        address = address.replace('\n', " ")
+
+    # เริ่มต้นโดยการแยกคำด้วยช่องว่าง
+    parts = address.split()
     
+    # สร้าง list เพื่อเก็บคำที่ไม่ใช่คำย่อ
+    cleaned_parts = []
+    
+    for part in parts:
+        # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
+        is_abbreviation = any(part.startswith(keyword) for keyword in ["ต.", "อ.", "จ."])
+        
+        if not is_abbreviation:
+            cleaned_parts.append(part)
+    
+    # นำคำที่ไม่ใช่คำย่อมาเชื่อมกลับเป็นสตริงใหม่
+    cleaned_address = ' '.join(cleaned_parts)
+    
+    # ลบคำที่มีส่วนที่เหมือนกันออก
+    cleaned_address = clean_duplicate_parts(cleaned_address)
+    
+    # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
+    cleaned_address = cleaned_address.replace("  ", " ")
+    
+    return cleaned_address
+#######################################################################################################################################
 
+##* หาตำบล//แขวง
+## ตำบล=แขวง// อำเภอ=เขต // จังหวัด 
+shopee_export_file = "../excel/Order.toship.20230903_20230914 (1).xlsx"
+order = "230909SXD34N4S"
 
-##* btn
-sub1_btn1 = Button(window1_sub1, text="API", command=select_api).pack()
-sub1_btn2 = Button(window1_sub1, text="Excel", command=select_excel).pack()
+def find_tambon():
+    ##เตรียมข้อมูล Pattern ที่อยู่คนไทย
+    shopee_data = "../excel/Order.toship.20230903_20230914 (1).xlsx"
+    shopee_df = pd.read_excel(shopee_data)
+    target_row_index = shopee_df['หมายเลขคำสั่งซื้อ'] == order
+    cus_address = shopee_df[target_row_index].iloc[0, 15]
+    print("cus_address", cus_address)
+    amphoe = str(shopee_df[target_row_index].iloc[0, 18])
+    amphoe_short = amphoe.replace("อำเภอ", "")
+    print("amphoe", amphoe)
+    print("amphoe_short", amphoe_short)
+    postal_code = str(shopee_df[target_row_index].iloc[0, 20])
+    
+    ##เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
+    ##จัวนี้ต้องผูกกับ exe
+    tambon_data_address = r"../excel/Addresscleaner_TambonData.xlsx"
+    df_thai_add = pd.read_excel(tambon_data_address)
+    allfiltered_df = df_thai_add[(df_thai_add['PostCodeMain'].astype(str) == postal_code) & (df_thai_add['DistrictThai'] == amphoe)]
+    possible_tambon = list(allfiltered_df['TambonThai'])
+    print("ตำบลที่เป็นไปได้: ",possible_tambon)
 
+    ##
+    decent_tambon = []
+    for tambon in possible_tambon:
+        ## เขต แขวง อ ต ไรก็ตามเอาออกให้หมด   
+        
+        if  "ตำบล" in tambon:
+            tambon = re.sub(r'\bตำบล\b','', tambon)
+        elif "แขวง" in tambon:
+            tambon = re.sub(r'แขวง','', tambon)
+        ##ช่องว่างตั้งแต่ 1 อันขึ้นไป จะกลายเป็น โดนลบทั้งหมด
+        tambon = re.sub(r'\s{1,}','', tambon)
+        if tambon in cus_address:        
+            if "กรุงเทพ" in cus_address or "กทม" in cus_address:
+                decent_tambon.append("แขวง"+tambon)
+            else:
+                decent_tambon.append("ตำบล"+tambon)
+        else:
+            pass
 
-window1_sub1.wait_window()
-print("รอปิด")
-print("Result: ", result)
-if (result == "API"):
-    print("เลือก API")
-    report_log.config(state=NORMAL)
-    report_log.insert(END, "ยังไม่พร้อมใช้งานแค่ทำปุ่มรอไว้เฉยๆ" + "\n")
-    report_log.config(state=DISABLED)
-elif (result == "Excel"):
-    print("เลือก Excel")
-    report_log.config(state=NORMAL)
-    report_log.insert(END, "ใช้ Excel " + "\n")
-    report_log.config(state=DISABLED)
+    return decent_tambon
 
-
-
-
-##* optional
-# result_sub = messagebox.askyesno("vcvcv", )
+find_tambon()
 
 
 # %% [markdown]
 # ---
 
 # %% [markdown]
-# # **RUN GUI**
+# ## Create Json File
+
+# %%
+import json
+import pandas as pd
+
+xlsx_file = "Addresscleaner_TambonData.xlsx"
+df = pd.read_excel(xlsx_file)
+
+json_data = df.to_json(orient="records", force_ascii=False)
+
+json_filename = "output.json"  # ระบุชื่อไฟล์ JSON ที่คุณต้องการบันทึก
+#* คอมเม้นกันลั่น
+# with open(json_filename, "w", encoding="utf-8") as json_file:
+#     json_file.write(json_data)
+    
+# print(f"แปลงไฟล์ Excel เป็น JSON แล้วบันทึกใน {json_filename}")
+
+# %% [markdown]
+# ---
 # 
 
 # %% [markdown]
-# > Check DataFrame
+# ## Dict Method
 
 # %%
-get_data_frame()
-
-# %% [markdown]
-# > Launch Gui
+import json
+json_file = "thai_address_pattern.json"
+with open(json_file,"r", encoding="utf-8") as file:
+    data = json.load(file)
+data[0:2]
 
 # %%
-window1.mainloop()
-
 
 
 
