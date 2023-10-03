@@ -1,5 +1,21 @@
 # เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
 # from pynput.mouse import Listener
+import os
+import sys
+
+# ดึงเส้นทาง (path) ปัจจุบัน
+current_path = os.getcwd()
+
+# ตัดชื่อโฟลเดอร์ออกจากเส้นทางปัจจุบัน
+parent_path = os.path.dirname(current_path)
+
+# กลับไปยังโฟลเดอร์ก่อนหน้า
+os.chdir(parent_path)
+
+sys.path.append("G:/VSC/FreeRoam/freeroam2/Python/python_modules3")
+print("คือไร", current_path)
+
+
 from xml.dom.minidom import Document
 import myFunctions
 from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
@@ -19,20 +35,9 @@ import re
 import win32com.client as comclt
 import time
 
-import os
-import sys
-# ดึงเส้นทาง (path) ปัจจุบัน
-current_path = os.getcwd()
 
-# ตัดชื่อโฟลเดอร์ออกจากเส้นทางปัจจุบัน
-parent_path = os.path.dirname(current_path)
-
-# กลับไปยังโฟลเดอร์ก่อนหน้า
-os.chdir(parent_path)
 
 # เพิ่มเส้นทางปัจจุบันเป็นเส้นทางหลัก (main path) ใหม่
-sys.path.insert(0, parent_path)
-sys.path.append('../Python/python_modules3')
 
 # หลักๆ ใช้ setup
 # ไม่รู้คือไร แต่ใช้แล้ว มันทำให้ควบคุม context เมนูได้
