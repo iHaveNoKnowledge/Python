@@ -30,7 +30,7 @@ parent_path = os.path.dirname(current_path)
 # กลับไปยังโฟลเดอร์ก่อนหน้า
 os.chdir(parent_path)
 
-sys.path.insert(0,"G:\VSC\FreeRoam\freeroam2\Python\python_modules3\SMCO")
+sys.path.insert(1,"G:\VSC\FreeRoam\freeroam2\Python\python_modules3\SMCO")
 import cusNameFixer
 print("คือไร", current_path)
 
