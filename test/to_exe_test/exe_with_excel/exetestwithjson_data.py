@@ -1,13 +1,21 @@
 import json
-import os
+import os, sys
 
-import os
-# file_path = os.path.join('test', 'to_exe_test', 'exe_with_excel', 'thai_address_pattern.json')
 
-# file_path = 'test/to_exe_test/exe_with_excel/thai_address_pattern.json'
+
+##* ฟังชั่นเทพทำให้ path ต่อกันแบบออโต้สะเมติก ############
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 file_path= 'thai_address_pattern.json'
+
 try:
-    with open(file_path, "r", encoding="utf-8") as file:
+    with open(resource_path(file_path), "r", encoding="utf-8") as file:
         data = json.load(file)
  
     print("ก่อนใช้ print(data[0:2]) ")
@@ -19,3 +27,6 @@ try:
 except Exception as err:
     print("พัง", err)
 input("Press Enter to end the script")
+
+# ใช้ได้
+# pyinstaller --onefile --add-data "thai_address_pattern.json;./" exetestwithjson_data.py  
