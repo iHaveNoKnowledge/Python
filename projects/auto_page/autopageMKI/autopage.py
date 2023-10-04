@@ -1,5 +1,6 @@
 # เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
 # from pynput.mouse import Listener
+from cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 import time
 import win32com.client as comclt
 import re
@@ -30,8 +31,9 @@ parent_path = os.path.dirname(current_path)
 # กลับไปยังโฟลเดอร์ก่อนหน้า
 os.chdir(parent_path)
 
-sys.path.insert(1,"G:\VSC\FreeRoam\freeroam2\Python\python_modules3\SMCO")
-import cusNameFixer
+# เอา folder ที่มี module มาเป็นหนึ่งเดียวกับ folder ของ project ทำให้ สามารถ import จากการใช้ form แล้วตามด้วย ชื่อ module ได้โดยตรง แบบนี้ >> "from cusNameFixer"
+sys.path.insert(
+    1, "G://VSC//FreeRoam//freeroam2//Python//python_modules3//SMCO")
 print("คือไร", current_path)
 
 
@@ -67,8 +69,11 @@ opt.add_experimental_option("debuggerAddress", "localhost:8989")
 # driver = webdriver.Chrome(service=Service(
 #     ChromeDriverManager().install()), options=opt)
 # ใส่ r ไว้หน้า path จะให้มันเป็น string ที่แท้จริง string ดิบๆ ถ้าไม่ใช่ มันจะมองบางตัวเป็นตัวอักษรสำหรับ syntaxต่อให้ "" ครอบก็ตาม
+# driver = webdriver.Chrome(service=Service(
+#     r'C:\\Users\\ONLINE_MIS\\.wdm\\drivers\\chromedriver\\win64\\116.0.5845.111\\chromedriver.exe'), options=opt)
+
 driver = webdriver.Chrome(service=Service(
-    r'C:\\Users\\ONLINE_MIS\\.wdm\\drivers\\chromedriver\\win64\\116.0.5845.111\\chromedriver.exe'), options=opt)
+    r'C:\bin\chromedriver.exe'), options=opt)
 # print("มันลงไว้ที่ ",ChromeDriverManager().install()) ##ก้อนนี้ returns path ที่มันลงไว้ ซึ่งมันโหลดตัวลงไว้เฉยๆ เป็น zip แล้วแตกไฟล์
 # service2 = Service(executable_path=ChromeDriverManager().install())
 # driver2= webdriver.Chrome(service=service2)
@@ -367,7 +372,10 @@ except:
 
 time.sleep(1)
 # ย้ายไปหน้า 3 (หน้ารายละเอียดOrder ที่เปิดล่าสุดนั้นแหละ) เพื่อไปเลือกว่าจะเอาข้อมูลปกติ หรือ ใบกำกับ โดยตัดสินจาก boolean
-driver.switch_to.window(driver.window_handles[4])
+print("List ของ windows ปัจจุบัน: ", driver.window_handles,
+      "จำนวนหน้าต่าง: ", len(driver.window_handles))
+lasted_open_page_idx = len(driver.window_handles)-1
+driver.switch_to.window(driver.window_handles[lasted_open_page_idx])
 wait = WebDriverWait(driver, 40)
 wait.until(EC.visibility_of_element_located(
     (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[1]')))  # ดูว่า div แรกออกมายัง
