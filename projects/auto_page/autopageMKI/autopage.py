@@ -1,6 +1,6 @@
 # เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
 # from pynput.mouse import Listener
-from cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
+
 import time
 import win32com.client as comclt
 import re
@@ -32,8 +32,7 @@ parent_path = os.path.dirname(current_path)
 os.chdir(parent_path)
 
 # เอา folder ที่มี module มาเป็นหนึ่งเดียวกับ folder ของ project ทำให้ สามารถ import จากการใช้ form แล้วตามด้วย ชื่อ module ได้โดยตรง แบบนี้ >> "from cusNameFixer"
-sys.path.insert(
-    1, "G://VSC//FreeRoam//freeroam2//Python//python_modules3//SMCO")
+sys.path.append("\python_modules3\SMCO")
 print("คือไร", current_path)
 
 
