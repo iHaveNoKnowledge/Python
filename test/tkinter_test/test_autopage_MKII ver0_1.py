@@ -15,6 +15,7 @@ class MyApp:
         self.tax_bool = bool
         self.create_main_window()
         self.get_dataframe()
+        
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -80,12 +81,12 @@ class MyApp:
 
         # * > Is Tax?? display component
         # >> Labels
-        # self.label_current_order = Label(
-        #     self.order_details_frame, text="ใบกำกับ: ", bg="#FFF", )
-        # self.label_current_order.grid(row=1, column=0, padx=(5,0))
-        # self.display_current_order = Text(
-        #     self.order_details_frame, width=30)
-        # self.display_current_order.grid(row=1, column=1, padx=(5, 0))
+        self.label_is_tax = Label(
+            self.order_details_frame, text="ใบกำกับ: ", bg="#FFF")
+        self.label_is_tax.grid(row=1, column=2, padx=(5,0))
+        self.display_is_tax = Text(
+            self.order_details_frame, width=5, height=self.order_details_frame.winfo_height()+0, state=DISABLED,  borderwidth=0)
+        self.display_is_tax.grid(row=1, column=3, padx=(5, 0))
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED)
@@ -134,49 +135,48 @@ class MyApp:
 
     def order_search(self, order):
         self.order = order
-        print("Order is: ", self.order)
+        differential_col_data = [
+            'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ']
+        non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
+                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี']
+        
+        #? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
         self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
                                             == self.order)]
-
-        # target_row เป็น row ที่เลือกจากเลข Order ที่รับเข้ามา
+        #? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
         self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
+        
         self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
-        if self.order_status == "ที่ต้องจัดส่ง":
-            print("สถานะOrder: ", self.order_status)
-            # * ############# หาค่าจาก ตาราง ###############################
-            # * ประเภทใบกำกับภาษี
-            # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
-            self.tax_bool
-            if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
-                self.tax_bool = False
-            else:
-                self.tax_bool = True
-
-            # *  ของมีอะไรบ้าง
-            self.products_list = self.data_frame[self.target_row].to_dict('records'
-            )
-            self.products_list_2 = self.data_frame[self.target_row]
-            self.true_products_list = []
-            for index, row in self.products_list_2.iterrows():
-                sku_reference = row['เลขอ้างอิง SKU (SKU Reference No.)']
-                net_price = row['ราคาขายสุทธิ']
-                print(f"เลขอ้างอิง SKU: {sku_reference}, ราคาขายสุทธิ: {net_price}")
-            # * แสดงผล
-
-            # print("ใบกำกับ?", self.tax_bool)
-            self.address = self.filter_data.iat[0, 15]
-            # print("ข้อความ", self.address)
-            self.cleaned_address = self.clean_address(self.address)
-            # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
-            result = {"status":self.order_status,"is_tax": self.tax_bool, "address": self.cleaned_address}
-            # print("มีกี่รายการ: ", len(self.products_list_2))
-            # print("มีไรบ้าง: ", self.products_list_2[['เลขอ้างอิง SKU (SKU Reference No.)', 'ราคาขายสุทธิ']])
-
-            print("ขอใบกำกับไหม? ", result["is_tax"])
-            print("ที่อยู่ ", result["address"])
-
+        
+        print("สถานะOrder: ", self.order_status)
+        # * ############# หาค่าจาก ตาราง ###############################
+        # * ประเภทใบกำกับภาษี
+        # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
+        self.tax_bool
+        if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
+            self.tax_bool = False
         else:
-            print("Orderนี้ ขอยกเลิกมานะ")
+            self.tax_bool = True
+
+        # *  ของมีอะไรบ้าง
+        self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
+        
+        # * แสดงผล
+        self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
+        print("พวกค่าแต่ละrowไม่บิดเบี้ยว: ",
+                self.nondistortedData, 'ประเภทข้อมูล',type(self.nondistortedData))
+        print("เลือกพวกค่าที่มันบิดเบี้ยวแต่ละrow: ", self.items)
+        # print("ใบกำกับ?", self.tax_bool)
+        self.address = self.filter_data.iat[0, 15]
+        # print("ข้อความ", self.address)
+        self.cleaned_address = self.clean_address(self.address)
+        # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
+        result = {"status": self.order_status,
+                    "is_tax": self.tax_bool, "address": self.cleaned_address, "details":self.nondistortedData, "items":self.items}
+
+        print("ขอใบกำกับไหม? ", result["is_tax"])
+        print("ที่อยู่ ", result["address"])
+        return result
 
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
