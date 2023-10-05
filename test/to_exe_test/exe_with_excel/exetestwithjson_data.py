@@ -28,5 +28,5 @@ except Exception as err:
     print("พัง", err)
 input("Press Enter to end the script")
 
-# ใช้ได้
+##*  ใช้ได้
 # pyinstaller --onefile --add-data "thai_address_pattern.json;./" exetestwithjson_data.py  

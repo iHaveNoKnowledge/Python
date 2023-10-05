@@ -22,39 +22,65 @@ class MyApp:
         self.root.configure(bg="#444")
         
         # #* FRAMES #####################################################################################################
-        # > Frame1
+        # > Frame1 Order Entry
         self.entry_frame = Frame(self.root, padx=5, pady=5, bg="#444")
         self.entry_frame.pack()
 
-        # > Frame2
+        # > Frame2 Log Frame
         self.log_frame = Frame(self.root, bg="#444")
         self.log_frame.pack(side='bottom', pady=(0,30))
-
+        
+         # > Frame3 ImportFile Status
+        self.import_file_frame = Frame(self.root, bg="#444")
+        self.import_file_frame.pack(anchor=W, padx=(0,5), pady=(5,0))
+        
+        # > Frame4 Customer Details
+        self.order_details_frame = Frame(self.root, bg="#444", )
+        self.order_details_frame.pack(anchor=W, padx=(0,5), pady=(5,0))
+        
+       
 
         # Create widgets in the main window
         self.create_widgets()
         
 
     def create_widgets(self):
-        # > Labels
+        
+        #* > search order component
+        # >> Labels
         self.inp1_label_order = Label(self.entry_frame, text="Order: ", bg="#FFF", width=10)
         self.inp1_label_order.grid(row=0,column=0, padx=5)
-        
-        self.display_location_label = Label(text=f"File located: ")
-        self.display_location_label.pack(side="left", padx=(20, 5), pady=(0, 100))
-        self.display_location_result = Label(text=f"ยังไม่มีไฟล์ที่เลือก")
-        self.display_location_result.pack(side="left", pady=(0, 100))
-
-        # > Inputs
+        # >> Inputs
         self.entered_order = StringVar()
         self.inp1_order_input = Entry(self.entry_frame, textvariable=self.entered_order, width=50)
         self.inp1_order_input.grid(row=0,column=2)
-
-        # > Buttons
+        # >> Buttons
         self.inp1_search_btn = Button(self.entry_frame, text="ค้นหา", bg="#747474", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0,column=4, padx=5)
+        
+        #* > ExportFile location display component
+        self.display_location_label = Label(self.import_file_frame, text=f"File located: ")
+        self.display_location_label.grid(row=0, column=0)
+        self.display_location_result = Label(self.import_file_frame, text=f"ยังไม่มีไฟล์ที่เลือก")
+        self.display_location_result.grid(row=0, column=1)
+        
+        #* > Current Order display component
+        # >> Labels
+        self.label_current_order = Label(self.order_details_frame, text="Current Order: ", bg="#FFF", )
+        self.label_current_order.grid(row=1, column=0)
+        self.display_current_order = Label(self.order_details_frame, text=f" ", width=30)
+        self.display_current_order.grid(row=1, column=1, padx=(5,0))
 
-        # > Log windows
+     
+        
+        
+        
+ 
+        
+        
+         
+
+        #* > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED)
         self.scrollbar= Scrollbar(self.log_frame, command=self.report_log.yview)
         self.scrollbar.pack(side="right", fill="y") 
@@ -62,7 +88,7 @@ class MyApp:
         self.report_log.pack(side='bottom', fill=X)
         self.report_log.config(yscrollcommand=self.scrollbar.set)
 
-        # Create DataSourceSelector instance
+        ##* Create DataSourceSelector instance ###########
         self.data_source_selector = DataSourceSelector(self.root, self)
         
         
