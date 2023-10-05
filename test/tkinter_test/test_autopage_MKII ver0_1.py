@@ -14,8 +14,11 @@ class MyApp:
         self.table_location = ""
         self.tax_bool = BooleanVar(value=False)
         self.is_tax = StringVar(value="ไม่มี")
+        self.cus_name = StringVar(value="ไม่มี")
         self.create_main_window()
         self.get_dataframe()
+        
+    
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -73,7 +76,7 @@ class MyApp:
         # * > Current Order display component
         # >> Labels
         self.label_current_order = Label(
-            self.order_details_frame, text="Current Order: ", bg="#FFF")
+            self.order_details_frame, text="Current Order: ", bg="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
         self.display_current_order = Text(
             self.order_details_frame, width=30, height=self.order_details_frame.winfo_height()+0, state=DISABLED,  borderwidth=0)
@@ -84,10 +87,22 @@ class MyApp:
         self.label_is_tax = Label(
             self.order_details_frame, text="ใบกำกับ: ", bg="#FFF")
         self.label_is_tax.grid(row=1, column=2, padx=(5, 0))
+        # >> Value display
         self.display_is_tax = Label(
             self.order_details_frame, width=12,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
- 
+
         self.display_is_tax.grid(row=1, column=3, padx=(5, 0))
+
+        # * > CustomerName display component
+        # >> Labels
+        self.label_cus_name = Label(
+            self.order_details_frame, text="ชื่อ: ", bg="#FFF", height=1)
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2,2))
+        # >> Value display
+        self.display_cus_name = Label(
+            self.order_details_frame, width=34,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", anchor=W)
+
+        self.display_cus_name.grid(row=2, column=1, padx=(5, 0))
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED)
@@ -159,11 +174,12 @@ class MyApp:
                 self.tax_bool.set(False)
                 self.is_tax.set("ไม่ขอใบกำกับ")
                 self.display_is_tax.config(background="#6ec7ff")
-            
+
             else:
                 self.tax_bool.set(True)
                 self.is_tax.set("ขอใบกำกับ")
-                self.display_is_tax.config(background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
+                self.display_is_tax.config(
+                    background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
 
             # *  ของมีอะไรบ้าง
             self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
@@ -173,7 +189,7 @@ class MyApp:
             self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
             )
             print("พวกค่าแต่ละrowไม่บิดเบี้ยว: ",
-                self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
+                  self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
             print("เลือกพวกค่าที่มันบิดเบี้ยวแต่ละrow: ", self.items)
             # print("ใบกำกับ?", self.tax_bool)
             self.address = self.filter_data.iat[0, 15]
@@ -181,15 +197,20 @@ class MyApp:
             self.cleaned_address = self.clean_address(self.address)
             # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
             result = {"status": self.order_status,
-                    "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
-
+                      "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+            self.cus_name.set(self.nondistortedData['ชื่อ'].strip())
             print("ขอใบกำกับไหม? ", result["is_tax"])
             print("ที่อยู่ ", result["address"])
+            
             return result
         else:
             self.tax_bool.set(False)
             self.is_tax.set("ไม่มี")
-            self.display_is_tax.config(background="#FFF", foreground="#000" ,font='Chiller 13 bold')
+            self.display_is_tax.config(
+                background="#FFF", foreground="#000", font='Chiller 13 bold')
+            
+            self.cus_name.set("ไม่มี")
+
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
         pattern = r'(ต\..+?)\s+?(ตำบล|อ\..+?)\s+?(อำเภอ|จ\..+?)\s+?(จังหวัด)'
@@ -260,7 +281,7 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.insert(END, self.search_query + "\n")
             self.report_log.config(state=DISABLED)
-        else :
+        else:
             self.report_log.config(state=NORMAL)
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
