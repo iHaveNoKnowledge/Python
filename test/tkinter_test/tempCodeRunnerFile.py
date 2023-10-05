@@ -1,1 +1,2 @@
-inp1_label_order
+
+        #     self.order_details_frame, text="ใบกำกับ: ", bg="#FFF", )
