@@ -1,2 +1,2 @@
 
-        #     self.order_details_frame, text="ใบกำกับ: ", bg="#FFF", )
+            self.true_products_list = []

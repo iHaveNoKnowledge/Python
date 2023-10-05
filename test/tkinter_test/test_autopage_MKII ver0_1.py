@@ -61,23 +61,23 @@ class MyApp:
         # * > ExportFile location display component
         self.display_location_label = Label(
             self.import_file_frame, text=f"File located: ")
-        self.display_location_label.grid(row=0, column=0, padx=(5,0))
+        self.display_location_label.grid(row=0, column=0, padx=(5, 0))
         self.display_location_result = Label(
             self.import_file_frame, text=f"ยังไม่เลือก Import File")
-        self.display_location_result.grid(row=0, column=1, padx=(5,0))
+        self.display_location_result.grid(row=0, column=1, padx=(5, 0))
         self.display_location_result_btn = Button(
             self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel)
-        self.display_location_result_btn.grid(row=0, column=2, padx=(5,0))
+        self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
 
         # * > Current Order display component
         # >> Labels
         self.label_current_order = Label(
             self.order_details_frame, text="Current Order: ", bg="#FFF")
-        self.label_current_order.grid(row=1, column=0, padx=(5,0))
+        self.label_current_order.grid(row=1, column=0, padx=(5, 0))
         self.display_current_order = Text(
             self.order_details_frame, width=30, height=self.order_details_frame.winfo_height()+0, state=DISABLED,  borderwidth=0)
         self.display_current_order.grid(row=1, column=1, padx=(5, 0))
-        
+
         # * > Is Tax?? display component
         # >> Labels
         # self.label_current_order = Label(
@@ -98,7 +98,7 @@ class MyApp:
 
         ## * Create DataSourceSelector instance ###########
         self.data_source_selector = DataSourceSelector(self.root, self)
-        
+
     def update_log(self, update_txt):
         self.update_txt = update_txt
         self.report_log.config(state=NORMAL)
@@ -114,8 +114,6 @@ class MyApp:
         self.get_data_frame()
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
-        
-        
 
     def get_data_frame(self):
         print("มีป่าวหว่า", self.table_location)
@@ -142,10 +140,9 @@ class MyApp:
 
         # target_row เป็น row ที่เลือกจากเลข Order ที่รับเข้ามา
         self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
-        if self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0] == "ที่ต้องจัดส่ง":
-            print("boolfilter มี type เป็นไร", type(self.target_row))
-            print("สถานะOrder: ",
-                  self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0])
+        self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
+        if self.order_status == "ที่ต้องจัดส่ง":
+            print("สถานะOrder: ", self.order_status)
             # * ############# หาค่าจาก ตาราง ###############################
             # * ประเภทใบกำกับภาษี
             # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
@@ -156,18 +153,27 @@ class MyApp:
                 self.tax_bool = True
 
             # *  ของมีอะไรบ้าง
-            self.products_list = self.data_frame[self.target_row].to_dict(
+            self.products_list = self.data_frame[self.target_row].to_dict('records'
             )
+            self.products_list_2 = self.data_frame[self.target_row]
+            self.true_products_list = []
+            for index, row in self.products_list_2.iterrows():
+                sku_reference = row['เลขอ้างอิง SKU (SKU Reference No.)']
+                net_price = row['ราคาขายสุทธิ']
+                print(f"เลขอ้างอิง SKU: {sku_reference}, ราคาขายสุทธิ: {net_price}")
             # * แสดงผล
-            
+
             # print("ใบกำกับ?", self.tax_bool)
             self.address = self.filter_data.iat[0, 15]
             # print("ข้อความ", self.address)
             self.cleaned_address = self.clean_address(self.address)
             # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
-            result = {"is_tax": self.tax_bool, "address":self.cleaned_address}
-            print("ขอใบกำกับไหม? ",result["is_tax"])
-            print("ที่อยู่ ",result["address"])
+            result = {"status":self.order_status,"is_tax": self.tax_bool, "address": self.cleaned_address}
+            # print("มีกี่รายการ: ", len(self.products_list_2))
+            # print("มีไรบ้าง: ", self.products_list_2[['เลขอ้างอิง SKU (SKU Reference No.)', 'ราคาขายสุทธิ']])
+
+            print("ขอใบกำกับไหม? ", result["is_tax"])
+            print("ที่อยู่ ", result["address"])
 
         else:
             print("Orderนี้ ขอยกเลิกมานะ")
@@ -241,7 +247,7 @@ class MyApp:
         self.report_log.insert(END, self.search_query + "\n")
         self.report_log.config(state=DISABLED)
         self.display_current_order.config(state=NORMAL)
-        self.display_current_order.delete("1.0","end")
+        self.display_current_order.delete("1.0", "end")
         self.display_current_order.insert("1.0", self.search_query.strip())
         self.display_current_order.config(state=DISABLED)
         self.order_search(self.search_query)
@@ -251,7 +257,6 @@ class MyApp:
 
     def get_dataframe(self):
         print("เรียกหา dataframe")
-        
 
 
 # สำหรับเลือกที่มาของแหล่งข้อมูล
@@ -281,7 +286,6 @@ class DataSourceSelector:
         self.app.result = "API"
         print("Select API")
         self.subwindow.destroy()
-        
 
     def select_excel(self):
         self.app.result = "Excel"
@@ -290,10 +294,9 @@ class DataSourceSelector:
         self.app.display_location_result.config(
             text=f"{self.app.table_location.split('/')[-1]}")
         self.app.get_data_frame()
-        print("Table Location:", self.app.table_location)  
+        print("Table Location:", self.app.table_location)
         self.subwindow.destroy()
-        self.app.update_log("เพิ่มไฟล์แล้ว") 
-        
+        self.app.update_log("เพิ่มไฟล์แล้ว")
 
     def on_close(self):
         self.subwindow.destroy()
