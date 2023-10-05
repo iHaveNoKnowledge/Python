@@ -12,10 +12,10 @@ class MyApp:
         self.root = root
         self.result = ""
         self.table_location = ""
-        self.tax_bool = bool
+        self.tax_bool = BooleanVar(value=False)
+        self.is_tax = StringVar(value="ไม่มี")
         self.create_main_window()
         self.get_dataframe()
-        
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -83,9 +83,10 @@ class MyApp:
         # >> Labels
         self.label_is_tax = Label(
             self.order_details_frame, text="ใบกำกับ: ", bg="#FFF")
-        self.label_is_tax.grid(row=1, column=2, padx=(5,0))
-        self.display_is_tax = Text(
-            self.order_details_frame, width=5, height=self.order_details_frame.winfo_height()+0, state=DISABLED,  borderwidth=0)
+        self.label_is_tax.grid(row=1, column=2, padx=(5, 0))
+        self.display_is_tax = Label(
+            self.order_details_frame, width=12,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
+ 
         self.display_is_tax.grid(row=1, column=3, padx=(5, 0))
 
         # * > Log windows component
@@ -139,45 +140,56 @@ class MyApp:
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี']
-        
-        #? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
-        self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
-                                            == self.order)]
-        #? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
-        self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
-        
-        self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
-        
-        print("สถานะOrder: ", self.order_status)
-        # * ############# หาค่าจาก ตาราง ###############################
-        # * ประเภทใบกำกับภาษี
-        # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
-        self.tax_bool
-        if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
-            self.tax_bool = False
+
+        if self.order != "":
+            # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
+            self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
+                                                == self.order)]
+            # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
+            self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
+
+            self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
+
+            print("สถานะOrder: ", self.order_status)
+            # * ############# หาค่าจาก ตาราง ###############################
+            # * ประเภทใบกำกับภาษี
+            # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
+
+            if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
+                self.tax_bool.set(False)
+                self.is_tax.set("ไม่ขอใบกำกับ")
+                self.display_is_tax.config(background="#6ec7ff")
+            
+            else:
+                self.tax_bool.set(True)
+                self.is_tax.set("ขอใบกำกับ")
+                self.display_is_tax.config(background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
+
+            # *  ของมีอะไรบ้าง
+            self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
+                'records')
+
+            # * แสดงผล
+            self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
+            )
+            print("พวกค่าแต่ละrowไม่บิดเบี้ยว: ",
+                self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
+            print("เลือกพวกค่าที่มันบิดเบี้ยวแต่ละrow: ", self.items)
+            # print("ใบกำกับ?", self.tax_bool)
+            self.address = self.filter_data.iat[0, 15]
+            # print("ข้อความ", self.address)
+            self.cleaned_address = self.clean_address(self.address)
+            # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
+            result = {"status": self.order_status,
+                    "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+
+            print("ขอใบกำกับไหม? ", result["is_tax"])
+            print("ที่อยู่ ", result["address"])
+            return result
         else:
-            self.tax_bool = True
-
-        # *  ของมีอะไรบ้าง
-        self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
-        
-        # * แสดงผล
-        self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
-        print("พวกค่าแต่ละrowไม่บิดเบี้ยว: ",
-                self.nondistortedData, 'ประเภทข้อมูล',type(self.nondistortedData))
-        print("เลือกพวกค่าที่มันบิดเบี้ยวแต่ละrow: ", self.items)
-        # print("ใบกำกับ?", self.tax_bool)
-        self.address = self.filter_data.iat[0, 15]
-        # print("ข้อความ", self.address)
-        self.cleaned_address = self.clean_address(self.address)
-        # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
-        result = {"status": self.order_status,
-                    "is_tax": self.tax_bool, "address": self.cleaned_address, "details":self.nondistortedData, "items":self.items}
-
-        print("ขอใบกำกับไหม? ", result["is_tax"])
-        print("ที่อยู่ ", result["address"])
-        return result
-
+            self.tax_bool.set(False)
+            self.is_tax.set("ไม่มี")
+            self.display_is_tax.config(background="#FFF", foreground="#000" ,font='Chiller 13 bold')
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
         pattern = r'(ต\..+?)\s+?(ตำบล|อ\..+?)\s+?(อำเภอ|จ\..+?)\s+?(จังหวัด)'
@@ -243,9 +255,15 @@ class MyApp:
         self.search_query = self.entered_order.get()
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
         self.entered_order.set("")
-        self.report_log.config(state=NORMAL)
-        self.report_log.insert(END, self.search_query + "\n")
-        self.report_log.config(state=DISABLED)
+        if self.search_query != "":
+            self.report_log.config(state=NORMAL)
+            self.report_log.delete("1.0", "end")
+            self.report_log.insert(END, self.search_query + "\n")
+            self.report_log.config(state=DISABLED)
+        else :
+            self.report_log.config(state=NORMAL)
+            self.report_log.delete("1.0", "end")
+            self.report_log.config(state=DISABLED)
         self.display_current_order.config(state=NORMAL)
         self.display_current_order.delete("1.0", "end")
         self.display_current_order.insert("1.0", self.search_query.strip())
