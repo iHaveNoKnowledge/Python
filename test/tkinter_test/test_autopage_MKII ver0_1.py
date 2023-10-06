@@ -12,13 +12,18 @@ class MyApp:
         self.root = root
         self.result = ""
         self.table_location = ""
+        self.cus_order = StringVar(value="-")
         self.tax_bool = BooleanVar(value=False)
-        self.is_tax = StringVar(value="ไม่มี")
-        self.cus_name = StringVar(value="ไม่มี")
+        self.tax_num = StringVar(value="-")
+        self.is_tax = StringVar(value="-")
+        self.cus_name = StringVar(value="-")
+        self.cus_address = StringVar(value="-")
+        self.cus_province = StringVar(value="-")
+        self.cus_district = StringVar(value="-")
+        self.cus_sub_district = StringVar(value="-")
+        self.cus_tel = StringVar(value="-")
         self.create_main_window()
         self.get_dataframe()
-        
-    
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -78,8 +83,8 @@ class MyApp:
         self.label_current_order = Label(
             self.order_details_frame, text="Current Order: ", bg="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
-        self.display_current_order = Text(
-            self.order_details_frame, width=30, height=self.order_details_frame.winfo_height()+0, state=DISABLED,  borderwidth=0)
+        self.display_current_order = Entry(
+            self.order_details_frame, width=30, state="readonly",  borderwidth=0, textvariable=self.cus_order)
         self.display_current_order.grid(row=1, column=1, padx=(5, 0))
 
         # * > Is Tax?? display component
@@ -90,17 +95,26 @@ class MyApp:
         # >> Value display
         self.display_is_tax = Label(
             self.order_details_frame, width=12,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
-
         self.display_is_tax.grid(row=1, column=3, padx=(5, 0))
+
+        # * > Tax Number display component
+        # >> Labels
+        self.label_tax_number = Label(
+            self.order_details_frame, text="เลขใบกำกับ: ", bg="#FFF")
+        self.label_tax_number.grid(row=1, column=4, padx=(5, 0))
+        # >> Value display
+        self.display_tax_number = Entry(
+            self.order_details_frame, width=15,  borderwidth=0, textvariable=self.tax_num, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
+        self.display_tax_number.grid(row=1, column=5, padx=(5, 0))
 
         # * > CustomerName display component
         # >> Labels
         self.label_cus_name = Label(
             self.order_details_frame, text="ชื่อ: ", bg="#FFF", height=1)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2,2))
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2))
         # >> Value display
-        self.display_cus_name = Label(
-            self.order_details_frame, width=34,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", anchor=W)
+        self.display_cus_name = Entry(
+            self.order_details_frame, width=30,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
 
         self.display_cus_name.grid(row=2, column=1, padx=(5, 0))
 
@@ -137,7 +151,11 @@ class MyApp:
         self.file_path = self.table_location
 
         try:
-            self.data_frame = pd.read_excel(self.file_path)
+            self.data_frame = pd.read_excel(self.file_path, dtype={
+                                            'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int})
+
+            print("df มี type เป็นไร", type(self.data_frame))
+            print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
             if self.data_frame.empty:
                 print("ไม่มี Data Frame")
             else:
@@ -151,6 +169,7 @@ class MyApp:
 
     def order_search(self, order):
         self.order = order
+        self.cus_order.set(order)
         differential_col_data = [
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
@@ -165,6 +184,16 @@ class MyApp:
 
             self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
+            # *  ของมีอะไรบ้าง
+            self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
+                'records')
+
+            self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
+            )
+            print("พวกไม่บิดเบี้ยวในแต่ละrow: ",
+                  self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
+            print("พวกบิดเบี้ยวในแต่ละrow: ", self.items)
+
             print("สถานะOrder: ", self.order_status)
             # * ############# หาค่าจาก ตาราง ###############################
             # * ประเภทใบกำกับภาษี
@@ -173,24 +202,19 @@ class MyApp:
             if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
                 self.tax_bool.set(False)
                 self.is_tax.set("ไม่ขอใบกำกับ")
-                self.display_is_tax.config(background="#6ec7ff")
+                self.display_is_tax.config(
+                    background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
+                self.tax_num.set("ไม่มี")
 
             else:
                 self.tax_bool.set(True)
                 self.is_tax.set("ขอใบกำกับ")
                 self.display_is_tax.config(
                     background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
+                self.tax_num.set(
+                    self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'].strip())
 
-            # *  ของมีอะไรบ้าง
-            self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
-                'records')
-
-            # * แสดงผล
-            self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
-            )
-            print("พวกค่าแต่ละrowไม่บิดเบี้ยว: ",
-                  self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
-            print("เลือกพวกค่าที่มันบิดเบี้ยวแต่ละrow: ", self.items)
+             # * แสดงผล
             # print("ใบกำกับ?", self.tax_bool)
             self.address = self.filter_data.iat[0, 15]
             # print("ข้อความ", self.address)
@@ -199,17 +223,27 @@ class MyApp:
             result = {"status": self.order_status,
                       "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
             self.cus_name.set(self.nondistortedData['ชื่อ'].strip())
-            print("ขอใบกำกับไหม? ", result["is_tax"])
+
+            self.cus_address.set(self.cleaned_address.strip())
+            self.cus_province.set(self.nondistortedData['จังหวัด'].strip())
+            self.cus_district.set(self.nondistortedData['เขต/อำเภอ'].strip())
+            if self.cus_sub_district != "":
+                self.cus_sub_district.set(self.nondistortedData['แขวง/ตำบล'])
+            else:
+                self.cus_sub_district.set('')
+            self.cus_tel.set(
+                self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+            print("ขอใบกำกับไหม? ", result["is_tax"].get())
             print("ที่อยู่ ", result["address"])
-            
+
             return result
         else:
             self.tax_bool.set(False)
-            self.is_tax.set("ไม่มี")
+            self.is_tax.set("-")
             self.display_is_tax.config(
-                background="#FFF", foreground="#000", font='Chiller 13 bold')
-            
-            self.cus_name.set("ไม่มี")
+                background="#FFF", foreground="#000", font='Chiller 10 normal')
+
+            self.cus_name.set("-")
 
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
@@ -285,10 +319,9 @@ class MyApp:
             self.report_log.config(state=NORMAL)
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
-        self.display_current_order.config(state=NORMAL)
-        self.display_current_order.delete("1.0", "end")
-        self.display_current_order.insert("1.0", self.search_query.strip())
-        self.display_current_order.config(state=DISABLED)
+        
+       
+        
         self.order_search(self.search_query)
 
     def open_subwindow(self):
