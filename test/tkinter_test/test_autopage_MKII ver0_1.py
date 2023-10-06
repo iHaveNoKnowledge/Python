@@ -88,7 +88,7 @@ class MyApp:
         self.inp1_order_input.grid(row=0, column=2)
         # >> Buttons
         self.inp1_search_btn = Button(
-            self.entry_frame, text="ค้นหา", bg="#747474", command=self.search, width=10)
+            self.entry_frame, text="Start", bg="#747474", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0, column=4, padx=5)
 
         # * > ExportFile location display component
@@ -458,7 +458,7 @@ class Bot_POS:
         print("มีไรบ้าง", self.title_List_Idx)
         print("จำนวน tabs ตอนเริ่มต้น", len(self.title_List_Idx))
         
-    def build_list(self list):
+    def build_list(self, list):
         global result
         result = []
         counter = {}
@@ -473,6 +473,7 @@ class Bot_POS:
         return result
     
     def operation_start(self):
+        print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
         
     def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
         self.element = wait.until(
