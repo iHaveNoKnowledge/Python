@@ -44,6 +44,7 @@ class MyApp:
         self.cus_district = StringVar(value="-")
         self.cus_sub_district = StringVar(value="-")
         self.cus_tel = StringVar(value="-")
+        self.cus_cur_status = ""
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
@@ -224,69 +225,79 @@ class MyApp:
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี']
 
         if self.order != "":
-            # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
-            self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
-                                                == self.order)]
-            # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
-            self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
-
-            self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
-
-            # *  ของมีอะไรบ้าง
-            self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
-                'records')
-
-            self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
-            )
-            print("พวกไม่บิดเบี้ยวในแต่ละrow: ",
-                  self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
-            print("พวกบิดเบี้ยวในแต่ละrow: ", self.items)
-
-            print("สถานะOrder: ", self.order_status)
-            # * ############# หาค่าจาก ตาราง ###############################
-            # * ประเภทใบกำกับภาษี
-            # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
-
-            if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
-                self.tax_bool.set(False)
-                self.is_tax.set("ไม่ขอใบกำกับ")
-                self.display_is_tax.config(
-                    background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
-                self.tax_num.set("ไม่มี")
-
-            else:
-                self.tax_bool.set(True)
-                self.is_tax.set("ขอใบกำกับ")
-                self.display_is_tax.config(
-                    background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
-                self.tax_num.set(
-                    self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'].strip())
-
-             # * แสดงผล
-            # print("ใบกำกับ?", self.tax_bool)
-            self.address = self.filter_data.iat[0, 15]
-            # print("ข้อความ", self.address)
-            self.cleaned_address = self.clean_address(self.address)
-            # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
-            result = {"status": self.order_status,
-                      "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
-            self.cus_name.set(self.nondistortedData['ชื่อ'].strip())
             try:
-                self.update_address(self.cleaned_address)
-            except:
-                self.update_address('-')
-            
-            self.cus_province.set(self.nondistortedData['จังหวัด'].strip())
-            self.cus_district.set(self.nondistortedData['เขต/อำเภอ'].strip())
-            if self.cus_sub_district != "":
-                self.cus_sub_district.set(self.nondistortedData['แขวง/ตำบล'])
-            else:
-                self.cus_sub_district.set('')
-            self.cus_tel.set(
-                self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
-            print("ขอใบกำกับไหม? ", result["is_tax"].get())
-            print("ที่อยู่ ", result["address"])
+                # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
+                self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
+                                                    == self.order)]
+                # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
+                
+                self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
+                
+                
+                self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
+                
+                    
 
+                # *  ของมีอะไรบ้าง
+                self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
+                    'records')
+
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
+                )
+                print("พวกไม่บิดเบี้ยวในแต่ละrow: ",
+                    self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
+                print("พวกบิดเบี้ยวในแต่ละrow: ", self.items)
+
+                print("สถานะOrder: ", self.order_status)
+                # * ############# หาค่าจาก ตาราง ###############################
+                # * ประเภทใบกำกับภาษี
+                # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
+
+                if self.data_frame[self.target_row]['ประเภทใบกำกับภาษี'].iloc[0] == 'Personal':
+                    self.tax_bool.set(False)
+                    self.is_tax.set("ไม่ขอใบกำกับ")
+                    self.display_is_tax.config(
+                        background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
+                    self.tax_num.set("ไม่มี")
+
+                else:
+                    self.tax_bool.set(True)
+                    self.is_tax.set("ขอใบกำกับ")
+                    self.display_is_tax.config(
+                        background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
+                    self.tax_num.set(
+                        self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'].strip())
+
+                # * แสดงผล
+                # print("ใบกำกับ?", self.tax_bool)
+                self.address = self.filter_data.iat[0, 15]
+                # print("ข้อความ", self.address)
+                self.cleaned_address = self.clean_address(self.address)
+                # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
+                result = {"status": self.order_status,
+                        "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+                self.cus_name.set(self.nondistortedData['ชื่อ'].strip())
+                try:
+                    self.update_address(self.cleaned_address)
+                except:
+                    self.update_address('-')
+                
+                self.cus_province.set(self.nondistortedData['จังหวัด'].strip())
+                self.cus_district.set(self.nondistortedData['เขต/อำเภอ'].strip())
+                if self.cus_sub_district != "":
+                    self.cus_sub_district.set(self.nondistortedData['แขวง/ตำบล'])
+                else:
+                    self.cus_sub_district.set('')
+                self.cus_tel.set(
+                    self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                print("ขอใบกำกับไหม? ", result["is_tax"].get())
+                print("ที่อยู่ ", result["address"])
+                print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
+                self.bot.get_tabs()
+            except:
+                print("Order ที่ยิงมา ไม่สามารถหาใน Export File ได้ ")
+                print("แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+                print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
             
         else:
             self.tax_bool.set(False)
@@ -296,8 +307,7 @@ class MyApp:
             self.cus_name.set("-")
             self.update_address('-')      
             
-        print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
-        self.bot.get_tabs()
+        
         
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
@@ -445,35 +455,60 @@ class Bot_POS:
     def get_tabs(self):
         print("รายงานจำนวนtabs")
         self.title_list = []
-        self.title_List_Idx = []
+        self.title_list_Idx = []
         self.value_list = []
         self.title_dict = {}
         for idx, handle in enumerate(self.driver.window_handles):
             self.driver.switch_to.window(handle)
-            self.title_List_Idx.append(self.driver.title + "["+str(idx)+"]")
+            self.title_list_Idx.append(self.driver.title + "["+str(idx)+"]")
             self.title_list.append(self.driver.title)
 
             self.value_list.append(self.driver.current_window_handle)
             self.title_dict.update({self.driver.title: self.driver.current_window_handle})
-        print("มีไรบ้าง", self.title_List_Idx)
-        print("จำนวน tabs ตอนเริ่มต้น", len(self.title_List_Idx))
-        
-    def build_list(self, list):
-        global result
-        result = []
-        counter = {}
-        for item in list:
-            if item in counter:
-                counter[item] += 1
-                print("counter[item] คือไร: ", counter[item])
-                result.append(f"{item}{counter[item]-1}")
+
+        self.unique_titles = []
+        self.counter = {}
+        for item in self.title_list:
+            if item in self.counter:
+                self.counter[item] += 1
+                print("counter[item] คือไร: ", self.counter[item])
+                self.unique_titles.append(f"{item}{self.counter[item]-1}")
             else:
-                counter[item] = 1
-                result.append(item)
-        return result
+                self.counter[item] = 1
+                self.unique_titles.append(item)
+        # เอาList มารวมกัน
+        self.merged_dict = dict(zip(self.unique_titles, self.value_list))
+        
+        print("มี tabs ไรบ้าง",self.merged_dict)
+        self.operation_start()
+        
     
     def operation_start(self):
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
+        self.driver.switch_to.window( self.merged_dict['Seller Centre'])
+        self.wait1 = WebDriverWait(self.driver, 480)
+        #* กรอก order ลงในช่อง search
+        self.search_elmt = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+        self.search_elmt.clear()
+        self.search_elmt.send_keys(self.app.cus_order.get())
+        #* กด Search เพื่อ เก็บ Status
+        self.searchBtn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+        self.searchBtn.click()
+        #* ตรวจสอบ Status
+        self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span')))
+       
+        self.app.cus_cur_status = self.driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text
+        print("status_text", self.app.cus_cur_status)
+        self.is_status_true = self.app.order_status == self.app.cus_cur_status
+        if self.is_status_true:
+            print(self.app.order_status == self.app.cus_cur_status)
+            print("ตรง")
+        else:
+            print(self.app.order_status == self.app.cus_cur_status)
+            print("ไม่ตรง แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+            print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+        
+    
         
     def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
         self.element = wait.until(
