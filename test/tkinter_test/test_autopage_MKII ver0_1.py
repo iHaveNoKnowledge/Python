@@ -6,6 +6,28 @@ from tkinter import filedialog
 import pandas as pd
 import re
 
+##* selenium
+import time
+import win32com.client as comclt
+import re
+import multiprocessing
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver import ActionChains
+from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
+from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+# from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
+
+from xml.dom.minidom import Document
+import os
+import sys
+
 
 class MyApp:
     def __init__(self, root):
@@ -22,8 +44,10 @@ class MyApp:
         self.cus_district = StringVar(value="-")
         self.cus_sub_district = StringVar(value="-")
         self.cus_tel = StringVar(value="-")
+        self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
+        
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -263,15 +287,18 @@ class MyApp:
             print("ขอใบกำกับไหม? ", result["is_tax"].get())
             print("ที่อยู่ ", result["address"])
 
-            return result
+            
         else:
             self.tax_bool.set(False)
             self.is_tax.set("-")
             self.display_is_tax.config(
                 background="#FFF", foreground="#000", font='Chiller 10 normal')
             self.cus_name.set("-")
-            self.update_address('-')
-
+            self.update_address('-')      
+            
+        print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
+        self.bot.get_tabs()
+        
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
         pattern = r'(ต\..+?)\s+?(ตำบล|อ\..+?)\s+?(อำเภอ|จ\..+?)\s+?(จังหวัด)'
@@ -399,6 +426,88 @@ class DataSourceSelector:
 
     def on_close(self):
         self.subwindow.destroy()
+        
+class Bot_POS:
+    def __init__(self, parent, app):
+        self.parent = parent
+        self.app = app
+        self.setup_chrome()
+        
+            
+    def setup_chrome(self):
+        self.opt = Options()
+        # opt2=Options()
+        self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        self.driver = webdriver.Chrome(service=Service(
+            r'C:\bin\chromedriver.exe'), options=self.opt)
+        
+        
+    def get_tabs(self):
+        print("รายงานจำนวนtabs")
+        self.title_list = []
+        self.title_List_Idx = []
+        self.value_list = []
+        self.title_dict = {}
+        for idx, handle in enumerate(self.driver.window_handles):
+            self.driver.switch_to.window(handle)
+            self.title_List_Idx.append(self.driver.title + "["+str(idx)+"]")
+            self.title_list.append(self.driver.title)
+
+            self.value_list.append(self.driver.current_window_handle)
+            self.title_dict.update({self.driver.title: self.driver.current_window_handle})
+        print("มีไรบ้าง", self.title_List_Idx)
+        print("จำนวน tabs ตอนเริ่มต้น", len(self.title_List_Idx))
+        
+    def build_list(self list):
+        global result
+        result = []
+        counter = {}
+        for item in list:
+            if item in counter:
+                counter[item] += 1
+                print("counter[item] คือไร: ", counter[item])
+                result.append(f"{item}{counter[item]-1}")
+            else:
+                counter[item] = 1
+                result.append(item)
+        return result
+    
+    def operation_start(self):
+        
+    def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
+        self.element = wait.until(
+            EC.visibility_of_element_located((By.XPATH, cusSearchSMCO)))
+        element.click()  # กดแว่นขยาย
+        btnElement = wait.until(
+            EC.visibility_of_element_located((By.XPATH, cusCreateBtn)))
+        btnElement.click()  # create
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusName)
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusName)
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(cus_normal_address)
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        driver.find_element(
+            By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+
+    def addTaxInvCustomer(cusSearchSMCO, cusCreateBtn):
+        driver.find_element(By.XPATH, cusSearchSMCO).click()
+        time.sleep(0.75)
+        driver.find_element(By.XPATH, cusCreateBtn).click()
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(taxName)  # nameTH
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(taxName)  # nameEN
+        driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(taxID)  # Identity ID
+        [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = addressExtractor(
+            taxAddress)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
+        finProvince = finProvince.strip().lstrip("จังหวัด")
+
 
 
 if __name__ == "__main__":

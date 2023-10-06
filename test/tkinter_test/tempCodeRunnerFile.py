@@ -1,2 +1,1 @@
-
-        self.subwindow.destroy()
+รายงานจำนวนtabs

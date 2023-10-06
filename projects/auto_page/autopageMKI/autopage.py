@@ -271,7 +271,7 @@ def my_key_function(item):
 
 
 def build_list(list):
-    global result
+    # global result
     result = []
     counter = {}
     for item in list:
