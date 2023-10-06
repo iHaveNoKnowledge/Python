@@ -115,11 +115,21 @@ class MyApp:
         # >> Value display
         self.display_cus_name = Entry(
             self.order_details_frame, width=30,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
-
         self.display_cus_name.grid(row=2, column=1, padx=(5, 0))
+        
+        # * > Address display component
+        
+        # >> Labels
+        self.label_cus_address = Label(
+            self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1)
+        self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2))
+        # >> Value display
+        self.display_cus_address = Text(
+            self.order_details_frame, width=30, height=5,   borderwidth=0,  foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_address.grid(row=3, column=1, padx=(5, 0))
 
         # * > Log windows component
-        self.report_log = Text(self.log_frame, state=DISABLED)
+        self.report_log = Text(self.log_frame, state=DISABLED, height=15)
         self.scrollbar = Scrollbar(
             self.log_frame, command=self.report_log.yview)
         self.scrollbar.pack(side="right", fill="y")
