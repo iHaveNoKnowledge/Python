@@ -17,7 +17,7 @@ class MyApp:
         self.tax_num = StringVar(value="-")
         self.is_tax = StringVar(value="-")
         self.cus_name = StringVar(value="-")
-        self.cus_address = StringVar(value="-")
+        self.cus_address = "-"
         self.cus_province = StringVar(value="-")
         self.cus_district = StringVar(value="-")
         self.cus_sub_district = StringVar(value="-")
@@ -27,7 +27,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
-        self.root.title("Autosamatic")
+        self.root.title("Autosamatic ver0.1")
         self.root.configure(bg="#444")
 
         # #* FRAMES #####################################################################################################
@@ -84,49 +84,50 @@ class MyApp:
             self.order_details_frame, text="Current Order: ", bg="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
         self.display_current_order = Entry(
-            self.order_details_frame, width=30, state="readonly",  borderwidth=0, textvariable=self.cus_order)
-        self.display_current_order.grid(row=1, column=1, padx=(5, 0))
+            self.order_details_frame, width=40, state="readonly",  borderwidth=0, textvariable=self.cus_order)
+        self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=W)
 
         # * > Is Tax?? display component
         # >> Labels
         self.label_is_tax = Label(
             self.order_details_frame, text="ใบกำกับ: ", bg="#FFF")
-        self.label_is_tax.grid(row=1, column=2, padx=(5, 0))
+        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky=W)
         # >> Value display
         self.display_is_tax = Label(
             self.order_details_frame, width=12,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
-        self.display_is_tax.grid(row=1, column=3, padx=(5, 0))
+        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=W)
 
         # * > Tax Number display component
         # >> Labels
         self.label_tax_number = Label(
             self.order_details_frame, text="เลขใบกำกับ: ", bg="#FFF")
-        self.label_tax_number.grid(row=1, column=4, padx=(5, 0))
+        self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky=W)
         # >> Value display
         self.display_tax_number = Entry(
             self.order_details_frame, width=15,  borderwidth=0, textvariable=self.tax_num, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
-        self.display_tax_number.grid(row=1, column=5, padx=(5, 0))
+        self.display_tax_number.grid(row=2, column=5, padx=(1, 0), sticky=W)
 
-        # * > CustomerName display component
+        # * > Customer Name display component
         # >> Labels
         self.label_cus_name = Label(
             self.order_details_frame, text="ชื่อ: ", bg="#FFF", height=1)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2))
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), )
         # >> Value display
         self.display_cus_name = Entry(
-            self.order_details_frame, width=30,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
-        self.display_cus_name.grid(row=2, column=1, padx=(5, 0))
+            self.order_details_frame, width=40,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
+        self.display_cus_name.grid(row=2, column=1, padx=(1, 0),sticky=W)
         
-        # * > Address display component
+        # * > Customer Address display component
         
         # >> Labels
         self.label_cus_address = Label(
-            self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1)
+            self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
         self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2))
         # >> Value display
         self.display_cus_address = Text(
-            self.order_details_frame, width=30, height=5,   borderwidth=0,  foreground="#000000", background="#fff", state="disabled")
-        self.display_cus_address.grid(row=3, column=1, padx=(5, 0))
+            self.order_details_frame, width=50, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_address.grid(row=3, column=1, padx=(1, 0), columnspan=3, sticky=W)
+        self.display_cus_address.tag_add("left", "1.0", "1.end")
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=15)
@@ -176,6 +177,19 @@ class MyApp:
             print(f"ตัวแปร '{e.name}' ไม่มีอยู่จริง")
         except Exception as e:
             print(f"อะไรสักอย่างพัง {e}")
+    
+    def update_address(self, address):
+        self.address = address.strip()
+        if address != "":
+            self.display_cus_address.config(state=NORMAL)
+            self.display_cus_address.delete(1.0, END)
+            self.display_cus_address.insert(END, self.address)
+            self.display_cus_address.config(state=DISABLED)
+        else :
+            self.display_cus_address.config(state=NORMAL)
+            self.display_cus_address.delete(1.0, END)
+            self.display_cus_address.insert(END, '')
+            self.display_cus_address.config(state=DISABLED)
 
     def order_search(self, order):
         self.order = order
@@ -233,8 +247,11 @@ class MyApp:
             result = {"status": self.order_status,
                       "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
             self.cus_name.set(self.nondistortedData['ชื่อ'].strip())
-
-            self.cus_address.set(self.cleaned_address.strip())
+            try:
+                self.update_address(self.cleaned_address)
+            except:
+                self.update_address('-')
+            
             self.cus_province.set(self.nondistortedData['จังหวัด'].strip())
             self.cus_district.set(self.nondistortedData['เขต/อำเภอ'].strip())
             if self.cus_sub_district != "":
@@ -252,8 +269,8 @@ class MyApp:
             self.is_tax.set("-")
             self.display_is_tax.config(
                 background="#FFF", foreground="#000", font='Chiller 10 normal')
-
             self.cus_name.set("-")
+            self.update_address('-')
 
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
@@ -387,4 +404,8 @@ class DataSourceSelector:
 if __name__ == "__main__":
     root = Tk()
     app = MyApp(root)
+    root.resizable(False,False)
+   
+   
+  
     root.mainloop()

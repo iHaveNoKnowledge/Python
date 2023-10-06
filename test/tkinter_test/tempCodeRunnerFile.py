@@ -1,2 +1,2 @@
 
-        # * > Address display component
+        self.subwindow.destroy()
