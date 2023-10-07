@@ -482,24 +482,47 @@ class Bot_POS:
 
     def operation_start(self):
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
-        self.driver.switch_to.window(self.merged_dict['Seller Centre'])
         self.wait1 = WebDriverWait(self.driver, 480)
+        # * เปลี่ยนไปtab shopee เพื่อเช็ค status
+        self.driver.switch_to.window(self.merged_dict['Seller Centre'])
+        cur_url = self.driver.current_url
+
+        # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
+        if cur_url != "https://seller.shopee.co.th/portal/sale/order":
+            # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
+            self.wait1.until(EC.text_to_be_present_in_element(
+                (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/a'), 'การขายของฉัน'))
+        else:
+            pass
+
         # * กรอก order ลงในช่อง search
         self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
         self.search_elmt.clear()
         self.search_elmt.send_keys(self.app.cus_order.get())
+
         # * กด Search เพื่อ เก็บ Status
         self.searchBtn = self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
         self.searchBtn.click()
-        # * ตรวจสอบ Status
-        self.wait1.until(EC.visibility_of_element_located(
-            (By.CLASS_NAME, 'big-text')))
 
-        self.app.cus_cur_status = self.driver.find_element(
-            By.CLASS_NAME, 'big-text').text
-        print("realtime_status_text", self.app.cus_cur_status)
+        # * ตรวจสอบ Status
+        # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
+        self.wait1.until(EC.visibility_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[5]/div/div')))
+        # * ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
+        try:
+            # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
+            self.app.cus_cur_status = self.driver.find_element(
+                By.CLASS_NAME, 'big-text').text
+        except:
+            # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
+            self.app.cus_cur_status = self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text
+        print("realtime_status_text", self.app.cus_cur_status)  # จะได้ element มา
+
         self.is_status_true = self.app.order_status == self.app.cus_cur_status
         if self.is_status_true:
             print(self.app.order_status == self.app.cus_cur_status)
@@ -509,8 +532,15 @@ class Bot_POS:
             print("ไม่ตรง แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
             print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
-    def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
-        self.element = wait.until(
+        # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        if self.app.tax_bool.get():
+            print('ใช้ method ใบกำกับ')
+        else:
+            print('ใช้ method ใบทำดา')
+
+    def addNormalCustomer(self, cusSearchSMCO, cusCreateBtn):
+        self.element = self.wait1.until(
             EC.visibility_of_element_located((By.XPATH, cusSearchSMCO)))
         element.click()  # กดแว่นขยาย
         btnElement = wait.until(
