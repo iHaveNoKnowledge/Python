@@ -44,10 +44,15 @@ class MyApp:
         self.cus_district = StringVar(value="-")
         self.cus_sub_district = StringVar(value="-")
         self.cus_tel = StringVar(value="-")
-        self.cus_cur_status = ""
+        self.cus_cur_status = StringVar(value="-")
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
+        self.cus_arrow_btn = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
+        self.cusNameInput = '/html/body/span/span/span[1]/input'
+        self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
+        self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
+        self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li[1]'
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -75,7 +80,6 @@ class MyApp:
         self.create_widgets()
 
     def create_widgets(self):
-
         # * > search order component
         # >> Labels
         self.inp1_label_order = Label(
@@ -110,6 +114,17 @@ class MyApp:
         self.display_current_order = Entry(
             self.order_details_frame, width=40, state="readonly",  borderwidth=0, textvariable=self.cus_order)
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=W)
+
+        # * > Current Status display component
+        # >> Labels
+        self.label_current_status = Label(
+            self.order_details_frame, text="Status: ", bg="#FFF",)
+        self.label_current_status.grid(
+            row=1, column=2, padx=(5, 0), columnspan=1)
+        self.display_current_status = Entry(
+            self.order_details_frame, width=20, state="readonly",  borderwidth=0, textvariable=self.cus_cur_status)
+        self.display_current_status.grid(
+            row=1, column=3, padx=(1, 0), sticky=W)
 
         # * > Is Tax?? display component
         # >> Labels
@@ -165,6 +180,24 @@ class MyApp:
 
         ## * Create DataSourceSelector instance ###########
         self.data_source_selector = DataSourceSelector(self.root, self)
+
+    def reset_all_display(self):
+        self.result = ""
+        self.table_location = ""
+        self.cus_order.set("-")
+        self.tax_bool.set(False)
+        self.tax_num.set("-")
+        self.is_tax.set("-")
+        self.cus_name.set("-")
+        self.cus_address = "-"
+        self.update_address('-')
+        self.cus_province.set("-")
+        self.cus_district.set("-")
+        self.cus_sub_district.set("-")
+        self.cus_tel.set("-")
+        self.cus_cur_status.set("-")
+        self.display_is_tax.config(
+            background="#FFF", foreground="#000", font='Chiller 10 normal')
 
     def update_log(self, update_txt):
         self.update_txt = update_txt
@@ -289,25 +322,34 @@ class MyApp:
                     self.cus_sub_district.set('')
                 self.cus_tel.set(
                     self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
-                print("ขอใบกำกับไหม? ", result["is_tax"].get())
-                print("ที่อยู่ ", result["address"])
-                print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
+                # print(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
+                # print(f"ที่อยู่: {result['address']}")
+                # print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
+                # self.update_log(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
+                # self.update_log(f"ที่อยู่: {result['address']}")
+                # self.update_log("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
+                self.bot.get_tabs()
 
             except:
-                print("Order ที่ยิงมา ไม่สามารถหาใน Export File ได้ ")
+                print(
+                    f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
                 print(
                     "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
                 print("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
-            self.bot.get_tabs()
+
+                self.update_log(
+                    f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
+                self.update_log(
+                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
+                self.update_log(
+                    "ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+                self.update_log(
+                    "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+                self.reset_all_display()
 
         else:
-            self.tax_bool.set(False)
-            self.is_tax.set("-")
-            self.display_is_tax.config(
-                background="#FFF", foreground="#000", font='Chiller 10 normal')
-            self.cus_name.set("-")
-            self.update_address('-')
+            self.reset_all_display()
 
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
@@ -377,7 +419,7 @@ class MyApp:
         if self.search_query != "":
             self.report_log.config(state=NORMAL)
             self.report_log.delete("1.0", "end")
-            self.report_log.insert(END, self.search_query + "\n")
+            # self.report_log.insert(END, self.search_query + "\n")
             self.report_log.config(state=DISABLED)
         else:
             self.report_log.config(state=NORMAL)
@@ -478,7 +520,7 @@ class Bot_POS:
         self.merged_dict = dict(zip(self.unique_titles, self.value_list))
 
         print("มี tabs ไรบ้าง", self.merged_dict)
-        self.operation_start()
+        # self.operation_start()
 
     def operation_start(self):
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
@@ -515,20 +557,21 @@ class Bot_POS:
         # * ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
         try:
             # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-            self.app.cus_cur_status = self.driver.find_element(
-                By.CLASS_NAME, 'big-text').text
+            self.app.cus_cur_status.set(self.driver.find_element(
+                By.CLASS_NAME, 'big-text').text)
         except:
             # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
-            self.app.cus_cur_status = self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text
-        print("realtime_status_text", self.app.cus_cur_status)  # จะได้ element มา
+            self.app.cus_cur_status.set(self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+        # จะได้ element มา
+        print("realtime_status_text", self.app.cus_cur_status.get())
 
-        self.is_status_true = self.app.order_status == self.app.cus_cur_status
+        self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
         if self.is_status_true:
-            print(self.app.order_status == self.app.cus_cur_status)
+            print(self.app.order_status == self.app.cus_cur_status.get())
             print("ตรง")
         else:
-            print(self.app.order_status == self.app.cus_cur_status)
+            print(self.app.order_status == self.app.cus_cur_status.get())
             print("ไม่ตรง แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
             print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
@@ -536,6 +579,15 @@ class Bot_POS:
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         if self.app.tax_bool.get():
             print('ใช้ method ใบกำกับ')
+            self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+            self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, self.app.cusNameInput)))
+            self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
+            self.driver.find_element(By.XPATH, self.app.cusNameInput).send_keys(
+                self.app.tax_num.get())
+            self.wait1.until_not(EC.text_to_be_present_in_element(
+                (By.XPATH, self.app.cusNameLi1), "searching..."))
+            print("search หายไปแล้ว")
         else:
             print('ใช้ method ใบทำดา')
 
