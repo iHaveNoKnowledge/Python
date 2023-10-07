@@ -1,11 +1,7 @@
-# เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
-# หลักๆ ใช้ setup
 import time
-# ไม่รู้คือไร แต่ใช้แล้ว มันทำให้ควบคุม context เมนูได้
 import win32com.client as comclt
 import re
 import multiprocessing
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -13,22 +9,29 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver import ActionChains
-
-# ดัก event
 from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
 from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-
-# Modulesกูเอง
-from python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
-# from python_modules3.SMCO.from_commart.python01.pybot01 import SMCO_login ##แค่ import มา ก็ใช้
+# from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 import myFunctions
-
-# ไปๆมาๆไม่ได้ใช้
 from xml.dom.minidom import Document
-from pynput.mouse import Listener
+import os
+import sys
+
+# ดึงเส้นทาง (path) ปัจจุบัน
+current_path = os.getcwd()
+
+# ตัดชื่อโฟลเดอร์ออกจากเส้นทางปัจจุบัน
+parent_path = os.path.dirname(current_path)
+
+# กลับไปยังโฟลเดอร์ก่อนหน้า
+os.chdir(parent_path)
+
+# เอา folder ที่มี module มาเป็นหนึ่งเดียวกับ folder ของ project ทำให้ สามารถ import จากการใช้ form แล้วตามด้วย ชื่อ module ได้โดยตรง แบบนี้ >> "from cusNameFixer"
+sys.path.append("\python_modules3\SMCO")
+print("คือไร", current_path)
+
 
 # ใช้ได้ๆ แต่ต้องเปิด web ก่อน
 # ต้องรัน chrome จาก cmd ก่อน chrome.exe --remote-debugging-port=8989 --user-data-dir="C:\bin\chromeprofile
@@ -349,11 +352,14 @@ except:
 
 time.sleep(1)
 # ย้ายไปหน้า 3 (หน้ารายละเอียดOrder ที่เปิดล่าสุดนั้นแหละ) เพื่อไปเลือกว่าจะเอาข้อมูลปกติ หรือ ใบกำกับ โดยตัดสินจาก boolean
-driver.switch_to.window(driver.window_handles[4])
-wait = WebDriverWait(driver, 30)
+print("List ของ windows ปัจจุบัน: ", driver.window_handles,
+      "จำนวนหน้าต่าง: ", len(driver.window_handles))
+lasted_open_page_idx = len(driver.window_handles)-1
+driver.switch_to.window(driver.window_handles[lasted_open_page_idx])
+wait = WebDriverWait(driver, 40)
 wait.until(EC.visibility_of_element_located(
     (By.XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[1]')))  # ดูว่า div แรกออกมายัง
-time.sleep(1.5)
+time.sleep(1)
 cusName = ""
 
 # มาตัดสินกันว่า จะใช้ชื่อลูกค้าปกติ หรือ ใช้ ใบกำกับภาษี
@@ -461,11 +467,11 @@ except:
 
 try:
     seller_voucher = driver.find_element(
-    By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[8]')
+        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[5]/div/div/div/div/div[2]/div[8]')
     seller_voucher = currencyRemover(seller_voucher.text)
 except:
     seller_voucher = driver.find_element(
-    By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[8]')
+        By().XPATH, '/html/body/div[1]/div[2]/div/div/div/div/div/div/div/div[1]/div[1]/div[7]/div/div/div/div/div[2]/div[8]')
     seller_voucher = currencyRemover(seller_voucher.text)
 
 print(cusName)
@@ -543,11 +549,10 @@ except TimeoutException:
 
         driver.find_element(
             By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
-except :
+except:
     element = driver.find_element(
-            By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
+        By().XPATH, '/html/body/span/span/span[2]/ul/li').click()
     print("driverwait timeout")
-
 
 
 # ใส่ค่าขนส่ง
