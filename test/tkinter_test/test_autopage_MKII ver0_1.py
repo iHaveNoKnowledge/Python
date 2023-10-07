@@ -6,7 +6,7 @@ from tkinter import filedialog
 import pandas as pd
 import re
 
-##* selenium
+# * selenium
 import time
 import win32com.client as comclt
 import re
@@ -48,7 +48,6 @@ class MyApp:
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
-        
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
@@ -140,10 +139,10 @@ class MyApp:
         # >> Value display
         self.display_cus_name = Entry(
             self.order_details_frame, width=40,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
-        self.display_cus_name.grid(row=2, column=1, padx=(1, 0),sticky=W)
-        
+        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky=W)
+
         # * > Customer Address display component
-        
+
         # >> Labels
         self.label_cus_address = Label(
             self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
@@ -151,7 +150,8 @@ class MyApp:
         # >> Value display
         self.display_cus_address = Text(
             self.order_details_frame, width=50, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
-        self.display_cus_address.grid(row=3, column=1, padx=(1, 0), columnspan=3, sticky=W)
+        self.display_cus_address.grid(
+            row=3, column=1, padx=(1, 0), columnspan=3, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
 
         # * > Log windows component
@@ -202,7 +202,7 @@ class MyApp:
             print(f"ตัวแปร '{e.name}' ไม่มีอยู่จริง")
         except Exception as e:
             print(f"อะไรสักอย่างพัง {e}")
-    
+
     def update_address(self, address):
         self.address = address.strip()
         if address != "":
@@ -210,14 +210,14 @@ class MyApp:
             self.display_cus_address.delete(1.0, END)
             self.display_cus_address.insert(END, self.address)
             self.display_cus_address.config(state=DISABLED)
-        else :
+        else:
             self.display_cus_address.config(state=NORMAL)
             self.display_cus_address.delete(1.0, END)
             self.display_cus_address.insert(END, '')
             self.display_cus_address.config(state=DISABLED)
 
     def order_search(self, order):
-        self.order = order
+        self.order = order.strip()
         self.cus_order.set(order)
         differential_col_data = [
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ']
@@ -230,13 +230,10 @@ class MyApp:
                 self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
                                                     == self.order)]
                 # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
-                
+
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
-                
-                
+
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
-                
-                    
 
                 # *  ของมีอะไรบ้าง
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
@@ -245,7 +242,7 @@ class MyApp:
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
                 )
                 print("พวกไม่บิดเบี้ยวในแต่ละrow: ",
-                    self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
+                      self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
                 print("พวกบิดเบี้ยวในแต่ละrow: ", self.items)
 
                 print("สถานะOrder: ", self.order_status)
@@ -270,22 +267,24 @@ class MyApp:
 
                 # * แสดงผล
                 # print("ใบกำกับ?", self.tax_bool)
-                self.address = self.filter_data.iat[0, 15]
+                self.address = self.filter_data.iat[0, 59]
                 # print("ข้อความ", self.address)
                 self.cleaned_address = self.clean_address(self.address)
                 # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
                 result = {"status": self.order_status,
-                        "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+                          "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
                 self.cus_name.set(self.nondistortedData['ชื่อ'].strip())
                 try:
                     self.update_address(self.cleaned_address)
                 except:
                     self.update_address('-')
-                
+
                 self.cus_province.set(self.nondistortedData['จังหวัด'].strip())
-                self.cus_district.set(self.nondistortedData['เขต/อำเภอ'].strip())
+                self.cus_district.set(
+                    self.nondistortedData['เขต/อำเภอ'].strip())
                 if self.cus_sub_district != "":
-                    self.cus_sub_district.set(self.nondistortedData['แขวง/ตำบล'])
+                    self.cus_sub_district.set(
+                        self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
                 self.cus_tel.set(
@@ -293,22 +292,23 @@ class MyApp:
                 print("ขอใบกำกับไหม? ", result["is_tax"].get())
                 print("ที่อยู่ ", result["address"])
                 print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
-                self.bot.get_tabs()
+
             except:
                 print("Order ที่ยิงมา ไม่สามารถหาใน Export File ได้ ")
-                print("แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+                print(
+                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
+                print("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
-            
+            self.bot.get_tabs()
+
         else:
             self.tax_bool.set(False)
             self.is_tax.set("-")
             self.display_is_tax.config(
                 background="#FFF", foreground="#000", font='Chiller 10 normal')
             self.cus_name.set("-")
-            self.update_address('-')      
-            
-        
-        
+            self.update_address('-')
+
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
         pattern = r'(ต\..+?)\s+?(ตำบล|อ\..+?)\s+?(อำเภอ|จ\..+?)\s+?(จังหวัด)'
@@ -383,9 +383,7 @@ class MyApp:
             self.report_log.config(state=NORMAL)
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
-        
-       
-        
+
         self.order_search(self.search_query)
 
     def open_subwindow(self):
@@ -436,22 +434,21 @@ class DataSourceSelector:
 
     def on_close(self):
         self.subwindow.destroy()
-        
+
+
 class Bot_POS:
     def __init__(self, parent, app):
         self.parent = parent
         self.app = app
         self.setup_chrome()
-        
-            
+
     def setup_chrome(self):
         self.opt = Options()
         # opt2=Options()
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         self.driver = webdriver.Chrome(service=Service(
             r'C:\bin\chromedriver.exe'), options=self.opt)
-        
-        
+
     def get_tabs(self):
         print("รายงานจำนวนtabs")
         self.title_list = []
@@ -464,7 +461,8 @@ class Bot_POS:
             self.title_list.append(self.driver.title)
 
             self.value_list.append(self.driver.current_window_handle)
-            self.title_dict.update({self.driver.title: self.driver.current_window_handle})
+            self.title_dict.update(
+                {self.driver.title: self.driver.current_window_handle})
 
         self.unique_titles = []
         self.counter = {}
@@ -478,27 +476,30 @@ class Bot_POS:
                 self.unique_titles.append(item)
         # เอาList มารวมกัน
         self.merged_dict = dict(zip(self.unique_titles, self.value_list))
-        
-        print("มี tabs ไรบ้าง",self.merged_dict)
+
+        print("มี tabs ไรบ้าง", self.merged_dict)
         self.operation_start()
-        
-    
+
     def operation_start(self):
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
-        self.driver.switch_to.window( self.merged_dict['Seller Centre'])
+        self.driver.switch_to.window(self.merged_dict['Seller Centre'])
         self.wait1 = WebDriverWait(self.driver, 480)
-        #* กรอก order ลงในช่อง search
-        self.search_elmt = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+        # * กรอก order ลงในช่อง search
+        self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
         self.search_elmt.clear()
         self.search_elmt.send_keys(self.app.cus_order.get())
-        #* กด Search เพื่อ เก็บ Status
-        self.searchBtn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+        # * กด Search เพื่อ เก็บ Status
+        self.searchBtn = self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
         self.searchBtn.click()
-        #* ตรวจสอบ Status
-        self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span')))
-       
-        self.app.cus_cur_status = self.driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text
-        print("status_text", self.app.cus_cur_status)
+        # * ตรวจสอบ Status
+        self.wait1.until(EC.visibility_of_element_located(
+            (By.CLASS_NAME, 'big-text')))
+
+        self.app.cus_cur_status = self.driver.find_element(
+            By.CLASS_NAME, 'big-text').text
+        print("realtime_status_text", self.app.cus_cur_status)
         self.is_status_true = self.app.order_status == self.app.cus_cur_status
         if self.is_status_true:
             print(self.app.order_status == self.app.cus_cur_status)
@@ -507,9 +508,7 @@ class Bot_POS:
             print(self.app.order_status == self.app.cus_cur_status)
             print("ไม่ตรง แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
             print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
-        
-    
-        
+
     def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
         self.element = wait.until(
             EC.visibility_of_element_located((By.XPATH, cusSearchSMCO)))
@@ -545,12 +544,9 @@ class Bot_POS:
         finProvince = finProvince.strip().lstrip("จังหวัด")
 
 
-
 if __name__ == "__main__":
     root = Tk()
     app = MyApp(root)
-    root.resizable(False,False)
-   
-   
-  
+    root.resizable(False, False)
+
     root.mainloop()
