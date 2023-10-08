@@ -21,6 +21,7 @@ import myFunctions
 from xml.dom.minidom import Document
 import os
 import sys
+from Python.python_modules3.SMCO.cusNameFixer import cusNameFixer
 
 # ดึงเส้นทาง (path) ปัจจุบัน
 current_path = os.getcwd()

@@ -4,7 +4,6 @@ from tkinter import messagebox
 from tkinter import filedialog
 # from test_auto_cus_name_MKII import *
 import pandas as pd
-import re
 
 # * selenium
 import time
@@ -27,6 +26,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from xml.dom.minidom import Document
 import os
 import sys
+
+import threading
 
 
 class MyApp:
@@ -249,7 +250,8 @@ class MyApp:
             self.display_cus_address.insert(END, '')
             self.display_cus_address.config(state=DISABLED)
 
-    def order_search(self, order):
+    def order_search(self, order,  on_complete):
+        self.on_complete = on_complete
         self.order = order.strip()
         self.cus_order.set(order)
         differential_col_data = [
@@ -258,12 +260,11 @@ class MyApp:
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี']
 
         if self.order != "":
-            try:
+            if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
                 self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
                                                     == self.order)]
                 # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
-
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
 
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
@@ -328,9 +329,8 @@ class MyApp:
                 # self.update_log(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
                 # self.update_log(f"ที่อยู่: {result['address']}")
                 # self.update_log("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
-                self.bot.get_tabs()
 
-            except:
+            else:
                 print(
                     f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
                 print(
@@ -350,6 +350,9 @@ class MyApp:
 
         else:
             self.reset_all_display()
+        print("ถึงแน่นอล")
+        self.on_complete.set()
+        print("จบ")
 
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
@@ -426,7 +429,14 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
 
-        self.order_search(self.search_query)
+        self.search_complete = threading.Event()
+        self.search_thread = threading.Thread(
+            target=lambda: self.order_search(self.search_query, self.search_complete))
+        self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
+
+        self.search_thread.start()
+        # self.search_complete.wait()
+        self.get_tabs_thread.start()
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -520,7 +530,7 @@ class Bot_POS:
         self.merged_dict = dict(zip(self.unique_titles, self.value_list))
 
         print("มี tabs ไรบ้าง", self.merged_dict)
-        # self.operation_start()
+        self.operation_start()
 
     def operation_start(self):
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
@@ -577,19 +587,23 @@ class Bot_POS:
 
         # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-        if self.app.tax_bool.get():
-            print('ใช้ method ใบกำกับ')
-            self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+        #* จับตาดูว่า ul เปิดอยู่ไหม
+        self.is_ul_open = False if self.driver.find_elements(By.XPATH,'/html/body/span/span/span[2]/ul') else True
+        # * conditional ternary like
+        self.cus_search = self.app.tax_num.get(
+        ) if self.app.tax_bool.get() else self.app.cus_name.get()
+        if self.is_ul_open:
+            self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click() 
             self.wait1.until(EC.visibility_of_element_located(
                 (By.XPATH, self.app.cusNameInput)))
-            self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
-            self.driver.find_element(By.XPATH, self.app.cusNameInput).send_keys(
-                self.app.tax_num.get())
-            self.wait1.until_not(EC.text_to_be_present_in_element(
-                (By.XPATH, self.app.cusNameLi1), "searching..."))
-            print("search หายไปแล้ว")
-        else:
-            print('ใช้ method ใบทำดา')
+        self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
+        self.driver.find_element(
+            By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+        self.wait1.until_not(EC.text_to_be_present_in_element(
+            (By.XPATH, self.app.cusNameLi1), "searching..."))
+        
+        self.app.update_log("มันจบแค่นี้")
+        print("search หายไปแล้ว")
 
     def addNormalCustomer(self, cusSearchSMCO, cusCreateBtn):
         self.element = self.wait1.until(
