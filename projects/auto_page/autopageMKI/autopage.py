@@ -16,12 +16,13 @@ from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEven
 from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-# from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
+from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 import myFunctions
 from xml.dom.minidom import Document
 import os
 import sys
-from Python.python_modules3.SMCO.cusNameFixer import cusNameFixer
+# เอา folder ที่มี module มาเป็นหนึ่งเดียวกับ folder ของ project ทำให้ สามารถ import จากการใช้ form แล้วตามด้วย ชื่อ module ได้โดยตรง แบบนี้ >> "from cusNameFixer"
+sys.path.append("\python_modules3\SMCO")
 
 # ดึงเส้นทาง (path) ปัจจุบัน
 current_path = os.getcwd()
@@ -32,9 +33,9 @@ parent_path = os.path.dirname(current_path)
 # กลับไปยังโฟลเดอร์ก่อนหน้า
 os.chdir(parent_path)
 
-# เอา folder ที่มี module มาเป็นหนึ่งเดียวกับ folder ของ project ทำให้ สามารถ import จากการใช้ form แล้วตามด้วย ชื่อ module ได้โดยตรง แบบนี้ >> "from cusNameFixer"
-sys.path.append("\python_modules3\SMCO")
-print("คือไร", current_path)
+
+print("ที่อยู๋ปัจจุบันคือไร", current_path)
+print("มีไรบ้างรอบๆตัว", os.listdir())
 
 
 # เพิ่มเส้นทางปัจจุบันเป็นเส้นทางหลัก (main path) ใหม่
