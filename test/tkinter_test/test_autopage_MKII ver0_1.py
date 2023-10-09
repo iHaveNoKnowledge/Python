@@ -414,6 +414,19 @@ class MyApp:
         cleaned_address = cleaned_address.replace("  ", " ")
 
         return cleaned_address
+    
+    def cusNameFixer3(self, name2):
+        if re.search("[(,)]", name2): ## หาว่ามีให้แมชหรือป่าว
+            nameParentheses = re.search("[(,)]",name2)
+            parenthesesIndex = nameParentheses.span() ##ใช้ method span() เพ่ือดึงค่า span โดยไอ span จะเป็นเลขบอกตำแหน่งของสิ่งที่เราหา (ทำไมไม่ทำเป็น attribute  555)
+            slicingIndex = slice(parenthesesIndex[0]) 
+            name2 = name2[slicingIndex]
+            name2 = name2.strip() ##ตอนแรกๆไม่มีปัญหา หลังๆ มีปัญหา เรื่อง space ไม่เท่ากัน
+        else:
+            name2 = name2.strip()
+        name2 += " :"
+        print("มันมีชื่อว่า", name2)
+        return name2
 
     def search(self):
         self.search_query = self.entered_order.get()
@@ -591,7 +604,7 @@ class Bot_POS:
         self.is_ul_open = False if self.driver.find_elements(By.XPATH,'/html/body/span/span/span[2]/ul') else True
         # * conditional ternary like
         self.cus_search = self.app.tax_num.get(
-        ) if self.app.tax_bool.get() else self.app.cus_name.get()
+        ) if self.app.tax_bool.get() else self.app.cusNameFixer3(self.app.cus_name.get())
         if self.is_ul_open:
             self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click() 
             self.wait1.until(EC.visibility_of_element_located(
