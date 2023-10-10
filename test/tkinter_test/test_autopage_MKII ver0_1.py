@@ -628,7 +628,7 @@ class Bot_POS:
             By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
         print("กรอกชื่อเสร็จ")
         self.wait_condition = self.driver.find_element(
-                By.XPATH, self.app.cusNameLi1)
+            By.XPATH, self.app.cusNameLi1)
         print("มันทำไม", self.wait_condition.text)
 
         while True:
@@ -639,31 +639,32 @@ class Bot_POS:
             except:
                 print("Search หายไปแล้ว")
                 time.sleep(0.75)
-                
-                
-            try:
-                self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
-                while self.wait_condition.text == "No results found":
-                    print("Noresult found")
-                    # * ขอใบกำกับป่าว
-                    if self.app.tax_bool.get():
-                        self.addTaxInvCustomer()
-                    else:
-                        self.addNormalCustomer(self.cus_search)
-                        
-                    # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))    
-                    self.driver.switch_to.window(
-                        self.merged_dict['SMCO :: เปิดการขาย'])
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).clear()
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
-                    print("กรอกชื่อหลังแอดเสร็จ")
-                    continue
-            except:
-                print("ทรายไม่ได้")
-                   
-            self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+
+            
+            self.wait_condition = self.driver.find_element(
+                By.XPATH, self.app.cusNameLi1)
+            while self.wait_condition.text == "No results found":
+                print("Noresult found")
+                # * ขอใบกำกับป่าว
+                if self.app.tax_bool.get():
+                    self.addTaxInvCustomer()
+                    print("กำลัง แอด")
+                else:
+                    self.addNormalCustomer(self.cus_search)
+
+                # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
+                self.driver.switch_to.window(
+                    self.merged_dict['SMCO :: เปิดการขาย'])
+                self.driver.find_element(
+                    By.XPATH, self.app.cusNameInput).clear()
+                self.driver.find_element(
+                    By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+                print("กรอกชื่อหลังแอดเสร็จ")
+                continue
+            
+
+            self.wait_condition = self.driver.find_element(
+                By.XPATH, self.app.cusNameLi1)
             try:
                 if self.wait_condition.text:
                     if self.wait_condition.text != "No results found" and self.wait_condition.text != "Searching...":
@@ -699,7 +700,6 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
         self.driver.find_element(
             By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-        
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
@@ -716,11 +716,12 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(self.app.cus_name.get())  # nameEN
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
+        print("self.app.cus_addressใช้ไม่ได้?: ", self.app.cus_address)
         [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
             self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
         self.finProvince = finProvince.strip().lstrip("จังหวัด")
         self.driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(finAddress)  # Address
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(finAddress)  # Address
 
         # dropdown Country
         self.driver.find_element(
@@ -758,7 +759,7 @@ class Bot_POS:
 
         # tel.
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(taxTel)
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
         self.driver.find_element(
