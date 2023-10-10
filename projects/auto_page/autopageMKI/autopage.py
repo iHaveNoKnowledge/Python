@@ -1,6 +1,7 @@
 # เสิชคำว่า "ยังไม่เสร็จ" เพื่อหางานที่ทำค้างไว้ // "optional" เพื่อหาโค้ดที่ทำเป็น ทางเลือกไว้ เพราะไม่ชัวว่า option ไหนดีกว่ากัน
 # from pynput.mouse import Listener
 
+
 import time
 import win32com.client as comclt
 import re
@@ -16,14 +17,14 @@ from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEven
 from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
+# from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 import myFunctions
 from xml.dom.minidom import Document
 import os
 import sys
 # เอา folder ที่มี module มาเป็นหนึ่งเดียวกับ folder ของ project ทำให้ สามารถ import จากการใช้ form แล้วตามด้วย ชื่อ module ได้โดยตรง แบบนี้ >> "from cusNameFixer"
-sys.path.append("\python_modules3\SMCO")
-
+sys.path.append("python_modules3\SMCO")
+from cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 # ดึงเส้นทาง (path) ปัจจุบัน
 current_path = os.getcwd()
 
