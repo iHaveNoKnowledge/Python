@@ -39,21 +39,21 @@ class MyApp:
         self.root = root
         self.result = ""
         self.table_location = ""
-        self.cus_order = StringVar(value="-")
+        self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
-        self.tax_num = StringVar(value="-")
-        self.is_tax = StringVar(value="-")
-        self.cus_name = StringVar(value="-")
-        self.cus_account_name = StringVar(value="-")
-        self.cus_address = "-"
-        self.cus_province = StringVar(value="-")
-        self.cus_district = StringVar(value="-")
-        self.cus_sub_district = StringVar(value="-")
-        self.cus_tel = StringVar(value="-")
-        self.cus_cur_status = StringVar(value="-")
+        self.tax_num = StringVar(value="")
+        self.is_tax = StringVar(value="")
+        self.cus_name = StringVar(value="")
+        self.cus_account_name = StringVar(value="")
+        self.cus_address = ""
+        self.cus_province = StringVar(value="")
+        self.cus_district = StringVar(value="")
+        self.cus_sub_district = StringVar(value="")
+        self.cus_tel = StringVar(value="")
+        self.cus_cur_status = StringVar(value="")
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
-        self.cus_purchase_time = StringVar(value="-")
+        self.cus_purchase_time = StringVar(value="")
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
@@ -193,18 +193,19 @@ class MyApp:
     def reset_all_display(self):
         self.result = ""
         self.table_location = ""
-        self.cus_order.set("-")
+        self.cus_order.set("")
         self.tax_bool.set(False)
-        self.tax_num.set("-")
-        self.is_tax.set("-")
-        self.cus_name.set("-")
-        self.cus_address = "-"
-        self.update_address('-')
-        self.cus_province.set("-")
-        self.cus_district.set("-")
-        self.cus_sub_district.set("-")
-        self.cus_tel.set("-")
-        self.cus_cur_status.set("-")
+        self.tax_num.set("")
+        self.is_tax.set("")
+        self.cus_name.set("")
+        self.cus_address = ""
+        self.update_address('')
+        self.cus_province.set("")
+        self.cus_district.set("")
+        self.cus_sub_district.set("")
+        self.cus_tel.set("")
+        self.cus_cur_status.set("")
+        self.cus_account_name.set("")
         self.display_is_tax.config(
             background="#FFF", foreground="#000", font='Chiller 10 normal')
 
@@ -661,6 +662,7 @@ class Bot_POS:
         ) if self.app.tax_bool.get() else self.app.cusNameFixer4(self.app.cus_name.get(), self.app.cus_account_name.get())
         if self.is_ul_not_open:
             self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+
             self.wait1.until(EC.visibility_of_element_located(
                 (By.XPATH, self.app.cusNameInput)))
 
@@ -673,54 +675,63 @@ class Bot_POS:
         print("มันทำไม", self.wait_condition.text)
 
         while True:
+            self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
             try:
-                while self.wait_condition.text == "Searching...":
-                    self.wait_condition = self.driver.find_element(
-                        By.XPATH, self.app.cusNameLi1)
+                if self.wait_condition.text == "Searching...":
+                    continue
+                else:
+                    pass
             except:
-                print("Search หายไปแล้ว")
-                time.sleep(0.75)
+                pass
+            
+            self.wait_condition = self.driver.find_element(
+                By.XPATH, self.app.cusNameLi1)
+            if self.wait_condition.text == "No results found":
+                print("Noresult found")
+                # * ขอใบกำกับป่าว
+                if self.app.tax_bool.get():
+                    self.addTaxInvCustomer()
 
-            try:
-                self.wait_condition = self.driver.find_element(
-                    By.XPATH, self.app.cusNameLi1)
-                while self.wait_condition.text == "No results found":
-                    print("Noresult found")
-                    # * ขอใบกำกับป่าว
-                    if self.app.tax_bool.get():
-                        self.addTaxInvCustomer()
-                        print("กำลัง แอด")
-                    else:
-                        self.addNormalCustomer(self.cus_search)
+                else:
+                    self.addNormalCustomer(self.cus_search)
 
-                    # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
-                    self.driver.switch_to.window(
-                        self.merged_dict['SMCO :: เปิดการขาย'])
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).clear()
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
-                    print("กรอกชื่อหลังแอดเสร็จ")
-
-            except:
-                continue
+                # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
+                self.driver.switch_to.window(
+                    self.merged_dict['SMCO :: เปิดการขาย'])
+                self.driver.find_element(
+                    By.XPATH, self.app.cusNameInput).clear()
+                self.driver.find_element(
+                    By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+                print("กรอกชื่อหลังแอดเสร็จ")
+            else:
+                pass
 
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
-            try:
-                if self.wait_condition.text:
-                    if self.wait_condition.text != "No results found" and self.wait_condition.text != "Searching...":
-                        break
-                    else:
-                        continue
+            if not self.wait_condition.text == "No results found":
+                if not self.wait_condition.text == "Searching...":
+                    break
                 else:
                     continue
-            except:
-                continue
+
         print("คลิกเด้ะ")
         self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+        if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]"):
+            try:
+                self.driver.find_element(
+                    By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
+                self.driver.find_element(
+                    By.XPATH, self.app.cus_arrow_btn).click()
+                self.wait1.until(EC.visibility_of_element_located(
+                    (By.XPATH, self.app.cusNameInput)))
+            except:
+                print("ข้าม Element ไม่โผล่")
+        else:
+            pass
         self.app.update_log("มันจบแค่นี้")
         print("search หายไปแล้ว")
+        self.wait1.until(EC.invisibility_of_element_located(
+            (By.XPATH, self.app.cusNameInput)))
 
         # ใส่ค่าขนส่ง
         try:
