@@ -1,0 +1,9 @@
+1)เอา chromedriver.exe ไปวางไว้ที่ "C:\bin"
+ถ้า "C: ไม่มี folder "bin" ให้สร้างเองได้เลย แล้วเอา chromedriver.exe ไปวางไว้
+
+2)chrome.exe - 8989 เอาไว้ใช้รัน port 8989 เพื่อให้ selenium ควบคุม browser เฉพาะ port 8989 จะได้ไม่รบกวน browser ตัวปกติ ตัวปกติจะดูนงดูหนังอะไรก็ได้ตามสบาย bot จะวิ่งที่ 8989 เท่านั้น
+ถ้าใช้chrome.exe - 8989 ใช้ไม่ได้ให้ไปสร้าง shortcut จาก chrome.exe ของตัวเอง แล้วคลิกขวาหา property ของตัว exe ที่สร้างใหม่ 
+แล้ว นำ "--remote-debugging-port="8989" --user-data-dir="C:\bin\chromeprofile" 
+ไปวางต่อท้ายในช่อง target(เป้าหมาย)
+
+ตัวอย่าง "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port="8989" --user-data-dir="C:\bin\chromeprofile"
