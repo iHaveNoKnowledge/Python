@@ -66,7 +66,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
-        self.root.title("Autosamatic ver0.1")
+        self.root.title("Autosamatic ver0.2")
         self.root.configure(bg="#444")
 
         # #* FRAMES #####################################################################################################
@@ -85,7 +85,7 @@ class MyApp:
         # > Frame4 Customer Details
         self.order_details_frame = Frame(self.root, bg="#444", )
         self.order_details_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
-        
+
         # > Frame5 Products Lists
         self.products_list_frame = Frame(self.root, bg="#fff")
         self.products_list_frame.pack(anchor=W, padx=(5, 5), pady=(0, 5))
@@ -181,23 +181,27 @@ class MyApp:
         self.display_cus_address.grid(
             row=3, column=1, padx=(1, 0), columnspan=3, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
-        
+
         # * > Customter Products List
         self.label_cus_address = Label(
             self.products_list_frame, text="รายการสินค้า: ", bg="#FFF", height=1, )
-        self.label_cus_address.grid(row=0, column=0, padx=(5, 0), pady=(0, 20), sticky="n")
-        
-        #* >> สร้าง Treeview widget
-        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings")
+        self.label_cus_address.grid(
+            row=0, column=0, padx=(5, 0), pady=(0, 20), sticky="n")
+
+        # * >> สร้าง Treeview widget
+        self.tree = ttk.Treeview(self.products_list_frame, columns=(
+            "Productname", "Price", "QTY"), show="headings")
         self.tree.heading("Productname", text="Product")
         self.tree.heading("Price", text="Price")
         self.tree.heading("QTY", text="QTY")
         self.tree.grid(row=0, column=1, padx=(0, 0), pady=(0, 0))
-        
-        self.y_scrollbar = ttk.Scrollbar(self.products_list_frame, orient="vertical", command=self.tree.yview)
+
+        self.y_scrollbar = ttk.Scrollbar(
+            self.products_list_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=self.y_scrollbar.set)
-        self.y_scrollbar.grid(row=0, column=2, sticky="ns")
-        self.x_scrollbar = ttk.Scrollbar(self.products_list_frame, orient="horizontal", command=self.tree.xview)
+        self.y_scrollbar.place()
+        self.x_scrollbar = ttk.Scrollbar(
+            self.products_list_frame, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=self.x_scrollbar.set)
 
         # * > Log windows component
@@ -285,20 +289,27 @@ class MyApp:
             self.display_cus_address.delete(1.0, END)
             self.display_cus_address.insert(END, '')
             self.display_cus_address.config(state=DISABLED)
-    
+
     def show_products(self, products_list):
+        for i in self.tree.get_children():
+            self.tree.delete(i)
         self.total_price = 0
         for product in products_list:
             product_name = product["เลขอ้างอิง SKU (SKU Reference No.)"]
             price = product["ราคาขายสุทธิ"]
+            shopee_rebate = product['ส่วนลดจาก Shopee']
+            price_plusrebate = price+shopee_rebate
             QTY = product['จำนวน']
-            self.total_price += price
-            self.tree.insert("", "end", values=(product_name, price, QTY))
+            self.total_price += price_plusrebate
+            self.tree.insert("", "end", values=(
+                product_name, price_plusrebate, QTY))
         self.total_price += self.cus_ship_cost.get()
-        self.tree.insert("","end", value=("ค่าขนส่ง", self.cus_ship_cost.get(), 1))   
+        self.tree.insert("", "end", value=(
+            "ค่าขนส่ง", self.cus_ship_cost.get(), 1))
         self.total_price -= self.cus_seller_voucher.get()
-        self.tree.insert("","end", value=("SellerVoucher", self.cus_seller_voucher.get(), 1))
-        
+        self.tree.insert("", "end", value=(
+            "SellerVoucher", self.cus_seller_voucher.get(), 1))
+
         self.tree.insert("", "end", values=("Total", self.total_price))
 
     def order_search(self, order,  on_complete):
@@ -306,7 +317,7 @@ class MyApp:
         self.order = order.strip()
         self.cus_order.set(order)
         differential_col_data = [
-            'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ']
+            'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ']
 
@@ -381,8 +392,6 @@ class MyApp:
                         self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
-                    
-                
 
                 self.cus_tel.set(
                     self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
@@ -395,7 +404,8 @@ class MyApp:
 
                 net_prices = []
                 for self.item in self.items:
-                    net_price = self.item['ราคาขายสุทธิ']
+                    net_price = self.item['ราคาขายสุทธิ'] + \
+                        self.item['ส่วนลดจาก Shopee']
                     net_prices.append(net_price)
                 # print(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
                 # print(f"ที่อยู่: {result['address']}")
@@ -716,7 +726,8 @@ class Bot_POS:
         print("มันทำไม", self.wait_condition.text)
 
         while True:
-            self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+            self.wait_condition = self.driver.find_element(
+                By.XPATH, self.app.cusNameLi1)
             try:
                 if self.wait_condition.text == "Searching...":
                     continue
@@ -724,7 +735,7 @@ class Bot_POS:
                     pass
             except:
                 pass
-            
+
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
             if self.wait_condition.text == "No results found":
@@ -862,7 +873,7 @@ class Bot_POS:
         #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
         # self.finProvince = finProvince.strip().lstrip("จังหวัด")
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(finAddress)  # Address
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
 
         # dropdown Country
         self.driver.find_element(
@@ -903,7 +914,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-        กดเองตรวจเอง
+        # กดเองตรวจเอง
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
 
@@ -914,3 +925,8 @@ if __name__ == "__main__":
     root.resizable(False, False)
 
     root.mainloop()
+
+# ปัญหาที่ต้องแก้
+# 1"สินค้ารวมค่าส่งหัก seller: " เลขที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
+# 2 เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
+# 3 แอดใบกำกับไม่ได้
