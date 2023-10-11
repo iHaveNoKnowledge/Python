@@ -2,6 +2,7 @@
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
+from tkinter import ttk
 # from test_auto_cus_name_MKII import *
 import pandas as pd
 
@@ -84,6 +85,10 @@ class MyApp:
         # > Frame4 Customer Details
         self.order_details_frame = Frame(self.root, bg="#444", )
         self.order_details_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
+        
+        # > Frame5 Products Lists
+        self.products_list_frame = Frame(self.root, bg="#fff")
+        self.products_list_frame.pack(anchor=W, padx=(5, 5), pady=(0, 5))
 
         # Create widgets in the main window
         self.create_widgets()
@@ -166,7 +171,6 @@ class MyApp:
         self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky=W)
 
         # * > Customer Address display component
-
         # >> Labels
         self.label_cus_address = Label(
             self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
@@ -177,9 +181,27 @@ class MyApp:
         self.display_cus_address.grid(
             row=3, column=1, padx=(1, 0), columnspan=3, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
+        
+        # * > Customter Products List
+        self.label_cus_address = Label(
+            self.products_list_frame, text="รายการสินค้า: ", bg="#FFF", height=1, )
+        self.label_cus_address.grid(row=0, column=0, padx=(5, 0), pady=(0, 20), sticky="n")
+        
+        #* >> สร้าง Treeview widget
+        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings")
+        self.tree.heading("Productname", text="Product")
+        self.tree.heading("Price", text="Price")
+        self.tree.heading("QTY", text="QTY")
+        self.tree.grid(row=0, column=1, padx=(0, 0), pady=(0, 0))
+        
+        self.y_scrollbar = ttk.Scrollbar(self.products_list_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=self.y_scrollbar.set)
+        self.y_scrollbar.grid(row=0, column=2, sticky="ns")
+        self.x_scrollbar = ttk.Scrollbar(self.products_list_frame, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(xscrollcommand=self.x_scrollbar.set)
 
         # * > Log windows component
-        self.report_log = Text(self.log_frame, state=DISABLED, height=15)
+        self.report_log = Text(self.log_frame, state=DISABLED, height=13)
         self.scrollbar = Scrollbar(
             self.log_frame, command=self.report_log.yview)
         self.scrollbar.pack(side="right", fill="y")
@@ -263,6 +285,21 @@ class MyApp:
             self.display_cus_address.delete(1.0, END)
             self.display_cus_address.insert(END, '')
             self.display_cus_address.config(state=DISABLED)
+    
+    def show_products(self, products_list):
+        self.total_price = 0
+        for product in products_list:
+            product_name = product["เลขอ้างอิง SKU (SKU Reference No.)"]
+            price = product["ราคาขายสุทธิ"]
+            QTY = product['จำนวน']
+            self.total_price += price
+            self.tree.insert("", "end", values=(product_name, price, QTY))
+        self.total_price += self.cus_ship_cost.get()
+        self.tree.insert("","end", value=("ค่าขนส่ง", self.cus_ship_cost.get(), 1))   
+        self.total_price -= self.cus_seller_voucher.get()
+        self.tree.insert("","end", value=("SellerVoucher", self.cus_seller_voucher.get(), 1))
+        
+        self.tree.insert("", "end", values=("Total", self.total_price))
 
     def order_search(self, order,  on_complete):
         self.on_complete = on_complete
@@ -344,6 +381,8 @@ class MyApp:
                         self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
+                    
+                
 
                 self.cus_tel.set(
                     self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
@@ -364,6 +403,8 @@ class MyApp:
                 # self.update_log(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
                 # self.update_log(f"ที่อยู่: {result['address']}")
                 # self.update_log("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
+                # loopสินค้า
+                self.show_products(self.items)
                 print("จำนวนเงิน", self.f(
                     self.nondistortedData['จำนวนเงินทั้งหมด']))
                 print('สินค้ารวมค่าส่ง: ',
