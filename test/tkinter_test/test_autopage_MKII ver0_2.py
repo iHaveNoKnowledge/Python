@@ -402,11 +402,11 @@ class MyApp:
                 self.cus_purchase_time.set(
                     self.nondistortedData['วันที่ทำการสั่งซื้อ'])
 
-                net_prices = []
-                for self.item in self.items:
-                    net_price = self.item['ราคาขายสุทธิ'] + \
-                        self.item['ส่วนลดจาก Shopee']
-                    net_prices.append(net_price)
+                self.net_prices_list = []
+                for item in self.items:
+                    net_price = item['ราคาขายสุทธิ'] + \
+                        item['ส่วนลดจาก Shopee']
+                    self.net_prices_list.append(net_price)
                 # print(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
                 # print(f"ที่อยู่: {result['address']}")
                 # print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
@@ -414,6 +414,8 @@ class MyApp:
                 # self.update_log(f"ที่อยู่: {result['address']}")
                 # self.update_log("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
                 # loopสินค้า
+
+                self.sum_price = sum(self.net_prices_list)
                 self.show_products(self.items)
                 print("จำนวนเงิน", self.f(
                     self.nondistortedData['จำนวนเงินทั้งหมด']))
@@ -423,11 +425,11 @@ class MyApp:
                 self.update_log(
                     f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
                 self.update_log(
-                    f"จำนวนเงิน: {self.f(net_prices[0])}")
+                    f"จำนวนเงิน: {self.f(self.sum_price)}")
                 self.update_log(
                     f"seller voucher: {self.f(self.cus_seller_voucher.get())}")
                 self.update_log(
-                    f"สินค้ารวมค่าส่งหัก seller: {self.f((net_prices[0]+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                    f"สินค้ารวมค่าส่งหัก seller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
             else:
                 print(
@@ -552,7 +554,7 @@ class MyApp:
 
         self.search_thread.start()
         # self.search_complete.self.wait1()
-        self.get_tabs_thread.start()
+        # self.get_tabs_thread.start()
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -840,14 +842,27 @@ class Bot_POS:
         self.btnElement = self.wait1.until(
             EC.visibility_of_element_located((By.XPATH, self.app.cusCreateBtn)))
         self.btnElement.click()  # create
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusname_adjusted)
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_adjusted)
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
+
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
         self.driver.find_element(
@@ -927,10 +942,10 @@ if __name__ == "__main__":
     root.mainloop()
 
 # ปัญหาที่ต้องแก้
-# !1 บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
+# **แก้แล้ว**1 บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
 # !2 เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
 # !3 แอดใบกำกับไม่ได้
 # !4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
 # !5 ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก รnput ต้องล้างก่อนแอด ควรทำเป็นนิสัย
-# !6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3"
+# !6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
 # !7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
