@@ -387,7 +387,7 @@ class MyApp:
                 result = {"status": self.order_status,
                           "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
                 self.cus_name.set(
-                    re.sub(r'\s{2,}', "", self.nondistortedData['ชื่อ'].strip()))
+                    re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip()))
                 self.cus_account_name.set(
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
@@ -849,40 +849,62 @@ class Bot_POS:
             print("ค่าขนส่งโดนข้าม")
             print(err)
 
-        # Auto หน้าท้าย ทำได้ครั้งเดียว
-        self.is_final_page = self.wait1.until(EC.visibility_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
-        try:
-            if self.app.cus_seller_voucher.get():
-                # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').clear()
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
+        while True:
+            self.is_final_page2 = self.wait1.until(EC.text_to_be_present_in_element(
+                (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]'), "Payment:"))
+            self.last_page = self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
+            if self.last_page.text == "Payment:":
+                # Auto หน้าท้าย ทำได้ครั้งเดียว
+                self.is_final_page2 = self.wait1.until(EC.text_to_be_present_in_element(
+                    (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]'), "Payment:"))
 
-            # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
-            self.driver.find_element(
-                By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").clear()
-            self.driver.find_element(
-                By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
+                # self.is_final_page = self.wait1.until(EC.visibility_of_element_located(
+                #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
+                try:
+                    if self.app.cus_seller_voucher.get():
+                        # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
+                        self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').clear()
+                        self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+                    # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
+                    self.driver.find_element(
+                        By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").clear()
+                    self.driver.find_element(
+                        By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
 
-            if self.app.cus_name.get():
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+
+                    if self.app.cus_name.get():
+                        self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
+                    else:
+                        self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+                except:
+                    print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
+                    break
+                self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
+                    (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
+                if self.is_previous_page:
+                    # อาจจะต้องสลับกัน
+                    if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
+                        print("กลับมาหน้าเดิม")
+                        continue
+                    elif bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
+                        print("ไปหน้าสุดท้าย จบ loop")
+                        break
+
             else:
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
-        except:
-            print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
-            pass
+                print("จบสูตร")
 
     def addNormalCustomer(self, cusname_adjusted):
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -1019,3 +1041,5 @@ if __name__ == "__main__":
 # !7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
 # !8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้
 # !9 Total LastPage in SMCO -> ราคาที่ต้องออก
+# !10 "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
+# Todo /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
