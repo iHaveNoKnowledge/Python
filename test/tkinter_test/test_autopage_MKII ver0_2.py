@@ -66,7 +66,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
-        self.root.title("Autosamatic ver0.2")
+        self.root.title("Autosamatic ver0.22")
         self.root.configure(bg="#444")
 
         # #* FRAMES #####################################################################################################
@@ -342,8 +342,13 @@ class MyApp:
                 print("พวกบิดเบี้ยวในแต่ละrow: ", self.items)
                 self.update_log(
                     f"สินค้าที่มี")
-                self.update_log(
-                    f"{self.items}")
+                # self.update_log(
+                #     f"{self.items}")
+                for row in self.items:
+                    self.update_log(
+                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
+                    self.update_log(
+                        f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
 
                 print("สถานะOrder: ", self.order_status)
                 # * ############# หาค่าจาก ตาราง ###############################
@@ -554,7 +559,10 @@ class MyApp:
 
         self.search_thread.start()
         # self.search_complete.self.wait1()
-        # self.get_tabs_thread.start()
+        self.get_tabs_thread.start()
+        # self.search_thread.join()
+
+        # self.get_tabs_thread.join()
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -834,6 +842,8 @@ class Bot_POS:
             print("ค่าขนส่งโดนข้าม")
             print(err)
 
+        self.app.get_tabs_thread.terminate()
+
     def addNormalCustomer(self, cusname_adjusted):
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
         self.element = self.driver.find_element(
@@ -878,15 +888,25 @@ class Bot_POS:
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
         self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()  # nameTH
+        self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(self.app.cus_name.get())  # nameTH
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()  # nameEN
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(self.app.cus_name.get())  # nameEN
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
-        print("self.app.cus_addressใช้ไม่ได้?: ", self.app.cus_address)
         # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
         #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
         # self.finProvince = finProvince.strip().lstrip("จังหวัด")
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()  # Address
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
 
@@ -902,13 +922,17 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            self.app.cus_province.get().replace("จังหวัด", ""))  # province input
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
         time.sleep(1.75)
@@ -918,6 +942,8 @@ class Bot_POS:
         # SubDistrict drop
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
         time.sleep(1.75)
@@ -925,6 +951,8 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # tel.
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
         self.driver.find_element(
@@ -944,9 +972,9 @@ if __name__ == "__main__":
 # ปัญหาที่ต้องแก้
 # **แก้แล้ว**1 บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
 # !2 เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
-# !3 แอดใบกำกับไม่ได้
+# ?แก้แล้วยังไม่มีตัวอย่าง3 แอดใบกำกับไม่ได้
 # !4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
-# !5 ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก รnput ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
+# **แก้แล้ว**5 ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
 # !6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
 # !7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
-# !8 ปิด thread หลังจบคำสั่งด้วย
+# !8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้
