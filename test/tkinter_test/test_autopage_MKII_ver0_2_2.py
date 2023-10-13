@@ -302,15 +302,22 @@ class MyApp:
             QTY = product['จำนวน']
             self.total_price += price_plusrebate
             self.tree.insert("", "end", values=(
-                product_name, price_plusrebate, QTY))
+                product_name, self.f(price_plusrebate), QTY))
         self.total_price += self.cus_ship_cost.get()
         self.tree.insert("", "end", value=(
-            "ค่าขนส่ง", self.cus_ship_cost.get(), 1))
+            "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
         self.total_price -= self.cus_seller_voucher.get()
         self.tree.insert("", "end", value=(
-            "SellerVoucher", self.cus_seller_voucher.get(), 1))
+            "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
 
-        self.tree.insert("", "end", values=("Total", self.total_price))
+        self.tree.insert("", "end", values=(
+            "Total LastPage in SMCO", self.f(self.total_price)))
+
+        self.tree.insert("", "end", values=("Shopee Voucher",
+                         self.f(self.nondistortedData['โค้ดส่วนลดชำระโดย Shopee']*-1)))
+
+        self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
+                         self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
 
     def order_search(self, order,  on_complete):
         self.on_complete = on_complete
@@ -319,7 +326,7 @@ class MyApp:
         differential_col_data = [
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
-                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ']
+                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee']
 
         if self.order != "":
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
@@ -430,9 +437,9 @@ class MyApp:
                 self.update_log(
                     f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
                 self.update_log(
-                    f"จำนวนเงิน: {self.f(self.sum_price)}")
+                    f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price)+float(self.cus_ship_cost.get()))}")
                 self.update_log(
-                    f"seller voucher: {self.f(self.cus_seller_voucher.get())}")
+                    f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
                 self.update_log(
                     f"สินค้ารวมค่าส่งหัก seller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
@@ -842,7 +849,40 @@ class Bot_POS:
             print("ค่าขนส่งโดนข้าม")
             print(err)
 
-        self.app.get_tabs_thread.terminate()
+        # Auto หน้าท้าย ทำได้ครั้งเดียว
+        self.is_final_page = self.wait1.until(EC.visibility_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
+        try:
+            if self.app.cus_seller_voucher.get():
+                # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').clear()
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
+
+            # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
+            self.driver.find_element(
+                By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").clear()
+            self.driver.find_element(
+                By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
+
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+
+            if self.app.cus_name.get():
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
+            else:
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+        except:
+            print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
+            pass
 
     def addNormalCustomer(self, cusname_adjusted):
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -978,3 +1018,4 @@ if __name__ == "__main__":
 # !6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
 # !7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
 # !8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้
+# !9 Total LastPage in SMCO -> ราคาที่ต้องออก
