@@ -66,30 +66,47 @@ class MyApp:
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
 
     def create_main_window(self):
-        self.root.geometry("800x600+400+300")
+        self.root.geometry("1000x900+400+300")
         self.root.title("Autosamatic ver0.3")
         self.root.configure(bg="#444")
 
+        # #* BG CANVAS ##################################################################################
+        self.canvas = Canvas(self.root)
+        self.canvas.configure(bg="#444")
+        self.canvas.pack(fill="both", expand=True)
+        # self.canvas.create_window((0, 0), window=self.entry_frame, anchor="nw")
+        # #* Scrollbar For Root ##################################################################################
+        self.root_scrollbar = Scrollbar(self.canvas, command=self.canvas.yview)
+        self.root_scrollbar.pack(side=RIGHT, fill="y")
+        self.canvas.configure(yscrollcommand=self.root_scrollbar.set)
+
+        self.canvas.update_idletasks()
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
+
         # #* FRAMES #####################################################################################################
         # > Frame1 Order Entry
-        self.entry_frame = Frame(self.root, padx=5, pady=5, bg="#444")
-        self.entry_frame.pack()
+        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444")
+        self.entry_frame.pack(pady=(10, 10))
 
         # > Frame2 Log Frame
-        self.log_frame = Frame(self.root, bg="#444")
+        self.log_frame = Frame(self.canvas, bg="#444")
         self.log_frame.pack(side='bottom', pady=(0, 30))
 
         # > Frame3 ImportFile Status
-        self.import_file_frame = Frame(self.root, bg="#444")
+        self.import_file_frame = Frame(self.canvas, bg="#444")
         self.import_file_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
 
         # > Frame4 Customer Details
-        self.order_details_frame = Frame(self.root, bg="#444", )
+        self.order_details_frame = Frame(self.canvas, bg="#444", )
         self.order_details_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
 
         # > Frame5 Products Lists
-        self.products_list_frame = Frame(self.root, bg="#445")
+        self.products_list_frame = Frame(self.canvas, bg="#445")
         self.products_list_frame.pack(padx=(5, 5), pady=(5, 5), fill=X)
+
+        # > Frame6 Margetplace(MP) Products Lists
+        self.mp_products_list_frame = Frame(self.canvas, bg="#444")
+        self.mp_products_list_frame.pack(padx=(5, 5), pady=(5, 5), fill=X)
 
         # Create widgets in the main window
         self.create_widgets()
@@ -208,6 +225,23 @@ class MyApp:
         self.tree.pack(side='bottom', fill=X)
         self.tree.configure(yscrollcommand=self.y_scrollbar.set)
 
+        # * > Margetplace Products display Header
+        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น',
+                   'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
+        colspan_amount = [1, 19, 2, 2, 2, 2]
+        cols_location = [0, 20, 21, 23, 25, 27]
+        entry_list = []
+        for header in headers:
+            self.mp_products_header = Entry(
+                self.mp_products_list_frame, foreground="#000000", background="#fff", )
+            self.mp_products_header.insert(0, header)
+            entry_list.append(self.mp_products_header)
+
+        for idx, entry in enumerate(entry_list):
+            entry.grid(
+                row=0, column=cols_location[idx], columnspan=colspan_amount[idx])
+        self.mp_products_header.configure(state="readonly")
+
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=13)
         self.scrollbar = Scrollbar(
@@ -241,6 +275,12 @@ class MyApp:
 
     def update_log(self, update_txt):
         self.update_txt = update_txt
+        self.report_log.config(state=NORMAL)
+        self.report_log.insert(END, self.update_txt + "\n")
+        self.report_log.config(state=DISABLED)
+
+    def update_mp_frame(self, data_list):
+        data_list
         self.report_log.config(state=NORMAL)
         self.report_log.insert(END, self.update_txt + "\n")
         self.report_log.config(state=DISABLED)
@@ -571,7 +611,7 @@ class MyApp:
 
         self.search_thread.start()
         # self.search_complete.self.wait1()
-        self.get_tabs_thread.start()
+        # self.get_tabs_thread.start()
         # self.search_thread.join()
 
         # self.get_tabs_thread.join()
@@ -914,147 +954,158 @@ class Bot_POS:
                 print("จบสูตร")
 
     def addNormalCustomer(self, cusname_adjusted):
-        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.element = self.driver.find_element(
-            By.XPATH, self.app.cusSearchSMCO)
-        self.element.click()  # กดแว่นขยาย
-        self.btnElement = self.wait1.until(
-            EC.visibility_of_element_located((By.XPATH, self.app.cusCreateBtn)))
-        self.btnElement.click()  # create
+        is_functionworking = False
+        is_functionworking = True
+        while is_functionworking:
+            self.driver.switch_to.window(
+                self.merged_dict['SMCO :: เปิดการขาย1'])
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusname_adjusted)
+            self.element = self.driver.find_element(
+                By.XPATH, self.app.cusSearchSMCO)
+            self.element.click()  # กดแว่นขยาย
+            self.btnElement = self.wait1.until(
+                EC.visibility_of_element_located((By.XPATH, self.app.cusCreateBtn)))
+            self.btnElement.click()  # create
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_adjusted)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusname_adjusted)
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_adjusted)
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
+
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+            is_functionworking = False
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
         return (self.splited)
 
     def addTaxInvCustomer(self):
-        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
-        time.sleep(0.75)
-        self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()  # nameTH
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(self.app.cus_name.get())  # nameTH
+        is_functionworking = False
+        is_functionworking = True
+        while is_functionworking:
+            self.driver.switch_to.window(
+                self.merged_dict['SMCO :: เปิดการขาย1'])
+            self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
+            time.sleep(0.75)
+            self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()  # nameTH
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(self.app.cus_name.get())  # nameTH
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()  # nameEN
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(self.app.cus_name.get())  # nameEN
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()  # nameEN
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(self.app.cus_name.get())  # nameEN
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
-        # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
-        #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
-        # self.finProvince = finProvince.strip().lstrip("จังหวัด")
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
+            # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
+            #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
+            # self.finProvince = finProvince.strip().lstrip("จังหวัด")
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()  # Address
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()  # Address
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
 
-        # dropdown Country
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
-        time.sleep(1)
-        # select thailand in dropdown
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
+            # dropdown Country
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
+            time.sleep(1)
+            # select thailand in dropdown
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
 
-        # province dropdown
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            self.app.cus_province.get().replace("จังหวัด", ""))  # province input
-        time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            # province dropdown
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
+            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+                self.app.cus_province.get().replace("จังหวัด", ""))  # province input
+            time.sleep(1.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
-        time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
+            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+                self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+            time.sleep(1.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-        # SubDistrict drop
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-        time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            # SubDistrict drop
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
+            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+                self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
+            time.sleep(1.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-        # tel.
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-        # กดเองตรวจเอง
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+            # tel.
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+            # กดเองตรวจเอง
+            # self.driver.find_element(
+            #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        is_functionworking = False
 
 
 if __name__ == "__main__":
     root = Tk()
     app = MyApp(root)
-    root.resizable(False, False)
+    # root.resizable(False, False)
 
     root.mainloop()
 
 # ปัญหาที่ต้องแก้
-# **แก้แล้ว**1 บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
+# *1แก้แล้ว** บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
 # !2 เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
-# !3 แอดใบกำกับ บัค ตรงที่ เราเหลือ ปุ่มสุดท้ายยังไม่กด แต่พอยังไม่กด มันไม่รอ มัน error ไปเลย
+# ?3 แอดใบกำกับ บัค ตรงที่ เราเหลือ ปุ่มสุดท้ายยังไม่กด แต่พอยังไม่กด มันไม่รอ มัน error ไปเลย
 # !4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
-# **แก้แล้ว**5 ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
-# **แก้แล้ว**6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
+# *5 แก้แล้ว**ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
+# *6แก้แล้ว** ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
 # Todo7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
 # !8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้
-# *แก้แล้ว**9 Total LastPage in SMCO -> ราคาที่ต้องออก
-# !10 "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
-# Todo /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
+# *9แก้แล้ว** Total LastPage in SMCO -> ราคาที่ต้องออก
+# *10แก้แล้ว** "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
+# * /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
 # !11 เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
 # !12 ทำ input ID PASS
 # !13 searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
 # !14 ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
-# !15 ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
-# ?แก้แล้วไม่รู้ใช้ได้ยัง 16 U200b display as ?
-# !16 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
-# !17 มีเลขลำดับบอกใน productslist
+# *15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
+# ?16 แก้แล้วไม่รู้ใช้ได้ยัง  U200b display as ?
+# !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
+# !18 มีเลขลำดับบอกใน productslist
