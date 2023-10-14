@@ -67,7 +67,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("800x600+400+300")
-        self.root.title("Autosamatic ver0.22")
+        self.root.title("Autosamatic ver0.3")
         self.root.configure(bg="#444")
 
         # #* FRAMES #####################################################################################################
@@ -900,12 +900,12 @@ class Bot_POS:
                     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                 if self.is_previous_page:
                     # อาจจะต้องสลับกัน
-                    if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
-                        print("กลับมาหน้าเดิม")
-                        continue
-                    elif bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
+                    if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
                         print("ไปหน้าสุดท้าย จบ loop")
                         break
+                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
+                        print("กลับมาหน้าเดิม")
+                        continue
 
             else:
                 print("จบสูตร")
@@ -1047,3 +1047,8 @@ if __name__ == "__main__":
 # *แก้แล้ว**9 Total LastPage in SMCO -> ราคาที่ต้องออก
 # !10 "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
 # Todo /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
+# !11 เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
+# !12 ทำ input ID PASS
+# !13 searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
+# !14 ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
+# !15 ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
