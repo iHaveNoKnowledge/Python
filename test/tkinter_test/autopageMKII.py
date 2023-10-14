@@ -851,7 +851,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-        กดเองตรวจเอง
+        # กดเองตรวจเอง
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
 

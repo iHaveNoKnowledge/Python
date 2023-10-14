@@ -391,12 +391,13 @@ class MyApp:
                 result = {"status": self.order_status,
                           "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
                 self.cus_name.set(
-                    re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip()))
+                    re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
                 self.cus_account_name.set(
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
                 try:
-                    self.update_address(self.cleaned_address)
+                    self.update_address(
+                        self.cleaned_address.replace('\u200b', ''))
                 except:
                     self.update_address('-')
 
@@ -672,6 +673,7 @@ class Bot_POS:
         self.operation_start()
 
     def operation_start(self):
+        self.autofinal = False
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
         self.wait1 = WebDriverWait(self.driver, 28800)
         # * เปลี่ยนไปtab shopee เพื่อเช็ค status
@@ -764,7 +766,8 @@ class Bot_POS:
                 # * ขอใบกำกับป่าว
                 if self.app.tax_bool.get():
                     self.addTaxInvCustomer()
-
+                    # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ
+                    # result = self.wait1.until(EC.text_to_be_present_in_element()))
                 else:
                     self.addNormalCustomer(self.cus_search)
 
@@ -852,8 +855,8 @@ class Bot_POS:
         except Exception as err:
             print("ค่าขนส่งโดนข้าม")
             print(err)
-
-        while True:
+        self.autofinal = True
+        while self.autofinal:
             self.is_final_page2 = self.wait1.until(EC.text_to_be_present_in_element(
                 (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]'), "Payment:"))
             self.last_page = self.driver.find_element(
@@ -1038,7 +1041,7 @@ if __name__ == "__main__":
 # ปัญหาที่ต้องแก้
 # **แก้แล้ว**1 บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
 # !2 เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
-# ?แก้แล้วยังไม่มีตัวอย่าง3 แอดใบกำกับไม่ได้
+# !3 แอดใบกำกับ บัค ตรงที่ เราเหลือ ปุ่มสุดท้ายยังไม่กด แต่พอยังไม่กด มันไม่รอ มัน error ไปเลย
 # !4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
 # **แก้แล้ว**5 ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
 # **แก้แล้ว**6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
@@ -1052,3 +1055,6 @@ if __name__ == "__main__":
 # !13 searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
 # !14 ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
 # !15 ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
+# ?แก้แล้วไม่รู้ใช้ได้ยัง 16 U200b display as ?
+# !16 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
+# !17 มีเลขลำดับบอกใน productslist
