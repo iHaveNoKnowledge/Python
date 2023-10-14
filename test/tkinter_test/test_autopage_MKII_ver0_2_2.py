@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
 from tkinter import ttk
+from tkinter import font
 # from test_auto_cus_name_MKII import *
 import pandas as pd
 
@@ -87,11 +88,14 @@ class MyApp:
         self.order_details_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
 
         # > Frame5 Products Lists
-        self.products_list_frame = Frame(self.root, bg="#fff")
-        self.products_list_frame.pack(anchor=W, padx=(5, 5), pady=(0, 5))
+        self.products_list_frame = Frame(self.root, bg="#445")
+        self.products_list_frame.pack(padx=(5, 5), pady=(5, 5), fill=X)
 
         # Create widgets in the main window
         self.create_widgets()
+
+    def measure_text(self, text):
+        return font.Font().measure(str(text).strip())
 
     def create_widgets(self):
         # * > search order component
@@ -183,26 +187,26 @@ class MyApp:
         self.display_cus_address.tag_add("left", "1.0", "1.end")
 
         # * > Customter Products List
-        self.label_cus_address = Label(
-            self.products_list_frame, text="รายการสินค้า: ", bg="#FFF", height=1, )
-        self.label_cus_address.grid(
-            row=0, column=0, padx=(5, 0), pady=(0, 20), sticky="n")
+        self.label_cus_products = Label(
+            self.products_list_frame, text="รายการสินค้า: ", bg="#FFF", height=1)
+        self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
         self.tree = ttk.Treeview(self.products_list_frame, columns=(
             "Productname", "Price", "QTY"), show="headings")
+        self.tree.column("Productname", anchor=W, width=350)
+        self.tree.column("Price", width=self.measure_text("Price")+10)
+        self.tree.column("QTY", width=self.measure_text("QTY")+10)
         self.tree.heading("Productname", text="Product")
         self.tree.heading("Price", text="Price")
         self.tree.heading("QTY", text="QTY")
-        self.tree.grid(row=0, column=1, padx=(0, 0), pady=(0, 0))
 
         self.y_scrollbar = ttk.Scrollbar(
-            self.products_list_frame, orient="vertical", command=self.tree.yview)
+            self.products_list_frame, command=self.tree.yview)
+
+        self.y_scrollbar.pack(side="right", fill="y")
+        self.tree.pack(side='bottom', fill=X)
         self.tree.configure(yscrollcommand=self.y_scrollbar.set)
-        self.y_scrollbar.place()
-        self.x_scrollbar = ttk.Scrollbar(
-            self.products_list_frame, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(xscrollcommand=self.x_scrollbar.set)
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=13)
@@ -311,7 +315,7 @@ class MyApp:
             "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
 
         self.tree.insert("", "end", values=(
-            "Total LastPage in SMCO", self.f(self.total_price)))
+            "ราคาที่ต้องออก", self.f(self.total_price)))
 
         self.tree.insert("", "end", values=("Shopee Voucher",
                          self.f(self.nondistortedData['โค้ดส่วนลดชำระโดย Shopee']*-1)))
@@ -1037,9 +1041,9 @@ if __name__ == "__main__":
 # ?แก้แล้วยังไม่มีตัวอย่าง3 แอดใบกำกับไม่ได้
 # !4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
 # **แก้แล้ว**5 ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
-# !6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
-# !7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
+# **แก้แล้ว**6 ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
+# Todo7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
 # !8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้
-# !9 Total LastPage in SMCO -> ราคาที่ต้องออก
+# *แก้แล้ว**9 Total LastPage in SMCO -> ราคาที่ต้องออก
 # !10 "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
 # Todo /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
