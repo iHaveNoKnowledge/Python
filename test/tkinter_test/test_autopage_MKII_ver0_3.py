@@ -304,7 +304,7 @@ class MyApp:
 
         try:
             self.data_frame = pd.read_excel(self.file_path, dtype={
-                                            'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float})
+                                            'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str})
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -363,6 +363,34 @@ class MyApp:
         self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
                          self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
 
+    def get_pure_address(self, cus_address):
+        # สร้างรายชื่อของตำแหน่งที่พบคำใน customer_address
+        keywords = ["เขต", "แขวง", "ต.", "ตำบล",
+                    "อ.", "อำเภอ", "จ.", "จังหวัด"]
+        positions = []
+
+        for keyword in keywords:
+            if keyword in cus_address:
+                keyword_position = cus_address.find(keyword)
+                positions.append(keyword_position)
+
+        # หาตำแหน่งสูงสุดและตำแหน่งต่ำสุดในรายชื่อตำแหน่ง
+        if positions:
+            min_position = min(positions)
+            max_position = max(positions)
+        else:
+            min_position = -1
+            max_position = -1
+
+        # ลบตั้งแต่ตำแหน่งที่พบคำไปจนสุดลงท้ายของ customer_address
+        if min_position >= 0:
+            truncated_address = cus_address[:min_position]
+        else:
+            truncated_address = cus_address
+
+        print(truncated_address.strip())
+        return truncated_address.strip()
+
     def order_search(self, order,  on_complete):
         self.on_complete = on_complete
         self.order = order.strip()
@@ -370,7 +398,7 @@ class MyApp:
         differential_col_data = [
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
-                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ', 'จังหวัด', 'รหัสไปรษณีย์', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee']
+                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่']
 
         if self.order != "":
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
@@ -385,16 +413,10 @@ class MyApp:
                 # *  ของมีอะไรบ้าง
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
-
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
                 )
-                print("พวกไม่บิดเบี้ยวในแต่ละrow: ",
-                      self.nondistortedData, 'ประเภทข้อมูล', type(self.nondistortedData))
-                print("พวกบิดเบี้ยวในแต่ละrow: ", self.items)
-                self.update_log(
-                    f"สินค้าที่มี")
-                # self.update_log(
-                #     f"{self.items}")
+
+                self.update_log(f"สินค้าที่มี")
                 for row in self.items:
                     self.update_log(
                         f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
@@ -424,9 +446,14 @@ class MyApp:
 
                 # * แสดงผล
                 # print("ใบกำกับ?", self.tax_bool)
-                self.address = self.filter_data.iat[0, 59]
+                # self.address = self.filter_data.iat[0, 59]
+                self.address = self.nondistortedData['รายละเอียดที่อยู่']
                 # print("ข้อความ", self.address)
-                self.cleaned_address = self.clean_address(self.address)
+                self.cleaned_address = f"""{self.get_pure_address(
+                    self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                if "กรุงเทพ" in self.cleaned_address:
+                    self.cleaned_address = self.cleaned_address.replace(
+                        "จังหวัด", '')
                 # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
                 result = {"status": self.order_status,
                           "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
@@ -436,14 +463,22 @@ class MyApp:
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
                 try:
-                    self.update_address(
-                        self.cleaned_address.replace('\u200b', ''))
+                    if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
+                        print("ไม่มี nan: ", type(
+                            self.nondistortedData['แขวง/ตำบล']))
+                        self.update_address(
+                            re.sub(r'\s{2,}', " ", self.cleaned_address.replace('\u200b', '')).strip())
+                    else:
+                        print("ถ้ามี nan")
+                        self.update_address(re.sub(
+                            r'\s{2,}', " ", self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace('\u200b', '')))
                 except:
                     self.update_address('-')
 
-                self.cus_province.set(self.nondistortedData['จังหวัด'].strip())
+                self.cus_province.set(
+                    self.nondistortedData['จังหวัด.1'].strip())
                 self.cus_district.set(
-                    self.nondistortedData['เขต/อำเภอ'].strip())
+                    self.nondistortedData['เขต/อำเภอ.1'].strip())
                 if self.cus_sub_district != "":
                     self.cus_sub_district.set(
                         self.nondistortedData['แขวง/ตำบล'])
@@ -609,12 +644,17 @@ class MyApp:
             target=lambda: self.order_search(self.search_query, self.search_complete))
         self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
 
-        self.search_thread.start()
-        # self.search_complete.self.wait1()
-        # self.get_tabs_thread.start()
-        # self.search_thread.join()
+        try:
+            self.search_thread.join()
 
-        # self.get_tabs_thread.join()
+            self.get_tabs_thread.join()
+        except:
+            self.search_thread.start()
+            # self.search_complete.self.wait1()
+            self.get_tabs_thread.start()
+            # self.search_thread.join()
+
+            # self.get_tabs_thread.join()
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -768,6 +808,13 @@ class Bot_POS:
 
         # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+
+        # * เปลี่ยน auto เป็น name
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/a[2]').click()
+
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_not_open = False if self.driver.find_elements(
             By.XPATH, '/html/body/span/span/span[2]/ul') else True
@@ -953,6 +1000,8 @@ class Bot_POS:
             else:
                 print("จบสูตร")
 
+            self.app.get_tabs_thread.join()
+
     def addNormalCustomer(self, cusname_adjusted):
         is_functionworking = False
         is_functionworking = True
@@ -977,10 +1026,10 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_adjusted)
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
+            # self.driver.find_element(
+            #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+            # self.driver.find_element(
+            #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
@@ -998,88 +1047,95 @@ class Bot_POS:
         return (self.splited)
 
     def addTaxInvCustomer(self):
-        is_functionworking = False
-        is_functionworking = True
-        while is_functionworking:
-            self.driver.switch_to.window(
-                self.merged_dict['SMCO :: เปิดการขาย1'])
-            self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
-            time.sleep(0.75)
-            self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()  # nameTH
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(self.app.cus_name.get())  # nameTH
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()  # nameEN
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(self.app.cus_name.get())  # nameEN
+        print("is_functionworking = True")
+        self.cus_tax_name_edited = self.app.cus_name.get()
+        if "หจก" in self.app.cus_name.get() or "ห้างหุ้นส่วนจำกัด" in self.app.cus_name.get():
+            self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '').replace(
+                "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
-            # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
-            #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
-            # self.finProvince = finProvince.strip().lstrip("จังหวัด")
+        elif "บจก" in self.app.cus_name.get() or "บริษัท" in self.app.cus_name.get() or "จำกัด" in self.app.cus_name.get():
+            self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '').replace(
+                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()  # Address
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
+        self.driver.switch_to.window(
+            self.merged_dict['SMCO :: เปิดการขาย1'])
+        self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
+        time.sleep(0.75)
+        self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()  # nameTH
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID : {self.app.tax_num.get()}')  # nameTH
 
-            # dropdown Country
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
-            time.sleep(1)
-            # select thailand in dropdown
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()  # nameEN
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID : {self.app.tax_num.get()}')  # nameEN
 
-            # province dropdown
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-                self.app.cus_province.get().replace("จังหวัด", ""))  # province input
-            time.sleep(1.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
+        # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
+        #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
+        # self.finProvince = finProvince.strip().lstrip("จังหวัด")
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-                self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
-            time.sleep(1.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()  # Address
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
 
-            # SubDistrict drop
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-                self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-            time.sleep(1.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        # # dropdown Country
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
+        # time.sleep(1)
+        # # select thailand in dropdown
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
 
-            # tel.
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-            # กดเองตรวจเอง
-            # self.driver.find_element(
-            #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-        is_functionworking = False
+        # # province dropdown
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+        #     self.app.cus_province.get().replace("จังหวัด", ""))  # province input
+        # time.sleep(1.75)
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+        #     self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+        # time.sleep(1.75)
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+        # # SubDistrict drop
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+        #     self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
+        # time.sleep(1.75)
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+        # tel.
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        # กดเองตรวจเอง
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
 
 
 if __name__ == "__main__":
