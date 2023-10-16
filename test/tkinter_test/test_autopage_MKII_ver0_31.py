@@ -68,7 +68,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.31")
+        self.root.title("Autosamatic ver0.32")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1053,28 +1053,28 @@ class Bot_POS:
 
     def addTaxInvCustomer(self):
 
-        print("is_functionworking = True")
+        print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
         self.cus_tax_name_edited = self.app.cus_name.get()
         if "หจก" in self.app.cus_name.get() or "ห้างหุ้นส่วนจำกัด" in self.app.cus_name.get():
-            self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '').replace(
+            print("เงื่อนไขชื่อใบกำกับใน if", self.app.cus_name.get())
+            self.cus_tax_name_edited = self.cus_tax_name_edited.replace('\u200b', '').replace(
                 "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
             self.cus_tax_name_edited = f"ห้างหุ้นส่วนจำกัด {self.cus_tax_name_edited}"
 
         elif "บจก" in self.app.cus_name.get() or "บริษัท" in self.app.cus_name.get() or "จำกัด" in self.app.cus_name.get():
-            self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '').replace(
+            print("เงื่อนไขชื่อใบกำกับใน elif", self.app.cus_name.get())
+            self.cus_tax_name_edited = self.cus_tax_name_edited.replace('\u200b', '').replace(
                 "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
             self.cus_tax_name_edited = f"บริษัท {self.cus_tax_name_edited} จำกัด"
 
+        print("เอาdataจาก DF มาได้ไหม",
+              self.app.nondistortedData['ประเภทสาขา'])
         if str(self.app.nondistortedData['ประเภทสาขา']) == 'สำนักงานใหญ่':
-            self.app.tax_branch.set(
-                self.app.nondistortedData['ประเภทสาขา'])
-            self.app.cus_name.set(
-                f"{self.app.cus_name.get()} ({self.app.tax_branch.get()})")
+            self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
+            self.cus_tax_name_edited = f"{self.app.cus_name.get()} ({self.app.tax_branch.get()})"
         else:
-            self.app.tax_branch.set(
-                self.app.nondistortedData['รหัสประจำสาขา'])
-            self.app.cus_name.set(
-                f"{self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})")
+            self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
+            self.cus_tax_name_edited = f"{self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})"
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -1183,3 +1183,5 @@ if __name__ == "__main__":
 # ?16 แก้แล้วไม่รู้ใช้ได้ยัง  U200b display as ?
 # !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
 # !18 มีเลขลำดับบอกใน productslist
+# !19 order เคสใบกำกับที่น่าสนใจ 23101524SPSNEC มีเลขมาแต่ไม่ได้ป็นบริษัท
+# !20 order ไม่มี แต่ยังทำงานอยู่
