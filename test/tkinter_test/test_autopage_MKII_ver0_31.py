@@ -45,6 +45,7 @@ class MyApp:
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
         self.is_tax = StringVar(value="")
+        self.tax_branch = StringVar(value="")
         self.cus_name = StringVar(value="")
         self.cus_account_name = StringVar(value="")
         self.cus_address = ""
@@ -303,8 +304,10 @@ class MyApp:
         self.file_path = self.table_location
 
         try:
-            self.data_frame = pd.read_excel(self.file_path, dtype={
-                                            'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str})
+            self.data_frame = pd.read_excel(self.file_path,
+                                            dtype={
+                                                'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
+                                                'สาขาย่อย': str})
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -398,7 +401,8 @@ class MyApp:
         differential_col_data = [
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
-                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่']
+                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่', 'ประเภทสาขา',
+                                     'รหัสประจำสาขา']
 
         if self.order != "":
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
@@ -422,13 +426,11 @@ class MyApp:
                         f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
-
-                print("สถานะOrder: ", self.order_status)
-                # * ############# หาค่าจาก ตาราง ###############################
+                # * ชื่อที่ต้องอกใบกำกับ
+                self.cus_name.set(
+                    re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
                 # * ประเภทใบกำกับภาษี
                 # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
-                print(
-                    'ได้ไงวะ: ', self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
@@ -457,8 +459,7 @@ class MyApp:
                 # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
                 result = {"status": self.order_status,
                           "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
-                self.cus_name.set(
-                    re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
+
                 self.cus_account_name.set(
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
@@ -484,9 +485,12 @@ class MyApp:
                         self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
+                if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
+                    self.cus_tel.set(
+                        self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                else:
+                    self.cus_tel.set("1")
 
-                self.cus_tel.set(
-                    self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                 self.cus_ship_cost.set(
                     self.nondistortedData['ค่าจัดส่งที่ชำระโดยผู้ซื้อ'])
                 self.cus_seller_voucher.set(
@@ -640,14 +644,15 @@ class MyApp:
             self.report_log.config(state=DISABLED)
 
         self.search_complete = threading.Event()
+        self.search_complete.set()
         self.search_thread = threading.Thread(
             target=lambda: self.order_search(self.search_query, self.search_complete))
         self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
 
         try:
-            self.search_thread.join()
+            self.search_thread.stop()
 
-            self.get_tabs_thread.join()
+            self.get_tabs_thread.stop()
         except:
             self.search_thread.start()
             # self.search_complete.self.wait1()
@@ -1053,10 +1058,23 @@ class Bot_POS:
         if "หจก" in self.app.cus_name.get() or "ห้างหุ้นส่วนจำกัด" in self.app.cus_name.get():
             self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '').replace(
                 "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
+            self.cus_tax_name_edited = f"ห้างหุ้นส่วนจำกัด {self.cus_tax_name_edited}"
 
         elif "บจก" in self.app.cus_name.get() or "บริษัท" in self.app.cus_name.get() or "จำกัด" in self.app.cus_name.get():
             self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '').replace(
                 "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
+            self.cus_tax_name_edited = f"บริษัท {self.cus_tax_name_edited} จำกัด"
+
+        if str(self.app.nondistortedData['ประเภทสาขา']) == 'สำนักงานใหญ่':
+            self.app.tax_branch.set(
+                self.app.nondistortedData['ประเภทสาขา'])
+            self.app.cus_name.set(
+                f"{self.app.cus_name.get()} ({self.app.tax_branch.get()})")
+        else:
+            self.app.tax_branch.set(
+                self.app.nondistortedData['รหัสประจำสาขา'])
+            self.app.cus_name.set(
+                f"{self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})")
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
