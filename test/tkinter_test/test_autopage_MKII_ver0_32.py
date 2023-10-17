@@ -1054,16 +1054,16 @@ class Bot_POS:
     def addTaxInvCustomer(self):
 
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
-        self.cus_tax_name_edited = self.app.cus_name.get()
-        if "หจก" in self.app.cus_name.get() or "ห้างหุ้นส่วนจำกัด" in self.app.cus_name.get():
-            print("เงื่อนไขชื่อใบกำกับใน if", self.app.cus_name.get())
-            self.cus_tax_name_edited = self.cus_tax_name_edited.replace('\u200b', '').replace(
+        self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '')
+        if "หจก" in self.cus_tax_name_edited or "ห้างหุ้นส่วนจำกัด" in self.cus_tax_name_edited:
+            print("เงื่อนไขชื่อใบกำกับใน if", self.cus_tax_name_edited)
+            self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
                 "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
             self.cus_tax_name_edited = f"ห้างหุ้นส่วนจำกัด {self.cus_tax_name_edited}"
 
-        elif "บจก" in self.app.cus_name.get() or "บริษัท" in self.app.cus_name.get() or "จำกัด" in self.app.cus_name.get():
-            print("เงื่อนไขชื่อใบกำกับใน elif", self.app.cus_name.get())
-            self.cus_tax_name_edited = self.cus_tax_name_edited.replace('\u200b', '').replace(
+        elif "บจก" in self.cus_tax_name_edited or "บริษัท" in self.cus_tax_name_edited or "จำกัด" in self.cus_tax_name_edited:
+            print("เงื่อนไขชื่อใบกำกับใน elif", self.cus_tax_name_edited)
+            self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
                 "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
             self.cus_tax_name_edited = f"บริษัท {self.cus_tax_name_edited} จำกัด"
 
@@ -1185,3 +1185,4 @@ if __name__ == "__main__":
 # !18 มีเลขลำดับบอกใน productslist
 # !19 order เคสใบกำกับที่น่าสนใจ 23101524SPSNEC มีเลขมาแต่ไม่ได้ป็นบริษัท
 # !20 order ไม่มี แต่ยังทำงานอยู่
+# !21 ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
