@@ -395,6 +395,7 @@ class MyApp:
         return truncated_address.strip()
 
     def order_search(self, order,  on_complete):
+        print("order_search ทำงาน")
         self.on_complete = on_complete
         self.order = order.strip()
         self.cus_order.set(order)
@@ -630,6 +631,7 @@ class MyApp:
         return name2
 
     def search(self):
+
         self.search_query = self.entered_order.get()
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
         self.entered_order.set("")
@@ -644,22 +646,17 @@ class MyApp:
             self.report_log.config(state=DISABLED)
 
         self.search_complete = threading.Event()
-        self.search_complete.set()
+        # self.search_complete.set()
         self.search_thread = threading.Thread(
             target=lambda: self.order_search(self.search_query, self.search_complete))
         self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
 
-        try:
-            self.search_thread.stop()
+        self.search_thread.start()
+        # self.search_complete.self.wait1()
+        # self.search_thread.join()
+        self.get_tabs_thread.start()
 
-            self.get_tabs_thread.stop()
-        except:
-            self.search_thread.start()
-            # self.search_complete.self.wait1()
-            self.get_tabs_thread.start()
-            # self.search_thread.join()
-
-            # self.get_tabs_thread.join()
+        # self.get_tabs_thread.join()
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -760,7 +757,7 @@ class Bot_POS:
     def operation_start(self):
         self.autofinal = False
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
-        self.wait1 = WebDriverWait(self.driver, 28800)
+        self.wait1 = WebDriverWait(self.driver, 7200)
         # * เปลี่ยนไปtab shopee เพื่อเช็ค status
         self.driver.switch_to.window(self.merged_dict['Seller Centre'])
         cur_url = self.driver.current_url
@@ -943,7 +940,7 @@ class Bot_POS:
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
             else:
                 print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
-                pass
+
         except Exception as err:
             print("ค่าขนส่งโดนข้าม")
             print(err)
@@ -1005,7 +1002,7 @@ class Bot_POS:
             else:
                 print("จบสูตร")
 
-            self.app.get_tabs_thread.join()
+            # self.app.get_tabs_thread.join()
 
     def addNormalCustomer(self, cusname_adjusted):
         is_functionworking = False
@@ -1179,8 +1176,8 @@ if __name__ == "__main__":
 # !12 ทำ input ID PASS
 # !13 searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
 # !14 ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
-# *15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
-# ?16 แก้แล้วไม่รู้ใช้ได้ยัง  U200b display as ?
+# ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
+# *16 รายงานมาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง  U200b display as ?
 # !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
 # !18 มีเลขลำดับบอกใน productslist
 # !19 order เคสใบกำกับที่น่าสนใจ 23101524SPSNEC มีเลขมาแต่ไม่ได้ป็นบริษัท
