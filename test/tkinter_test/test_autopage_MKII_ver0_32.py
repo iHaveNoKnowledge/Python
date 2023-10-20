@@ -434,6 +434,7 @@ class MyApp:
                     re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
                 # * ประเภทใบกำกับภาษี
                 # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
+                branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
@@ -442,12 +443,21 @@ class MyApp:
                     self.tax_num.set("ไม่มี")
 
                 else:
-                    self.tax_bool.set(True)
-                    self.is_tax.set("ขอใบกำกับ")
-                    self.display_is_tax.config(
-                        background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
-                    self.tax_num.set(
-                        self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                    if  branch_type == "สำนักงานใหญ่" or branch_type == "สาขาย่อย":
+                        self.tax_bool.set(True)
+                        self.is_tax.set("ขอใบกำกับ")
+                        self.display_is_tax.config(
+                            background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
+                        self.tax_num.set(
+                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                    else:
+                        self.tax_bool.set(True)
+                        self.is_tax.set("ไม่ขอแต่มีเลข")
+                        self.display_is_tax.config(
+                            background="#ff9e36", foreground="#FFF", font='Chiller 13 bold')
+                        self.tax_num.set(
+                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                    
 
                 # * แสดงผล
                 # print("ใบกำกับ?", self.tax_bool)
@@ -1132,6 +1142,8 @@ class Bot_POS:
 
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
         self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '')
+        ##** ลบคำที่ไม่ใช่ชื่อลูกค้า
+        #* > ลบประเภทการจดทะเบียน
         if "หจก" in self.cus_tax_name_edited or "ห้างหุ้นส่วนจำกัด" in self.cus_tax_name_edited:
             print("เงื่อนไขชื่อใบกำกับใน if", self.cus_tax_name_edited)
             self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
@@ -1144,8 +1156,14 @@ class Bot_POS:
                 "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
             self.cus_tax_name_edited = f"บริษัท {self.cus_tax_name_edited} จำกัด"
 
-        print("เอาdataจาก DF มาได้ไหม",
-              self.app.nondistortedData['ประเภทสาขา'])
+        #* > ลบประเภทสาขา
+        if "สำนักงานใหญ่" in self.cus_tax_name_edited or "(สำนักงานใหญ่)" in self.cus_tax_name_edited:
+            self.cus_tax_name_edited = self.cus_tax_name_edited.replace("(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").strip()
+        elif "(สาขา" in self.cus_tax_name_edited or "สาขา" in self.cus_tax_name_edited:
+            self.cus_tax_name_edited = re.sub(r'\(สาขา.*\)','', self.cus_tax_name_edited)
+            self.cus_tax_name_edited = re.sub(r'\สาขา\d*','', self.cus_tax_name_edited)
+            
+        
         if str(self.app.nondistortedData['ประเภทสาขา']) == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
             self.cus_tax_name_edited = f"{self.app.cus_name.get()} ({self.app.tax_branch.get()})"
