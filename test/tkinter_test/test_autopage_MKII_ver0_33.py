@@ -434,7 +434,7 @@ class MyApp:
                     re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
                 # * ประเภทใบกำกับภาษี
                 # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
-                branch_type = str(self.nondistortedData['ประเภทสาขา'])
+                self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
@@ -443,7 +443,7 @@ class MyApp:
                     self.tax_num.set("ไม่มี")
 
                 else:
-                    if branch_type == "สำนักงานใหญ่" or branch_type == "สาขาย่อย":
+                    if self.branch_type == "สำนักงานใหญ่" or self.branch_type == "สาขาย่อย":
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ")
                         self.display_is_tax.config(
@@ -848,8 +848,8 @@ class Bot_POS:
         self.is_ul_not_open = False if self.driver.find_elements(
             By.XPATH, '/html/body/span/span/span[2]/ul') else True
         # * conditional ternary like
-        self.cus_search = self.app.tax_num.get(
-        ) if self.app.tax_bool.get() else self.app.cusNameFixer4(self.app.cus_name.get(), self.app.cus_account_name.get())
+        self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+        ) else self.app.cusNameFixer4(self.app.cus_name.get(), self.app.cus_account_name.get())
         if self.is_ul_not_open:
             self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
 
@@ -1136,6 +1136,8 @@ class Bot_POS:
 
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+            self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
             self.driver.find_element(
                 By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
             is_functionworking = False
@@ -1175,7 +1177,7 @@ class Bot_POS:
         if str(self.app.nondistortedData['ประเภทสาขา']) == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
             self.cus_tax_name_edited = f"{self.app.cus_name.get()} ({self.app.tax_branch.get()})"
-        else:
+        elif self.app.branch_type == "สาขาย่อย":
             self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
             self.cus_tax_name_edited = f"{self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})"
 
@@ -1255,6 +1257,8 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
         # กดเองตรวจเอง
+        self.wait1.until(EC.visibility_of_element_located(
+            (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
         self.driver.find_element(
             By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
 
