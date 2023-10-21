@@ -736,8 +736,10 @@ class Bot_POS:
         self.opt = Options()
         # opt2=Options()
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        # self.driver = webdriver.Chrome(service=Service(
+        #     r'C:\bin\chromedriver.exe'), options=self.opt)
         self.driver = webdriver.Chrome(service=Service(
-            r'C:\bin\chromedriver.exe'), options=self.opt)
+            ChromeDriverManager().install()), options=self.opt)
 
     def get_tabs(self):
         print("รายงานจำนวนtabs")
@@ -1147,7 +1149,7 @@ class Bot_POS:
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
         self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '')
         # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
-        # * > ลบประเภทการจดทะเบียน
+        # * > ลบประเภทการจดทะเบียน ถ้าชื่อลูกค้าไม่มี บจก หรือ หจก เราก็จะไม่รู้ว่าลูกค้าให้ออกอะไร เลยทำให้ ไม่มีเงื่อนไขของคนที่ไม่ได้บอก
         if "หจก" in self.cus_tax_name_edited or "ห้างหุ้นส่วนจำกัด" in self.cus_tax_name_edited:
             print("เงื่อนไขชื่อใบกำกับใน if", self.cus_tax_name_edited)
             self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
@@ -1288,3 +1290,5 @@ if __name__ == "__main__":
 # !20 order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
 # todo 21 แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
 # todo 22 ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
+# !23 พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
+# *24  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
