@@ -69,7 +69,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.33")
+        self.root.title("Autosamatic ver0.34")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -120,7 +120,7 @@ class MyApp:
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
-        self.cols_width = [5, 100, 10, 10, 10, 10]
+        self.cols_width = [5, 112, 10, 10, 10, 10]
         self.entry_list = []
         i = 0
         for header in self.list_of_cols:
@@ -133,7 +133,7 @@ class MyApp:
         for idx, entry in enumerate(self.entry_list):
             entry.grid(
                 row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx])
-        self.mp_products_header.configure(state="readonly")
+            entry.configure(state="readonly")
 
     def create_widgets(self):
         # * > search order component
