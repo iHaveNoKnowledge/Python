@@ -116,6 +116,25 @@ class MyApp:
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
 
+    def row_header_maker(self, list_of_cols):
+        self.list_of_cols = list_of_cols
+        self.colspan_amount = [1, 19, 2, 2, 2, 2]
+        self.cols_location = [0, 1, 21, 23, 25, 27]
+        self.cols_width = [5, 100, 10, 10, 10, 10]
+        self.entry_list = []
+        i = 0
+        for header in self.list_of_cols:
+            self.mp_products_header = Entry(
+                self.mp_products_list_frame, foreground="#000000", background="#fff", width=int(self.cols_width[i]))
+            self.mp_products_header.insert(0, header)
+            self.entry_list.append(self.mp_products_header)
+            i += 1
+
+        for idx, entry in enumerate(self.entry_list):
+            entry.grid(
+                row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx])
+        self.mp_products_header.configure(state="readonly")
+
     def create_widgets(self):
         # * > search order component
         # >> Labels
@@ -231,19 +250,7 @@ class MyApp:
         # * > Margetplace Products display Header
         headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น',
                    'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
-        colspan_amount = [1, 19, 2, 2, 2, 2]
-        cols_location = [0, 20, 21, 23, 25, 27]
-        entry_list = []
-        for header in headers:
-            self.mp_products_header = Entry(
-                self.mp_products_list_frame, foreground="#000000", background="#fff", )
-            self.mp_products_header.insert(0, header)
-            entry_list.append(self.mp_products_header)
-
-        for idx, entry in enumerate(entry_list):
-            entry.grid(
-                row=0, column=cols_location[idx], columnspan=colspan_amount[idx])
-        self.mp_products_header.configure(state="readonly")
+        self.row_header_maker(headers)
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=13)
@@ -429,6 +436,62 @@ class MyApp:
                         f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
+                self.widget_no_col_lst = []
+                self.widget_product_col_lst = []
+                self.widget_prc_unit_lst = []
+                self.widget_qty_lst = []
+                self.widget_total_prc_lst = []
+                self.widget_total_rebt_prc_lst = []
+                self.all_cols = [self.widget_no_col_lst, self.widget_product_col_lst, self.widget_prc_unit_lst,
+                                 self.widget_qty_lst, self.widget_total_prc_lst, self.widget_total_rebt_prc_lst]
+                self.idx = 0
+                for row in self.items:
+
+                    self.no_col_value = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[0]))
+                    self.no_col_value.insert(0, self.idx+1)
+                    self.widget_no_col_lst.append(self.no_col_value)
+                    self.idx += 1
+
+                    self.product_col_name_value = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[1]))
+                    self.product_col_name_value.insert(
+                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} : {str(row['ชื่อสินค้า'])}")
+                    self.widget_product_col_lst.append(
+                        self.product_col_name_value)
+
+                    self.price_unit_col_value = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[2]))
+                    self.price_unit_col_value.insert(0, float(row['ราคาขาย']))
+                    self.widget_prc_unit_lst.append(self.price_unit_col_value)
+
+                    self.qty_col_value = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[3]))
+                    self.qty_col_value.insert(0, int(row['จำนวน']))
+                    self.widget_qty_lst.append(self.qty_col_value)
+
+                    self.total_price_col_value = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[4]))
+                    self.total_price_col_value.insert(
+                        0, float(row['ราคาขายสุทธิ']))
+                    self.widget_total_prc_lst.append(
+                        self.total_price_col_value)
+
+                    self.total_rebate_price_col_value = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[5]))
+                    self.total_rebate_price_col_value.insert(
+                        0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
+                    self.widget_total_rebt_prc_lst.append(
+                        self.total_rebate_price_col_value)
+                print("none ได้ไง:", self.widget_no_col_lst)
+                print("ไม่สามารถ grid: ", self.all_cols)
+                for colidx, col_list in enumerate(self.all_cols):
+                    for idxrow, col in enumerate(col_list):
+                        col.grid(
+                            row=idxrow+1, column=self.cols_location[colidx], columnspan=self.colspan_amount[colidx])
+                        col.configure(state="readonly")
+
+                # self.row_header_maker(self.items)
                 # * ชื่อที่ต้องอกใบกำกับ
                 self.cus_name.set(
                     re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
@@ -736,10 +799,10 @@ class Bot_POS:
         self.opt = Options()
         # opt2=Options()
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
-        # self.driver = webdriver.Chrome(service=Service(
-        #     r'C:\bin\chromedriver.exe'), options=self.opt)
         self.driver = webdriver.Chrome(service=Service(
-            ChromeDriverManager().install()), options=self.opt)
+            r'C:\bin\chromedriver.exe'), options=self.opt)
+        # self.driver = webdriver.Chrome(service=Service(
+        #     ChromeDriverManager().install()), options=self.opt)
 
     def get_tabs(self):
         print("รายงานจำนวนtabs")
