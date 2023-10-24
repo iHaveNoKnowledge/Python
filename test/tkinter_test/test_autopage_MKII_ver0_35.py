@@ -69,7 +69,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.34")
+        self.root.title("Autosamatic ver0.35")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -117,6 +117,8 @@ class MyApp:
         return font.Font().measure(str(text).strip())
 
     def row_header_maker(self, list_of_cols):
+
+        # สร้าง header
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
@@ -705,6 +707,9 @@ class MyApp:
         return name2
 
     def search(self):
+        # ลบ result products list เก่า
+        for widget in self.mp_products_list_frame.winfo_children()[6:]:
+            widget.destroy()
 
         self.search_query = self.entered_order.get()
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
@@ -927,6 +932,7 @@ class Bot_POS:
             By.XPATH, self.app.cusNameLi1)
         print("มันทำไม", self.wait_condition.text)
 
+        #! น่าสงสัย เป็นเหตุให้หน้าท้ายค้าง
         while True:
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
@@ -957,7 +963,7 @@ class Bot_POS:
                     By.XPATH, self.app.cusNameInput).clear()
                 self.driver.find_element(
                     By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
-                print("กรอกชื่อหลังแอดเสร็จ")
+                print("Re enter name after add")
             else:
                 pass
 
@@ -969,8 +975,8 @@ class Bot_POS:
                 else:
                     continue
 
-        print("คลิกเด้ะ")
         self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+        print("Click the cusname li result")
         if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]"):
             try:
                 self.driver.find_element(
@@ -989,8 +995,9 @@ class Bot_POS:
             (By.XPATH, self.app.cusNameInput)))
 
         # ใส่ค่าขนส่ง
-        try:
-            if int(self.app.cus_ship_cost.get()) != int(0):
+
+        if int(self.app.cus_ship_cost.get()) != int(0):
+            try:
                 self.skuInput = self.wait1.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
@@ -1028,12 +1035,11 @@ class Bot_POS:
 
                 self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
-            else:
-                print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
-
-        except Exception as err:
-            print("ค่าขนส่งโดนข้าม")
-            print(err)
+            except Exception as err:
+                print("ค่าขนส่งโดนข้าม")
+                print(err)
+        else:
+            print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
 
         self.autofinal = True
         while self.autofinal:
@@ -1345,17 +1351,19 @@ if __name__ == "__main__":
 # *9แก้แล้ว** Total LastPage in SMCO -> ราคาที่ต้องออก
 # *10แก้แล้ว** "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
 # * /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
-# !11 มีบัคตรงที่ลูกค้าบางคนใส่ (สำนักงานใหญ่) บางคนไม่ใส่ (สำนักงานใหญ่)//เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
+# *11 มีบัคตรงที่ลูกค้าบางคนใส่ (สำนักงานใหญ่) บางคนไม่ใส่ (สำนักงานใหญ่)//เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
 # !12 ทำ input ID PASS
 # !13 ยังแก้ไม่ได้ลูกสึก bigM ยังมีปัญหากับตรงนี้อยู่ อาจจะลองแก้ด้วย while True // searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
 # !14 ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
 # ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
 # *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
 # !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
-# !18 มีเลขลำดับบอกใน productslist
+# *18 มีเลขลำดับบอกใน productslist
 # !19 order เคสใบกำกับที่น่าสนใจ 23101524SPSNEC มีเลขมาแต่ไม่ได้ป็นบริษัท
 # !20 order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
 # todo 21 แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
 # todo 22 ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
 # !23 พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
 # *24  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
+# !25 อาการค้างยังไม่หาย
+# *26 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
