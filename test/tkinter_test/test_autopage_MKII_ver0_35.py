@@ -934,26 +934,32 @@ class Bot_POS:
 
         #! น่าสงสัย เป็นเหตุให้หน้าท้ายค้าง
         while True:
+            self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
-            try:
-                if self.wait_condition.text == "Searching...":
-                    continue
-                else:
-                    pass
-            except:
+            print("เริ่ม", self.wait_condition)
+            
+           
+            if self.wait_condition.text == "Searching...":
+                continue
+            elif self.wait_condition.text :
+                print("get text ไม่ได้")
                 pass
-
+            
+            
+            self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
             if self.wait_condition.text == "No results found":
                 print("Noresult found")
                 # * ขอใบกำกับป่าว
                 if self.app.tax_bool.get():
+                    print("Tax_needed")
                     self.addTaxInvCustomer()
                     # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ
                     # result = self.wait1.until(EC.text_to_be_present_in_element()))
                 else:
+                    print("no_Tax_needed")
                     self.addNormalCustomer(self.cus_search)
 
                 # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
@@ -965,15 +971,10 @@ class Bot_POS:
                     By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
                 print("Re enter name after add")
             else:
-                pass
-
-            self.wait_condition = self.driver.find_element(
-                By.XPATH, self.app.cusNameLi1)
-            if not self.wait_condition.text == "No results found":
-                if not self.wait_condition.text == "Searching...":
-                    break
-                else:
-                    continue
+                self.driver.switch_to.window(
+                    self.merged_dict['SMCO :: เปิดการขาย'])
+                break
+            continue
 
         self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
         print("Click the cusname li result")
