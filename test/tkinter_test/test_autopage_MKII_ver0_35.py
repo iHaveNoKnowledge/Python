@@ -1138,32 +1138,11 @@ class Bot_POS:
                             elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
                                 print("กลับมาหน้าเดิม")
                                 continue
-                                # self.is_final_page_again = self.wait1.until(EC.visibility_of_element_located(
-                                #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-
-                                while True:
-                                    if self.is_input_empty.text != "Select Customer":
-                                        continue
-                                    elif self.is_input_empty.text == "Select Customer":
-                                        print(
-                                            "ชื่อลูกค้าถูกเคลียแปลว่าต้องเริ่มใหม่")
-                                        break
-
-                                break
-
                     else:
-                        print("จบสูตร")
-
-                    # self.app.get_tabs_thread.join()
+                        print("จบสูตร")            
                     self.autofinal = False
                     break
-                    # else:
-                    #     print("เริ่มใหม่")
-                    #     continue
-                    # else:
-                    #     print("พัง")
-                    #     self.autofinal = False
-                    #     break
+                    
                 break
             break
         print("จบ auto_last_page")
