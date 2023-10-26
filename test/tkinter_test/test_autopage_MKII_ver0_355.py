@@ -458,7 +458,7 @@ class MyApp:
                     self.product_col_name_value = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[1]))
                     self.product_col_name_value.insert(
-                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} : {str(row['ชื่อสินค้า'])}")
+                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}: {str(row['ชื่อสินค้า'])}")
                     self.widget_product_col_lst.append(
                         self.product_col_name_value)
 
@@ -802,8 +802,18 @@ class Bot_POS:
 
     def setup_chrome(self):
         self.opt = Options()
-        # opt2=Options()
+        exepath = sys.argv[0]
+        Dir_path = os.path.dirname(os.path.abspath(exepath))
+        self.custom_path = r'D:\\bin\\'
+        Download_dir = Dir_path+self.custom_path
+        
+        os.environ["WDM_LOCAL"] = self.custom_path
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        # self.opt.add_experimental_option("prefs",{
+        #     "download.default_directory" : Download_dir,
+        #     "directory_upgrade": True
+        # })
+
         self.driver = webdriver.Chrome(service=Service(
             r'C:\bin\chromedriver.exe'), options=self.opt)
         # self.driver = webdriver.Chrome(service=Service(
@@ -934,20 +944,19 @@ class Bot_POS:
 
         #! น่าสงสัย เป็นเหตุให้หน้าท้ายค้าง
         while True:
-            self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
+            self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, self.app.cusNameLi1)))
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
-            
-            
-           
+
             if self.wait_condition.text == "Searching...":
                 continue
-            elif self.wait_condition.text :
+            elif self.wait_condition.text:
                 print("get text ไม่ได้")
                 pass
-            
-            
-            self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
+
+            self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, self.app.cusNameLi1)))
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
             if self.wait_condition.text == "No results found":
@@ -1105,7 +1114,8 @@ class Bot_POS:
 
                             try:
                                 self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()  # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
+                                    # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
+                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
                             except:
                                 print("ปุ่ม Brows() ไม่โผล่")
 
@@ -1140,10 +1150,10 @@ class Bot_POS:
                                 print("กลับมาหน้าเดิม")
                                 continue
                     else:
-                        print("จบสูตร")            
+                        print("จบสูตร")
                     self.autofinal = False
                     break
-                    
+
                 break
             break
         print("จบ auto_last_page")
@@ -1205,13 +1215,15 @@ class Bot_POS:
             print("เงื่อนไขชื่อใบกำกับใน if", self.cus_tax_name_edited)
             self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
                 "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
-            self.cus_tax_name_edited = f"ห้างหุ้นส่วนจำกัด {self.cus_tax_name_edited}"
+            self.cus_tax_name_edited = f"""ห้างหุ้นส่วนจำกัด {
+                self.cus_tax_name_edited}"""
 
         elif "บจก" in self.cus_tax_name_edited or "บริษัท" in self.cus_tax_name_edited or "จำกัด" in self.cus_tax_name_edited:
             print("เงื่อนไขชื่อใบกำกับใน elif", self.cus_tax_name_edited)
             self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
                 "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
-            self.cus_tax_name_edited = f"บริษัท {self.cus_tax_name_edited} จำกัด"
+            self.cus_tax_name_edited = f"""บริษัท {
+                self.cus_tax_name_edited} จำกัด"""
 
         # * > ลบประเภทสาขา
         if "สำนักงานใหญ่" in self.cus_tax_name_edited or "(สำนักงานใหญ่)" in self.cus_tax_name_edited:
@@ -1225,10 +1237,12 @@ class Bot_POS:
 
         if str(self.app.nondistortedData['ประเภทสาขา']) == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
-            self.cus_tax_name_edited = f"{self.app.cus_name.get()} ({self.app.tax_branch.get()})"
+            self.cus_tax_name_edited = f"""{
+                self.app.cus_name.get()} ({self.app.tax_branch.get()})"""
         elif self.app.branch_type == "สาขาย่อย":
             self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
-            self.cus_tax_name_edited = f"{self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})"
+            self.cus_tax_name_edited = f"""{
+                self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -1236,14 +1250,18 @@ class Bot_POS:
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()  # nameTH
+            # nameTH
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID : {self.app.tax_num.get()}')  # nameTH
+            # nameTH
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID: {self.app.tax_num.get()}')
 
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()  # nameEN
+            # nameEN
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID : {self.app.tax_num.get()}')  # nameEN
+            # nameEN
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID: {self.app.tax_num.get()}')
 
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
@@ -1254,9 +1272,11 @@ class Bot_POS:
         # self.finProvince = finProvince.strip().lstrip("จังหวัด")
 
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()  # Address
+            # Address
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)  # Address
+            # Address
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
         # # dropdown Country
         # self.driver.find_element(
