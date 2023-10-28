@@ -724,19 +724,25 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
 
-        try:
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                self.futures = [
-                    executor.submit(self.order_search,
-                                    self.search_query, threading.Event()),
-                    executor.submit(self.bot.get_tabs)
-                ]
+        self.search_complete = threading.Event()
+        # self.search_complete.set()
+        self.search_thread = threading.Thread(
+            target=lambda: self.order_search(self.search_query, self.search_complete))
+        self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
 
-            # รอผลลัพธ์จากทุก future และจัดการกับผลลัพธ์ตามที่คุณต้องการ
-            for future in self.futures:
-                result = future.result()
-        except:
-            print("พัง")
+        if self.search_thread.is_alive() or self.get_tabs_thread.is_alive():
+            print("Thread ยังไม่ตาย")
+            self.bot_state.set(False)
+            print("ฆ่า Thread")
+        self.bot_state.set(True)
+        while self.bot_state.get():
+            print("เริ่มThreadใหม่")
+            self.search_thread.start()
+            self.get_tabs_thread.start()
+            # self.search_complete.self.wait1()
+            # self.search_thread.join()
+
+        # self.get_tabs_thread.join()
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -800,7 +806,7 @@ class Bot_POS:
         Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'D:\\bin\\'
         Download_dir = Dir_path+self.custom_path
-        
+
         os.environ["WDM_LOCAL"] = self.custom_path
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         # self.opt.add_experimental_option("prefs",{
@@ -943,10 +949,13 @@ class Bot_POS:
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
 
-            if self.wait_condition.text == "Searching...":
-                continue
-            elif self.wait_condition.text:
-                print("get text ไม่ได้")
+            try:
+                if self.wait_condition.text == "Searching...":
+                    continue
+                elif self.wait_condition.text:
+                    print("get text ไม่ได้")
+                    pass
+            except:
                 pass
 
             self.wait1.until(EC.visibility_of_element_located(
