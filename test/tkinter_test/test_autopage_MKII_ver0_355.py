@@ -11,7 +11,6 @@ import pandas as pd
 import time
 import win32com.client as comclt
 import re
-import multiprocessing
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -30,6 +29,7 @@ import os
 import sys
 
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import locale
 from decimal import Decimal
@@ -724,25 +724,19 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
 
-        self.search_complete = threading.Event()
-        # self.search_complete.set()
-        self.search_thread = threading.Thread(
-            target=lambda: self.order_search(self.search_query, self.search_complete))
-        self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                self.futures = [
+                    executor.submit(self.order_search,
+                                    self.search_query, threading.Event()),
+                    executor.submit(self.bot.get_tabs)
+                ]
 
-        if self.search_thread.is_alive() or self.get_tabs_thread.is_alive():
-            print("Thread ยังไม่ตาย")
-            self.bot_state.set(False)
-            print("ฆ่า Thread")
-        self.bot_state.set(True)
-        while self.bot_state.get():
-            print("เริ่มThreadใหม่")
-            self.search_thread.start()
-            self.get_tabs_thread.start()
-        # self.search_complete.self.wait1()
-        # self.search_thread.join()
-
-        # self.get_tabs_thread.join()
+            # รอผลลัพธ์จากทุก future และจัดการกับผลลัพธ์ตามที่คุณต้องการ
+            for future in self.futures:
+                result = future.result()
+        except:
+            print("พัง")
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -1370,3 +1364,4 @@ if __name__ == "__main__":
 # *24  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
 # ?25 เดาว่าน่าจะเป็นที่ตัวแอดลูกค้าแก้แล้ว รอเทส //อาการค้างยังไม่หาย
 # *26 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
+# !27 Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
