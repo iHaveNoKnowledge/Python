@@ -69,7 +69,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.355")
+        self.root.title("Autosamatic ver0.351")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -485,8 +485,8 @@ class MyApp:
                         0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
                     self.widget_total_rebt_prc_lst.append(
                         self.total_rebate_price_col_value)
-                # print("none ได้ไง:", self.widget_no_col_lst)
-                # print("ไม่สามารถ grid: ", self.all_cols)
+                print("none ได้ไง:", self.widget_no_col_lst)
+                print("ไม่สามารถ grid: ", self.all_cols)
                 for colidx, col_list in enumerate(self.all_cols):
                     for idxrow, col in enumerate(col_list):
                         col.grid(
@@ -800,7 +800,7 @@ class Bot_POS:
         Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'D:\\bin\\'
         Download_dir = Dir_path+self.custom_path
-
+        
         os.environ["WDM_LOCAL"] = self.custom_path
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         # self.opt.add_experimental_option("prefs",{
@@ -943,13 +943,10 @@ class Bot_POS:
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
 
-            try:
-                if self.wait_condition.text == "Searching...":
-                    continue
-                elif self.wait_condition.text:
-                    print("get text ไม่ได้")
-                    pass
-            except:
+            if self.wait_condition.text == "Searching...":
+                continue
+            elif self.wait_condition.text:
+                print("get text ไม่ได้")
                 pass
 
             self.wait1.until(EC.visibility_of_element_located(
