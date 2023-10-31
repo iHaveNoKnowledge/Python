@@ -838,9 +838,9 @@ class Bot_POS:
             else:
                 self.counter[item] = 1
                 self.unique_titles.append(item)
+
         # เอาList มารวมกัน
         self.merged_dict = dict(zip(self.unique_titles, self.value_list))
-
         print("มี tabs ไรบ้าง", self.merged_dict)
         self.operation_start()
 
@@ -873,11 +873,11 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
         self.searchBtn.click()
 
-        # * ตรวจสอบ Status
+        # * ตรวจสอบ Status และ update
         # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
         self.wait1.until(EC.visibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[5]/div/div')))
-        # * ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
+        #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
         try:
             # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
             self.app.cus_cur_status.set(self.driver.find_element(
@@ -899,10 +899,10 @@ class Bot_POS:
         self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
         if self.is_status_true:
             print(self.app.order_status == self.app.cus_cur_status.get())
-            print("ตรง")
+            print("Status in the file is reliable")
         else:
             print(self.app.order_status == self.app.cus_cur_status.get())
-            print("ไม่ตรง แนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+            print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
             print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
         # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
@@ -975,7 +975,8 @@ class Bot_POS:
                     By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
                 print("Re enter name after add")
             else:
-                self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                self.driver.switch_to.window(
+                    self.merged_dict['SMCO :: เปิดการขาย'])
                 break
             continue
 
