@@ -458,7 +458,7 @@ class MyApp:
                     self.product_col_name_value = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[1]))
                     self.product_col_name_value.insert(
-                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}: {str(row['ชื่อสินค้า'])}")
+                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} : {str(row['ชื่อสินค้า'])}")
                     self.widget_product_col_lst.append(
                         self.product_col_name_value)
 
@@ -689,22 +689,14 @@ class MyApp:
 
         return cleaned_address
 
-    def cusNameFixer4(self, name2, account_name):
-        if re.search("[(,)]", name2):  # หาว่ามีให้แมชหรือป่าว
-            nameParentheses = re.search("[(,)]", name2)
-            # ใช้ method span() เพ่ือดึงค่า span โดยไอ span จะเป็นเลขบอกตำแหน่งของสิ่งที่เราหา (ทำไมไม่ทำเป็น attribute  555)
-            parenthesesIndex = nameParentheses.span()
-            slicingIndex = slice(parenthesesIndex[0])
-            name2 = name2[slicingIndex]
-            name2 = name2.strip()  # ตอนแรกๆไม่มีปัญหา หลังๆ มีปัญหา เรื่อง space ไม่เท่ากัน
-        else:
-            name2 = name2.strip()
-
-        if len(name2.split()) == 1:
-            name2 += " "+account_name
-
-        print("มันมีชื่อว่า", name2)
-        return name2
+    def cusNameFixer5(self, name, account_name=":"):
+        is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
+        name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '',
+                      name).strip() if is_found else name.strip()
+        # เช็คว่าถ้ามองชื่อเป็น list มันจะแบ่งได้กี่ส่วน
+        name += " "+account_name if len(name.split()) == 1 else ""
+        print("name:", name)
+        return name
 
     def search(self):
         # ลบ result products list เก่า
@@ -927,7 +919,7 @@ class Bot_POS:
             By.XPATH, '/html/body/span/span/span[2]/ul') else True
         # * conditional ternary like
         self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
-        ) else self.app.cusNameFixer4(self.app.cus_name.get(), self.app.cus_account_name.get())
+        ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
         if self.is_ul_not_open:
             self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
 
@@ -983,8 +975,7 @@ class Bot_POS:
                     By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
                 print("Re enter name after add")
             else:
-                self.driver.switch_to.window(
-                    self.merged_dict['SMCO :: เปิดการขาย'])
+                self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                 break
             continue
 
@@ -1162,7 +1153,7 @@ class Bot_POS:
         print("จบ auto_last_page")
         self.autofinal = False
 
-    def addNormalCustomer(self, cusname_adjusted):
+    def addNormalCustomer(self, cusname_fixed):
         is_functionworking = False
         is_functionworking = True
         while is_functionworking:
@@ -1179,12 +1170,12 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusname_adjusted)
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusname_fixed)
 
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_adjusted)
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_fixed)
 
             # self.driver.find_element(
             #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
