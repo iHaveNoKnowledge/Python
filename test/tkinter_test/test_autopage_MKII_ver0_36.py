@@ -39,6 +39,8 @@ locale.setlocale(locale.LC_ALL, 'en_us')
 class MyApp:
     def __init__(self, root):
         self.root = root
+        self.user_id = StringVar(value="")
+        self.user_pw = StringVar(value="")
         self.result = ""
         self.table_location = ""
         self.cus_order = StringVar(value="")
@@ -87,20 +89,20 @@ class MyApp:
 
         # #* FRAMES #####################################################################################################
         # > Frame1 Order Entry
-        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444")
+        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#3784cc")
         self.entry_frame.pack(pady=(10, 10))
 
         # > Frame2 Log Frame
-        self.log_frame = Frame(self.canvas, bg="#444")
+        self.log_frame = Frame(self.canvas, bg="#3784cc")
         self.log_frame.pack(side='bottom', pady=(0, 30))
 
         # > Frame3 ImportFile Status
         self.import_file_frame = Frame(self.canvas, bg="#444")
-        self.import_file_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
+        self.import_file_frame.pack(anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame4 Customer Details
         self.order_details_frame = Frame(self.canvas, bg="#444", )
-        self.order_details_frame.pack(anchor=W, padx=(0, 5), pady=(5, 0))
+        self.order_details_frame.pack(anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame5 Products Lists
         self.products_list_frame = Frame(self.canvas, bg="#445")
@@ -152,6 +154,13 @@ class MyApp:
         self.inp1_search_btn = Button(
             self.entry_frame, text="Start", bg="#747474", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0, column=4, padx=5)
+
+        # * > A BTN to display the User_account
+        self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
+        ) and self.user_pw.get() else "Login"
+        self.display_acc_btn = Button(
+            self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
+        self.display_acc_btn.grid(row=0, column=5, padx=5)
 
         # * > ExportFile location display component
         self.display_location_label = Label(
@@ -264,7 +273,9 @@ class MyApp:
         self.report_log.config(yscrollcommand=self.scrollbar.set)
 
         ## * Create DataSourceSelector instance ###########
+
         self.data_source_selector = DataSourceSelector(self.root, self)
+        self.user_account = UserAccount(self.root, self)
 
     def reset_all_display(self):
         self.result = ""
@@ -700,6 +711,7 @@ class MyApp:
 
     def on_thread_done(self):
         if self.get_tabs_thread.is_alive():
+            # self.search_complete.set()
             self.get_tabs_thread.join()
 
         print("Thread is done")
@@ -794,6 +806,68 @@ class DataSourceSelector:
 
     def on_close(self):
         self.subwindow.destroy()
+
+# class สำหรับรับ ID PASS
+
+
+class UserAccount:
+    def __init__(self, parent, app):
+        self.parent = parent
+        self.app = app
+        self.create_subwindow()
+
+    def create_subwindow(self):
+        self.subwindow = Toplevel(self.parent)
+        self.subwindow.transient(self.parent)
+        self.subwindow.geometry("250x140+650+400")
+        self.subwindow.title("Loginปลอม")
+        self.subwindow.grab_set()
+
+        # สร้างเฟรม
+        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
+
+        # สร้าง widget
+        self.id_label = Label(
+            self.subwin_frame, text="ID", font=("bazooka", 9))
+        self.id_label.pack(fill='x', expand=True)
+        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id)
+        self.id_input.pack(fill='x', expand=True)
+        self.id_input.focus()
+
+        self.pass_label = Label(
+            self.subwin_frame, text="PW", font=("bazooka", 9))
+        self.pass_label.pack(fill='x', expand=True)
+        self.pass_input = Entry(
+            self.subwin_frame, textvariable=self.app.user_pw, show="*")
+        self.pass_input.pack(fill='x', expand=True)
+
+        # checkBox
+        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show", font=(
+            'bazooka', 9), command=self.show_and_hide)
+        self.chk_bx_show_pw.pack()
+
+        self.submit_btn = Button(
+            self.subwin_frame, text="Submit", command=self.update_btn)
+        self.submit_btn.pack(fill='x', expand=True)
+
+    def update_btn(self):
+        if self.app.user_id.get() and self.app.user_pw.get():
+            self.display_btn_txt = f"Logged in !! ID : {self.app.user_id.get()}"
+            self.app.display_acc_btn.config(text=self.display_btn_txt)
+            self.subwindow.destroy()
+            return self.display_btn_txt
+        else:
+            print("ไม่ติด")
+            self.display_btn_txt = "Login"
+            self.subwindow.destroy()
+            return self.display_btn_txt
+
+    def show_and_hide(self):
+        if self.pass_input['show'] == '*':
+            self.pass_input['show'] = ''
+        else:
+            self.pass_input['show'] = '*'
 
 
 class Bot_POS:
@@ -947,7 +1021,17 @@ class Bot_POS:
                     break
                 else:
                     continue
+        print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
+        while True:
+            if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button'):
+                print("เจอแล้วออก")
+                break
+            else:
+                continue
 
+        self.wait1.until(EC.element_to_be_clickable(
+            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button')))
+        time.sleep(1)
         # * เปลี่ยน auto เป็น name
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button').click()
@@ -1019,6 +1103,7 @@ class Bot_POS:
                     self.driver.find_element(
                         By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
                     print("Re enter name after add")
+                    continue
                 elif self.wait_condition.text == "No results found" and self.customer_add_times != 0:
                     print(
                         "I've already add it, but the element still shows 'No results found', you have to add by yourself")
@@ -1027,8 +1112,7 @@ class Bot_POS:
                     self.driver.switch_to.window(
                         self.merged_dict['SMCO :: เปิดการขาย'])
                     break
-                continue
-
+            print("addcustomer and select While end!")
             break
 
         self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
@@ -1083,9 +1167,9 @@ class Bot_POS:
                 self.changePriceInput = self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input').send_keys(self.app.cus_ship_cost.get())
                 self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys("62078")
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
                 self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys("ITcity@2017")
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
                 self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
@@ -1401,19 +1485,19 @@ if __name__ == "__main__":
 # *10แก้แล้ว** "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
 # * /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
 # *11 มีบัคตรงที่ลูกค้าบางคนใส่ (สำนักงานใหญ่) บางคนไม่ใส่ (สำนักงานใหญ่)//เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
-# !12 ทำ input ID PASS
-# !13 ยังแก้ไม่ได้ลูกสึก bigM ยังมีปัญหากับตรงนี้อยู่ อาจจะลองแก้ด้วย while True // searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
-# !14 ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
+# *12 ทำแล้ว //ทำ input ID PASS
+# ?13 ยังแก้ไม่ได้ลูกสึก bigM ยังมีปัญหากับตรงนี้อยู่ อาจจะลองแก้ด้วย while True // searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
+# *14 ทำแล้ว // ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
 # ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
 # *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
 # !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
 # *18 มีเลขลำดับบอกใน productslist
 # !19 order เคสใบกำกับที่น่าสนใจ 23101524SPSNEC มีเลขมาแต่ไม่ได้ป็นบริษัท
 # !20 order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
-# todo 21 แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
-# todo 22 ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
-# !23 พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
+# *21 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
+# *22 ใช้ได้แล้ว //ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
+# *23 แก้แล้ว//พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
 # *24  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
 # ?25 เดาว่าน่าจะเป็นที่ตัวแอดลูกค้าแก้แล้ว รอเทส //อาการค้างยังไม่หาย
 # *26 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
-# !27 Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
+# ?27 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
