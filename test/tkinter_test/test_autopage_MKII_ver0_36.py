@@ -69,7 +69,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.355")
+        self.root.title("Autosamatic ver0.36")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -698,6 +698,12 @@ class MyApp:
         print("name:", name)
         return name
 
+    def on_thread_done(self):
+        if self.get_tabs_thread.is_alive():
+            self.get_tabs_thread.join()
+
+        print("Thread is done")
+
     def search(self):
         # ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
@@ -727,13 +733,17 @@ class MyApp:
             self.bot_state.set(False)
             print("ฆ่า Thread")
         self.bot_state.set(True)
-        while self.bot_state.get():
-            print("เริ่มThreadใหม่")
-            self.search_thread.start()
-            self.get_tabs_thread.start()
-            # self.search_complete.self.wait1()
-            # self.search_thread.join()
 
+        print("เริ่มThreadใหม่")
+        self.search_thread.start()
+        try:
+            self.get_tabs_thread.start()
+        except EXCEPTION as err:
+            print("err จาก get_tabs", err)
+        # self.search_complete.self.wait1()
+        # self.search_thread.join()
+        timer = threading.Timer(1, self.on_thread_done)
+        timer.start()
         # self.get_tabs_thread.join()
 
     def open_subwindow(self):
@@ -812,42 +822,46 @@ class Bot_POS:
         #     ChromeDriverManager().install()), options=self.opt)
 
     def get_tabs(self):
-        print("รายงานจำนวนtabs")
+        try:
+            print("รายงานจำนวนtabs")
 
-        self.title_list = []
-        self.title_list_Idx = []
-        self.value_list = []
-        self.title_dict = {}
-        for idx, handle in enumerate(self.driver.window_handles):
-            self.driver.switch_to.window(handle)
-            self.title_list_Idx.append(
-                self.driver.title + "["+str(idx)+"]")
-            self.title_list.append(self.driver.title)
+            self.title_list = []
+            self.title_list_Idx = []
+            self.value_list = []
+            self.title_dict = {}
+            for idx, handle in enumerate(self.driver.window_handles):
+                self.driver.switch_to.window(handle)
+                self.title_list_Idx.append(
+                    self.driver.title + "["+str(idx)+"]")
+                self.title_list.append(self.driver.title)
 
-            self.value_list.append(self.driver.current_window_handle)
-            self.title_dict.update(
-                {self.driver.title: self.driver.current_window_handle})
+                self.value_list.append(self.driver.current_window_handle)
+                self.title_dict.update(
+                    {self.driver.title: self.driver.current_window_handle})
 
-        self.unique_titles = []
-        self.counter = {}
-        for item in self.title_list:
-            if item in self.counter:
-                self.counter[item] += 1
-                print("counter[item] คือไร: ", self.counter[item])
-                self.unique_titles.append(f"{item}{self.counter[item]-1}")
-            else:
-                self.counter[item] = 1
-                self.unique_titles.append(item)
+            self.unique_titles = []
+            self.counter = {}
+            for item in self.title_list:
+                if item in self.counter:
+                    self.counter[item] += 1
+                    print("counter[item] คือไร: ", self.counter[item])
+                    self.unique_titles.append(f"{item}{self.counter[item]-1}")
+                else:
+                    self.counter[item] = 1
+                    self.unique_titles.append(item)
 
-        # เอาList มารวมกัน
-        self.merged_dict = dict(zip(self.unique_titles, self.value_list))
-        print("มี tabs ไรบ้าง", self.merged_dict)
-        self.operation_start()
+            # เอาList มารวมกัน
+            self.merged_dict = dict(zip(self.unique_titles, self.value_list))
+            print("มี tabs ไรบ้าง", self.merged_dict)
+            self.operation_start()
+        except Exception as e:
+            print(f"An error occirred: {e}")
 
     def operation_start(self):
+        ### * Shopee Part ########################################################################################
         self.autofinal = False
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
-        self.wait1 = WebDriverWait(self.driver, 7200)
+        self.wait1 = WebDriverWait(self.driver, 50)
         # * เปลี่ยนไปtab shopee เพื่อเช็ค status
         self.driver.switch_to.window(self.merged_dict['Seller Centre'])
         cur_url = self.driver.current_url
@@ -902,11 +916,37 @@ class Bot_POS:
             print("Status in the file is reliable")
         else:
             print(self.app.order_status == self.app.cus_cur_status.get())
-            print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
+            print(
+                "Status in the file is unreliable, suggest downloading a new Export File from the link below")
             print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
+        ### * SMCO PART ############################################################################
         # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+
+        # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
+        self.cus_name_span_elmt = self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
+        self.cus_name_span_text = self.cus_name_span_elmt.text
+        try:
+            print("เช็คว่าต้องรีไหม")
+            if self.cus_name_span_text != 'Select Customer':
+                print("รีนี่หว่า, กดรีเลย")
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button').click()
+                self.wait1.until(EC.visibility_of_element_located(
+                    (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')))
+                print("หน้าใหม่มาแล้ว")
+        except EXCEPTION as err:
+            print("เป็นไง", err)
+            while True:
+                print("รอ")
+                time.sleep(1)
+                if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button'):
+                    print("เจอแล้ว")
+                    break
+                else:
+                    continue
 
         # * เปลี่ยน auto เป็น name
         self.driver.find_element(
@@ -917,7 +957,7 @@ class Bot_POS:
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_not_open = False if self.driver.find_elements(
             By.XPATH, '/html/body/span/span/span[2]/ul') else True
-        # * conditional ternary like
+        # conditional ternary like
         self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
         ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
         if self.is_ul_not_open:
@@ -935,50 +975,61 @@ class Bot_POS:
         print("มันทำไม", self.wait_condition.text)
 
         #! น่าสงสัย เป็นเหตุให้หน้าท้ายค้าง
+        self.customer_add_times = 0
         while True:
-            self.wait1.until(EC.visibility_of_element_located(
-                (By.XPATH, self.app.cusNameLi1)))
-            self.wait_condition = self.driver.find_element(
-                By.XPATH, self.app.cusNameLi1)
+            if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul'):
+                time.sleep(1)
+                # self.wait1.until(EC.visibility_of_element_located(
+                #     (By.XPATH, self.app.cusNameLi1)))
+                self.wait_condition = self.driver.find_element(
+                    By.XPATH, self.app.cusNameLi1)
 
-            try:
-                if self.wait_condition.text == "Searching...":
-                    continue
-                elif self.wait_condition.text:
-                    print("get text ไม่ได้")
+                try:
+                    if self.wait_condition.text == "Searching...":
+                        continue
+                    elif self.wait_condition.text:
+                        print("text element disappeared")
+                        pass
+                except:
                     pass
-            except:
-                pass
 
-            self.wait1.until(EC.visibility_of_element_located(
-                (By.XPATH, self.app.cusNameLi1)))
-            self.wait_condition = self.driver.find_element(
-                By.XPATH, self.app.cusNameLi1)
-            if self.wait_condition.text == "No results found":
-                print("Noresult found")
-                # * ขอใบกำกับป่าว
-                if self.app.tax_bool.get():
-                    print("Tax_needed")
-                    self.addTaxInvCustomer()
-                    # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ
-                    # result = self.wait1.until(EC.text_to_be_present_in_element()))
+                self.wait1.until(EC.visibility_of_element_located(
+                    (By.XPATH, self.app.cusNameLi1)))
+                self.wait_condition = self.driver.find_element(
+                    By.XPATH, self.app.cusNameLi1)
+                if self.wait_condition.text == "No results found" and self.customer_add_times == 0:
+                    print("No results found and NeverAdd")
+                    # * ขอใบกำกับป่าว
+                    if self.app.tax_bool.get():
+                        print("Tax_needed")
+                        self.addTaxInvCustomer()
+                        # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ
+                        # result = self.wait1.until(EC.text_to_be_present_in_element()))
+                    else:
+                        print("no_Tax_needed")
+                        self.addNormalCustomer(self.cus_search)
+
+                    # เพิ่มจำนวนครั้งที่ add
+                    self.customer_add_times += 1
+                    # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
+                    self.driver.switch_to.window(
+                        self.merged_dict['SMCO :: เปิดการขาย'])
+                    self.driver.find_element(
+                        By.XPATH, self.app.cusNameInput).clear()
+                    self.driver.find_element(
+                        By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+                    print("Re enter name after add")
+                elif self.wait_condition.text == "No results found" and self.customer_add_times != 0:
+                    print(
+                        "I've already add it, but the element still shows 'No results found', you have to add by yourself")
+                    break
                 else:
-                    print("no_Tax_needed")
-                    self.addNormalCustomer(self.cus_search)
+                    self.driver.switch_to.window(
+                        self.merged_dict['SMCO :: เปิดการขาย'])
+                    break
+                continue
 
-                # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
-                self.driver.switch_to.window(
-                    self.merged_dict['SMCO :: เปิดการขาย'])
-                self.driver.find_element(
-                    By.XPATH, self.app.cusNameInput).clear()
-                self.driver.find_element(
-                    By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
-                print("Re enter name after add")
-            else:
-                self.driver.switch_to.window(
-                    self.merged_dict['SMCO :: เปิดการขาย'])
-                break
-            continue
+            break
 
         self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
         print("Click the cusname li result")
@@ -994,7 +1045,7 @@ class Bot_POS:
                 print("ข้าม Element ไม่โผล่")
         else:
             pass
-        self.app.update_log("มันจบแค่นี้")
+
         print("search หายไปแล้ว")
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, self.app.cusNameInput)))
@@ -1045,6 +1096,9 @@ class Bot_POS:
                 print(err)
         else:
             print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
+
+        self.app.update_log(
+            "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
 
         self.autofinal = True
         while self.autofinal:
