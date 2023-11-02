@@ -89,11 +89,12 @@ class MyApp:
 
         # #* FRAMES #####################################################################################################
         # > Frame1 Order Entry
-        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#3784cc")
+        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444",
+                                 borderwidth=1, relief="groove", highlightbackground="#ccc")
         self.entry_frame.pack(pady=(10, 10))
 
         # > Frame2 Log Frame
-        self.log_frame = Frame(self.canvas, bg="#3784cc")
+        self.log_frame = Frame(self.canvas, bg="#444")
         self.log_frame.pack(side='bottom', pady=(0, 30))
 
         # > Frame3 ImportFile Status
@@ -822,9 +823,11 @@ class UserAccount:
         self.subwindow.geometry("250x140+650+400")
         self.subwindow.title("Loginปลอม")
         self.subwindow.grab_set()
+        self.subwindow.resizable(False, False)
 
         # สร้างเฟรม
         self.subwin_frame = Frame(self.subwindow)
+
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # สร้าง widget
@@ -843,7 +846,7 @@ class UserAccount:
         self.pass_input.pack(fill='x', expand=True)
 
         # checkBox
-        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show", font=(
+        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show Pass", font=(
             'bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
 
@@ -1004,7 +1007,7 @@ class Bot_POS:
         self.cus_name_span_text = self.cus_name_span_elmt.text
         try:
             print("เช็คว่าต้องรีไหม")
-            if self.cus_name_span_text != 'Select Customer':
+            if self.cus_name_span_text != 'Select Customer' or self.cus_name_span_text != 'กรุณาเลือกลูกค้า':
                 print("รีนี่หว่า, กดรีเลย")
                 self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button').click()
@@ -1193,11 +1196,12 @@ class Bot_POS:
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
                 self.is_final_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
-                if self.is_input_empty.text != "Select Customer" and self.is_final_displayed == False:
+                print("pathมันแปลกๆ:", self.is_input_empty.text)
+                if self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า" and self.is_final_displayed == False:
                     continue
-                elif self.is_input_empty.text == "Select Customer" and self.is_final_displayed == False:
+                elif self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า" and self.is_final_displayed == False:
                     break
-                elif self.is_input_empty.text != "Select Customer" and self.is_final_displayed == True:
+                elif self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า" and self.is_final_displayed == True:
                     # self.wait1.until(EC.visibility_of_element_located(
                     #     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[8]/div/div[13]')))
                     # self.is_btn_disappeared = self.wait1.until(EC.invisibility_of_element_located(
@@ -1211,14 +1215,14 @@ class Bot_POS:
 
                     # elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed():
                     print("หน้า จ่ายตัง")
-                    self.is_final_page2 = self.wait1.until(EC.text_to_be_present_in_element(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]'), "Payment:"))
+                    self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                     self.last_page = self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
                     if self.last_page.text == "Payment:":
                         # Auto หน้าท้าย ทำได้ครั้งเดียว
-                        self.is_final_page2 = self.wait1.until(EC.text_to_be_present_in_element(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]'), "Payment:"))
+                        self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
 
                         # self.is_final_page = self.wait1.until(EC.visibility_of_element_located(
                         #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
