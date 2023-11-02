@@ -1075,6 +1075,7 @@ class Bot_POS:
 
         #! น่าสงสัย เป็นเหตุให้หน้าท้ายค้าง
         self.customer_add_times = 0
+        self.customer_name_search_count = 0
         while True:
             if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul'):
                 time.sleep(1)
@@ -1110,16 +1111,23 @@ class Bot_POS:
 
                     # เพิ่มจำนวนครั้งที่ add
                     self.customer_add_times += 1
-                    # self.wait1.until(EC.invisibility_of_element_located(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div'))
                     self.driver.switch_to.window(
                         self.merged_dict['SMCO :: เปิดการขาย'])
                     self.driver.find_element(
                         By.XPATH, self.app.cusNameInput).clear()
                     self.driver.find_element(
                         By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
-                    print("Re enter name after add")
+                    print(f"Re enter name after add")
                     continue
-                elif self.wait_condition.text == "No results found" and self.customer_add_times != 0:
+                elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:    
+                    self.driver.find_element(
+                        By.XPATH, self.app.cusNameInput).clear()
+                    self.driver.find_element(
+                        By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+                    self.customer_name_search_count+= 1
+                    print(f"Re enter name after add extra times{self.customer_name_search_count}")
+                    continue
+                elif self.wait_condition.text == "No results found" and self.customer_add_times == 1:
                     print(
                         "I've already add it, but the element still shows 'No results found', you have to add by yourself")
                     break
