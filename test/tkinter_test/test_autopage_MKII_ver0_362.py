@@ -39,6 +39,7 @@ locale.setlocale(locale.LC_ALL, 'en_us')
 class MyApp:
     def __init__(self, root):
         self.root = root
+        self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
         self.result = ""
@@ -68,6 +69,14 @@ class MyApp:
         self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.bot_state = BooleanVar(value=False)
+        
+
+    def validate_input(self, value):
+        pattern = r'[A-z]'
+        if re.fullmatch(pattern, value) is None:
+            return False
+        
+        return True
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
@@ -846,7 +855,8 @@ class UserAccount:
         self.id_label = Label(
             self.subwin_frame, text="ID", font=("bazooka", 9))
         self.id_label.pack(fill='x', expand=True)
-        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id)
+        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
+                              validate="key", validatecommand=(self.app.validate_input_variable, '%P' ))
         self.id_input.pack(fill='x', expand=True)
         self.id_input.focus()
 
@@ -854,7 +864,7 @@ class UserAccount:
             self.subwin_frame, text="PW", font=("bazooka", 9))
         self.pass_label.pack(fill='x', expand=True)
         self.pass_input = Entry(
-            self.subwin_frame, textvariable=self.app.user_pw, show="*")
+            self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P' ))
         self.pass_input.pack(fill='x', expand=True)
 
         # checkBox
@@ -1119,13 +1129,14 @@ class Bot_POS:
                         By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
                     print(f"Re enter name after add")
                     continue
-                elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:    
+                elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
                     self.driver.find_element(
                         By.XPATH, self.app.cusNameInput).clear()
                     self.driver.find_element(
                         By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
-                    self.customer_name_search_count+= 1
-                    print(f"Re enter name after add extra times{self.customer_name_search_count}")
+                    self.customer_name_search_count += 1
+                    print(
+                        f"Re enter name after add extra times{self.customer_name_search_count}")
                     continue
                 elif self.wait_condition.text == "No results found" and self.customer_add_times == 1:
                     print(
