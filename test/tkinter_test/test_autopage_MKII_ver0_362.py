@@ -71,7 +71,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.361")
+        self.root.title("Autosamatic ver0.362")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -711,10 +711,20 @@ class MyApp:
         return name
 
     def on_thread_done(self):
+        self.get_tabs_stat = self.get_tabs_thread.is_alive()
+        self.search_thread_stat = self.search_thread.is_alive()
+        print("ก่อนifเช็คตัวรัน tab", self.get_tabs_stat)
+        print("ก่อนifเช็คตัวรัน excel", self.search_thread_stat)
         if self.get_tabs_thread.is_alive():
             # self.search_complete.set()
             self.get_tabs_thread.join()
 
+        print("Thread is done คงเหงาแย่")
+
+        self.get_tabs_stat = self.get_tabs_thread.is_alive()
+        self.search_thread_stat = self.search_thread.is_alive()
+        print("หลังifเช็คตัวรัน tab", self.get_tabs_stat)
+        print("หลังifเช็คตัวรัน excel", self.search_thread_stat)
         print("Thread is done")
 
     def search(self):
@@ -749,6 +759,7 @@ class MyApp:
 
         print("เริ่มThreadใหม่")
         self.search_thread.start()
+
         try:
             self.get_tabs_thread.start()
         except EXCEPTION as err:
@@ -1193,14 +1204,16 @@ class Bot_POS:
             print("เข้าloop ยัง")
             print("รอให้มันโผล่")
             while True:
+                time.sleep(0.8)
                 self.is_input_empty = self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
                 self.is_final_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
-                if (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
-                    continue
-                elif (self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
+
+                if (self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
                     break
+                elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
+                    continue
                 elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == True:
                     # self.wait1.until(EC.visibility_of_element_located(
                     #     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[8]/div/div[13]')))
@@ -1214,6 +1227,7 @@ class Bot_POS:
                     #     print("หน้า เดิม")
 
                     # elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed():
+                    time.sleep(0.75)
                     print("หน้า จ่ายตัง")
                     self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
                         (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
@@ -1280,6 +1294,7 @@ class Bot_POS:
                         self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                         if self.is_previous_page:
+                            print("End or back")
                             if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
                                 print("ไปหน้าสุดท้าย จบ loop")
                                 break
