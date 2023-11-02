@@ -71,7 +71,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.36")
+        self.root.title("Autosamatic ver0.361")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -779,6 +779,7 @@ class DataSourceSelector:
         self.subwindow.geometry("250x75+650+400")
         self.subwindow.title("Data Source")
         self.subwindow.grab_set()
+        self.subwindow.resizable(False, False)
 
         self.api_btn = Button(self.subwindow, text="API",
                               command=self.select_api)
@@ -1196,12 +1197,11 @@ class Bot_POS:
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
                 self.is_final_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
-                print("pathมันแปลกๆ:", self.is_input_empty.text)
-                if self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า" and self.is_final_displayed == False:
+                if (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
                     continue
-                elif self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า" and self.is_final_displayed == False:
+                elif (self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
                     break
-                elif self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า" and self.is_final_displayed == True:
+                elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == True:
                     # self.wait1.until(EC.visibility_of_element_located(
                     #     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[8]/div/div[13]')))
                     # self.is_btn_disappeared = self.wait1.until(EC.invisibility_of_element_located(
@@ -1219,7 +1219,7 @@ class Bot_POS:
                         (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                     self.last_page = self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
-                    if self.last_page.text == "Payment:":
+                    if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                         # Auto หน้าท้าย ทำได้ครั้งเดียว
                         self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
