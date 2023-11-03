@@ -39,7 +39,7 @@ locale.setlocale(locale.LC_ALL, 'en_us')
 class MyApp:
     def __init__(self, root):
         self.root = root
-        self.validate_input_variable = self.root.register(self.validate_input)
+        # self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
         self.result = ""
@@ -69,18 +69,17 @@ class MyApp:
         self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.bot_state = BooleanVar(value=False)
-        
 
     def validate_input(self, value):
         pattern = r'[A-z]'
         if re.fullmatch(pattern, value) is None:
             return False
-        
+
         return True
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.362")
+        self.root.title("Autosamatic ver0.363")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -855,16 +854,19 @@ class UserAccount:
         self.id_label = Label(
             self.subwin_frame, text="ID", font=("bazooka", 9))
         self.id_label.pack(fill='x', expand=True)
-        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
-                              validate="key", validatecommand=(self.app.validate_input_variable, '%P' ))
+        # self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
+        #                       validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
+        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id)
         self.id_input.pack(fill='x', expand=True)
         self.id_input.focus()
 
         self.pass_label = Label(
             self.subwin_frame, text="PW", font=("bazooka", 9))
         self.pass_label.pack(fill='x', expand=True)
+        # self.pass_input = Entry(
+        #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
         self.pass_input = Entry(
-            self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P' ))
+            self.subwin_frame, textvariable=self.app.user_pw, show="*")
         self.pass_input.pack(fill='x', expand=True)
 
         # checkBox
@@ -1027,15 +1029,58 @@ class Bot_POS:
         self.cus_name_span_elmt = self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
         self.cus_name_span_text = self.cus_name_span_elmt.text
+        if self.cus_name_span_text == 'Select Customer':
+            self.is_reset = False
+        elif self.cus_name_span_text == 'กรุณาเลือกลูกค้า':
+            self.is_reset = False
+        else:
+            self.is_reset = True
+            print("มีชื่อลูกค้าอยู่แล้ว")
+            pass
+
         try:
-            print("เช็คว่าต้องรีไหม")
-            if self.cus_name_span_text != 'Select Customer' or self.cus_name_span_text != 'กรุณาเลือกลูกค้า':
+            print("เช็คว่าต้องรีไหม", self.is_reset)
+            if self.is_reset:
                 print("รีนี่หว่า, กดรีเลย")
+                # * method1 รีหน้าแบบ Esc
+                # self.driver.find_element(
+                #     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button').click()
+                # self.wait1.until(EC.visibility_of_element_located(
+                #     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')))
+
+                # * method2 รีหน้าแบบ กด x
+                # setp1 กด x
                 self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button').click()
-                self.wait1.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')))
-                print("หน้าใหม่มาแล้ว")
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
+                try:
+                    # คลิกเพื่อให้ปิด droprdown
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
+                except:
+                    # ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
+                    try:
+                        print("wait for pop-up(try)")
+                        # ระบุปุ่ม ok
+                        if self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]'):
+                            print("has pop-up")
+                            self.driver.find_element(
+                                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+                            print("Click OK")
+                            pass
+                    except:
+                        print("wait for pop-up(except)")
+                        time.sleep(1)
+                        # ระบุปุ่ม ok
+                        if self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]'):
+                            print("has pop-up")
+                            self.driver.find_element(
+                                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+                            print("Click OK")
+                            pass
+
+                print("หน้าใหม่พร้อมแล้ว")
+            elif self.is_reset == False:
+                print("ไม่ต้องรี")
         except EXCEPTION as err:
             print("เป็นไง", err)
             while True:
