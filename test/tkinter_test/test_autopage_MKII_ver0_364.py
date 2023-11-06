@@ -71,7 +71,7 @@ class MyApp:
         self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
         self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
-        self.bot_state = BooleanVar(value=False)
+        # self.bot_state = BooleanVar(value=False)
 
     def validate_input(self, value):
         pattern = r'[A-z]'
@@ -108,7 +108,7 @@ class MyApp:
         self.log_frame = Frame(self.canvas, bg="#444")
         self.log_frame.pack(side='bottom', pady=(0, 30))
 
-        # > Frame3 ImportFile Status
+        # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = Frame(self.canvas, bg="#444")
         self.import_file_frame.pack(anchor=W, padx=(5, 5), pady=(5, 0))
 
@@ -174,7 +174,7 @@ class MyApp:
             self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
         self.display_acc_btn.grid(row=0, column=5, padx=5)
 
-        # * > ExportFile location display component
+        # * > Export File and Bot status location display component
         self.display_location_label = Label(
             self.import_file_frame, text=f"File located: ")
         self.display_location_label.grid(row=0, column=0, padx=(5, 0))
@@ -184,6 +184,10 @@ class MyApp:
         self.display_location_result_btn = Button(
             self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel)
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
+        # >> bot status
+        self.display_bot_status_label = Label(
+            self.import_file_frame, text=f"Bot Status: ZZzz..", bg="#d9f2ff")
+        self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0))
 
         # * > Current Order display component
         # >> Labels
@@ -745,10 +749,15 @@ class MyApp:
         self.search_thread_stat = self.search_thread.is_alive()
         print("หลังifเช็คตัวรัน tab", self.get_tabs_stat)
         print("หลังifเช็คตัวรัน excel", self.search_thread_stat)
+
         print("Thread is done")
+        self.display_bot_status_label.config(
+            text=f"Bot Status: ZZzz..", bg="#d9f2ff", fg="#000")
 
     def search(self):
         # ลบ result products list เก่า
+        self.display_bot_status_label.config(
+            text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
 
@@ -771,11 +780,11 @@ class MyApp:
             target=lambda: self.order_search(self.search_query, self.search_complete))
         self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
 
-        if self.search_thread.is_alive() or self.get_tabs_thread.is_alive():
-            print("Thread ยังไม่ตาย")
-            self.bot_state.set(False)
-            print("ฆ่า Thread")
-        self.bot_state.set(True)
+        # if self.search_thread.is_alive() or self.get_tabs_thread.is_alive():
+        #     print("Thread ยังไม่ตาย")
+        #     self.bot_state.set(False)
+        #     print("ฆ่า Thread")
+        # self.bot_state.set(True)
 
         print("เริ่มThreadใหม่")
         self.search_thread.start()
@@ -844,9 +853,34 @@ class DataSourceSelector:
 
 
 class PopUp:
-    def __init__(self, title, message):
+    def __init__(self, title, message, parent):
+        self.parent = parent
         self.title = title
         self.message = message
+        self.create_subwindow()
+
+    def delete(self):
+        self.subwindow.destroy()
+
+    def create_subwindow(self):
+        self.subwindow = Toplevel(self.parent)
+        self.subwindow.transient(self.parent)
+        self.subwindow.geometry("250x140+650+400")
+        self.subwindow.title(f"{self.title}")
+        self.subwindow.grab_set()
+        self.subwindow.resizable(False, False)
+        # สร้างเฟรม
+        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
+        # สร้าง widget
+        self.id_label = Label(
+            self.subwin_frame, text=self.message, font=("bazooka", 9))
+        self.id_label.pack(fill='x', expand=True)
+
+        # Submit Button
+        self.submit_btn = Button(
+            self.subwin_frame, text="Submit", command=self.delete)
+        self.submit_btn.pack(fill='x', expand=True)
 
 
 class UserAccount:
@@ -869,7 +903,7 @@ class UserAccount:
 
         # สร้าง widget
         self.id_label = Label(
-            self.subwin_frame, text="ID", font=("bazooka", 9))
+            self.subwin_frame, text="SMCO ID", font=("bazooka", 9), anchor="w")
         self.id_label.pack(fill='x', expand=True)
         # self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
         #                       validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
@@ -878,7 +912,7 @@ class UserAccount:
         self.id_input.focus()
 
         self.pass_label = Label(
-            self.subwin_frame, text="PW", font=("bazooka", 9))
+            self.subwin_frame, text="SMCO Password", font=("bazooka", 9), anchor="w")
         self.pass_label.pack(fill='x', expand=True)
         # self.pass_input = Entry(
         #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
@@ -897,83 +931,68 @@ class UserAccount:
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
-        # cookies = {
-        #     'JSESSIONID': 'EA2AD7582A59949D14642F01ADF23832',
-        #     'locale': 'en_US',
-        # }
+        cookies = {
+            'JSESSIONID': 'EA2AD7582A59949D14642F01ADF23832',
+            'locale': 'en_US',
+        }
 
-        # headers = {
-        #     'Accept': '*/*',
-        #     'Accept-Language': 'en-US,en;q=0.9',
-        #     'Connection': 'keep-alive',
-        #     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        #     # 'Cookie': 'JSESSIONID=EA2AD7582A59949D14642F01ADF23832; locale=en_US',
-        #     'Origin': 'http://192.168.0.11:8080',
-        #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-        #     'X-Requested-With': 'XMLHttpRequest',
-        # }
+        headers = {
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            # 'Cookie': 'JSESSIONID=EA2AD7582A59949D14642F01ADF23832; locale=en_US',
+            'Origin': 'http://192.168.0.11:8080',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
 
-        # data = {
-        #     'locale': 'en_US',
-        #     'redirect': 'http://192.168.0.11:8080/smartcore/',
-        #     'username': [
-        #         f'{self.app.user_id}',
-        #     ],
-        #     'password': [
-        #         f'{self.app.user_pw}',
-        #     ],
-        #     'branch': [
-        #         '',
-        #         '',
-        #     ],
-        #     'storeId': [
-        #         '',
-        #         '',
-        #     ],
-        # }
+        data = {
+            'locale': 'en_US',
+            'redirect': 'http://192.168.0.11:8080/smartcore/',
+            'username': [
+                f'{self.app.user_id.get()}',
+            ],
+            'password': [
+                f'{self.app.user_pw.get()}',
+            ],
+            'branch': [
+                '',
+                '',
+            ],
+            'storeId': [
+                '',
+                '',
+            ],
+        }
 
-        # response = requests.post(
-        #     'http://192.168.0.11:8080/smartcore/loginssoauthen.htm',
-        #     cookies=cookies,
-        #     headers=headers,
-        #     data=data,
-        #     verify=False,
-        # )
-        # result = response.json()
-        # print("ได้ response ไรมา: ",response)
-        # print("ได้ result ไรมา: ", result)
+        response = requests.post(
+            'http://192.168.0.11:8080/smartcore/loginssoauthen.htm',
+            cookies=cookies,
+            headers=headers,
+            data=data,
+            verify=False,
+        )
 
-        # # ถ้าได้ result = {'message': 'user.sas.longin.validate.userpwdfalse', 'status': '101'} แปลว่า ผิด
-        # """ ถ้าได้ result = {
-        #     "rsBranchs": [
-        #         {
-        #             "branchCode": "B0183",
-        #             "deleteFlag": false,
-        #             "branchNameEn": "IT CITY warehouse Samrong",
-        #             "fullNameTh": "B0183-ไอทีซิตี้ คลังสินค้าสำโรง",
-        #             "footprint": {},
-        #             "branchNameTh": "ไอทีซิตี้ คลังสินค้าสำโรง",
-        #             "fullName": "B0183-IT CITY warehouse Samrong",
-        #             "id": 180,
-        #             "activeFlag": false
-        #         }
-        #     ],
-        #     "status": "MORE_BRANCH"
-        # }
-        # แปลว่า ใช้ได้
-        # """
-        if self.app.user_id.get() == "inwza" and self.app.user_pw.get() == "007":
+        result = response.json()
+        print("ได้ response ไรมา: ", response)
+        print("ได้ result ไรมา: ", result)
+        # * ตรวจสอบ response จากการ login
+        if result['status'] == "MORE_BRANCH":
             print("Logged in")
             return True
         else:
             print("Incorrect username or password")
+            self.login_alert = PopUp(
+                "Login Fail!!", "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู", self.parent)
             return False
 
     def update_btn(self):
         if self.app.user_id.get() and self.app.user_pw.get():
 
-            is_closable = self.login()
-            print(is_closable)
+            # is_closable = self.login()
+            is_closable = True
+            print("ปิดได้ไหม ", is_closable)
             if is_closable:
                 self.display_btn_txt = f"Logged in !! ID : {self.app.user_id.get()}"
                 self.app.display_acc_btn.config(text=self.display_btn_txt)
@@ -1121,6 +1140,7 @@ class Bot_POS:
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
         # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
+        print("Error น่าจะอยู่แถวนี้")
         self.cus_name_span_elmt = self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
         self.cus_name_span_text = self.cus_name_span_elmt.text
@@ -1228,7 +1248,7 @@ class Bot_POS:
         self.customer_name_search_count = 0
         while True:
             if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul'):
-                time.sleep(1)
+                time.sleep(0.7)
                 # self.wait1.until(EC.visibility_of_element_located(
                 #     (By.XPATH, self.app.cusNameLi1)))
                 self.wait_condition = self.driver.find_element(
@@ -1349,6 +1369,8 @@ class Bot_POS:
 
                 self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
+                self.wait1(EC.invisibility_of_element_located((
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
             except Exception as err:
                 print("ค่าขนส่งโดนข้าม")
                 print(err)
@@ -1357,10 +1379,12 @@ class Bot_POS:
 
         self.app.update_log(
             "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
+        self.app.display_bot_status_label.config(
+            text=f"Bot Status: Botกำลังรอ..", bg="#21ff29", fg="#000")
 
         self.autofinal = True
         while self.autofinal:
-            print("เข้าloop ยัง")
+            print("เข้า final loop ")
             print("รอให้มันโผล่")
             while True:
                 time.sleep(0.8)
@@ -1639,8 +1663,8 @@ class Bot_POS:
         # กดเองตรวจเอง
         self.wait1.until(EC.visibility_of_element_located(
             (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
 
 
 if __name__ == "__main__":
@@ -1683,4 +1707,5 @@ if __name__ == "__main__":
 # *24 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
 # ?25 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
 # *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
-# !27 ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
+# *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
+# TODO28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่

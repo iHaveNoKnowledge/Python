@@ -1,1 +1,2 @@
-cus_name_span_text
+
+        self.display_bot_status_label = Label(
