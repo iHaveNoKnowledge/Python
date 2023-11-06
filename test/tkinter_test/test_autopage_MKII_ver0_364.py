@@ -79,7 +79,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.363")
+        self.root.title("Autosamatic ver0.364")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1422,7 +1422,6 @@ class Bot_POS:
         return (self.splited)
 
     def addTaxInvCustomer(self):
-
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
         self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '')
         # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
@@ -1451,14 +1450,14 @@ class Bot_POS:
             self.cus_tax_name_edited = re.sub(
                 r'\สาขา\d*', '', self.cus_tax_name_edited)
 
-        if str(self.app.nondistortedData['ประเภทสาขา']) == 'สำนักงานใหญ่':
+        if self.app.branch_type == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
             self.cus_tax_name_edited = f"""{
-                self.app.cus_name.get()} ({self.app.tax_branch.get()})"""
+                self.cus_tax_name_edited} ({self.app.tax_branch.get()})"""
         elif self.app.branch_type == "สาขาย่อย":
             self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
             self.cus_tax_name_edited = f"""{
-                self.app.cus_name.get()} (สาขา{self.app.tax_branch.get()})"""
+                self.cus_tax_name_edited} (สาขา{self.app.tax_branch.get()})"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -1494,6 +1493,7 @@ class Bot_POS:
             # Address
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
+        ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # # dropdown Country
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
@@ -1544,8 +1544,8 @@ class Bot_POS:
         # กดเองตรวจเอง
         self.wait1.until(EC.visibility_of_element_located(
             (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
 
 
 if __name__ == "__main__":
