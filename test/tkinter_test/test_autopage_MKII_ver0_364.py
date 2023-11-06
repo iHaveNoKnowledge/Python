@@ -341,7 +341,7 @@ class MyApp:
             self.data_frame = pd.read_excel(self.file_path,
                                             dtype={
                                                 'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
-                                                'สาขาย่อย': str})
+                                                'สาขาย่อย': str, 'รหัสประจำสาขา': str})
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -523,6 +523,8 @@ class MyApp:
                 # * ประเภทใบกำกับภาษี
                 # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
+                print("รหัสประจำสาขา= ",
+                      self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
@@ -531,11 +533,18 @@ class MyApp:
                     self.tax_num.set("ไม่มี")
 
                 else:
-                    if self.branch_type == "สำนักงานใหญ่" or self.branch_type == "สาขาย่อย":
+                    if self.branch_type == "สำนักงานใหญ่":
                         self.tax_bool.set(True)
-                        self.is_tax.set("ขอใบกำกับ")
+                        self.is_tax.set("ขอใบกำกับ ใหญ่")
                         self.display_is_tax.config(
-                            background="#ff0000", foreground="#FFF", font='Chiller 13 bold')
+                            background="#ff0000", foreground="#FFF", font='Chiller 12 bold')
+                        self.tax_num.set(
+                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                    elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
+                        self.tax_bool.set(True)
+                        self.is_tax.set("ขอใบกำกับ ย่อย")
+                        self.display_is_tax.config(
+                            background="#ff0055", foreground="#FFF", font='Chiller 12 bold')
                         self.tax_num.set(
                             self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
                     else:
@@ -1540,7 +1549,7 @@ class Bot_POS:
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
             self.cus_tax_name_edited = f"""{
                 self.cus_tax_name_edited} ({self.app.tax_branch.get()})"""
-        elif self.app.branch_type == "สาขาย่อย":
+        elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
             self.cus_tax_name_edited = f"""{
                 self.cus_tax_name_edited} (สาขา{self.app.tax_branch.get()})"""
@@ -1635,7 +1644,12 @@ class Bot_POS:
 
 
 if __name__ == "__main__":
+    def on_closing():
+        print("Tkinter window is closing")
+        root.destroy()
+
     root = Tk()
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     app = MyApp(root)
     # root.resizable(False, False)
 
