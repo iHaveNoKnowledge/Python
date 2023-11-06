@@ -1,4 +1,5 @@
 
+import requests
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
@@ -34,6 +35,8 @@ from concurrent.futures import ThreadPoolExecutor
 import locale
 from decimal import Decimal
 locale.setlocale(locale.LC_ALL, 'en_us')
+
+# * Request
 
 
 class MyApp:
@@ -831,6 +834,12 @@ class DataSourceSelector:
 # class สำหรับรับ ID PASS
 
 
+class PopUp:
+    def __init__(self, title, message):
+        self.title = title
+        self.message = message
+
+
 class UserAccount:
     def __init__(self, parent, app):
         self.parent = parent
@@ -847,7 +856,6 @@ class UserAccount:
 
         # สร้างเฟรม
         self.subwin_frame = Frame(self.subwindow)
-
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # สร้าง widget
@@ -874,21 +882,99 @@ class UserAccount:
             'bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
 
+        # Submit Button
         self.submit_btn = Button(
             self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
 
+    def login(self):
+        # cookies = {
+        #     'JSESSIONID': 'EA2AD7582A59949D14642F01ADF23832',
+        #     'locale': 'en_US',
+        # }
+
+        # headers = {
+        #     'Accept': '*/*',
+        #     'Accept-Language': 'en-US,en;q=0.9',
+        #     'Connection': 'keep-alive',
+        #     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        #     # 'Cookie': 'JSESSIONID=EA2AD7582A59949D14642F01ADF23832; locale=en_US',
+        #     'Origin': 'http://192.168.0.11:8080',
+        #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+        #     'X-Requested-With': 'XMLHttpRequest',
+        # }
+
+        # data = {
+        #     'locale': 'en_US',
+        #     'redirect': 'http://192.168.0.11:8080/smartcore/',
+        #     'username': [
+        #         f'{self.app.user_id}',
+        #     ],
+        #     'password': [
+        #         f'{self.app.user_pw}',
+        #     ],
+        #     'branch': [
+        #         '',
+        #         '',
+        #     ],
+        #     'storeId': [
+        #         '',
+        #         '',
+        #     ],
+        # }
+
+        # response = requests.post(
+        #     'http://192.168.0.11:8080/smartcore/loginssoauthen.htm',
+        #     cookies=cookies,
+        #     headers=headers,
+        #     data=data,
+        #     verify=False,
+        # )
+        # result = response.json()
+        # print("ได้ response ไรมา: ",response)
+        # print("ได้ result ไรมา: ", result)
+
+        # # ถ้าได้ result = {'message': 'user.sas.longin.validate.userpwdfalse', 'status': '101'} แปลว่า ผิด
+        # """ ถ้าได้ result = {
+        #     "rsBranchs": [
+        #         {
+        #             "branchCode": "B0183",
+        #             "deleteFlag": false,
+        #             "branchNameEn": "IT CITY warehouse Samrong",
+        #             "fullNameTh": "B0183-ไอทีซิตี้ คลังสินค้าสำโรง",
+        #             "footprint": {},
+        #             "branchNameTh": "ไอทีซิตี้ คลังสินค้าสำโรง",
+        #             "fullName": "B0183-IT CITY warehouse Samrong",
+        #             "id": 180,
+        #             "activeFlag": false
+        #         }
+        #     ],
+        #     "status": "MORE_BRANCH"
+        # }
+        # แปลว่า ใช้ได้
+        # """
+        if self.app.user_id.get() == "inwza" and self.app.user_pw.get() == "007":
+            print("Logged in")
+            return True
+        else:
+            print("Incorrect username or password")
+            return False
+
     def update_btn(self):
         if self.app.user_id.get() and self.app.user_pw.get():
-            self.display_btn_txt = f"Logged in !! ID : {self.app.user_id.get()}"
-            self.app.display_acc_btn.config(text=self.display_btn_txt)
-            self.subwindow.destroy()
-            return self.display_btn_txt
-        else:
-            print("ไม่ติด")
-            self.display_btn_txt = "Login"
-            self.subwindow.destroy()
-            return self.display_btn_txt
+            
+            is_closable = self.login()
+            print(is_closable)
+            if is_closable:
+                self.display_btn_txt = f"Logged in !! ID : {self.app.user_id.get()}"
+                self.app.display_acc_btn.config(text=self.display_btn_txt)
+                self.subwindow.destroy()
+                return self.display_btn_txt
+            else:
+                print("ไม่ติด")
+                self.display_btn_txt = "Login"
+                # self.subwindow.destroy()
+                # return self.display_btn_txt
 
     def show_and_hide(self):
         if self.pass_input['show'] == '*':
@@ -1575,12 +1661,10 @@ if __name__ == "__main__":
 # *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
 # !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
 # *18 มีเลขลำดับบอกใน productslist
-# !19 order เคสใบกำกับที่น่าสนใจ 23101524SPSNEC มีเลขมาแต่ไม่ได้ป็นบริษัท
-# !20 order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
-# *21 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
-# *22 ใช้ได้แล้ว //ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
-# *23 แก้แล้ว//พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
-# *24  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
-# ?25 เดาว่าน่าจะเป็นที่ตัวแอดลูกค้าแก้แล้ว รอเทส //อาการค้างยังไม่หาย
-# *26 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
-# ?27 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
+# !19 order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
+# *20 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
+# *21 ใช้ได้แล้ว //ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
+# *22 แก้แล้ว//พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
+# *23  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
+# *24 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
+# ?25 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
