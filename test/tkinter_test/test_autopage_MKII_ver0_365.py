@@ -82,7 +82,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.364")
+        self.root.title("Autosamatic ver0.365")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -217,7 +217,7 @@ class MyApp:
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky=W)
         # >> Value display
         self.display_is_tax = Label(
-            self.order_details_frame, width=12,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
+            self.order_details_frame,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=W)
 
         # * > Tax Number display component
@@ -539,23 +539,23 @@ class MyApp:
                 else:
                     if self.branch_type == "สำนักงานใหญ่":
                         self.tax_bool.set(True)
-                        self.is_tax.set("ขอใบกำกับ ใหญ่")
+                        self.is_tax.set("ขอใบกำกับ สนงใหญ่")
                         self.display_is_tax.config(
-                            background="#ff0000", foreground="#FFF", font='Chiller 12 bold')
+                            background="#ff0000", foreground="#FFF", font='Chiller 10 bold')
                         self.tax_num.set(
                             self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
                     elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
                         self.tax_bool.set(True)
-                        self.is_tax.set("ขอใบกำกับ ย่อย")
+                        self.is_tax.set("ขอใบกำกับ สาขาย่อย")
                         self.display_is_tax.config(
-                            background="#ff0055", foreground="#FFF", font='Chiller 12 bold')
+                            background="#ff0055", foreground="#FFF", font='Chiller 10 bold')
                         self.tax_num.set(
                             self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
                     else:
                         self.tax_bool.set(True)
                         self.is_tax.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.config(
-                            background="#ff9e36", foreground="#FFF", font='Chiller 13 bold')
+                            background="#ff9e36", foreground="#FFF", font='Chiller 12 bold')
                         self.tax_num.set(
                             self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
 
@@ -752,12 +752,14 @@ class MyApp:
 
         print("Thread is done")
         self.display_bot_status_label.config(
-            text=f"Bot Status: ZZzz..", bg="#d9f2ff", fg="#000")
+            text=f"Bot Status: จบการทำงาน", bg="#d9f2ff", fg="#000")
+        if self.get_tabs_thread.is_alive():
+            print("มีthreadใหม่มาต่อ")
+            self.display_bot_status_label.config(
+                text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     def search(self):
         # ลบ result products list เก่า
-        self.display_bot_status_label.config(
-            text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
 
@@ -788,14 +790,15 @@ class MyApp:
 
         print("เริ่มThreadใหม่")
         self.search_thread.start()
-
+        self.display_bot_status_label.config(
+            text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         try:
             self.get_tabs_thread.start()
         except EXCEPTION as err:
             print("err จาก get_tabs", err)
         # self.search_complete.self.wait1()
         # self.search_thread.join()
-        timer = threading.Timer(1, self.on_thread_done)
+        timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
         # self.get_tabs_thread.join()
 
@@ -897,11 +900,15 @@ class UserAccount:
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
 
-        # สร้างเฟรม
+        # * Event Enter
+        self.subwindow.bind(
+            "<Return>", lambda event=None: self.submit_btn.invoke())
+
+        # * สร้างเฟรม
         self.subwin_frame = Frame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
-        # สร้าง widget
+        # * สร้าง widget
         self.id_label = Label(
             self.subwin_frame, text="SMCO ID", font=("bazooka", 9), anchor="w")
         self.id_label.pack(fill='x', expand=True)
@@ -920,7 +927,7 @@ class UserAccount:
             self.subwin_frame, textvariable=self.app.user_pw, show="*")
         self.pass_input.pack(fill='x', expand=True)
 
-        # checkBox
+        # * checkBox
         self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show Pass", font=(
             'bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
@@ -1038,37 +1045,40 @@ class Bot_POS:
 
     def get_tabs(self):
         try:
-            print("รายงานจำนวนtabs")
+            if self.parent.winfo_exists():
+                print("รายงานจำนวนtabs")
 
-            self.title_list = []
-            self.title_list_Idx = []
-            self.value_list = []
-            self.title_dict = {}
-            for idx, handle in enumerate(self.driver.window_handles):
-                self.driver.switch_to.window(handle)
-                self.title_list_Idx.append(
-                    self.driver.title + "["+str(idx)+"]")
-                self.title_list.append(self.driver.title)
+                self.title_list = []
+                self.title_list_Idx = []
+                self.value_list = []
+                self.title_dict = {}
+                for idx, handle in enumerate(self.driver.window_handles):
+                    self.driver.switch_to.window(handle)
+                    self.title_list_Idx.append(
+                        self.driver.title + "["+str(idx)+"]")
+                    self.title_list.append(self.driver.title)
 
-                self.value_list.append(self.driver.current_window_handle)
-                self.title_dict.update(
-                    {self.driver.title: self.driver.current_window_handle})
+                    self.value_list.append(self.driver.current_window_handle)
+                    self.title_dict.update(
+                        {self.driver.title: self.driver.current_window_handle})
 
-            self.unique_titles = []
-            self.counter = {}
-            for item in self.title_list:
-                if item in self.counter:
-                    self.counter[item] += 1
-                    print("counter[item] คือไร: ", self.counter[item])
-                    self.unique_titles.append(f"{item}{self.counter[item]-1}")
-                else:
-                    self.counter[item] = 1
-                    self.unique_titles.append(item)
+                self.unique_titles = []
+                self.counter = {}
+                for item in self.title_list:
+                    if item in self.counter:
+                        self.counter[item] += 1
+                        print("counter[item] คือไร: ", self.counter[item])
+                        self.unique_titles.append(
+                            f"{item}{self.counter[item]-1}")
+                    else:
+                        self.counter[item] = 1
+                        self.unique_titles.append(item)
 
-            # เอาList มารวมกัน
-            self.merged_dict = dict(zip(self.unique_titles, self.value_list))
-            print("มี tabs ไรบ้าง", self.merged_dict)
-            self.operation_start()
+                # เอาList มารวมกัน
+                self.merged_dict = dict(
+                    zip(self.unique_titles, self.value_list))
+                print("มี tabs ไรบ้าง", self.merged_dict)
+                self.operation_start()
         except Exception as e:
             print(f"An error occirred: {e}")
 
@@ -1152,7 +1162,8 @@ class Bot_POS:
             self.is_reset = True
             print("มีชื่อลูกค้าอยู่แล้ว")
             pass
-
+        # self.app.display_bot_status_label.config(
+        #     text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         try:
             print("เช็คว่าต้องรีไหม", self.is_reset)
             if self.is_reset:
@@ -1369,8 +1380,12 @@ class Bot_POS:
 
                 self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
-                self.wait1(EC.invisibility_of_element_located((
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
+                try:
+                    print("รอหาย")
+                    self.wait1(EC.invisibility_of_element_located((
+                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
+                except:
+                    print("ไม่มีให้รอ")
             except Exception as err:
                 print("ค่าขนส่งโดนข้าม")
                 print(err)
@@ -1673,10 +1688,11 @@ if __name__ == "__main__":
         root.destroy()
 
     root = Tk()
+    # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
-    app = MyApp(root)
     # root.resizable(False, False)
-
+    # * Create Instance
+    app = MyApp(root)
     root.mainloop()
 
 # ปัญหาที่ต้องแก้
@@ -1708,4 +1724,4 @@ if __name__ == "__main__":
 # ?25 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
 # *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
 # *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
-# TODO28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
+# *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
