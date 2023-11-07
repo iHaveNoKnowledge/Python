@@ -71,6 +71,7 @@ class MyApp:
         self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
         self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
+        self.cus_name_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
 
     def validate_input(self, value):
@@ -88,21 +89,29 @@ class MyApp:
         # #* BG CANVAS ##################################################################################
         self.canvas = Canvas(self.root)
         self.canvas.configure(bg="#444")
-        self.canvas.pack(fill="both", expand=True)
+
         # self.canvas.create_window((0, 0), window=self.entry_frame, anchor="nw")
         # #* Scrollbar For Root ##################################################################################
-        self.root_scrollbar = Scrollbar(self.canvas, command=self.canvas.yview)
-        self.root_scrollbar.pack(side=RIGHT, fill="y")
-        self.canvas.configure(yscrollcommand=self.root_scrollbar.set)
+        # self.root_scrollbar_y = Scrollbar(self.canvas, command=self.canvas.yview)
+        # self.root_scrollbar_y.pack(side=RIGHT, fill="y")
+        # self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
 
+        self.root_scrollbar_x = Scrollbar(
+            self.root, command=self.canvas.xview, orient='horizontal')
+        self.canvas.config(xscrollcommand=self.root_scrollbar_x.set)
+        self.canvas.configure(xscrollcommand=self.root_scrollbar_x.set)
+        self.root_scrollbar_x.pack(side=BOTTOM, fill="x")
+        self.canvas.pack(fill="both", expand=True)
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         self.canvas.update_idletasks()
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        # self.canvas.create_window((4,4),window=self.root)
 
         # #* FRAMES #####################################################################################################
         # > Frame1 Order Entry
         self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444",
                                  borderwidth=1, relief="groove", highlightbackground="#ccc")
-        self.entry_frame.pack(pady=(10, 10))
+        self.entry_frame.pack(side='top', pady=(10, 10))
 
         # > Frame2 Log Frame
         self.log_frame = Frame(self.canvas, bg="#444")
@@ -110,19 +119,23 @@ class MyApp:
 
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = Frame(self.canvas, bg="#444")
-        self.import_file_frame.pack(anchor=W, padx=(5, 5), pady=(5, 0))
+        self.import_file_frame.pack(
+            side='top', anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame4 Customer Details
         self.order_details_frame = Frame(self.canvas, bg="#444", )
-        self.order_details_frame.pack(anchor=W, padx=(5, 5), pady=(5, 0))
+        self.order_details_frame.pack(
+            side='top', anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame5 Products Lists
         self.products_list_frame = Frame(self.canvas, bg="#445")
-        self.products_list_frame.pack(padx=(5, 5), pady=(5, 5), fill=X)
+        self.products_list_frame.pack(
+            side='top', padx=(5, 5), pady=(5, 5), fill=X)
 
         # > Frame6 Margetplace(MP) Products Lists
         self.mp_products_list_frame = Frame(self.canvas, bg="#444")
-        self.mp_products_list_frame.pack(padx=(5, 5), pady=(5, 5), fill=X)
+        self.mp_products_list_frame.pack(side='top',  padx=(
+            5, 5), pady=(5, 5), fill="x")
 
         # Create widgets in the main window
         self.create_widgets()
@@ -137,6 +150,7 @@ class MyApp:
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
         self.cols_width = [5, 112, 10, 10, 10, 10]
+        # self.cols_width = [1, 22, 2, 2, 2, 2]
         self.entry_list = []
         i = 0
         for header in self.list_of_cols:
@@ -148,7 +162,7 @@ class MyApp:
 
         for idx, entry in enumerate(self.entry_list):
             entry.grid(
-                row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx])
+                row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
             entry.configure(state="readonly")
 
     def create_widgets(self):
@@ -234,36 +248,38 @@ class MyApp:
         # >> Labels
         self.label_cus_name = Label(
             self.order_details_frame, text="ชื่อ: ", bg="#FFF", height=1)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
+        self.label_cus_name.grid(row=2, column=0, padx=(
+            5, 0), pady=(2, 2), sticky='ew')
         # >> Value display
         self.display_cus_name = Entry(
             self.order_details_frame, width=40,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
         self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
 
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
-        #* >>Address 
+        # * >>Address
         # >>> Labels
         self.label_cus_address = Label(
             self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
-        self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
+        self.label_cus_address.grid(
+            row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
         self.display_cus_address = Text(
             self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
         self.display_cus_address.grid(
             row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
-        #* >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
+        # * >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
         # >>> Labels
         self.label_cus_note = Label(
             self.order_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
-        self.label_cus_note.grid(row=3, column=4, padx=(5, 0), pady=(2, 2), sticky="nsew")
+        self.label_cus_note.grid(row=3, column=4, padx=(
+            5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
         self.display_cus_note = Text(
             self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
         self.display_cus_note.grid(
             row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
         self.display_cus_note.tag_add("left", "1.0", "1.end")
-        
 
         # * > Customter Products List
         self.label_cus_products = Label(
@@ -285,7 +301,7 @@ class MyApp:
 
         self.y_scrollbar.pack(side="right", fill="y")
         self.tree.pack(side='bottom', fill=X)
-        self.tree.configure(yscrollcommand=self.y_scrollbar.set)
+        self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
         # * > Margetplace Products display Header
         headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น',
@@ -294,10 +310,11 @@ class MyApp:
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=13)
+
         self.scrollbar = Scrollbar(
             self.log_frame, command=self.report_log.yview)
         self.scrollbar.pack(side="right", fill="y")
-        self.scrollbar.config()
+
         self.report_log.pack(side='bottom', fill=X)
         self.report_log.config(yscrollcommand=self.scrollbar.set)
 
@@ -772,6 +789,7 @@ class MyApp:
                 text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     def search(self):
+        self.autofinal = False
         # ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
@@ -1095,6 +1113,12 @@ class Bot_POS:
         except Exception as e:
             print(f"An error occirred: {e}")
 
+    def enter_cus_name(self, cus_search):
+        # เคลียและกรอกชื่อลูกค้า
+        self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
+        self.driver.find_element(
+            By.XPATH, self.app.cusNameInput).send_keys(cus_search)
+
     def operation_start(self):
         ### * Shopee Part ########################################################################################
         self.autofinal = False
@@ -1175,8 +1199,7 @@ class Bot_POS:
             self.is_reset = True
             print("มีชื่อลูกค้าอยู่แล้ว")
             pass
-        # self.app.display_bot_status_label.config(
-        #     text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
+
         try:
             print("เช็คว่าต้องรีไหม", self.is_reset)
             if self.is_reset:
@@ -1231,12 +1254,12 @@ class Bot_POS:
                 else:
                     continue
         print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
-        while True:
-            if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button'):
-                print("เจอแล้วออก")
-                break
-            else:
-                continue
+        # while True:
+        #     if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button'):
+        #         print("เจอแล้วออก")
+        #         break
+        #     else:
+        #         continue
 
         self.wait1.until(EC.element_to_be_clickable(
             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button')))
@@ -1247,21 +1270,21 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/a[2]').click()
 
-        # * จับตาดูว่า ul เปิดอยู่ไหม
-        self.is_ul_not_open = False if self.driver.find_elements(
-            By.XPATH, '/html/body/span/span/span[2]/ul') else True
-        # conditional ternary like
+        # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
         self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
         ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+
+        # * จับตาดูว่า ul เปิดอยู่ไหม
+        self.is_ul_not_open = False if self.driver.find_elements(
+            By.XPATH, self.app.cus_name_ul) else True
+        # กรณีไม่ได้เปิดไว้ จะเปิดให้
         if self.is_ul_not_open:
             self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
 
             self.wait1.until(EC.visibility_of_element_located(
                 (By.XPATH, self.app.cusNameInput)))
-
-        self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
-        self.driver.find_element(
-            By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+        # ถ้าเปิดแล้วจะข้ามมานี่
+        self.enter_cus_name(self.cus_search)
         print("กรอกชื่อเสร็จ")
         self.wait_condition = self.driver.find_element(
             By.XPATH, self.app.cusNameLi1)
@@ -1271,7 +1294,7 @@ class Bot_POS:
         self.customer_add_times = 0
         self.customer_name_search_count = 0
         while True:
-            if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul'):
+            if self.driver.find_element(By.XPATH, self.app.cus_name_ul):
                 time.sleep(0.7)
                 # self.wait1.until(EC.visibility_of_element_located(
                 #     (By.XPATH, self.app.cusNameLi1)))
@@ -1307,17 +1330,11 @@ class Bot_POS:
                     self.customer_add_times += 1
                     self.driver.switch_to.window(
                         self.merged_dict['SMCO :: เปิดการขาย'])
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).clear()
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+                    self.enter_cus_name(self.cus_search)
                     print(f"Re enter name after add")
                     continue
                 elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).clear()
-                    self.driver.find_element(
-                        By.XPATH, self.app.cusNameInput).send_keys(self.cus_search)
+                    self.enter_cus_name(self.cus_search)
                     self.customer_name_search_count += 1
                     print(
                         f"Re enter name after add extra times{self.customer_name_search_count}")
@@ -1414,8 +1431,8 @@ class Bot_POS:
         while self.autofinal:
             print("เข้า final loop ")
             print("รอให้มันโผล่")
-            while True:
-                time.sleep(0.8)
+            while self.parent.winfo_exists() and self.autofinal:
+                time.sleep(0.1)
                 self.is_input_empty = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
                 self.is_final_displayed = self.driver.find_element(
@@ -1703,6 +1720,7 @@ if __name__ == "__main__":
     root = Tk()
     # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
+    root.columnconfigure(0, weight=1)
     # root.resizable(False, False)
     # * Create Instance
     app = MyApp(root)
