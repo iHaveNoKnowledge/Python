@@ -214,43 +214,56 @@ class MyApp:
         # >> Labels
         self.label_is_tax = Label(
             self.order_details_frame, text="ใบกำกับ: ", bg="#FFF")
-        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky=W)
+        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_is_tax = Label(
             self.order_details_frame,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
-        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=W)
+        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky='ew')
 
         # * > Tax Number display component
         # >> Labels
         self.label_tax_number = Label(
             self.order_details_frame, text="เลขใบกำกับ: ", bg="#FFF")
-        self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky=W)
+        self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_tax_number = Entry(
             self.order_details_frame, width=15,  borderwidth=0, textvariable=self.tax_num, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
-        self.display_tax_number.grid(row=2, column=5, padx=(1, 0), sticky=W)
+        self.display_tax_number.grid(row=2, column=5, padx=(1, 0), sticky='ew')
 
         # * > Customer Name display component
         # >> Labels
         self.label_cus_name = Label(
             self.order_details_frame, text="ชื่อ: ", bg="#FFF", height=1)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), )
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
         # >> Value display
         self.display_cus_name = Entry(
             self.order_details_frame, width=40,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
-        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky=W)
+        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
 
-        # * > Customer Address display component
-        # >> Labels
+        # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
+        #* >>Address 
+        # >>> Labels
         self.label_cus_address = Label(
             self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
-        self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2))
-        # >> Value display
+        self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
+        # >>> Value display
         self.display_cus_address = Text(
-            self.order_details_frame, width=50, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+            self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
         self.display_cus_address.grid(
-            row=3, column=1, padx=(1, 0), columnspan=3, sticky=W)
+            row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
+        #* >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
+        # >>> Labels
+        self.label_cus_note = Label(
+            self.order_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
+        self.label_cus_note.grid(row=3, column=4, padx=(5, 0), pady=(2, 2), sticky="nsew")
+        # >>> Value display
+        self.display_cus_note = Text(
+            self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_note.grid(
+            row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
+        self.display_cus_note.tag_add("left", "1.0", "1.end")
+        
 
         # * > Customter Products List
         self.label_cus_products = Label(
@@ -1725,3 +1738,4 @@ if __name__ == "__main__":
 # *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
 # *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
 # *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
+# !29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
