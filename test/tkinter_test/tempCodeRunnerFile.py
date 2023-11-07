@@ -1,1 +1,2 @@
- if self.get_tabs_thre
+
+        self.order_details_frame.pack(

@@ -85,16 +85,17 @@ class MyApp:
         self.root.geometry("1000x900+400+300")
         self.root.title("Autosamatic ver0.365")
         self.root.configure(bg="#444")
-
+        
         # #* BG CANVAS ##################################################################################
         self.canvas = Canvas(self.root)
         self.canvas.configure(bg="#444")
 
         # self.canvas.create_window((0, 0), window=self.entry_frame, anchor="nw")
-        # #* Scrollbar For Root ##################################################################################
-        # self.root_scrollbar_y = Scrollbar(self.canvas, command=self.canvas.yview)
-        # self.root_scrollbar_y.pack(side=RIGHT, fill="y")
-        # self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
+        # * Scrollbar For Root ##################################################################################
+        self.root_scrollbar_y = Scrollbar(
+            self.canvas, command=self.canvas.yview)
+        self.root_scrollbar_y.pack(side=RIGHT, fill="y")
+        self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
 
         self.root_scrollbar_x = Scrollbar(
             self.root, command=self.canvas.xview, orient='horizontal')
@@ -108,6 +109,7 @@ class MyApp:
         # self.canvas.create_window((4,4),window=self.root)
 
         # #* FRAMES #####################################################################################################
+        
         # > Frame1 Order Entry
         self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444",
                                  borderwidth=1, relief="groove", highlightbackground="#ccc")
@@ -268,6 +270,18 @@ class MyApp:
         self.display_cus_address.grid(
             row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
+        # * >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
+        # >>> Labels
+        self.label_cus_note = Label(
+            self.order_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
+        self.label_cus_note.grid(row=3, column=4, padx=(
+            5, 0), pady=(2, 2), sticky="nsew")
+        # >>> Value display
+        self.display_cus_note = Text(
+            self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_note.grid(
+            row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
+        self.display_cus_note.tag_add("left", "1.0", "1.end")
         # * >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
         # >>> Labels
         self.label_cus_note = Label(
@@ -1425,7 +1439,7 @@ class Bot_POS:
         self.app.update_log(
             "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
         self.app.display_bot_status_label.config(
-            text=f"Bot Status: Botกำลังรอ..", bg="#21ff29", fg="#000")
+            text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
 
         self.autofinal = True
         while self.autofinal:
