@@ -55,6 +55,8 @@ class MyApp:
         self.cus_name = StringVar(value="")
         self.cus_account_name = StringVar(value="")
         self.cus_address = ""
+        self.cus_remark = ""
+        self.order_note = ""
         self.cus_province = StringVar(value="")
         self.cus_district = StringVar(value="")
         self.cus_sub_district = StringVar(value="")
@@ -85,7 +87,7 @@ class MyApp:
         self.root.geometry("1000x900+400+300")
         self.root.title("Autosamatic ver0.365")
         self.root.configure(bg="#444")
-        
+
         # #* BG CANVAS ##################################################################################
         self.canvas = Canvas(self.root)
         self.canvas.configure(bg="#444")
@@ -109,7 +111,7 @@ class MyApp:
         # self.canvas.create_window((4,4),window=self.root)
 
         # #* FRAMES #####################################################################################################
-        
+
         # > Frame1 Order Entry
         self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444",
                                  borderwidth=1, relief="groove", highlightbackground="#ccc")
@@ -127,6 +129,11 @@ class MyApp:
         # > Frame4 Customer Details
         self.order_details_frame = Frame(self.canvas, bg="#444", )
         self.order_details_frame.pack(
+            side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+
+        # > Frame7 For Customer's Invoice Details
+        self.invoice_details_frame = Frame(self.canvas, bg="#445")
+        self.invoice_details_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame5 Products Lists
@@ -261,39 +268,41 @@ class MyApp:
         # * >>Address
         # >>> Labels
         self.label_cus_address = Label(
-            self.order_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
+            self.invoice_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
         self.label_cus_address.grid(
             row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
         self.display_cus_address = Text(
-            self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+            self.invoice_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
         self.display_cus_address.grid(
             row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
-        # * >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
+
+        # * >> Customer remark display component ส่วนแสดงผลหมายเหตุลูกค้า col 4-5
         # >>> Labels
-        self.label_cus_note = Label(
-            self.order_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
-        self.label_cus_note.grid(row=3, column=4, padx=(
+        self.label_cus_remark = Label(
+            self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
+        self.label_cus_remark.grid(row=3, column=4, padx=(
             5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_note = Text(
-            self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
-        self.display_cus_note.grid(
+        self.display_cus_remark = Text(
+            self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_remark.grid(
             row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
-        self.display_cus_note.tag_add("left", "1.0", "1.end")
-        # * >> Customer Note display component ส่วนแสดงผลหมายเหตุลูกค้า
+        self.display_cus_remark.tag_add("left", "1.0", "1.end")
+
+        # * >> Order Note display component ส่วนแสดงผลหมายเหตุลูกค้า col 6-7
         # >>> Labels
-        self.label_cus_note = Label(
-            self.order_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
-        self.label_cus_note.grid(row=3, column=4, padx=(
+        self.label_order_note = Label(
+            self.invoice_details_frame, text="บันทึก: ", bg="#FFF", height=1,)
+        self.label_order_note.grid(row=3, column=6, padx=(
             5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_note = Text(
-            self.order_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
-        self.display_cus_note.grid(
-            row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
-        self.display_cus_note.tag_add("left", "1.0", "1.end")
+        self.display_order_note = Text(
+            self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_order_note.grid(
+            row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
+        self.display_order_note.tag_add("left", "1.0", "1.end")
 
         # * > Customter Products List
         self.label_cus_products = Label(
@@ -346,7 +355,9 @@ class MyApp:
         self.is_tax.set("")
         self.cus_name.set("")
         self.cus_address = ""
-        self.update_address('')
+        self.cus_remark = ""
+        self.order_note = ""
+        self.update_gui_address('')
         self.cus_province.set("")
         self.cus_district.set("")
         self.cus_sub_district.set("")
@@ -389,7 +400,7 @@ class MyApp:
             self.data_frame = pd.read_excel(self.file_path,
                                             dtype={
                                                 'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
-                                                'สาขาย่อย': str, 'รหัสประจำสาขา': str})
+                                                'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str})
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -404,7 +415,7 @@ class MyApp:
         except Exception as e:
             print(f"อะไรสักอย่างพัง {e}")
 
-    def update_address(self, address):
+    def update_gui_address(self, address):
         self.address = address.strip()
         if address != "":
             self.cus_address = self.address
@@ -418,6 +429,32 @@ class MyApp:
             self.display_cus_address.delete(1.0, END)
             self.display_cus_address.insert(END, '')
             self.display_cus_address.config(state=DISABLED)
+            
+    def update_gui_remark(self):       
+        if self.cus_remark == "" or self.cus_remark == "nan":
+            self.display_cus_remark.config(state=NORMAL)
+            self.display_cus_remark.delete(1.0, END)
+            self.display_cus_remark.insert(END, 'ไม่มี')
+            self.display_cus_remark.config(state=DISABLED)
+            
+        else:
+            self.display_cus_remark.config(state=NORMAL)
+            self.display_cus_remark.delete(1.0, END)
+            self.display_cus_remark.insert(END, self.cus_remark)
+            self.display_cus_remark.config(state=DISABLED)
+
+    def update_gui_note(self):
+        if self.order_note == "" or self.order_note == "nan":
+            self.display_order_note.config(state=NORMAL)
+            self.display_order_note.delete(1.0, END)
+            self.display_order_note.insert(END, 'ไม่มี')
+            self.display_order_note.config(state=DISABLED)
+            
+        else:        
+            self.display_order_note.config(state=NORMAL)
+            self.display_order_note.delete(1.0, END)
+            self.display_order_note.insert(END, self.order_note)
+            self.display_order_note.config(state=DISABLED)
 
     def show_products(self, products_list):
         for i in self.tree.get_children():
@@ -475,6 +512,17 @@ class MyApp:
 
         print(truncated_address.strip())
         return truncated_address.strip()
+    
+    def note_extractor(self):
+        if self.order_note !="nan":
+            self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
+            self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
+            self.address_match = re.search(r'ที่อยู่:(.*?)\n', self.order_note)
+            self.tax_id_match = re.search(r'Tax id:(.*?)', self.order_note)
+            print("regexบันทึก: ", self.name_match)
+            print("ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
+        else:
+            print("ไม่มีค่า")
 
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
@@ -485,7 +533,7 @@ class MyApp:
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่', 'ประเภทสาขา',
-                                     'รหัสประจำสาขา']
+                                     'รหัสประจำสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก']
 
         if self.order != "":
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
@@ -500,8 +548,7 @@ class MyApp:
                 # *  ของมีอะไรบ้าง
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
-                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
-                )
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
 
                 self.update_log(f"สินค้าที่มี")
                 for row in self.items:
@@ -604,12 +651,20 @@ class MyApp:
                             self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
 
                 # * แสดงผล
-                # print("ใบกำกับ?", self.tax_bool)
                 # self.address = self.filter_data.iat[0, 59]
                 self.address = self.nondistortedData['รายละเอียดที่อยู่']
-                # print("ข้อความ", self.address)
+                self.cus_remark:str = str(self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
+                self.order_note:str = str(self.nondistortedData['บันทึก'])
+                
+                
+                print("ตรวจหมายเหตุ: ", self.cus_remark)
+                print("ตรวจบันทึก: ", self.order_note,
+                      "type: ", type(self.order_note))
+                self.note_extractor()
+                
                 self.cleaned_address = f"""{self.get_pure_address(
                     self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+
                 if "กรุงเทพ" in self.cleaned_address:
                     self.cleaned_address = self.cleaned_address.replace(
                         "จังหวัด", '')
@@ -620,19 +675,27 @@ class MyApp:
                 self.cus_account_name.set(
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
+                
+                #* update display text ใน gui
+                # เลือกว่าจะใช้ที่อยู่ แบบรายcol หรือ แบบสำเร็จ ไปอัพเดทและแสดงผลที่อยู่ใน gui โดยอัพเดท the gui ด้วย method update_gui_address
+                # การจะเลือกรายcol ได้ต้องชัวร์ว่า col แขวง/ตำบลต้องไม่ใช่ค่าว่าง หรือต้องไม่ Return เป็น "nan"
                 try:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
-                        print("ไม่มี nan: ", type(
-                            self.nondistortedData['แขวง/ตำบล']))
-                        self.update_address(
+                        print("แขวง/ตำบล ไม่เท่ากับ nan: ", 
+                            self.nondistortedData['แขวง/ตำบล'])
+                        self.update_gui_address(
                             re.sub(r'\s{2,}', " ", self.cleaned_address.replace('\u200b', '')).strip())
                     else:
                         print("ถ้ามี nan")
-                        self.update_address(re.sub(
+                        self.update_gui_address(re.sub(
                             r'\s{2,}', " ", self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace('\u200b', '')))
                 except:
-                    self.update_address('-')
-
+                    self.update_gui_address('-')
+                
+                self.update_gui_remark()
+                self.update_gui_note()
+                
+                #* เก็บค่ารายละเอียดที่อยู่
                 self.cus_province.set(
                     self.nondistortedData['จังหวัด.1'].strip())
                 self.cus_district.set(
@@ -837,10 +900,11 @@ class MyApp:
         self.search_thread.start()
         self.display_bot_status_label.config(
             text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
-        try:
-            self.get_tabs_thread.start()
-        except EXCEPTION as err:
-            print("err จาก get_tabs", err)
+        # ปิดชั่วคราว get_tabs
+        # try:
+        #     self.get_tabs_thread.start()
+        # except EXCEPTION as err:
+        #     print("err จาก get_tabs", err)
         # self.search_complete.self.wait1()
         # self.search_thread.join()
         timer = threading.Timer(0.2, self.on_thread_done)
