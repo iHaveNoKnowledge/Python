@@ -531,7 +531,7 @@ class MyApp:
         self.order = order.strip()
         self.cus_order.set(order)
         differential_col_data = [
-            'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee']
+            'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่', 'ประเภทสาขา',
                                      'รหัสประจำสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก']
@@ -553,9 +553,12 @@ class MyApp:
                 )
 
                 self.update_log(f"สินค้าที่มี")
+
                 for row in self.items:
+                    print("ตัวเลือก", str(row['ชื่อตัวเลือก']))
                     self.update_log(
                         f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
+                    # if str(row['ชื่อตัวเลือก']) != "nan"
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
                 self.widget_no_col_lst = []
@@ -674,8 +677,24 @@ class MyApp:
                     self.cleaned_address = self.cleaned_address.replace(
                         "จังหวัด", '')
                 # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
-                result = {"status": self.order_status,
-                          "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+                self.search_result = {"status": self.order_status,
+                                      "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+
+                # * สร้างสูตรสำหรับสร้าง input gui
+                print("มีไอเทมไรบ้าง", self.search_result['items'])
+                self.input_formula = []
+                for item in self.search_result['items']:
+                    amount = int(item['จำนวน'])
+                    sku = str(item['เลขอ้างอิง SKU (SKU Reference No.)'])
+                    result = {'sku': sku, 'qty': amount}
+                    self.input_formula.append(result)
+                    print("จำนวน", int(item['จำนวน']),
+                          type(int(item['จำนวน'])))
+                print("สูตรสร้าง input", self.input_formula)
+                for idx, item in enumerate(self.input_formula):
+                    print("รายการที่ ", idx+1, item['sku'])
+                    for idx in range(item['qty']):
+                        print("สร้างinputอันที่ ", idx+1)
 
                 self.cus_account_name.set(
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
@@ -936,10 +955,10 @@ class MyApp:
         self.display_bot_status_label.config(
             text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         # ปิดชั่วคราว get_tabs
-        try:
-            self.get_tabs_thread.start()
-        except EXCEPTION as err:
-            print("err จาก get_tabs", err)
+        # try:
+        #     self.get_tabs_thread.start()
+        # except EXCEPTION as err:
+        #     print("err จาก get_tabs", err)
 
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
