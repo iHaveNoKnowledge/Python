@@ -210,7 +210,7 @@ class MyApp:
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
         # >> bot status
         self.display_bot_status_label = Label(
-            self.import_file_frame, text=f"Bot Status: ZZzz..", bg="#d9f2ff")
+            self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", bg="#1f242e", fg="#ffec1f")
         self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0))
 
         # * > Current Order display component
@@ -894,11 +894,11 @@ class MyApp:
 
         print("Thread is done")
         self.display_bot_status_label.config(
-            text=f"Bot Status: จบการทำงาน", bg="#d9f2ff", fg="#000")
+            text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
         if self.get_tabs_thread.is_alive():
             print("มีthreadใหม่มาต่อ")
             self.display_bot_status_label.config(
-                text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
+                text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     def search(self):
         self.autofinal = False
