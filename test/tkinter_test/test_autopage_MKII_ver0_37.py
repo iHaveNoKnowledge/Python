@@ -1380,7 +1380,7 @@ class Bot_POS:
         # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
-        print("self.app.tax_bool: ",self.app.tax_bool.get())
+        print("self.app.tax_bool: ", self.app.tax_bool.get())
         if self.app.tax_bool.get() == True:
             # ขอใบกำกับ
             print("ขอใบกำกับใช้ E:")
@@ -1756,18 +1756,19 @@ class Bot_POS:
         # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
         #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
         # self.finProvince = finProvince.strip().lstrip("จังหวัด")
-        
+
         # กรอก Address
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-        self.driver.find_element(   
+        self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
         # กรอก email
-        self.email_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
+        self.email_input = self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
         self.email_input.clear()
         self.email_input.send_keys(self.app.cus_email.get())
-        
+
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # # dropdown Country
         # self.driver.find_element(
@@ -1870,4 +1871,5 @@ if __name__ == "__main__":
 # *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
 # *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
 # *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
-# !29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
+# TODO29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
+# *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
