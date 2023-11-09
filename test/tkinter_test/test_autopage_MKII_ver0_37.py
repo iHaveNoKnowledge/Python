@@ -934,7 +934,7 @@ class MyApp:
         print("เริ่มThreadใหม่")
         self.search_thread.start()
         self.display_bot_status_label.config(
-            text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
+            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         # ปิดชั่วคราว get_tabs
         try:
             self.get_tabs_thread.start()
