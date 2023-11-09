@@ -61,6 +61,7 @@ class MyApp:
         self.cus_district = StringVar(value="")
         self.cus_sub_district = StringVar(value="")
         self.cus_tel = StringVar(value="")
+        self.cus_email = StringVar(value="")
         self.cus_cur_status = StringVar(value="")
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
@@ -85,7 +86,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.365")
+        self.root.title("Autosamatic ver0.37")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -429,14 +430,14 @@ class MyApp:
             self.display_cus_address.delete(1.0, END)
             self.display_cus_address.insert(END, '')
             self.display_cus_address.config(state=DISABLED)
-            
-    def update_gui_remark(self):       
+
+    def update_gui_remark(self):
         if self.cus_remark == "" or self.cus_remark == "nan":
             self.display_cus_remark.config(state=NORMAL)
             self.display_cus_remark.delete(1.0, END)
             self.display_cus_remark.insert(END, 'ไม่มี')
             self.display_cus_remark.config(state=DISABLED)
-            
+
         else:
             self.display_cus_remark.config(state=NORMAL)
             self.display_cus_remark.delete(1.0, END)
@@ -449,8 +450,8 @@ class MyApp:
             self.display_order_note.delete(1.0, END)
             self.display_order_note.insert(END, 'ไม่มี')
             self.display_order_note.config(state=DISABLED)
-            
-        else:        
+
+        else:
             self.display_order_note.config(state=NORMAL)
             self.display_order_note.delete(1.0, END)
             self.display_order_note.insert(END, self.order_note)
@@ -512,9 +513,9 @@ class MyApp:
 
         print(truncated_address.strip())
         return truncated_address.strip()
-    
+
     def note_extractor(self):
-        if self.order_note !="nan":
+        if self.order_note != "nan":
             self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
             self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
             self.address_match = re.search(r'ที่อยู่:(.*?)\n', self.order_note)
@@ -548,7 +549,8 @@ class MyApp:
                 # *  ของมีอะไรบ้าง
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
-                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
+                )
 
                 self.update_log(f"สินค้าที่มี")
                 for row in self.items:
@@ -654,15 +656,17 @@ class MyApp:
                 # * แสดงผล
                 # self.address = self.filter_data.iat[0, 59]
                 self.address = self.nondistortedData['รายละเอียดที่อยู่']
-                self.cus_remark:str = str(self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
-                self.order_note:str = str(self.nondistortedData['บันทึก'])
-                
-                
+                self.cus_remark: str = str(
+                    self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
+                self.order_note: str = str(self.nondistortedData['บันทึก'])
+                self.cus_email.set(
+                    str(self.nondistortedData['อีเมลสำหรับรับใบกำกับภาษี']))
+
                 print("ตรวจหมายเหตุ: ", self.cus_remark)
                 print("ตรวจบันทึก: ", self.order_note,
                       "type: ", type(self.order_note))
                 self.note_extractor()
-                
+
                 self.cleaned_address = f"""{self.get_pure_address(
                     self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
@@ -671,19 +675,19 @@ class MyApp:
                         "จังหวัด", '')
                 # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
                 result = {"status": self.order_status,
-                          "is_tax": self.tax_bool, "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+                          "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
 
                 self.cus_account_name.set(
                     self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
-                
-                #* update display text ใน gui
+
+                # * update display text ใน gui
                 # เลือกว่าจะใช้ที่อยู่ แบบรายcol หรือ แบบสำเร็จ ไปอัพเดทและแสดงผลที่อยู่ใน gui โดยอัพเดท the gui ด้วย method update_gui_address
                 # การจะเลือกรายcol ได้ต้องชัวร์ว่า col แขวง/ตำบลต้องไม่ใช่ค่าว่าง หรือต้องไม่ Return เป็น "nan"
                 try:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
-                        print("แขวง/ตำบล ไม่เท่ากับ nan: ", 
-                            self.nondistortedData['แขวง/ตำบล'])
+                        print("แขวง/ตำบล ไม่เท่ากับ nan: ",
+                              self.nondistortedData['แขวง/ตำบล'])
                         self.update_gui_address(
                             re.sub(r'\s{2,}', " ", self.cleaned_address.replace('\u200b', '')).strip())
                     else:
@@ -692,11 +696,11 @@ class MyApp:
                             r'\s{2,}', " ", self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace('\u200b', '')))
                 except:
                     self.update_gui_address('-')
-                
+
                 self.update_gui_remark()
                 self.update_gui_note()
-                
-                #* เก็บค่ารายละเอียดที่อยู่
+
+                # * เก็บค่ารายละเอียดที่อยู่
                 self.cus_province.set(
                     self.nondistortedData['จังหวัด.1'].strip())
                 self.cus_district.set(
@@ -841,7 +845,7 @@ class MyApp:
         name += " "+account_name if len(name.split()) == 1 else ""
         print("name:", name)
         return name
-    
+
     def tax_name_shaver(self, name):
         name_edited = name.replace('\u200b', '')
         # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
@@ -869,7 +873,7 @@ class MyApp:
                 r'\(สาขา.*\)', '', name_edited)
             name_edited = re.sub(
                 r'\สาขา\d*', '', name_edited)
-        
+
         return name_edited
 
     def on_thread_done(self):
@@ -936,10 +940,9 @@ class MyApp:
             self.get_tabs_thread.start()
         except EXCEPTION as err:
             print("err จาก get_tabs", err)
-   
+
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
-    
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -1223,7 +1226,7 @@ class Bot_POS:
 
     def enter_cus_name(self, cus_search):
         # เคลียและกรอกชื่อลูกค้า
-        
+
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
@@ -1372,20 +1375,29 @@ class Bot_POS:
 
         self.wait1.until(EC.element_to_be_clickable(
             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
-        
+
         time.sleep(1)
-        # * เปลี่ยน auto เป็น name
+        # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[2]').click()
+        print("self.app.tax_bool: ",self.app.tax_bool.get())
+        if self.app.tax_bool.get() == True:
+            # ขอใบกำกับ
+            print("ขอใบกำกับใช้ E:")
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[4]').click()
+        elif self.app.tax_bool.get() == False:
+            # ไม่ขอใบกำกับ
+            print("ไม่ขอใบกำกับใช้ N:")
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[2]').click()
 
         # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
         # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
         # self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
         # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
-        
-        self.cus_search = self.app.cus_name.get() if self.app.tax_bool.get(
+
+        self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get(
         ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
@@ -1687,18 +1699,18 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
 
-           
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-            
-             # # 09/11/2023 partนี้ ลบออกไปแล้ว
+
+            # # 09/11/2023 partนี้ ลบออกไปแล้ว
             # self.wait1.until(EC.visibility_of_element_located(
             #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
             # self.driver.find_element(
             #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-            
+
             # รอมันหายก่อน
-            self.wait1.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+            self.wait1.until(EC.invisibility_of_element_located(
+                (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
             is_functionworking = False
 
     def addressExtractor(self, cusAddress):
@@ -1707,15 +1719,16 @@ class Bot_POS:
 
     def addTaxInvCustomer(self):
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
-        #* เติมสาขาให้เรียบร้อย
+        name = self.app.cus_name.get()
+        # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
-            self.cus_tax_name_edited = f"""{
-                self.cus_tax_name_edited} ({self.app.tax_branch.get()})"""
+            name = f"""{
+                name} ({self.app.tax_branch.get()})"""
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
-            self.cus_tax_name_edited = f"""{
-                self.cus_tax_name_edited} (สาขา{self.app.tax_branch.get()})"""
+            name = f"""{
+                name} (สาขา{self.app.tax_branch.get()})"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -1727,14 +1740,14 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         self.driver.find_element(
             # nameTH
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID: {self.app.tax_num.get()}')
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
 
         self.driver.find_element(
             # nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         self.driver.find_element(
             # nameEN
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{self.cus_tax_name_edited} Tax ID: {self.app.tax_num.get()}')
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
 
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
@@ -1743,14 +1756,18 @@ class Bot_POS:
         # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
         #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
         # self.finProvince = finProvince.strip().lstrip("จังหวัด")
-
+        
+        # กรอก Address
         self.driver.find_element(
-            # Address
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-        self.driver.find_element(
-            # Address
+        self.driver.find_element(   
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
+        # กรอก email
+        self.email_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
+        self.email_input.clear()
+        self.email_input.send_keys(self.app.cus_email.get())
+        
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # # dropdown Country
         # self.driver.find_element(
@@ -1805,7 +1822,8 @@ class Bot_POS:
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
         # รอมันหายก่อน
-        self.wait1.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        self.wait1.until(EC.invisibility_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
 
 if __name__ == "__main__":
