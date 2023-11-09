@@ -71,7 +71,7 @@ class MyApp:
         self.cus_arrow_btn = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
         self.cusNameInput = '/html/body/span/span/span[1]/input'
         self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
-        self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
+        self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
@@ -615,8 +615,9 @@ class MyApp:
                 # * ชื่อที่ต้องอกใบกำกับ
                 self.cus_name.set(
                     re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
+                self.cus_name.set(self.tax_name_shaver(self.cus_name.get()))
                 # * ประเภทใบกำกับภาษี
-                # * เลือก Column มาแสดงผล โดยการใช้ iloc[0]
+                # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 print("รหัสประจำสาขา= ",
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
@@ -840,6 +841,36 @@ class MyApp:
         name += " "+account_name if len(name.split()) == 1 else ""
         print("name:", name)
         return name
+    
+    def tax_name_shaver(self, name):
+        name_edited = name.replace('\u200b', '')
+        # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
+        # * > ลบประเภทการจดทะเบียน ถ้าชื่อลูกค้าไม่มี บจก หรือ หจก เราก็จะไม่รู้ว่าลูกค้าให้ออกอะไร เลยทำให้ ไม่มีเงื่อนไขของคนที่ไม่ได้บอก
+        if "หจก" in name_edited or "ห้างหุ้นส่วนจำกัด" in name_edited:
+            print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
+            name_edited = name_edited.replace(
+                "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
+            name_edited = f"""ห้างหุ้นส่วนจำกัด {
+                name_edited}"""
+
+        elif "บจก" in name_edited or "บริษัท" in name_edited or "จำกัด" in name_edited:
+            print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
+            name_edited = name_edited.replace(
+                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
+            name_edited = f"""บริษัท {
+                name_edited} จำกัด"""
+
+        # * > ลบประเภทสาขา
+        if "สำนักงานใหญ่" in name_edited or "(สำนักงานใหญ่)" in name_edited:
+            name_edited = name_edited.replace(
+                "(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").strip()
+        elif "(สาขา" in name_edited or "สาขา" in name_edited:
+            name_edited = re.sub(
+                r'\(สาขา.*\)', '', name_edited)
+            name_edited = re.sub(
+                r'\สาขา\d*', '', name_edited)
+        
+        return name_edited
 
     def on_thread_done(self):
         self.get_tabs_stat = self.get_tabs_thread.is_alive()
@@ -901,15 +932,14 @@ class MyApp:
         self.display_bot_status_label.config(
             text=f"Bot Status: Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         # ปิดชั่วคราว get_tabs
-        # try:
-        #     self.get_tabs_thread.start()
-        # except EXCEPTION as err:
-        #     print("err จาก get_tabs", err)
-        # self.search_complete.self.wait1()
-        # self.search_thread.join()
+        try:
+            self.get_tabs_thread.start()
+        except EXCEPTION as err:
+            print("err จาก get_tabs", err)
+   
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
-        # self.get_tabs_thread.join()
+    
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
@@ -1193,6 +1223,7 @@ class Bot_POS:
 
     def enter_cus_name(self, cus_search):
         # เคลียและกรอกชื่อลูกค้า
+        
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
@@ -1333,23 +1364,28 @@ class Bot_POS:
                     continue
         print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
         # while True:
-        #     if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button'):
+        #     if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
         #         print("เจอแล้วออก")
         #         break
         #     else:
         #         continue
 
         self.wait1.until(EC.element_to_be_clickable(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button')))
+            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
+        
         time.sleep(1)
         # * เปลี่ยน auto เป็น name
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/button').click()
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/a[2]').click()
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[2]').click()
 
         # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
-        self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+        # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
+        # self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+        # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+        
+        self.cus_search = self.app.cus_name.get() if self.app.tax_bool.get(
         ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
@@ -1408,6 +1444,7 @@ class Bot_POS:
                     self.customer_add_times += 1
                     self.driver.switch_to.window(
                         self.merged_dict['SMCO :: เปิดการขาย'])
+                    print("ก่อนRe Enter ชื่อลูกค้า")
                     self.enter_cus_name(self.cus_search)
                     print(f"Re enter name after add")
                     continue
@@ -1475,23 +1512,22 @@ class Bot_POS:
                 print("กดที่ SKU ELEMENT 1 สำเร็จ")
 
                 self.changePriceInput = self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
-                self.changePriceInput = self.changePriceInput.clear()
-                self.changePriceInput = self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input').send_keys(self.app.cus_ship_cost.get())
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
+                self.changePriceInput.clear()
+                self.changePriceInput.send_keys(self.app.cus_ship_cost.get())
                 self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
                 self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
                 self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
                 self.driver.find_element(
-                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
                 try:
                     print("รอหาย")
                     self.wait1(EC.invisibility_of_element_located((
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
+                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
                 except:
                     print("ไม่มีให้รอ")
             except Exception as err:
@@ -1641,22 +1677,28 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_fixed)
 
-            # self.driver.find_element(
-            #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-            # self.driver.find_element(
-            #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
 
+           
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-            self.wait1.until(EC.visibility_of_element_located(
-                (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+            
+             # # 09/11/2023 partนี้ ลบออกไปแล้ว
+            # self.wait1.until(EC.visibility_of_element_located(
+            #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+            # self.driver.find_element(
+            #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+            
+            # รอมันหายก่อน
+            self.wait1.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
             is_functionworking = False
 
     def addressExtractor(self, cusAddress):
@@ -1665,33 +1707,7 @@ class Bot_POS:
 
     def addTaxInvCustomer(self):
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
-        self.cus_tax_name_edited = self.app.cus_name.get().replace('\u200b', '')
-        # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
-        # * > ลบประเภทการจดทะเบียน ถ้าชื่อลูกค้าไม่มี บจก หรือ หจก เราก็จะไม่รู้ว่าลูกค้าให้ออกอะไร เลยทำให้ ไม่มีเงื่อนไขของคนที่ไม่ได้บอก
-        if "หจก" in self.cus_tax_name_edited or "ห้างหุ้นส่วนจำกัด" in self.cus_tax_name_edited:
-            print("เงื่อนไขชื่อใบกำกับใน if", self.cus_tax_name_edited)
-            self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
-                "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
-            self.cus_tax_name_edited = f"""ห้างหุ้นส่วนจำกัด {
-                self.cus_tax_name_edited}"""
-
-        elif "บจก" in self.cus_tax_name_edited or "บริษัท" in self.cus_tax_name_edited or "จำกัด" in self.cus_tax_name_edited:
-            print("เงื่อนไขชื่อใบกำกับใน elif", self.cus_tax_name_edited)
-            self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
-                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
-            self.cus_tax_name_edited = f"""บริษัท {
-                self.cus_tax_name_edited} จำกัด"""
-
-        # * > ลบประเภทสาขา
-        if "สำนักงานใหญ่" in self.cus_tax_name_edited or "(สำนักงานใหญ่)" in self.cus_tax_name_edited:
-            self.cus_tax_name_edited = self.cus_tax_name_edited.replace(
-                "(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").strip()
-        elif "(สาขา" in self.cus_tax_name_edited or "สาขา" in self.cus_tax_name_edited:
-            self.cus_tax_name_edited = re.sub(
-                r'\(สาขา.*\)', '', self.cus_tax_name_edited)
-            self.cus_tax_name_edited = re.sub(
-                r'\สาขา\d*', '', self.cus_tax_name_edited)
-
+        #* เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
             self.cus_tax_name_edited = f"""{
@@ -1783,11 +1799,13 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-        # กดเองตรวจเอง
-        self.wait1.until(EC.visibility_of_element_located(
-            (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
+        # self.wait1.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        # รอมันหายก่อน
+        self.wait1.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
 
 if __name__ == "__main__":
