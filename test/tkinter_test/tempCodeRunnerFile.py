@@ -1,1 +1,1 @@
-update_gui_remark
+clear

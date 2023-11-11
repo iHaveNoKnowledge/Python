@@ -1245,10 +1245,11 @@ class Bot_POS:
 
     def enter_cus_name(self, cus_search):
         # เคลียและกรอกชื่อลูกค้า
-
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
+        
+    
 
     def operation_start(self):
         ### * Shopee Part ########################################################################################
@@ -1579,7 +1580,9 @@ class Bot_POS:
             "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
         self.app.display_bot_status_label.config(
             text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
-
+        
+        
+        ### PHASE2 After Add customer name###############################################################################################################
         self.autofinal = True
         while self.autofinal:
             print("เข้า final loop ")
@@ -1707,7 +1710,7 @@ class Bot_POS:
                 By.XPATH, self.app.cusSearchSMCO)
             self.element.click()  # กดแว่นขยาย
             self.btnElement = self.wait1.until(
-                EC.visibility_of_element_located((By.XPATH, self.app.cusCreateBtn)))
+                EC.element_to_be_clickable((By.XPATH, self.app.cusCreateBtn)))
             self.btnElement.click()  # create
 
             self.driver.find_element(
