@@ -955,10 +955,10 @@ class MyApp:
         self.display_bot_status_label.config(
             text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
         # ปิดชั่วคราว get_tabs
-        # try:
-        #     self.get_tabs_thread.start()
-        # except EXCEPTION as err:
-        #     print("err จาก get_tabs", err)
+        try:
+            self.get_tabs_thread.start()
+        except EXCEPTION as err:
+            print("err จาก get_tabs", err)
 
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
