@@ -1547,9 +1547,17 @@ class Bot_POS:
                 self.changePriceInput.clear()
                 self.changePriceInput.send_keys(self.app.cus_ship_cost.get())
                 self.driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').clear()
+                self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
+
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').clear()
                 self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
+
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').clear()
                 self.driver.find_element(
                     By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
@@ -1645,8 +1653,12 @@ class Bot_POS:
 
                             if self.app.cus_name.get():
                                 self.driver.find_element(
+                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
                             else:
+                                self.driver.find_element(
+                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
                         except:
@@ -1892,3 +1904,4 @@ if __name__ == "__main__":
 # *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
 # TODO29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
 # *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
+# !31 เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
