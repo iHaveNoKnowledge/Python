@@ -86,7 +86,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.37")
+        self.root.title("Autosamatic ver0.372")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -959,8 +959,8 @@ class MyApp:
             self.get_tabs_thread.start()
         except EXCEPTION as err:
             print("err จาก get_tabs", err)
-
-        timer = threading.Timer(0.2, self.on_thread_done)
+        time.sleep(0.75)
+        timer = threading.Timer(1, self.on_thread_done)
         timer.start()
 
     def open_subwindow(self):
@@ -1905,4 +1905,4 @@ if __name__ == "__main__":
 # *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
 # TODO29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
 # *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
-# !31 เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
+# *31 เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable

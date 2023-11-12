@@ -1,1 +1,1 @@
-clear
+operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน
