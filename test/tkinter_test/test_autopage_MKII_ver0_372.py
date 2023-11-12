@@ -481,6 +481,7 @@ class MyApp:
             self.tree.insert("", "end", values=(
                 product_name, self.f(price_plusrebate), QTY))
         self.total_price += self.cus_ship_cost.get()
+        self.phase1_sum_price = self.total_price
         self.tree.insert("", "end", value=(
             "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
         self.total_price -= self.cus_seller_voucher.get()
@@ -495,6 +496,8 @@ class MyApp:
 
         self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
                          self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
+        
+        
 
     def get_pure_address(self, cus_address):
         # สร้างรายชื่อของตำแหน่งที่พบคำใน customer_address
@@ -1591,6 +1594,17 @@ class Bot_POS:
             text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
 
         ### PHASE2 After Add customer name###############################################################################################################
+        # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
+        # while True:
+        #     self.phase1_net_price = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]')
+        #     self.phase1_net_price = float(self.phase1_net_price.text)
+        #     if self.app.phase1_sum_price != self.phase1_net_price:
+        #         print("ราคาไม่ตรง", self.app.phase1_sum_price,  " = ",self.phase1_net_price)
+        #         continue
+        #     else:
+        #         print("ราคาตรงแล้ว")
+        #         break
+            
         self.autofinal = True
         while self.autofinal:
             print("เข้า final loop ")
@@ -1601,24 +1615,14 @@ class Bot_POS:
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
                 self.is_final_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
+                
+                
 
                 if (self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
                     break
                 elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
                     continue
                 elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == True:
-                    # self.wait1.until(EC.visibility_of_element_located(
-                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[8]/div/div[13]')))
-                    # self.is_btn_disappeared = self.wait1.until(EC.invisibility_of_element_located(
-                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[8]/div/div[13]')))
-                    # if self.is_btn_disappeared:
-                    # print("เริ่ม AutoFinal", self.is_btn_disappeared)
-                    # while True:
-                    # print("หน้าไร display")
-                    # if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span').is_displayed():
-                    #     print("หน้า เดิม")
-
-                    # elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed():
                     time.sleep(0.75)
                     print("หน้า จ่ายตัง")
                     self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
