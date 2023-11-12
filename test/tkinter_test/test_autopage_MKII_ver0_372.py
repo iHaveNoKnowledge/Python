@@ -84,71 +84,84 @@ class MyApp:
 
         return True
 
+    def on_canvas_configure(self, event):
+        self.canvas_width = event.width
+        self.canvas_height = event.height
+        self.root_frame.config(width=self.canvas_width,
+                               height=self.canvas_height)
+
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
         self.root.title("Autosamatic ver0.372")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
-        self.canvas = Canvas(self.root)
-        self.canvas.configure(bg="#444")
+        self.canvas = Canvas(self.root, bg="#444")
 
         # self.canvas.create_window((0, 0), window=self.entry_frame, anchor="nw")
         # * Scrollbar For Root ##################################################################################
         self.root_scrollbar_y = Scrollbar(
             self.canvas, command=self.canvas.yview)
-        self.root_scrollbar_y.pack(side=RIGHT, fill="y")
         self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
+        self.root_scrollbar_y.pack(side=RIGHT, fill="y")
 
         self.root_scrollbar_x = Scrollbar(
             self.root, command=self.canvas.xview, orient='horizontal')
+        self.root_scrollbar_x.pack(side=BOTTOM, fill="x")
+
         self.canvas.config(xscrollcommand=self.root_scrollbar_x.set)
         self.canvas.configure(xscrollcommand=self.root_scrollbar_x.set)
-        self.root_scrollbar_x.pack(side=BOTTOM, fill="x")
-        self.canvas.pack(fill="both", expand=True)
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        self.canvas.update_idletasks()
-        self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        self.canvas.pack(side="left", fill="both", expand=True)
+
         # self.canvas.create_window((4,4),window=self.root)
 
         # #* FRAMES #####################################################################################################
+        self.root_frame = Frame(self.canvas,  bg="pink")
+        self.canvas.create_window((0, 0), window=self.root_frame, anchor="nw")
 
         # > Frame1 Order Entry
-        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444",
+        self.entry_frame = Frame(self.root_frame, padx=5, pady=5, bg="#444",
                                  borderwidth=1, relief="groove", highlightbackground="#ccc")
         self.entry_frame.pack(side='top', pady=(10, 10))
 
         # > Frame2 Log Frame
-        self.log_frame = Frame(self.canvas, bg="#444")
+        self.log_frame = Frame(self.root_frame, bg="#444")
         self.log_frame.pack(side='bottom', pady=(0, 30))
 
         # > Frame3 ImportFile Status and Bot Status
-        self.import_file_frame = Frame(self.canvas, bg="#444")
+        self.import_file_frame = Frame(self.root_frame, bg="#444")
         self.import_file_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame4 Customer Details
-        self.order_details_frame = Frame(self.canvas, bg="#444", )
+        self.order_details_frame = Frame(self.root_frame, bg="#444", )
         self.order_details_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame7 For Customer's Invoice Details
-        self.invoice_details_frame = Frame(self.canvas, bg="#445")
+        self.invoice_details_frame = Frame(self.root_frame, bg="#445")
         self.invoice_details_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
 
         # > Frame5 Products Lists
-        self.products_list_frame = Frame(self.canvas, bg="#445")
+        self.products_list_frame = Frame(self.root_frame, bg="#445")
         self.products_list_frame.pack(
             side='top', padx=(5, 5), pady=(5, 5), fill=X)
 
         # > Frame6 Margetplace(MP) Products Lists
-        self.mp_products_list_frame = Frame(self.canvas, bg="#444")
+        self.mp_products_list_frame = Frame(self.root_frame, bg="#444")
         self.mp_products_list_frame.pack(side='top',  padx=(
             5, 5), pady=(5, 5), fill="x")
 
         # Create widgets in the main window
         self.create_widgets()
+
+        # start the scrollbar
+        self.canvas.update_idletasks()
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(
+            int(-1*(event.delta/120)), "units"))
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
 
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
@@ -1295,6 +1308,7 @@ class Bot_POS:
                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
         # จะได้ element มา
         print("realtime_status_text", self.app.cus_cur_status.get())
+        self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
         if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
             self.app.display_current_status.config(
                 bg="#00ff11", fg="#000000")
