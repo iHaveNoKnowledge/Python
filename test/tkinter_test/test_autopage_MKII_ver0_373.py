@@ -97,59 +97,59 @@ class MyApp:
 
         # #* BG CANVAS ##################################################################################
         self.canvas = Canvas(self.root, bg="#444")
-        
+
         # * Scrollbar For Root ##################################################################################
         self.root_scrollbar_y = Scrollbar(
             self.canvas, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
         self.root_scrollbar_y.pack(side=RIGHT, fill="y")
-        
+
         self.root_scrollbar_x = Scrollbar(
             self.root, command=self.canvas.xview, orient='horizontal')
         self.root_scrollbar_x.pack(side=BOTTOM, fill="x")
-        
+
         self.canvas.config(xscrollcommand=self.root_scrollbar_x.set)
         self.canvas.configure(xscrollcommand=self.root_scrollbar_x.set)
         self.canvas.pack(side="left", fill="both", expand=True)
-       
+
         # #* FRAMES #####################################################################################################
         # self.root_frame = Frame(self.canvas,  bg="pink") ใช้ได้แต่รอก่อน
         # self.canvas.create_window((0, 0), window=self.root_frame, anchor="nw") ใช้ได้แต่รอก่อน
-        
+
         # > Frame1 Order Entry
         self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444",
                                  borderwidth=1, relief="groove", highlightbackground="#ccc")
         self.entry_frame.pack(side='top', pady=(10, 10))
-        
+
         # > Frame2 Log Frame
         self.log_frame = Frame(self.canvas, bg="#444")
         self.log_frame.pack(side='bottom', pady=(0, 30))
-        
+
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = Frame(self.canvas, bg="#444")
         self.import_file_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
-        
+
         # > Frame4 Customer Details
         self.order_details_frame = Frame(self.canvas, bg="#444", )
         self.order_details_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
-        
+
         # > Frame7 For Customer's Invoice Details
         self.invoice_details_frame = Frame(self.canvas, bg="#445")
         self.invoice_details_frame.pack(
             side='top', anchor=W, padx=(5, 5), pady=(5, 0))
-        
+
         # > Frame5 Products Lists
         self.products_list_frame = Frame(self.canvas, bg="#445")
         self.products_list_frame.pack(
             side='top', padx=(5, 5), pady=(5, 5), fill=X)
-        
+
         # > Frame6 Margetplace(MP) Products Lists
         self.mp_products_list_frame = Frame(self.canvas, bg="#444")
         self.mp_products_list_frame.pack(side='top',  padx=(
             5, 5), pady=(5, 5), fill="x")
-        
+
         # Create widgets in the main window
         self.create_widgets()
 
@@ -496,8 +496,6 @@ class MyApp:
 
         self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
                          self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
-        
-        
 
     def get_pure_address(self, cus_address):
         # สร้างรายชื่อของตำแหน่งที่พบคำใน customer_address
@@ -1262,6 +1260,13 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
+    def printtingPage(self):
+        time.sleep(1)
+        self.printing_page = self.driver.find_element(By().XPATH, '/html/body')
+        self.action01 = ActionChains(
+            self.driver).context_click(self.printing_page)
+        self.action01.perform()
+
     def operation_start(self):
         ### * Shopee Part ########################################################################################
         self.autofinal = False
@@ -1604,7 +1609,7 @@ class Bot_POS:
         #     else:
         #         print("ราคาตรงแล้ว")
         #         break
-            
+
         self.autofinal = True
         while self.autofinal:
             print("เข้า final loop ")
@@ -1615,8 +1620,6 @@ class Bot_POS:
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
                 self.is_final_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
-                
-                
 
                 if (self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
                     break
@@ -1691,6 +1694,24 @@ class Bot_POS:
                         # พิมพ์ผลลัพธ์
                         print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
+                        try:
+                            print('จุดจบ')
+                            # * กดปุ่มใน pop-up สุดท้าย
+                            self.driver.find_element(
+                                By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                            self.wait1.until(EC.visibility_of_element_located(
+                                (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+                            self.wait1.until(EC.element_to_be_clickable(
+                                (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
+                            # > รอหน้า canvas โผล่ก่อน
+                            self.wait1.until(EC.visibility_of_element_located(
+                                (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                            self.printtingPage()
+                            break
+                        except Exception as err:
+                            print('ไม่ใช่จุดจบ', err)
+                            pass
+
                         self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                         if self.is_previous_page:
@@ -1701,6 +1722,7 @@ class Bot_POS:
                             elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
                                 print("กลับมาหน้าเดิม")
                                 continue
+
                     else:
                         print("จบสูตร")
                     self.autofinal = False
@@ -1708,6 +1730,7 @@ class Bot_POS:
 
                 break
             break
+
         print("จบ auto_last_page")
         self.autofinal = False
 
@@ -1920,4 +1943,13 @@ if __name__ == "__main__":
 # *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
 # TODO29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
 # *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
-# !31 เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
+# *31 แก้แล้ว//เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
+# !32 ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
+# !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
+# !34 ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
+
+
+# เก็บข้อมูล
+# รอให้ final pop-up poped up /html/body/div[16]/div[2]/div[6]
+# หรือ
+# กดปุ่ม รอจนกว่าปุ่มนี้จะกดได้ /html/body/div[16]/div[2]/button[1] then click
