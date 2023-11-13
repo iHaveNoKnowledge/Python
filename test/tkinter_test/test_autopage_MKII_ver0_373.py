@@ -1261,7 +1261,7 @@ class Bot_POS:
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
     def printtingPage(self):
-        time.sleep(1)
+        time.sleep(2)
         self.printing_page = self.driver.find_element(By().XPATH, '/html/body')
         self.action01 = ActionChains(
             self.driver).context_click(self.printing_page)
@@ -1668,7 +1668,7 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
                             except:
                                 print("ปุ่ม Brows() ไม่โผล่")
-
+                            # ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ a
                             if self.app.cus_name.get():
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
@@ -1693,35 +1693,63 @@ class Bot_POS:
 
                         # พิมพ์ผลลัพธ์
                         print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
-
-                        try:
-                            print('จุดจบ')
-                            # * กดปุ่มใน pop-up สุดท้าย
-                            self.driver.find_element(
-                                By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                            self.wait1.until(EC.visibility_of_element_located(
-                                (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-                            self.wait1.until(EC.element_to_be_clickable(
-                                (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
-                            # > รอหน้า canvas โผล่ก่อน
-                            self.wait1.until(EC.visibility_of_element_located(
-                                (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
-                            self.printtingPage()
-                            break
-                        except Exception as err:
-                            print('ไม่ใช่จุดจบ', err)
-                            pass
-
-                        self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
+                        
+                        
+                        while True:
+                            self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                            self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                        if self.is_previous_page:
-                            print("End or back")
-                            if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
-                                print("ไปหน้าสุดท้าย จบ loop")
+                            print("self.is_previous_page= ", self.is_previous_page)
+                            if self.final_popup.is_displayed() == True:
+                                try:
+                                    self.wait1.until(EC.element_to_be_clickable(
+                                        (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
+                                except:
+                                    self.final_popup.click()
+                                    
+                                # > รอหน้า canvas โผล่ก่อน
+                                self.wait1.until(EC.visibility_of_element_located(
+                                    (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                self.printtingPage()
                                 break
-                            elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
-                                print("กลับมาหน้าเดิม")
+                            
+                            
+                            elif self.is_previous_page:
+                                print("End or back")
+                                if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
+                                    print("ไปหน้าสุดท้าย จบ loop")
+                                    break
+                                elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
+                                    print("กลับมาหน้าเดิม")
+                                    break
+                            
+                            else:
                                 continue
+                                
+                                # try:
+                                #     print('จุดจบ')
+                                #     # * กดปุ่มใน pop-up สุดท้าย
+                                #     self.driver.find_element(
+                                #         By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                                #     self.wait1.until(EC.visibility_of_element_located(
+                                #         (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+                                #     self.wait1.until(EC.element_to_be_clickable(
+                                #         (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
+                                #     # > รอหน้า canvas โผล่ก่อน
+                                #     self.wait1.until(EC.visibility_of_element_located(
+                                #         (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                #     self.printtingPage()
+                                #     break
+                                # except Exception as err:
+                                #     print('ไม่ใช่จุดจบ', err)
+                                #     pass
+                        if self.final_popup.is_displayed() == True:
+                            break
+                        else:
+                            continue
+                    
+                        
+                        
 
                     else:
                         print("จบสูตร")
