@@ -1693,28 +1693,31 @@ class Bot_POS:
 
                         # พิมพ์ผลลัพธ์
                         print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
-                        
-                        
+
                         while True:
-                            self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                            self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                            print("self.is_previous_page= ", self.is_previous_page)
+                            self.final_popup = self.driver.find_element(
+                                By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                            print("ถึงนี่ไหม")
+                            # self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
+                            #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
+                            self.is_previous_page = self.driver.find_element(
+                                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
+                            print("self.is_previous_page= ",
+                                  self.is_previous_page)
                             if self.final_popup.is_displayed() == True:
                                 try:
                                     self.wait1.until(EC.element_to_be_clickable(
                                         (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
                                 except:
                                     self.final_popup.click()
-                                    
+
                                 # > รอหน้า canvas โผล่ก่อน
                                 self.wait1.until(EC.visibility_of_element_located(
                                     (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
                                 self.printtingPage()
                                 break
-                            
-                            
-                            elif self.is_previous_page:
+
+                            elif self.is_previous_page.is_displayed() == False:
                                 print("End or back")
                                 if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
                                     print("ไปหน้าสุดท้าย จบ loop")
@@ -1722,10 +1725,10 @@ class Bot_POS:
                                 elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
                                     print("กลับมาหน้าเดิม")
                                     break
-                            
+
                             else:
                                 continue
-                                
+
                                 # try:
                                 #     print('จุดจบ')
                                 #     # * กดปุ่มใน pop-up สุดท้าย
@@ -1747,9 +1750,6 @@ class Bot_POS:
                             break
                         else:
                             continue
-                    
-                        
-                        
 
                     else:
                         print("จบสูตร")
