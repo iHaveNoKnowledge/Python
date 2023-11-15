@@ -92,7 +92,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.37")
+        self.root.title("Autosamatic ver0.374")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1299,8 +1299,12 @@ class Bot_POS:
 
         # * ตรวจสอบ Status และ update
         # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
-        self.wait1.until(EC.visibility_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[5]/div/div')))
+        try:
+            self.driver.find_element(By.CLASS_NAME, 'big-text').is_displayed()
+        except:
+            self.wait1.until(EC.element_to_be_clickable(
+                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
+
         #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
         try:
             # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
@@ -1975,6 +1979,7 @@ if __name__ == "__main__":
 # !32 ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
 # !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่ซึ่ง//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
+# *
 
 
 # เก็บข้อมูล
