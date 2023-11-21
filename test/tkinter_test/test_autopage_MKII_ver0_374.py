@@ -47,6 +47,8 @@ class MyApp:
         self.user_pw = StringVar(value="")
         self.result = ""
         self.table_location = ""
+        self.marketplace_target = StringVar(value="งวย")
+        self.bg_by_market_place = {'shopee': '#ee4d2d', 'lazada': '#201adb'}
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
@@ -186,20 +188,25 @@ class MyApp:
             entry.configure(state="readonly")
 
     def create_widgets(self):
+        # * > MarketPlace
+        # >> Label
+        self.marketplace_label = Label(self.entry_frame, textvariable=self.marketplace_target)
+        self.marketplace_label.grid(row=0, column=0, padx=5)
+
         # * > search order component
         # >> Labels
         self.inp1_label_order = Label(
             self.entry_frame, text="Order: ", bg="#FFF", width=10)
-        self.inp1_label_order.grid(row=0, column=0, padx=5)
+        self.inp1_label_order.grid(row=0, column=1, padx=5)
         # >> Inputs
         self.entered_order = StringVar()
         self.inp1_order_input = Entry(
             self.entry_frame, textvariable=self.entered_order, width=50)
-        self.inp1_order_input.grid(row=0, column=2)
+        self.inp1_order_input.grid(row=0, column=3)
         # >> Buttons
         self.inp1_search_btn = Button(
             self.entry_frame, text="Start", bg="#747474", command=self.search, width=10)
-        self.inp1_search_btn.grid(row=0, column=4, padx=5)
+        self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
         # * > A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
@@ -399,6 +406,25 @@ class MyApp:
         self.get_data_frame()
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
+        self.marketplace_target.set(self.define_marketplace())
+        print("ต้องตีเว็บไหน", self.marketplace_target.get())
+        # self.canvas.config(bg=f'{self.bg_by_market_place[self.marketplace_target.get()}')
+        self.entry_frame.config(
+            bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
+        # self.import_file_frame.config(
+        #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
+
+    def define_marketplace(self):
+        file_input = self.table_location
+        df = pd.read_excel(file_input)
+        search_words = ['shopee', 'lazada']
+        matches = [
+            word for col in df.columns for word in search_words if word.lower() in col.lower()]
+        if all(item == matches[0] for item in matches):
+            return matches[0]
+        else:
+            raise ValueError(
+                "Error: Cannot varify the marketplace from this file, check the file you've imported")
 
     def f(self, d):
         return '{0:n}'.format(d)
@@ -1020,8 +1046,16 @@ class DataSourceSelector:
         print("Table Location:", self.app.table_location)
         self.subwindow.destroy()
         self.app.update_log("เพิ่มไฟล์แล้ว")
+        self.app.marketplace_target.set(self.app.define_marketplace())
+        print("ต้องตีเว็บไหน", self.app.marketplace_target.get())
+        # self.canvas.config(bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()}')
+        self.app.entry_frame.config(
+            bg=f'{self.app.bg_by_market_place[self.app.marketplace_target.get()]}')
+        # self.import_file_frame.config(
+        #     bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
 
     def on_close(self):
+        self.app.marketplace_target.set("")
         self.subwindow.destroy()
 
 # class สำหรับรับ ID PASS
@@ -1804,7 +1838,7 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
-            # # 09/11/2023 partนี้ ลบออกไปแล้ว
+            # # 09/11/2023 partนี้ ทาง SMCO ลบออกไปแล้ว
             # self.wait1.until(EC.visibility_of_element_located(
             #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
             # self.driver.find_element(
@@ -1978,7 +2012,7 @@ if __name__ == "__main__":
 # *31 แก้แล้ว//เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
 # !32 ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
 # !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
-# *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่ซึ่ง//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
+# *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
 # *
 
 

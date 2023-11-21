@@ -1,1 +1,1 @@
-printtingPage
+textvariable
