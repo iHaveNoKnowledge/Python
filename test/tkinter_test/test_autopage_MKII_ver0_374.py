@@ -1067,8 +1067,6 @@ class DataSourceSelector:
         self.subwindow.destroy()
 
 # class สำหรับรับ ID PASS
-
-
 class PopUp:
     def __init__(self, title, message, parent):
         self.parent = parent
@@ -1383,8 +1381,68 @@ class Bot_POS:
 
         #### IF MARKETPLACE IS LAZADA ###########################################################################################################################
         elif self.app.margetplace_target.get() == 'LAZADA':
-            self.driver.switch_to.window(
-                self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+            self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+            cur_url = self.driver.current_url
+
+            # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
+            if cur_url != "https://seller.shopee.co.th/portal/sale/order":
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
+                self.wait1.until(EC.text_to_be_present_in_element(
+                    (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/a'), 'การขายของฉัน'))
+            # else:
+            #     pass
+
+            # * กรอก order ลงในช่อง search
+            self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+            self.search_elmt.clear()
+            self.search_elmt.send_keys(self.app.cus_order.get())
+
+            # * กด Search เพื่อ เก็บ Status
+            self.searchBtn = self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+            self.searchBtn.click()
+
+            # * ตรวจสอบ Status และ update
+            # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
+            try:
+                self.driver.find_element(
+                    By.CLASS_NAME, 'big-text').is_displayed()
+            except:
+                self.wait1.until(EC.element_to_be_clickable(
+                    (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
+
+            #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
+            try:
+                # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
+                self.app.cus_cur_status.set(self.driver.find_element(
+                    By.CLASS_NAME, 'big-text').text)
+
+            except:
+                # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
+                self.app.cus_cur_status.set(self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+            # จะได้ element มา
+            print("realtime_status_text", self.app.cus_cur_status.get())
+            self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
+            if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
+                self.app.display_current_status.config(
+                    bg="#00ff11", fg="#000000")
+            elif "ยกเลิก" in self.app.cus_cur_status.get():
+                self.app.display_current_status.config(
+                    bg="#ff2b2b", fg="#FFF")
+
+            self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
+            if self.is_status_true:
+                print(self.app.order_status == self.app.cus_cur_status.get())
+                print("Status in the file is reliable")
+            else:
+                print(self.app.order_status == self.app.cus_cur_status.get())
+                print(
+                    "Status in the file is unreliable, suggest downloading a new Export File from the link below")
+                print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+            
 
         #### IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
         else:
