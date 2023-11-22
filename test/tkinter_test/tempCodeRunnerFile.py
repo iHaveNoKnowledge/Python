@@ -1,1 +1,1 @@
-textvariable
+get_tabs

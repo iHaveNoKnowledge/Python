@@ -47,8 +47,8 @@ class MyApp:
         self.user_pw = StringVar(value="")
         self.result = ""
         self.table_location = ""
-        self.marketplace_target = StringVar(value="งวย")
-        self.bg_by_market_place = {'shopee': '#ee4d2d', 'lazada': '#201adb'}
+        self.marketplace_target = StringVar(value="MarketPlace")
+        self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb'}
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
@@ -68,9 +68,6 @@ class MyApp:
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
         self.cus_purchase_time = StringVar(value="")
-        self.bot = Bot_POS(self.root, self)
-        self.create_main_window()
-        self.get_dataframe()
         self.cus_arrow_btn = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
         self.cusNameInput = '/html/body/span/span/span[1]/input'
         self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
@@ -78,6 +75,9 @@ class MyApp:
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
+        self.bot = Bot_POS(self.root, self)
+        self.create_main_window()
+        self.get_dataframe()
 
     def validate_input(self, value):
         pattern = r'[A-z]'
@@ -190,7 +190,8 @@ class MyApp:
     def create_widgets(self):
         # * > MarketPlace
         # >> Label
-        self.marketplace_label = Label(self.entry_frame, textvariable=self.marketplace_target)
+        self.marketplace_label = Label(
+            self.entry_frame, textvariable=self.marketplace_target, bg="#747474", fg="#FFF", font='bazooka 10 bold')
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
         # * > search order component
@@ -213,7 +214,7 @@ class MyApp:
         ) and self.user_pw.get() else "Login"
         self.display_acc_btn = Button(
             self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
-        self.display_acc_btn.grid(row=0, column=5, padx=5)
+        self.display_acc_btn.grid(row=0, column=6, padx=5)
 
         # * > Export File and Bot status location display component
         self.display_location_label = Label(
@@ -407,10 +408,13 @@ class MyApp:
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
         self.marketplace_target.set(self.define_marketplace())
-        print("ต้องตีเว็บไหน", self.marketplace_target.get())
+        result = self.marketplace_target.get()
+        print("ต้องตีเว็บไหน", result)
         # self.canvas.config(bg=f'{self.bg_by_market_place[self.marketplace_target.get()}')
         self.entry_frame.config(
-            bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
+            bg=f'{self.bg_by_market_place[str(result)]}')
+        self.marketplace_label.config(
+            bg=f'{self.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
         #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
 
@@ -421,7 +425,7 @@ class MyApp:
         matches = [
             word for col in df.columns for word in search_words if word.lower() in col.lower()]
         if all(item == matches[0] for item in matches):
-            return matches[0]
+            return matches[0].upper()
         else:
             raise ValueError(
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
@@ -551,6 +555,67 @@ class MyApp:
         print(truncated_address.strip())
         return truncated_address.strip()
 
+    def clean_duplicate_parts(self, address):
+        # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
+        pattern = r'(ต\..+?)\s+?(ตำบล|อ\..+?)\s+?(อำเภอ|จ\..+?)\s+?(จังหวัด)'
+
+        matches = re.findall(pattern, address)
+        if matches:
+            cleaned_address = address
+            for match in matches:
+                full_word, abbr_word1, abbr_word2, abbr_word3 = match
+                if len(full_word) > len(abbr_word1):
+                    cleaned_address = cleaned_address.replace(
+                        abbr_word1, full_word)
+                if len(full_word) > len(abbr_word2):
+                    cleaned_address = cleaned_address.replace(
+                        abbr_word2, full_word)
+                if len(full_word) > len(abbr_word3):
+                    cleaned_address = cleaned_address.replace(
+                        abbr_word3, full_word)
+        else:
+            cleaned_address = address
+        print("After_Clean_dup: ", cleaned_address)
+        return cleaned_address
+
+    def clean_address(self, address):
+
+        keywords = ["เขต", "แขวง", "ต.", "ตำบล",
+                    "อ.", "อำเภอ", "จ.", "จังหวัด"]
+
+        # ตรวจสอบว่าสตริงมีคำ "จังหวัด" และ ("เขต" หรือ "แขวง") หรือไม่
+        if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
+            # ลบคำ "จังหวัด" ออกจากสตริง
+            address = address.replace("จังหวัด", "")
+
+        if "\n" in address:
+            address = address.replace('\n', " ")
+
+        # เริ่มต้นโดยการแยกคำด้วยช่องว่าง
+        parts = address.split()
+
+        # สร้าง list เพื่อเก็บคำที่ไม่ใช่คำย่อ
+        cleaned_parts = []
+
+        for part in parts:
+            # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
+            is_abbreviation = any(part.startswith(keyword)
+                                  for keyword in ["ต.", "อ.", "จ."])
+
+            if not is_abbreviation:
+                cleaned_parts.append(part)
+
+        # นำคำที่ไม่ใช่คำย่อมาเชื่อมกลับเป็นสตริงใหม่
+        cleaned_address = ' '.join(cleaned_parts)
+
+        # ลบคำที่มีส่วนที่เหมือนกันออก
+        cleaned_address = self.clean_duplicate_parts(cleaned_address)
+
+        # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
+        cleaned_address = cleaned_address.replace("  ", " ")
+
+        return cleaned_address
+
     def note_extractor(self):
         if self.order_note != "nan":
             self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
@@ -657,7 +722,8 @@ class MyApp:
                 # * ชื่อที่ต้องอกใบกำกับ
                 self.cus_name.set(
                     re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
-                self.cus_name.set(self.tax_name_shaver(self.cus_name.get()))
+                self.cus_name.set(
+                    self.tax_name_standarizer(self.cus_name.get()))
                 # * ประเภทใบกำกับภาษี
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
@@ -832,67 +898,6 @@ class MyApp:
         self.on_complete.set()
         print("จบ")
 
-    def clean_duplicate_parts(self, address):
-        # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
-        pattern = r'(ต\..+?)\s+?(ตำบล|อ\..+?)\s+?(อำเภอ|จ\..+?)\s+?(จังหวัด)'
-
-        matches = re.findall(pattern, address)
-        if matches:
-            cleaned_address = address
-            for match in matches:
-                full_word, abbr_word1, abbr_word2, abbr_word3 = match
-                if len(full_word) > len(abbr_word1):
-                    cleaned_address = cleaned_address.replace(
-                        abbr_word1, full_word)
-                if len(full_word) > len(abbr_word2):
-                    cleaned_address = cleaned_address.replace(
-                        abbr_word2, full_word)
-                if len(full_word) > len(abbr_word3):
-                    cleaned_address = cleaned_address.replace(
-                        abbr_word3, full_word)
-        else:
-            cleaned_address = address
-        print("After_Clean_dup: ", cleaned_address)
-        return cleaned_address
-
-    def clean_address(self, address):
-
-        keywords = ["เขต", "แขวง", "ต.", "ตำบล",
-                    "อ.", "อำเภอ", "จ.", "จังหวัด"]
-
-        # ตรวจสอบว่าสตริงมีคำ "จังหวัด" และ ("เขต" หรือ "แขวง") หรือไม่
-        if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
-            # ลบคำ "จังหวัด" ออกจากสตริง
-            address = address.replace("จังหวัด", "")
-
-        if "\n" in address:
-            address = address.replace('\n', " ")
-
-        # เริ่มต้นโดยการแยกคำด้วยช่องว่าง
-        parts = address.split()
-
-        # สร้าง list เพื่อเก็บคำที่ไม่ใช่คำย่อ
-        cleaned_parts = []
-
-        for part in parts:
-            # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword)
-                                  for keyword in ["ต.", "อ.", "จ."])
-
-            if not is_abbreviation:
-                cleaned_parts.append(part)
-
-        # นำคำที่ไม่ใช่คำย่อมาเชื่อมกลับเป็นสตริงใหม่
-        cleaned_address = ' '.join(cleaned_parts)
-
-        # ลบคำที่มีส่วนที่เหมือนกันออก
-        cleaned_address = self.clean_duplicate_parts(cleaned_address)
-
-        # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
-        cleaned_address = cleaned_address.replace("  ", " ")
-
-        return cleaned_address
-
     def cusNameFixer5(self, name, account_name=":"):
         is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
         name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '',
@@ -902,7 +907,7 @@ class MyApp:
         print("name:", name)
         return name
 
-    def tax_name_shaver(self, name):
+    def tax_name_standarizer(self, name):
         name_edited = name.replace('\u200b', '')
         # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
         # * > ลบประเภทการจดทะเบียน ถ้าชื่อลูกค้าไม่มี บจก หรือ หจก เราก็จะไม่รู้ว่าลูกค้าให้ออกอะไร เลยทำให้ ไม่มีเงื่อนไขของคนที่ไม่ได้บอก
@@ -1047,10 +1052,13 @@ class DataSourceSelector:
         self.subwindow.destroy()
         self.app.update_log("เพิ่มไฟล์แล้ว")
         self.app.marketplace_target.set(self.app.define_marketplace())
-        print("ต้องตีเว็บไหน", self.app.marketplace_target.get())
+        result = self.app.marketplace_target.get()
+        print("ต้องตีเว็บไหน", result)
         # self.canvas.config(bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()}')
         self.app.entry_frame.config(
-            bg=f'{self.app.bg_by_market_place[self.app.marketplace_target.get()]}')
+            bg=f'{self.app.bg_by_market_place[str(result)]}')
+        self.app.marketplace_label.config(
+            bg=f'{self.app.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
         #     bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
 
@@ -1302,72 +1310,86 @@ class Bot_POS:
         self.action01.perform()
 
     def operation_start(self):
-        ### * Shopee Part ########################################################################################
+        ### * MARKETPLACES Part ########################################################################################
         self.autofinal = False
         print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
         self.wait1 = WebDriverWait(self.driver, 50)
-        # * เปลี่ยนไปtab shopee เพื่อเช็ค status
-        self.driver.switch_to.window(self.merged_dict['Seller Centre'])
-        cur_url = self.driver.current_url
+        # * เปลี่ยนไปtab MARKETPLACES เพื่อเช็ค status (เพราะไม่มี API เลยต้องทำ และเพื่อดูรูปว่ามีของแถมหรือไม่)
 
-        # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
-        if cur_url != "https://seller.shopee.co.th/portal/sale/order":
-            # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
-            self.wait1.until(EC.text_to_be_present_in_element(
-                (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/a'), 'การขายของฉัน'))
+        #### IF MARKETPLACE IS SHOPEE ###################################################################################################################################
+        if self.app.margetplace_target.get() == 'SHOPEE':
+            self.driver.switch_to.window(self.merged_dict['Seller Center'])
+            cur_url = self.driver.current_url
+
+            # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
+            if cur_url != "https://seller.shopee.co.th/portal/sale/order":
+                # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
+                self.wait1.until(EC.text_to_be_present_in_element(
+                    (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/a'), 'การขายของฉัน'))
+            else:
+                pass
+
+            # * กรอก order ลงในช่อง search
+            self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+            self.search_elmt.clear()
+            self.search_elmt.send_keys(self.app.cus_order.get())
+
+            # * กด Search เพื่อ เก็บ Status
+            self.searchBtn = self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+            self.searchBtn.click()
+
+            # * ตรวจสอบ Status และ update
+            # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
+            try:
+                self.driver.find_element(
+                    By.CLASS_NAME, 'big-text').is_displayed()
+            except:
+                self.wait1.until(EC.element_to_be_clickable(
+                    (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
+
+            #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
+            try:
+                # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
+                self.app.cus_cur_status.set(self.driver.find_element(
+                    By.CLASS_NAME, 'big-text').text)
+
+            except:
+                # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
+                self.app.cus_cur_status.set(self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+            # จะได้ element มา
+            print("realtime_status_text", self.app.cus_cur_status.get())
+            self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
+            if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
+                self.app.display_current_status.config(
+                    bg="#00ff11", fg="#000000")
+            elif "ยกเลิก" in self.app.cus_cur_status.get():
+                self.app.display_current_status.config(
+                    bg="#ff2b2b", fg="#FFF")
+
+            self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
+            if self.is_status_true:
+                print(self.app.order_status == self.app.cus_cur_status.get())
+                print("Status in the file is reliable")
+            else:
+                print(self.app.order_status == self.app.cus_cur_status.get())
+                print(
+                    "Status in the file is unreliable, suggest downloading a new Export File from the link below")
+                print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+
+        #### IF MARKETPLACE IS LAZADA ###########################################################################################################################
+        elif self.app.margetplace_target.get() == 'LAZADA':
+            self.driver.switch_to.window(
+                self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+
+        #### IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
         else:
-            pass
-
-        # * กรอก order ลงในช่อง search
-        self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
-        self.search_elmt.clear()
-        self.search_elmt.send_keys(self.app.cus_order.get())
-
-        # * กด Search เพื่อ เก็บ Status
-        self.searchBtn = self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
-        self.searchBtn.click()
-
-        # * ตรวจสอบ Status และ update
-        # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
-        try:
-            self.driver.find_element(By.CLASS_NAME, 'big-text').is_displayed()
-        except:
-            self.wait1.until(EC.element_to_be_clickable(
-                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
-
-        #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
-        try:
-            # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-            self.app.cus_cur_status.set(self.driver.find_element(
-                By.CLASS_NAME, 'big-text').text)
-
-        except:
-            # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
-            self.app.cus_cur_status.set(self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
-        # จะได้ element มา
-        print("realtime_status_text", self.app.cus_cur_status.get())
-        self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
-        if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-            self.app.display_current_status.config(
-                bg="#00ff11", fg="#000000")
-        elif "ยกเลิก" in self.app.cus_cur_status.get():
-            self.app.display_current_status.config(
-                bg="#ff2b2b", fg="#FFF")
-
-        self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
-        if self.is_status_true:
-            print(self.app.order_status == self.app.cus_cur_status.get())
-            print("Status in the file is reliable")
-        else:
-            print(self.app.order_status == self.app.cus_cur_status.get())
-            print(
-                "Status in the file is unreliable, suggest downloading a new Export File from the link below")
-            print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+            self.driver.switch_to.window(self.merged_dict[''])
+            print('Cannot Define What marketplace you are working with')
 
         ### * SMCO PART ############################################################################
         # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
