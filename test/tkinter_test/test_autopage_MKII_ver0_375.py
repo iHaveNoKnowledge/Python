@@ -1538,7 +1538,7 @@ class Bot_POS:
             print("ขอใบกำกับใช้ E:")
             self.driver.find_element(
                 By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''').click()
-        elif self.app.taxbool.get() == False:
+        elif self.app.tax_bool.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
             self.driver.find_element(
@@ -2089,7 +2089,7 @@ if __name__ == "__main__":
 # !32 ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
 # !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
-# !*5 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
+# *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
 
 
 # เก็บข้อมูล
