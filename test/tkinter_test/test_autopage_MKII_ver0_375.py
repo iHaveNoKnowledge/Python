@@ -444,8 +444,9 @@ class MyApp:
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input)
         result_count = df.groupby(
-            ['order', 'SKU', 'productname']).size().reset_index(name='qty')
-        print("qty ใน lazada", result_count)
+            ['orderNumber', 'sellerSku', 'itemName']).size().reset_index(name='qty')
+        print(f"""qty ใน lazada""")
+        print(result_count)
 
     def f(self, d):
         return '{0:n}'.format(d)
