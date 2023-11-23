@@ -48,7 +48,8 @@ class MyApp:
         self.result = ""
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
-        self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '':'#747474'}
+        self.bg_by_market_place = {
+            'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
@@ -94,7 +95,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.374")
+        self.root.title("Autosamatic ver0.375")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -397,7 +398,7 @@ class MyApp:
         self.report_log.config(state=NORMAL)
         self.report_log.insert(END, self.update_txt + "\n")
         self.report_log.config(state=DISABLED)
-        
+
     def define_marketplace(self):
         file_input = self.table_location
         df = pd.read_excel(file_input)
@@ -413,7 +414,7 @@ class MyApp:
             return matches[0].upper()
         else:
             raise ValueError(
-                "Error: Cannot varify the marketplace from this file, check the file you've imported")    
+                "Error: Cannot varify the marketplace from this file, check the file you've imported")
 
     def select_excel(self):
         self.result = "Excel"
@@ -421,8 +422,8 @@ class MyApp:
         self.table_location = filedialog.askopenfilename()
         self.display_location_result.config(
             text=f"{self.table_location.split('/')[-1]}")
-        
-        #target should come before get dataframe
+
+        # target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
@@ -437,7 +438,7 @@ class MyApp:
         self.get_data_frame()
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
-        
+
         #! WIP กำลังทำ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def group_by_order(self, file_input):
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
@@ -445,7 +446,6 @@ class MyApp:
         result_count = df.groupby(
             ['order', 'SKU', 'productname']).size().reset_index(name='qty')
         print("qty ใน lazada", result_count)
-
 
     def f(self, d):
         return '{0:n}'.format(d)
@@ -457,7 +457,8 @@ class MyApp:
         shopee = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
         lazada = {}
-        self.columns = shopee if self.marketplace_target.get() == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
+        self.columns = shopee if self.marketplace_target.get(
+        ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
         try:
             self.data_frame = pd.read_excel(self.file_path,
                                             dtype=self.columns)
@@ -1066,7 +1067,7 @@ class DataSourceSelector:
         self.app.table_location = filedialog.askopenfilename()
         self.app.display_location_result.config(
             text=f"{self.app.table_location.split('/')[-1]}")
-        #target should come before get dataframe
+        # target should come before get dataframe
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
@@ -1077,12 +1078,11 @@ class DataSourceSelector:
             bg=f'{self.app.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
         #     bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
-        
+
         self.app.get_data_frame()
         print("Table Location:", self.app.table_location)
         self.subwindow.destroy()
         self.app.update_log("เพิ่มไฟล์แล้ว")
-        
 
     def on_close(self):
         self.app.marketplace_target.set("")
@@ -1339,8 +1339,8 @@ class Bot_POS:
         # * เปลี่ยนไปtab MARKETPLACES เพื่อเช็ค status (เพราะไม่มี API เลยต้องทำ และเพื่อดูรูปว่ามีของแถมหรือไม่)
 
         #### IF MARKETPLACE IS SHOPEE ###################################################################################################################################
-        if self.app.margetplace_target.get() == 'SHOPEE':
-            self.driver.switch_to.window(self.merged_dict['Seller Center'])
+        if self.app.marketplace_target.get() == 'SHOPEE':
+            self.driver.switch_to.window(self.merged_dict['Seller Centre'])
             cur_url = self.driver.current_url
 
             # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
@@ -1404,7 +1404,7 @@ class Bot_POS:
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
         #### IF MARKETPLACE IS LAZADA ###########################################################################################################################
-        elif self.app.margetplace_target.get() == 'LAZADA':
+        elif self.app.marketplace_target.get() == 'LAZADA':
             self.driver.switch_to.window(
                 self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
             cur_url = self.driver.current_url
@@ -1464,9 +1464,9 @@ class Bot_POS:
         self.cus_name_span_elmt = self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
         self.cus_name_span_text = self.cus_name_span_elmt.text
-        if self.cus_name_span_text == 'Select Customer':
+        if self.cus_name_span_text == 'Please select':
             self.is_reset = False
-        elif self.cus_name_span_text == 'กรุณาเลือกลูกค้า':
+        elif self.cus_name_span_text == 'กรุณาเลือก':
             self.is_reset = False
         else:
             self.is_reset = True
@@ -1534,15 +1534,15 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
         print("self.app.tax_bool: ", self.app.tax_bool.get())
         if self.app.tax_bool.get() == True:
-            # ขอใบกำกับ
+            # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             print("ขอใบกำกับใช้ E:")
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[4]').click()
-        elif self.app.tax_bool.get() == False:
+                By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''').click()
+        elif self.app.taxbool.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[2]').click()
+                By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
         # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
         # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
@@ -1812,7 +1812,6 @@ class Bot_POS:
                         while True:
                             self.final_popup = self.driver.find_element(
                                 By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                            print("ถึงนี่ไหม")
                             # self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
                             #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                             self.is_previous_page = self.driver.find_element(
@@ -2090,7 +2089,7 @@ if __name__ == "__main__":
 # !32 ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
 # !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
-# *
+# !*5 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
 
 
 # เก็บข้อมูล
