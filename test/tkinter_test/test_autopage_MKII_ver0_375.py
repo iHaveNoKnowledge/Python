@@ -444,9 +444,17 @@ class MyApp:
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input)
         result_count = df.groupby(
-            ['orderNumber', 'sellerSku', 'itemName']).size().reset_index(name='qty')
+            ['orderNumber', 'sellerSku', 'itemName', 'unitPrice']).size().reset_index(name='จำนวน')
+        total_per_order = df.groupby('orderNumber')['unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
+        result = pd.merge(result_count, total_per_order, on='orderNumber', how='left')
         print(f"""qty ใน lazada""")
         print(result_count)
+        
+        print("ราคาขายสุทธิ")
+        print(total_per_order)
+        
+        print("ตารางใหม่")
+        print(result)
 
     def f(self, d):
         return '{0:n}'.format(d)
@@ -794,8 +802,7 @@ class MyApp:
                       "type: ", type(self.order_note))
                 self.note_extractor()
 
-                self.cleaned_address = f"""{self.get_pure_address(
-                    self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                 if "กรุงเทพ" in self.cleaned_address:
                     self.cleaned_address = self.cleaned_address.replace(
