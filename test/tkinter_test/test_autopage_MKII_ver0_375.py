@@ -628,8 +628,7 @@ class MyApp:
 
         for part in parts:
             # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword)
-                                  for keyword in ["ต.", "อ.", "จ."])
+            is_abbreviation = any(part.startswith(keyword) for keyword in ["ต.", "อ.", "จ."])
 
             if not is_abbreviation:
                 cleaned_parts.append(part)
