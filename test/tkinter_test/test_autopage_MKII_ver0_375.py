@@ -445,17 +445,34 @@ class MyApp:
         df = pd.read_excel(file_input, dtype=dtype)
 
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
-        # df = pd.concat([df, pd.DataFrame(columns=['ส่วนลดจาก Shopee', 'ประเภทใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี',
-        #                'โค้ดส่วนลดชำระโดย Shopee', 'ประเภทสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก'])], sort=False)
         df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['อีเมลสำหรับรับใบกำกับภาษี'], df[
             'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0, "", "", 0, "", "", ""
-        data_types = {'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
+        data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float}
         df = df.astype(data_types)
-        df['orderNumber'] = df['orderNumber'].astype(str)
+
         # เพิ่มส่วนที่ไม่มี แต่สามารถหาคำนวณเพิ่มเองได้
-        result_count = df.groupby(
-            ['orderNumber', 'sellerSku', 'itemName', 'unitPrice', 'variation', 'status']).size().reset_index(name='จำนวน')
+        result_count = df.groupby(['orderNumber', 'sellerSku', 'itemName',
+                                  'unitPrice']).size().reset_index(name='จำนวน')
+        
+        # total_variation_df = df.groupby('orderNumber')['variation'].agg().reset_index(name='ชื่อตัวเลือก')
+        # result_count = pd.merge(
+        #     result_count, total_variation_df, on='orderNumber', how='left')
+
+        result_with_additional_columns_df = df.groupby(['orderNumber', 'sellerSku', 'itemName', 'unitPrice']).agg({
+            'variation':'nunique',
+            'status': 'first',
+            'ส่วนลดจาก Shopee': 'first',
+            'ประเภทใบกำกับภาษี': 'first',
+            'อีเมลสำหรับรับใบกำกับภาษี': 'first',
+            'โค้ดส่วนลดชำระโดย Shopee': 'first',
+            'ประเภทสาขา': 'first',
+            'หมายเหตุจากผู้ซื้อ': 'first',
+            'บันทึก': 'first',
+            'billingName': 'first', 'billingAddr': 'first', 'billingAddr2': 'first', 'billingAddr4': 'first', 'billingAddr3': 'first', 'billingAddr5': 'first', 'taxCode': 'first', 'billingPhone': 'first', 'customerName': 'first', 'paidPrice': 'sum', 'createTime': 'first', 'branchNumber': 'first'
+        })
+        result_with_additional_columns_df = result_with_additional_columns_df.astype(
+            {'billingAddr5': str, 'taxCode': str, 'billingPhone': str})
 
         # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
         # สร้าง sum_column  ขึ้นมาใหม่
@@ -464,9 +481,10 @@ class MyApp:
             'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
 
         # > 'โค้ดส่วนลดชำระโดยผู้ขาย'
-        # df = df['sellerDiscountTotal'] * -1
+
         total_sellerDiscountTotal_df = df.groupby('orderNumber')[
             'sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
+        total_sellerDiscountTotal_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
 
         # > 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
         total_shippingfee_df = df.groupby('orderNumber')['shippingFee'].sum(
@@ -476,8 +494,9 @@ class MyApp:
                           on='orderNumber', how='left')
         merge2 = pd.merge(merge1, total_sellerDiscountTotal_df,
                           on='orderNumber', how='left')
-        result = pd.merge(merge2, total_shippingfee_df,
-                          on='orderNumber', how='left')
+        result = pd.merge(
+            merge2, result_with_additional_columns_df, on='orderNumber', how='left')
+        # result = pd.merge(merge3, total_shippingfee_df, on='orderNumber', how='left')
         # result = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
 
@@ -489,10 +508,12 @@ class MyApp:
 
         # เปลี่ยนชื่อ column
         result.rename(columns={'orderNumber': 'หมายเลขคำสั่งซื้อ',
-                               'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)', 'itemName': 'ชื่อสินค้า', 'unitPrice': 'ราคาขาย', 'variation': 'ชื่อตัวเลือก', 'status': 'สถานะการสั่งซื้อ', 'billingName': 'ชื่อ', 'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'billingAddr2': 'แขวง/ตำบล', 'billingAddr4': 'เขต/อำเภอ.1', 'billingAddr3': 'จังหวัด.1', 'billingAddr5': 'รหัสไปรษณีย์.1', 'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี', 'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'paidPrice': 'จำนวนเงินทั้งหมด', 'createTime': 'วันที่ทำการสั่งซื้อ', 'billingAddr': 'รายละเอียดที่อยู่', 'branchNumber': 'รหัสประจำสาขา'}, inplace=True)
+                               'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)', 'itemName': 'ชื่อสินค้า', 'unitPrice': 'ราคาขาย',  'status': 'สถานะการสั่งซื้อ', 'billingName': 'ชื่อ', 'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'billingAddr2': 'แขวง/ตำบล', 'billingAddr4': 'เขต/อำเภอ.1', 'billingAddr3': 'จังหวัด.1', 'billingAddr5': 'รหัสไปรษณีย์.1', 'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี', 'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'paidPrice': 'จำนวนเงินทั้งหมด', 'createTime': 'วันที่ทำการสั่งซื้อ', 'billingAddr': 'รายละเอียดที่อยู่', 'branchNumber': 'รหัสประจำสาขา','variation':'ชื่อตัวเลือก'}, inplace=True)
         result['หมายเลขคำสั่งซื้อ'] = result['หมายเลขคำสั่งซื้อ'].astype(str)
         print("ตารางใหม่")
         print(result)
+        excel_file_path = "output_test.xlsx"
+        result.to_excel(excel_file_path, index=False)
         return result
 
     def f(self, d):
@@ -712,17 +733,21 @@ class MyApp:
                                      'รหัสประจำสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก']
 
         if self.order != "":
+            print("self.order err?: ", self.order, type(self.order))
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
-                self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"]
-                                                    == self.order)]
+                self.filter_data = self.data_frame[(
+                    self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)]
                 # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
-                print(
-                    "err?: ", self.data_frame[self.target_row]['สถานะการสั่งซื้อ'])
-                self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
+                # print(
+                #     "err?: ", self.data_frame[self.target_row]['สถานะการสั่งซื้อ'])
+                # self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง
+                print("ของมีไรบ้าง: ", self.data_frame['ชื่อตัวเลือก'])
+                print("ของมีไรบ้าง: ", self.data_frame['ราคาขายสุทธิ'])
+                print("ของมีไรบ้าง: ", self.data_frame['ส่วนลดจาก Shopee'])
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
