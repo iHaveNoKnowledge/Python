@@ -406,9 +406,9 @@ class MyApp:
         matches = [
             word for col in df.columns for word in search_words if word.lower() in col.lower()]
 
-        # เอา Dataframe มา groupby
-        if matches[0].lower() == 'lazada':
-            self.group_by_order(file_input)
+        # # เอา Dataframe มา groupby
+        # if matches[0].lower() == 'lazada':
+        #     self.group_by_order(file_input)
 
         if all(item == matches[0] for item in matches):
             return matches[0].upper()
@@ -440,21 +440,60 @@ class MyApp:
         self.update_log("แอดไฟล์")
 
         #! WIP กำลังทำ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def group_by_order(self, file_input):
+    def group_by_order(self, file_input, dtype):
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
-        df = pd.read_excel(file_input)
+        df = pd.read_excel(file_input, dtype=dtype)
+
+        # เพิ่มส่วนที่ไม่มี และหาไม่ได้
+        # df = pd.concat([df, pd.DataFrame(columns=['ส่วนลดจาก Shopee', 'ประเภทใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี',
+        #                'โค้ดส่วนลดชำระโดย Shopee', 'ประเภทสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก'])], sort=False)
+        df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['อีเมลสำหรับรับใบกำกับภาษี'], df[
+            'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0, "", "", 0, "", "", ""
+        data_types = {'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
+        df = df.astype(data_types)
+        df['orderNumber'] = df['orderNumber'].astype(str)
+        # เพิ่มส่วนที่ไม่มี แต่สามารถหาคำนวณเพิ่มเองได้
         result_count = df.groupby(
-            ['orderNumber', 'sellerSku', 'itemName', 'unitPrice']).size().reset_index(name='จำนวน')
-        total_per_order = df.groupby('orderNumber')['unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
-        result = pd.merge(result_count, total_per_order, on='orderNumber', how='left')
+            ['orderNumber', 'sellerSku', 'itemName', 'unitPrice', 'variation', 'status']).size().reset_index(name='จำนวน')
+
+        # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
+        # สร้าง sum_column  ขึ้นมาใหม่
+        # > 'ราคาขายสุทธิ'
+        total_per_order_df = df.groupby('orderNumber')[
+            'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
+
+        # > 'โค้ดส่วนลดชำระโดยผู้ขาย'
+        # df = df['sellerDiscountTotal'] * -1
+        total_sellerDiscountTotal_df = df.groupby('orderNumber')[
+            'sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
+
+        # > 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
+        total_shippingfee_df = df.groupby('orderNumber')['shippingFee'].sum(
+        ).reset_index(name='ค่าจัดส่งที่ชำระโดยผู้ซื้อ')
+
+        merge1 = pd.merge(result_count, total_per_order_df,
+                          on='orderNumber', how='left')
+        merge2 = pd.merge(merge1, total_sellerDiscountTotal_df,
+                          on='orderNumber', how='left')
+        result = pd.merge(merge2, total_shippingfee_df,
+                          on='orderNumber', how='left')
+        # result = pd.concat([result_count, total_per_order_df,
+        #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
+
         print(f"""qty ใน lazada""")
         print(result_count)
-        
+
         print("ราคาขายสุทธิ")
-        print(total_per_order)
-        
+        print(total_per_order_df)
+
+        # เปลี่ยนชื่อ column
+        result.rename(columns={'orderNumber': 'หมายเลขคำสั่งซื้อ',
+                               'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)', 'itemName': 'ชื่อสินค้า', 'unitPrice': 'ราคาขาย', 'variation': 'ชื่อตัวเลือก', 'status': 'สถานะการสั่งซื้อ', 'billingName': 'ชื่อ', 'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'billingAddr2': 'แขวง/ตำบล', 'billingAddr4': 'เขต/อำเภอ.1', 'billingAddr3': 'จังหวัด.1', 'billingAddr5': 'รหัสไปรษณีย์.1', 'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี', 'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'paidPrice': 'จำนวนเงินทั้งหมด', 'createTime': 'วันที่ทำการสั่งซื้อ', 'billingAddr': 'รายละเอียดที่อยู่', 'branchNumber': 'รหัสประจำสาขา'}, inplace=True)
+        result['หมายเลขคำสั่งซื้อ'] = result['หมายเลขคำสั่งซื้อ'].astype(str)
         print("ตารางใหม่")
         print(result)
+        return result
 
     def f(self, d):
         return '{0:n}'.format(d)
@@ -465,12 +504,17 @@ class MyApp:
         print('self.marketplace_target.get()', self.marketplace_target.get())
         shopee = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
-        lazada = {}
+        lazada = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
+                  'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
         self.columns = shopee if self.marketplace_target.get(
         ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
         try:
-            self.data_frame = pd.read_excel(self.file_path,
-                                            dtype=self.columns)
+            if self.marketplace_target.get() == 'SHOPEE':
+                self.data_frame = pd.read_excel(
+                    self.file_path, dtype=self.columns)
+            elif self.marketplace_target.get() == 'LAZADA':
+                self.data_frame = self.group_by_order(
+                    self.file_path, self.columns)
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -628,7 +672,8 @@ class MyApp:
 
         for part in parts:
             # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword) for keyword in ["ต.", "อ.", "จ."])
+            is_abbreviation = any(part.startswith(keyword)
+                                  for keyword in ["ต.", "อ.", "จ."])
 
             if not is_abbreviation:
                 cleaned_parts.append(part)
@@ -673,7 +718,8 @@ class MyApp:
                                                     == self.order)]
                 # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
-
+                print(
+                    "err?: ", self.data_frame[self.target_row]['สถานะการสั่งซื้อ'])
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง
