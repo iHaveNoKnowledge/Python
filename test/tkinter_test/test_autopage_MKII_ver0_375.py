@@ -1542,6 +1542,27 @@ class Bot_POS:
             # * กรอก order ลงในช่อง search
             self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
                 (By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/span/input')))
+
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/span/input').clear()
+            try:
+                close_btn = self.driver.find_element(
+                    By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[1]/span[2]/i')
+                self.input_count = self.driver.find_element(
+                    By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[2]/span/span')
+                if self.input_count.is_displayed():
+                    self.prog = re.compile(r'\d')
+                    print("จำนวนครั้งของการกด x ",self.input_count.text)
+                    clicks = self.prog.match(self.input_count.text)
+                    print(f"{clicks} times click")
+                    for click in range(clicks):
+                        close_btn.click()
+                else:
+                    print("1 times click")
+                    close_btn.click()
+
+            except:
+                pass
             self.search_elmt.clear()
             self.search_elmt.send_keys(self.app.cus_order.get())
 
