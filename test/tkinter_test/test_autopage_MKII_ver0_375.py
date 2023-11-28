@@ -1,12 +1,17 @@
 
+from googletrans import Translator
 import requests
+
+# * user interface
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import font
-# from test_auto_cus_name_MKII import *
+# * dataframe table
+import numpy as np
 import pandas as pd
+# from test_auto_cus_name_MKII import *
 
 # * selenium
 import time
@@ -35,8 +40,6 @@ from concurrent.futures import ThreadPoolExecutor
 import locale
 from decimal import Decimal
 locale.setlocale(locale.LC_ALL, 'en_us')
-
-# * Request
 
 
 class MyApp:
@@ -449,26 +452,27 @@ class MyApp:
             'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0, "", "", 0, "", "", ""
         # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'taxCode': str}
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'taxCode': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str}
         df = df.astype(data_types)
 
         # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
+        #! คำเตือน ถ้าใช้ parameter inplace= ห้ามเก็บค่าเข้าตัวแปรเดิมเด็ดขาด ไม่งั้นมันจะพัง มันจะ error nontype รัวๆ
+        # df['variation'].fillna(value="-", inplace=True)
         # ตรวจสอบ columntype
         column_type = df.dtypes
+        print("createTime: ", column_type['createTime'])
+        print("createTimeerr?:", df['createTime'])
         print("column_type: ", column_type['variation'])
         for column in df.columns:
             print("ทำไมคืนค่า0: ", column_type[column])
             if column_type[column] == 'float':
-                #! ถ้าใช้ parameter inplace= ห้ามเก็บค่าเข้าตัวแปรเดิมเด็ดขาด ไม่งั้นมันจะพัง มันจะ error nontype รัวๆ
-                df[column].fillna(value=0, inplace=True)
+                df[column] = df[column].replace(0, np.nan)
             elif column_type[column] == 'object':
-                df[column].fillna(value="", inplace=True)
+                df[column] = df[column].replace('nan', '')
             elif column_type[column] == 'str':
-                df[column].fillna(value="", inplace=True)
+                df[column] = df[column].replace('nan', '')
             else:
                 df.fillna(value=0, inplace=True)
-
-        # df['variation'].fillna(value="-", inplace=True)
 
         # เพิ่มส่วนที่ไม่มี แต่สามารถหาคำนวณเพิ่มเองได้
         result_count = df.groupby(['orderNumber', 'sellerSku', 'itemName',
@@ -499,7 +503,6 @@ class MyApp:
             'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
 
         # > 'โค้ดส่วนลดชำระโดยผู้ขาย'
-
         total_sellerDiscountTotal_df = df.groupby('orderNumber')[
             'sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
         total_sellerDiscountTotal_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
@@ -512,11 +515,17 @@ class MyApp:
                           on='orderNumber', how='left')
         merge2 = pd.merge(merge1, total_sellerDiscountTotal_df,
                           on='orderNumber', how='left')
-        merge3 = pd.merge(merge2, result_with_additional_columns_df, on='orderNumber', how='left')
-        result = pd.merge(merge3, total_shippingfee_df, on='orderNumber', how='left')
+        merge3 = pd.merge(
+            merge2, result_with_additional_columns_df, on='orderNumber', how='left')
+        result = pd.merge(merge3, total_shippingfee_df,
+                          on='orderNumber', how='left')
         # result = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
 
+        # มีสอง column ที่ต่างกันแต่ต้องใช้ข้อมูลเหมือนกัน copy เพิ่ม
+        result['รายละเอียดที่อยู่'] = result['billingAddr'].copy()
+
+        # ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
         print(result_count)
 
@@ -525,7 +534,7 @@ class MyApp:
 
         # เปลี่ยนชื่อ column
         result.rename(columns={'orderNumber': 'หมายเลขคำสั่งซื้อ',
-                               'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)', 'itemName': 'ชื่อสินค้า', 'unitPrice': 'ราคาขาย',  'status': 'สถานะการสั่งซื้อ', 'billingName': 'ชื่อ', 'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'billingAddr2': 'แขวง/ตำบล', 'billingAddr4': 'เขต/อำเภอ.1', 'billingAddr3': 'จังหวัด.1', 'billingAddr5': 'รหัสไปรษณีย์.1', 'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี', 'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'paidPrice': 'จำนวนเงินทั้งหมด', 'createTime': 'วันที่ทำการสั่งซื้อ', 'billingAddr': 'รายละเอียดที่อยู่', 'branchNumber': 'รหัสประจำสาขา', 'variation': 'ชื่อตัวเลือก'}, inplace=True)
+                               'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)', 'itemName': 'ชื่อสินค้า', 'unitPrice': 'ราคาขาย',  'status': 'สถานะการสั่งซื้อ', 'billingName': 'ชื่อ', 'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'billingAddr2': 'แขวง/ตำบล', 'billingAddr4': 'เขต/อำเภอ.1', 'billingAddr3': 'จังหวัด.1', 'billingAddr5': 'รหัสไปรษณีย์.1', 'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี', 'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'paidPrice': 'จำนวนเงินทั้งหมด', 'createTime': 'วันที่ทำการสั่งซื้อ', 'branchNumber': 'รหัสประจำสาขา', 'variation': 'ชื่อตัวเลือก'}, inplace=True)
         result['หมายเลขคำสั่งซื้อ'] = result['หมายเลขคำสั่งซื้อ'].astype(str)
         print("ตารางใหม่")
         print(result)
@@ -564,8 +573,8 @@ class MyApp:
             print("File not found.")
         except NameError as e:
             print(f"ตัวแปร '{e.name}' ไม่มีอยู่จริง")
-        except Exception as e:
-            print(f"อะไรสักอย่างพัง {e}")
+        # except Exception as e:
+        #     print(f"อะไรสักอย่างพัง {e}")
 
     def update_gui_address(self, address):
         self.address = address.strip()
@@ -738,6 +747,20 @@ class MyApp:
         else:
             print("ไม่มีค่า")
 
+    def translator(self, text):
+        # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
+        pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s]+$')
+        is_usable = bool(re.match(pattern, text))
+        if is_usable:
+            return text
+        else:
+            translator = Translator()
+            lang_src = translator.detect(text).lang
+            print("Whare are you from: ", lang_src)
+            translation = translator.translate(text, src=lang_src, dest='en')
+            print("Translated name", translation.text)
+            return translation.text
+
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
         self.on_complete = on_complete
@@ -836,10 +859,12 @@ class MyApp:
 
                 # self.row_header_maker(self.items)
                 # * ชื่อที่ต้องอกใบกำกับ
-                self.cus_name.set(
-                    re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', '')))
+                self.cus_name.set(self.translator(re.sub(
+                    r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
+                # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standarizer(self.cus_name.get()))
+
                 # * ประเภทใบกำกับภาษี
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
@@ -853,7 +878,7 @@ class MyApp:
                     self.tax_num.set("ไม่มี")
 
                 else:
-                    if self.branch_type == "สำนักงานใหญ่":
+                    if "สำนักงานใหญ่" in self.branch_type:
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สนงใหญ่")
                         self.display_is_tax.config(
