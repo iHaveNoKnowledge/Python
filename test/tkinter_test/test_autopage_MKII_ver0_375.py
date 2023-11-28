@@ -443,24 +443,43 @@ class MyApp:
     def group_by_order(self, file_input, dtype):
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input, dtype=dtype)
-
+        
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
         df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['อีเมลสำหรับรับใบกำกับภาษี'], df[
             'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0, "", "", 0, "", "", ""
+        # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float}
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'taxCode':str}
         df = df.astype(data_types)
+        
+        # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
+        # ตรวจสอบ columntype
+        column_type = df.dtypes
+        print("column_type: ",column_type['variation'])
+        for column in df.columns:
+            print("ทำไมคืนค่า0: ",column_type[column])
+            if column_type[column] == 'float':
+                #! ถ้าใช้ parameter inplace= ห้ามเก็บค่าเข้าตัวแปรเดิมเด็ดขาด ไม่งั้นมันจะพัง มันจะ error nontype รัวๆ
+                df[column].fillna(value=0, inplace=True)
+            elif column_type[column] == 'object':
+                df[column].fillna(value="", inplace=True)
+            elif column_type[column] == 'str':
+                df[column].fillna(value="", inplace=True)
+            else:
+                df.fillna(value=0, inplace=True)
+        
+        # df['variation'].fillna(value="-", inplace=True)
+
 
         # เพิ่มส่วนที่ไม่มี แต่สามารถหาคำนวณเพิ่มเองได้
         result_count = df.groupby(['orderNumber', 'sellerSku', 'itemName',
-                                  'unitPrice']).size().reset_index(name='จำนวน')
+                                  'unitPrice', 'variation']).size().reset_index(name='จำนวน')
         
         # total_variation_df = df.groupby('orderNumber')['variation'].agg().reset_index(name='ชื่อตัวเลือก')
         # result_count = pd.merge(
         #     result_count, total_variation_df, on='orderNumber', how='left')
 
-        result_with_additional_columns_df = df.groupby(['orderNumber', 'sellerSku', 'itemName', 'unitPrice']).agg({
-            'variation':'nunique',
+        result_with_additional_columns_df = df.groupby(['orderNumber', 'sellerSku', 'itemName', 'unitPrice', 'variation']).agg({         
             'status': 'first',
             'ส่วนลดจาก Shopee': 'first',
             'ประเภทใบกำกับภาษี': 'first',
@@ -469,10 +488,10 @@ class MyApp:
             'ประเภทสาขา': 'first',
             'หมายเหตุจากผู้ซื้อ': 'first',
             'บันทึก': 'first',
-            'billingName': 'first', 'billingAddr': 'first', 'billingAddr2': 'first', 'billingAddr4': 'first', 'billingAddr3': 'first', 'billingAddr5': 'first', 'taxCode': 'first', 'billingPhone': 'first', 'customerName': 'first', 'paidPrice': 'sum', 'createTime': 'first', 'branchNumber': 'first'
+            # 'billingName': 'first', 'billingAddr': 'first', 'billingAddr2': 'first', 'billingAddr4': 'first', 'billingAddr3': 'first', 'billingAddr5': 'first', 'taxCode': 'first', 'billingPhone': 'first', 'customerName': 'first', 'paidPrice': 'sum', 'createTime': 'first', 'branchNumber': 'first'
         })
-        result_with_additional_columns_df = result_with_additional_columns_df.astype(
-            {'billingAddr5': str, 'taxCode': str, 'billingPhone': str})
+        # result_with_additional_columns_df = result_with_additional_columns_df.astype(
+        #     {'billingAddr5': str, 'taxCode': str, 'billingPhone': str})
 
         # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
         # สร้าง sum_column  ขึ้นมาใหม่
@@ -494,8 +513,7 @@ class MyApp:
                           on='orderNumber', how='left')
         merge2 = pd.merge(merge1, total_sellerDiscountTotal_df,
                           on='orderNumber', how='left')
-        result = pd.merge(
-            merge2, result_with_additional_columns_df, on='orderNumber', how='left')
+        result = pd.merge(merge2, result_with_additional_columns_df, on='orderNumber', how='left')
         # result = pd.merge(merge3, total_shippingfee_df, on='orderNumber', how='left')
         # result = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
