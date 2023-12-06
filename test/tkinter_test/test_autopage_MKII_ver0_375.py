@@ -870,11 +870,21 @@ class MyApp:
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 print("รหัสประจำสาขา= ",
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
+
+                tax_num_only = re.sub(
+                    r'\D', '', self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.config(
                         background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
+                    self.tax_num.set("ไม่มี")
+                elif len(tax_num_only) != 13:
+                    self.tax_bool.set(False)
+                    self.is_tax.set("ขอ//เลขไม่ครบ")
+                    self.display_is_tax.config(
+                        background="#8502d1", foreground="#FFF", font='Chiller 10 normal')
                     self.tax_num.set("ไม่มี")
 
                 else:
@@ -883,22 +893,19 @@ class MyApp:
                         self.is_tax.set("ขอใบกำกับ สนงใหญ่")
                         self.display_is_tax.config(
                             background="#ff0000", foreground="#FFF", font='Chiller 10 bold')
-                        self.tax_num.set(
-                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                        self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สาขาย่อย")
                         self.display_is_tax.config(
                             background="#ff0055", foreground="#FFF", font='Chiller 10 bold')
-                        self.tax_num.set(
-                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                        self.tax_num.set(tax_num_only)
                     else:
                         self.tax_bool.set(True)
                         self.is_tax.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.config(
                             background="#ff9e36", foreground="#FFF", font='Chiller 12 bold')
-                        self.tax_num.set(
-                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                        self.tax_num.set(tax_num_only)
 
                 # * แสดงผล
                 # self.address = self.filter_data.iat[0, 59]
