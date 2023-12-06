@@ -1502,7 +1502,8 @@ class Bot_POS:
             except:
                 # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                 self.app.cus_cur_status.set(self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[2]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+
             # จะได้ element มา
             print("realtime_status_text", self.app.cus_cur_status.get())
             self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
@@ -1552,7 +1553,7 @@ class Bot_POS:
                     By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[2]/span/span')
                 if self.input_count.is_displayed():
                     self.prog = re.compile(r'\d')
-                    print("จำนวนครั้งของการกด x ",self.input_count.text)
+                    print("จำนวนครั้งของการกด x ", self.input_count.text)
                     clicks = self.prog.match(self.input_count.text)
                     print(f"{clicks} times click")
                     for click in range(clicks):
