@@ -449,7 +449,7 @@ class MyApp:
 
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
         df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['อีเมลสำหรับรับใบกำกับภาษี'], df[
-            'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0, "", "", 0, "", "", ""
+            'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0.00, "", "", 0, "", "", ""
         # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
                       'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'taxCode': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str}
@@ -466,7 +466,7 @@ class MyApp:
         for column in df.columns:
             print("ทำไมคืนค่า0: ", column_type[column])
             if column_type[column] == 'float':
-                df[column] = df[column].replace(0, np.nan)
+                df[column] = df[column].replace(np.nan, 0)
             elif column_type[column] == 'object':
                 df[column] = df[column].replace('nan', '')
             elif column_type[column] == 'str':
@@ -737,7 +737,7 @@ class MyApp:
         return cleaned_address
 
     def note_extractor(self):
-        if self.order_note != "nan":
+        if self.order_note != 'nan':
             self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
             self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
             self.address_match = re.search(r'ที่อยู่:(.*?)\n', self.order_note)
@@ -782,7 +782,7 @@ class MyApp:
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
                 # print(
                 #     "err?: ", self.data_frame[self.target_row]['สถานะการสั่งซื้อ'])
-                # self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
+                self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง
                 print("ของมีไรบ้าง: ", self.data_frame['ชื่อตัวเลือก'])
@@ -912,7 +912,11 @@ class MyApp:
                 print("ตรวจหมายเหตุ: ", self.cus_remark)
                 print("ตรวจบันทึก: ", self.order_note,
                       "type: ", type(self.order_note))
-                self.note_extractor()
+
+                if self.marketplace_target.get() == 'SHOPEE':
+                    self.note_extractor()
+                elif self.marketplace_target.get() == 'LAZADA':
+                    pass
 
                 self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
@@ -987,8 +991,7 @@ class MyApp:
 
                 self.net_prices_list = []
                 for item in self.items:
-                    net_price = item['ราคาขายสุทธิ'] + \
-                        item['ส่วนลดจาก Shopee']
+                    net_price = item['ราคาขายสุทธิ'] + item['ส่วนลดจาก Shopee']
                     self.net_prices_list.append(net_price)
                 # print(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
                 # print(f"ที่อยู่: {result['address']}")
@@ -1958,8 +1961,8 @@ class Bot_POS:
                             #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                             self.is_previous_page = self.driver.find_element(
                                 By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
-                            print("self.is_previous_page= ",
-                                  self.is_previous_page)
+                            # print("self.is_previous_page= ",
+                            #       self.is_previous_page)
                             if self.final_popup.is_displayed() == True:
                                 try:
                                     self.wait1.until(EC.element_to_be_clickable(
