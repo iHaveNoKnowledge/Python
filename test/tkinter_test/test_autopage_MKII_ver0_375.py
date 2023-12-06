@@ -984,8 +984,8 @@ class MyApp:
 
                 self.cus_ship_cost.set(
                     self.nondistortedData['ค่าจัดส่งที่ชำระโดยผู้ซื้อ'])
-                self.cus_seller_voucher.set(
-                    self.nondistortedData['โค้ดส่วนลดชำระโดยผู้ขาย'])
+                self.cus_seller_voucher.set(abs(
+                    self.nondistortedData['โค้ดส่วนลดชำระโดยผู้ขาย']))
                 self.cus_purchase_time.set(
                     self.nondistortedData['วันที่ทำการสั่งซื้อ'])
 
