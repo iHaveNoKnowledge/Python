@@ -630,22 +630,42 @@ class MyApp:
             self.total_price += price_plusrebate
             self.tree.insert("", "end", values=(
                 product_name, self.f(price_plusrebate), QTY))
-        self.total_price += self.cus_ship_cost.get()
-        self.phase1_sum_price = self.total_price
-        self.tree.insert("", "end", value=(
-            "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
-        self.total_price -= self.cus_seller_voucher.get()
-        self.tree.insert("", "end", value=(
-            "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
 
-        self.tree.insert("", "end", values=(
-            "ราคาที่ต้องออก", self.f(self.total_price)))
+        # Shopee + ค่าขนส่ง แต่ Lazada ไม่ต้อง + ค่าขนส่งในบางกรณี
+        if self.marketplace_target.get() == 'SHOPEE':
+            self.total_price += self.cus_ship_cost.get()
+            self.phase1_sum_price = self.total_price
+            self.tree.insert("", "end", value=(
+                "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
+            self.total_price -= self.cus_seller_voucher.get()
+            self.tree.insert("", "end", value=(
+                "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
 
-        self.tree.insert("", "end", values=("Shopee Voucher",
-                         self.f(self.nondistortedData['โค้ดส่วนลดชำระโดย Shopee']*-1)))
+            self.tree.insert("", "end", values=(
+                "ราคาที่ต้องออก", self.f(self.total_price)))
 
-        self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
-                         self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
+            self.tree.insert("", "end", values=("Shopee Voucher",
+                                                self.f(self.nondistortedData['โค้ดส่วนลดชำระโดย Shopee']*-1)))
+
+            self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
+                                                self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
+
+        elif self.marketplace_target.get() == 'LAZADA':
+            # * มันต้องมีทั้ง ราคาที่ต้องออกแบบ +ขนส่งกับ ไม่มีขนส่ง
+            self.total_price -= self.cus_seller_voucher.get()
+            self.tree.insert("", "end", value=(
+                "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
+            # > แบบไม่มีขนส่ง
+            self.total_price_no_ship_cost = self.total_price
+            self.tree.insert("", "end", values=(
+                "ราคาที่ต้องออก(Noขนส่ง)", self.f(self.total_price_no_ship_cost)))
+
+            # > แบบมีขนส่ง
+            self.total_price_with_ship = self.total_price + self.cus_ship_cost.get()
+            self.tree.insert("", "end", value=(
+                "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
+            self.tree.insert("", "end", values=(
+                "ราคาที่ต้องออก(+ขนส่ง)", self.f(self.total_price_with_ship)))
 
     def get_pure_address(self, cus_address):
         # สร้างรายชื่อของตำแหน่งที่พบคำใน customer_address
@@ -866,6 +886,7 @@ class MyApp:
                     self.tax_name_standarizer(self.cus_name.get()))
 
                 # * ประเภทใบกำกับภาษี
+                # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 print("รหัสประจำสาขา= ",
