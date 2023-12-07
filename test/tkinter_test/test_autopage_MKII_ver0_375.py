@@ -780,6 +780,22 @@ class MyApp:
             translation = translator.translate(text, src=lang_src, dest='en')
             print("Translated name", translation.text)
             return translation.text
+        
+    def cus_tel_fixer(self, tel):  
+        b_no_code = tel[2:]
+        print("เบอร์มีขนาดความยาว: ",len(tel))
+        if len(tel) == 10:
+            return tel
+        elif len(tel) == 9:
+            print("ดูก่อนว่าเบอร์บ้านไหม")
+        else:
+            if b_no_code[0] != "0":
+                b_no_code_fixed = "0"+b_no_code
+                print("แบบตัดรหัสประเทศและเพิ่มเลข0",b_no_code_fixed)
+                return b_no_code_fixed
+            else:
+                print("แบบตัดรหัสประเทศ",b_no_code)
+                return b_no_code
 
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
@@ -895,13 +911,13 @@ class MyApp:
                 tax_num_only = re.sub(
                     r'\D', '', self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
 
-                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
+                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.config(
                         background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
                     self.tax_num.set("ไม่มี")
-                elif len(tax_num_only) != 13:
+                elif tax_num_only != "" and len(tax_num_only) != 13:
                     self.tax_bool.set(False)
                     self.is_tax.set("ขอ//เลขไม่ครบ")
                     self.display_is_tax.config(
@@ -1005,8 +1021,8 @@ class MyApp:
                 else:
                     self.cus_sub_district.set('')
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
-                    self.cus_tel.set(
-                        self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                    tel_for_set = self.cus_tel_fixer(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                    self.cus_tel.set(tel_for_set)
                 else:
                     self.cus_tel.set("1")
 
@@ -1043,7 +1059,10 @@ class MyApp:
                 self.update_log(
                     f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
                 self.update_log(
-                    f"สินค้ารวมค่าส่งหัก seller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                    f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
+                self.update_log(
+                    f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                
 
             else:
                 print(
@@ -1708,9 +1727,14 @@ class Bot_POS:
         print("self.app.tax_bool: ", self.app.tax_bool.get())
         if self.app.tax_bool.get() == True:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
-            print("ขอใบกำกับใช้ E:")
-            self.driver.find_element(
-                By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''').click()
+            if self.app.marketplace_target.get() == "SHOPEE":
+                print("ขอใบกำกับSHOPEE ใช้ E:")
+                self.driver.find_element(
+                    By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''').click()
+            elif self.app.marketplace_target.get() == "LAZADA":
+                print("ขอใบกำกับLazada ใช้ P:")
+                self.driver.find_element(
+                    By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='P'")]''').click()
         elif self.app.tax_bool.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
@@ -1719,11 +1743,11 @@ class Bot_POS:
 
         # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
         # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
-        # self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
-        # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
-
-        self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get(
-        ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+        
+        if self.app.marketplace_target.get() == "SHOPEE":
+            self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+        elif self.app.marketplace_target.get() == "LAZADA":
+            self.cus_search = self.app.cus_tel.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_not_open = False if self.driver.find_elements(
