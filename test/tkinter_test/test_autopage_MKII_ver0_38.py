@@ -101,7 +101,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.375")
+        self.root.title("Autosamatic ver0.38")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
