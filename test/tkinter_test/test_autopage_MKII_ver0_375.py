@@ -1,4 +1,5 @@
 
+from bs4 import BeautifulSoup
 from googletrans import Translator
 import requests
 
@@ -40,6 +41,8 @@ from concurrent.futures import ThreadPoolExecutor
 import locale
 from decimal import Decimal
 locale.setlocale(locale.LC_ALL, 'en_us')
+
+# beautifulsoup
 
 
 class MyApp:
@@ -780,10 +783,10 @@ class MyApp:
             translation = translator.translate(text, src=lang_src, dest='en')
             print("Translated name", translation.text)
             return translation.text
-        
-    def cus_tel_fixer(self, tel):  
+
+    def cus_tel_fixer(self, tel):
         b_no_code = tel[2:]
-        print("เบอร์มีขนาดความยาว: ",len(tel))
+        print("เบอร์มีขนาดความยาว: ", len(tel))
         if len(tel) == 10:
             return tel
         elif len(tel) == 9:
@@ -791,11 +794,37 @@ class MyApp:
         else:
             if b_no_code[0] != "0":
                 b_no_code_fixed = "0"+b_no_code
-                print("แบบตัดรหัสประเทศและเพิ่มเลข0",b_no_code_fixed)
+                print("แบบตัดรหัสประเทศและเพิ่มเลข0", b_no_code_fixed)
                 return b_no_code_fixed
             else:
-                print("แบบตัดรหัสประเทศ",b_no_code)
+                print("แบบตัดรหัสประเทศ", b_no_code)
                 return b_no_code
+
+    def find_branch(self, input):
+        # ตัวแปร branch
+        input = re.sub(r'\s+', '', input)
+        branch = str(input).strip()
+
+        pattern = re.compile(r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|^0+$")
+        match = pattern.findall(branch)
+        # ตรวจสอบค่าของตัวแปร branch
+        if match:
+            print("ค่าของตัวแปร branch เป็น 'สำนักงานใหญ่' เลขสาขาเป็น 00000")
+            print("return ค่า 'สำนักงานใหญ่'")
+        elif re.match(r'^[0-9]+$', branch):
+            if len(branch) > 5:
+                print(branch[-5:])
+            else:
+                txt = "{:0>5}"
+                print(txt.format(branch))
+        else:
+            print("ไม่มีบอกสำนักงาน")
+
+        # เขียน pattern ของคำที่ต้องการค้นหาใน Regex
+        pattern = re.compile(r"สำนักงาน|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง")
+
+        # ใช้ findall เพื่อค้นหาคำที่ตรงกับ pattern ใน branch
+        matches = pattern.findall(branch)
 
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
@@ -925,6 +954,7 @@ class MyApp:
                     self.tax_num.set("ไม่มี")
 
                 else:
+
                     if "สำนักงานใหญ่" in self.branch_type:
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สนงใหญ่")
@@ -934,6 +964,8 @@ class MyApp:
                     elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สาขาย่อย")
+                        self.tax_branch.set(
+                            self.nondistortedData['รหัสประจำสาขา'])
                         self.display_is_tax.config(
                             background="#ff0055", foreground="#FFF", font='Chiller 10 bold')
                         self.tax_num.set(tax_num_only)
@@ -943,6 +975,9 @@ class MyApp:
                         self.display_is_tax.config(
                             background="#ff9e36", foreground="#FFF", font='Chiller 12 bold')
                         self.tax_num.set(tax_num_only)
+
+                if self.tax_bool.get() == True and len(tax_num_only) == 13:
+                    pass
 
                 # * แสดงผล
                 # self.address = self.filter_data.iat[0, 59]
@@ -1021,7 +1056,8 @@ class MyApp:
                 else:
                     self.cus_sub_district.set('')
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
-                    tel_for_set = self.cus_tel_fixer(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                    tel_for_set = self.cus_tel_fixer(
+                        self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                     self.cus_tel.set(tel_for_set)
                 else:
                     self.cus_tel.set("1")
@@ -1062,7 +1098,6 @@ class MyApp:
                     f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
                 self.update_log(
                     f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
-                
 
             else:
                 print(
@@ -1734,7 +1769,7 @@ class Bot_POS:
             elif self.app.marketplace_target.get() == "LAZADA":
                 print("ขอใบกำกับLazada ใช้ P:")
                 self.driver.find_element(
-                    By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='P'")]''').click()
+                    By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
         elif self.app.tax_bool.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
@@ -1743,11 +1778,13 @@ class Bot_POS:
 
         # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
         # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
-        
+
         if self.app.marketplace_target.get() == "SHOPEE":
-            self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+            self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get(
+            ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
         elif self.app.marketplace_target.get() == "LAZADA":
-            self.cus_search = self.app.cus_tel.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+            self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+            ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_not_open = False if self.driver.find_elements(
@@ -2287,6 +2324,7 @@ if __name__ == "__main__":
 # !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
 # *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
+# !36 ใช้หาใบกำกับได้ดีกว่า vatinfo สะอีก https://www.dataforthai.com/company/{เลข13หลัก}/
 
 
 # เก็บข้อมูล
