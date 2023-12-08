@@ -937,8 +937,15 @@ class MyApp:
                 print("รหัสประจำสาขา= ",
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
 
-                tax_num_only = re.sub(
-                    r'\D', '', self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
+                      self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+
+                tax_num_only = ""
+                if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
+                    tax_num_only = re.sub(
+                        r'\D', '', self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                else:
+                    tax_num_only = self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]
 
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
                     self.tax_bool.set(False)
