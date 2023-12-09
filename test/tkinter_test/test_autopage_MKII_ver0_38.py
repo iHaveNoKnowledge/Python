@@ -525,7 +525,7 @@ class MyApp:
         # result = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
 
-        # มีสอง column ที่ต่างกันแต่ต้องใช้ข้อมูลเหมือนกัน copy เพิ่ม
+        # เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy เพิ่ม
         result['รายละเอียดที่อยู่'] = result['billingAddr'].copy()
 
         # ตรวจสอบผลลัพธ์
@@ -560,8 +560,10 @@ class MyApp:
         ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
         try:
             if self.marketplace_target.get() == 'SHOPEE':
+                print("เปลี่ยน dtype เป็น form shopee")
                 self.data_frame = pd.read_excel(
                     self.file_path, dtype=self.columns)
+                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
             elif self.marketplace_target.get() == 'LAZADA':
                 self.data_frame = self.group_by_order(
                     self.file_path, self.columns)
@@ -938,14 +940,16 @@ class MyApp:
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
 
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
-                      self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                      bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                
 
-                tax_num_only = ""
-                if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
+               
+                
+                if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     tax_num_only = re.sub(
-                        r'\D', '', self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'])
+                        r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
                 else:
-                    tax_num_only = self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]
+                    tax_num_only = ""
 
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
                     self.tax_bool.set(False)
