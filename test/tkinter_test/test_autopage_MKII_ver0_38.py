@@ -2029,9 +2029,15 @@ class Bot_POS:
                                 self.driver.find_element(
                                     By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
-                                # เลือก shopee
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+                                # เลือกประเภทชำระเงิน
+                                if self.app.marketplace_target.get() == 'SHOPEE':
+                                    # เลือก shopee
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+                                elif self.app.marketplace_target.get() == 'LAZADA':
+                                    # เลือก lazada
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[3]/a').click()
 
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
