@@ -813,22 +813,20 @@ class MyApp:
         match = pattern.findall(branch)
         # ตรวจสอบค่าของตัวแปร branch
         if match:
-            print("ค่าของตัวแปร branch เป็น 'สำนักงานใหญ่' เลขสาขาเป็น 00000")
+            # print("ค่าของตัวแปร branch เป็น 'สำนักงานใหญ่' เลขสาขาเป็น 00000")
             print("return ค่า 'สำนักงานใหญ่'")
+            return 'สำนักงานใหญ่'
         elif re.match(r'^[0-9]+$', branch):
             if len(branch) > 5:
-                print(branch[-5:])
+                print("Branch: ", branch[-5:])
+                return branch[-5:]
             else:
                 txt = "{:0>5}"
-                print(txt.format(branch))
+                print("Branch: ", txt.format(branch))
+                return txt.format(branch)
         else:
-            print("ไม่มีบอกสำนักงาน")
-
-        # เขียน pattern ของคำที่ต้องการค้นหาใน Regex
-        pattern = re.compile(r"สำนักงาน|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง")
-
-        # ใช้ findall เพื่อค้นหาคำที่ตรงกับ pattern ใน branch
-        matches = pattern.findall(branch)
+            print("Branch not found return as Headoffice")
+            return 'สำนักงานใหญ่'
 
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
@@ -944,6 +942,7 @@ class MyApp:
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
                       bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
+                #ถ้า col หมายเลขประจำตัวผู้เสียภาษี ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
                 if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
@@ -974,8 +973,9 @@ class MyApp:
                     elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สาขาย่อย")
-                        self.tax_branch.set(
+                        branch = self.find_branch(
                             self.nondistortedData['รหัสประจำสาขา'])
+                        self.tax_branch.set(branch)
                         self.display_is_tax.config(
                             background="#ff0055", foreground="#FFF", font='Chiller 10 bold')
                         self.tax_num.set(tax_num_only)
@@ -1646,12 +1646,22 @@ class Bot_POS:
 
                 self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/span/input').clear()
+
+                self.input_count = []
+
                 try:
                     close_btn = self.driver.find_element(
                         By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[1]/span[2]')
-                    self.input_count = self.driver.find_element(
-                        By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[2]/span/span')
-                    if self.input_count.is_displayed():
+
+                    try:
+                        self.input_count = self.driver.find_element(
+                            By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[2]/span/span')
+                    except:
+                        print("Have only one input")
+                except:
+                    print("Input is empty")
+                try:
+                    if self.input_count.is_displayed() and close_btn.is_displayed():
                         clicks = re.sub(r'\W', "", self.input_count.text)
                         print("จำนวนครั้งของการกด x ", clicks)
                         print(f"{clicks} times click")
@@ -1667,11 +1677,16 @@ class Bot_POS:
 
                 except Exception as err:
                     # print("ไม่กดวะ: ", err)
-                    print(
-                        "Cannot find the variable self.input_count (no counter number, so just cilck only once)")
-                    print("1 times click as well")
-                    close_btn.click()
-                    pass
+                    # print(
+                    #     "Cannot find the variable self.input_count (no counter number, so skip!)")
+                    # # print("1 times click as well")
+                    try:  
+                        close_btn.click()
+                        print('1 Button closed ')
+                    except:
+                        print('No close Button')
+                        pass
+
                 self.search_elmt.clear()
                 self.search_elmt.send_keys(self.app.cus_order.get())
 
@@ -1857,7 +1872,10 @@ class Bot_POS:
                         # * ขอใบกำกับป่าว
                         if self.app.tax_bool.get():
                             print("Tax_needed")
-                            self.addTaxInvCustomer()
+                            if self.app.marketplace_target.get() == 'SHOPEE':
+                                self.addTaxInvCustomer()
+                            elif self.app.marketplace_target.get() == 'LAZADA':
+                                self.addTaxInvCustomerLaz()
                             # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ
                             # result = self.wait1.until(EC.text_to_be_present_in_element()))
                         else:
@@ -2204,12 +2222,9 @@ class Bot_POS:
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
-            name = f"""{
-                name} ({self.app.tax_branch.get()})"""
+            name = f"""{name} ({self.app.tax_branch.get()})"""
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
-            self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
-            name = f"""{
-                name} (สาขา{self.app.tax_branch.get()})"""
+            name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -2230,14 +2245,6 @@ class Bot_POS:
             # nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
 
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
-        # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
-        #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
-        # self.finProvince = finProvince.strip().lstrip("จังหวัด")
-
         # กรอก Address
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
@@ -2249,47 +2256,6 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
         self.email_input.clear()
         self.email_input.send_keys(self.app.cus_email.get())
-
-        ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
-        # # dropdown Country
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
-        # time.sleep(1)
-        # # select thailand in dropdown
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
-
-        # # province dropdown
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-        #     self.app.cus_province.get().replace("จังหวัด", ""))  # province input
-        # time.sleep(1.75)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-        #     self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
-        # time.sleep(1.75)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # # SubDistrict drop
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-        #     self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-        # time.sleep(1.75)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # tel.
         self.driver.find_element(
@@ -2306,6 +2272,277 @@ class Bot_POS:
         # รอมันหายก่อน
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        
+    def addTaxInvCustomerLaz(self):
+        tax_info = self.get_tax_info()
+        print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
+        name = self.app.cus_name.get()
+        # * เติมสาขาให้เรียบร้อย
+        if self.app.branch_type == 'สำนักงานใหญ่':
+            self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
+            name = f"""{name} ({self.app.tax_branch.get()})"""
+        elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
+            name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
+
+        self.driver.switch_to.window(
+            self.merged_dict['SMCO :: เปิดการขาย1'])
+        self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
+        time.sleep(0.75)
+        self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+        self.driver.find_element(
+            # nameTH
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+        self.driver.find_element(
+            # nameTH
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f"{tax_info['name']}")
+
+        self.driver.find_element(
+            # nameEN
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+        self.driver.find_element(
+            # nameEN
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f"{tax_info['name']}")
+
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
+        # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
+        #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
+        # self.finProvince = finProvince.strip().lstrip("จังหวัด")
+
+        # กรอก Address
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(tax_info['address_shortened'])
+
+        # # กรอก email
+        # self.email_input = self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
+        # self.email_input.clear()
+        # self.email_input.send_keys(self.app.cus_email.get())
+
+        ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
+        # dropdown Country
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
+        time.sleep(1)
+        # select thailand in dropdown
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
+
+        # province dropdown
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            tax_info['province'].replace("จังหวัด", ""))  # province input
+        time.sleep(1.75)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            tax_info['dist'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+        time.sleep(1.75)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+        # SubDistrict drop
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            tax_info['sub_dist'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
+        time.sleep(1.75)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+        # tel.
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
+        # self.wait1.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        # รอมันหายก่อน
+        self.wait1.until(EC.invisibility_of_element_located(
+            (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        
+    def extract_address_info(self, input):
+        # Create a copy of the output dictionary
+        result = input.copy()
+
+        # Remove the "ตำบล" and everything after it from the address
+        address_only = re.compile(r'ตำบล.*')
+        result['address_shortened'] = address_only.sub('', result['address']).strip()
+
+        # Define the regular expression pattern
+        pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
+
+        # Use the pattern to find matches in the address
+        matches = pattern.search(result['address'])
+
+        # Extract the matched groups
+        if matches:
+            result['sub_dist'] = matches.group(1)
+            result['dist'] = matches.group(2)
+            result['province'] = matches.group(3)
+        else:
+            result['sub_dist'] = None
+            result['dist'] = None
+            result['province'] = None
+        
+        # Add a space after the word "บริษัท" in the company name
+        result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
+
+        return result
+    
+    def get_tax_info(self, tax_num, tax_branch):
+        tax_input = str(tax_num)
+        branch = str(tax_branch)
+        jsession_id = ''
+
+        cookies = {
+            'JSESSIONID': '0000uelEKnUmVBz9ciAzvgnusDG:-1',
+        }
+
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            # 'Cookie': 'JSESSIONID=0000afl1mgz_VGdxFmh7f5mQJqf:-1',
+            'Origin': 'https://vsreg.rd.go.th',
+            'Referer': 'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+        }
+
+        params = ''
+
+        data = {
+            'operation': 'searchByTin',
+            'goto_page': '',
+            'tin': 'on',
+            'txtTin': tax_input,
+            'branotxt': '',
+            'fname': 'null',
+            'lname': 'null',
+        }
+
+        times = 1
+
+        data2 = {
+            'operation': 'GotoPage_Click',
+            'goto_page': f'{times}',
+            'tin': 'on',
+            'txtTin': tax_input,
+            'branotxt': '',
+            'fname': 'null',
+            'lname': 'null',
+        }
+
+        while True:
+            if times == 1:
+                print("times = 1")
+                response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet',params=params, headers=headers, data=data)
+                print("responseไรมา",response.cookies)
+                jsession_id = response.cookies['JSESSIONID']
+            elif times > 1:
+                print("jsession_id", jsession_id)
+                cookies['JSESSIONID'] = f'{jsession_id}'
+                data2['goto_page'] = f'{times}'
+                response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',params=params, cookies=cookies ,headers=headers, data=data2)      
+            try:
+                response.raise_for_status()
+                soup = BeautifulSoup(response.content, 'html.parser')
+                # print("ได้ไรออกมา", soup)
+                ###หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
+                menu_elements = soup.select('tr[class^="trMenu"]')
+                is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
+                print("มีหลายหน้า?: ", is_many_page)
+                search_result = []
+                output = ""
+                
+                #ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
+                if len(menu_elements):
+                    #มี <tr>
+                    for menu_element in menu_elements:
+                        result_data = {
+                        "no":"",
+                        "tax_num":"",
+                        "branch":"",
+                        "name":"",
+                        "address":"",
+                        "postal_code":""
+                        }
+                        
+                        # print(menu_element) <<หาทั้งหมด
+                        # tr = menu_element.find('tr')
+                        # ในแต่ละ <tr> มี <td> หลายอัน
+                        tds = menu_element.find_all('td')
+                        for idx, key in enumerate(result_data):
+                            b = tds[idx].find('b')
+                            result = b.find('font').text.strip()
+                            result = re.sub("\s{2,}"," ",result)
+                            
+                            #ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
+                            if idx == 1 and len(result)>13:             
+                                result = result[-13:]
+                                
+                            print(result)  
+                            result_data[key] = result 
+                        print(" ")   
+                        search_result.append(result_data)
+                    
+                    # เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
+                    for item in search_result:
+                        if item['branch'] == branch:
+                            output = item
+                            print("เกบค่าลง output")
+                            break
+                    if bool(output) == False:
+                        print("ว่างต้องวนใหม่")
+                        times+=1
+                        continue
+                    else:
+                        print("ใช้ได้",output)
+                        break
+                            
+                elif bool(menu_elements) == False:
+                    #ไม่มี <tr>
+                    print("ไม่มีใบกำกับ")
+                    break
+                
+                
+            except requests.exceptions.HTTPError as e:
+                print(f"HTTP Error occurred: {e}")
+            except Exception as e:
+                print(f"An error occured: {e}")
+            break
+                
+        output = self.extract_address_info(output)
+        print("output: ", output) 
+        return output
 
 
 if __name__ == "__main__":
