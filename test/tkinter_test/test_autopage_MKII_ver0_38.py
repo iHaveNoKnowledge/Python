@@ -938,6 +938,8 @@ class MyApp:
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 print("รหัสประจำสาขา= ",
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
+                branch = self.find_branch(self.nondistortedData['รหัสประจำสาขา'])
+                self.tax_branch.set(branch)
 
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
                       bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
@@ -973,9 +975,6 @@ class MyApp:
                     elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สาขาย่อย")
-                        branch = self.find_branch(
-                            self.nondistortedData['รหัสประจำสาขา'])
-                        self.tax_branch.set(branch)
                         self.display_is_tax.config(
                             background="#ff0055", foreground="#FFF", font='Chiller 10 bold')
                         self.tax_num.set(tax_num_only)
@@ -1874,10 +1873,12 @@ class Bot_POS:
                             print("Tax_needed")
                             if self.app.marketplace_target.get() == 'SHOPEE':
                                 self.addTaxInvCustomer()
-                            elif self.app.marketplace_target.get() == 'LAZADA':
-                                self.addTaxInvCustomerLaz()
-                            # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ
-                            # result = self.wait1.until(EC.text_to_be_present_in_element()))
+                                
+                            # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
+                            # elif self.app.marketplace_target.get() == 'LAZADA':
+                            #     self.addTaxInvCustomerLaz()
+                            
+                           
                         else:
                             print("no_Tax_needed")
                             self.addNormalCustomer(self.cus_search)
@@ -2274,7 +2275,7 @@ class Bot_POS:
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
         
     def addTaxInvCustomerLaz(self):
-        tax_info = self.get_tax_info()
+        tax_info = self.get_tax_info(self.app.tax_num.get(), self.app.tax_branch)
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
@@ -2381,33 +2382,36 @@ class Bot_POS:
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
         
     def extract_address_info(self, input):
-        # Create a copy of the output dictionary
-        result = input.copy()
+        try:
+            # Create a copy of the output dictionary
+            result = input.copy()
 
-        # Remove the "ตำบล" and everything after it from the address
-        address_only = re.compile(r'ตำบล.*')
-        result['address_shortened'] = address_only.sub('', result['address']).strip()
+            # Remove the "ตำบล" and everything after it from the address
+            address_only = re.compile(r'ตำบล.*')
+            result['address_shortened'] = address_only.sub('', result['address']).strip()
 
-        # Define the regular expression pattern
-        pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
+            # Define the regular expression pattern
+            pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
 
-        # Use the pattern to find matches in the address
-        matches = pattern.search(result['address'])
+            # Use the pattern to find matches in the address
+            matches = pattern.search(result['address'])
 
-        # Extract the matched groups
-        if matches:
-            result['sub_dist'] = matches.group(1)
-            result['dist'] = matches.group(2)
-            result['province'] = matches.group(3)
-        else:
-            result['sub_dist'] = None
-            result['dist'] = None
-            result['province'] = None
-        
-        # Add a space after the word "บริษัท" in the company name
-        result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
+            # Extract the matched groups
+            if matches:
+                result['sub_dist'] = matches.group(1)
+                result['dist'] = matches.group(2)
+                result['province'] = matches.group(3)
+            else:
+                result['sub_dist'] = None
+                result['dist'] = None
+                result['province'] = None
+            
+            # Add a space after the word "บริษัท" in the company name
+            result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
 
-        return result
+            return result
+        except:
+            return input
     
     def get_tax_info(self, tax_num, tax_branch):
         tax_input = str(tax_num)
