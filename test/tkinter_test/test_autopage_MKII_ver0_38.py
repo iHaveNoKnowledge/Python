@@ -938,7 +938,7 @@ class MyApp:
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 print("รหัสประจำสาขา= ",
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
-                branch = self.find_branch(self.nondistortedData['รหัสประจำสาขา'])
+                branch = self.find_branch(str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch.set(branch)
 
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
