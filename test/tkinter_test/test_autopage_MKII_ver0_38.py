@@ -776,7 +776,7 @@ class MyApp:
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
-        pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s]+$')
+        pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W]+$')
         is_usable = bool(re.match(pattern, text))
         if is_usable:
             return text
@@ -938,13 +938,14 @@ class MyApp:
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
                 print("รหัสประจำสาขา= ",
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
-                branch = self.find_branch(str(self.nondistortedData['รหัสประจำสาขา']))
+                branch = self.find_branch(
+                    str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch.set(branch)
 
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
                       bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
-                #ถ้า col หมายเลขประจำตัวผู้เสียภาษี ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
+                # ถ้า col หมายเลขประจำตัวผู้เสียภาษี ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
                 if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
@@ -1679,7 +1680,7 @@ class Bot_POS:
                     # print(
                     #     "Cannot find the variable self.input_count (no counter number, so skip!)")
                     # # print("1 times click as well")
-                    try:  
+                    try:
                         close_btn.click()
                         print('1 Button closed ')
                     except:
@@ -1873,12 +1874,11 @@ class Bot_POS:
                             print("Tax_needed")
                             if self.app.marketplace_target.get() == 'SHOPEE':
                                 self.addTaxInvCustomer()
-                                
+
                             # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
                             # elif self.app.marketplace_target.get() == 'LAZADA':
                             #     self.addTaxInvCustomerLaz()
-                            
-                           
+
                         else:
                             print("no_Tax_needed")
                             self.addNormalCustomer(self.cus_search)
@@ -2273,9 +2273,10 @@ class Bot_POS:
         # รอมันหายก่อน
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
-        
+
     def addTaxInvCustomerLaz(self):
-        tax_info = self.get_tax_info(self.app.tax_num.get(), self.app.tax_branch)
+        tax_info = self.get_tax_info(
+            self.app.tax_num.get(), self.app.tax_branch)
         print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
@@ -2380,7 +2381,7 @@ class Bot_POS:
         # รอมันหายก่อน
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
-        
+
     def extract_address_info(self, input):
         try:
             # Create a copy of the output dictionary
@@ -2388,10 +2389,12 @@ class Bot_POS:
 
             # Remove the "ตำบล" and everything after it from the address
             address_only = re.compile(r'ตำบล.*')
-            result['address_shortened'] = address_only.sub('', result['address']).strip()
+            result['address_shortened'] = address_only.sub(
+                '', result['address']).strip()
 
             # Define the regular expression pattern
-            pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
+            pattern = re.compile(
+                r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
 
             # Use the pattern to find matches in the address
             matches = pattern.search(result['address'])
@@ -2405,14 +2408,14 @@ class Bot_POS:
                 result['sub_dist'] = None
                 result['dist'] = None
                 result['province'] = None
-            
+
             # Add a space after the word "บริษัท" in the company name
             result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
 
             return result
         except:
             return input
-    
+
     def get_tax_info(self, tax_num, tax_branch):
         tax_input = str(tax_num)
         branch = str(tax_branch)
@@ -2468,38 +2471,40 @@ class Bot_POS:
         while True:
             if times == 1:
                 print("times = 1")
-                response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet',params=params, headers=headers, data=data)
-                print("responseไรมา",response.cookies)
+                response = requests.post(
+                    'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet', params=params, headers=headers, data=data)
+                print("responseไรมา", response.cookies)
                 jsession_id = response.cookies['JSESSIONID']
             elif times > 1:
                 print("jsession_id", jsession_id)
                 cookies['JSESSIONID'] = f'{jsession_id}'
                 data2['goto_page'] = f'{times}'
-                response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',params=params, cookies=cookies ,headers=headers, data=data2)      
+                response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',
+                                         params=params, cookies=cookies, headers=headers, data=data2)
             try:
                 response.raise_for_status()
                 soup = BeautifulSoup(response.content, 'html.parser')
                 # print("ได้ไรออกมา", soup)
-                ###หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
+                # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
                 menu_elements = soup.select('tr[class^="trMenu"]')
                 is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
                 print("มีหลายหน้า?: ", is_many_page)
                 search_result = []
                 output = ""
-                
-                #ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
+
+                # ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
                 if len(menu_elements):
-                    #มี <tr>
+                    # มี <tr>
                     for menu_element in menu_elements:
                         result_data = {
-                        "no":"",
-                        "tax_num":"",
-                        "branch":"",
-                        "name":"",
-                        "address":"",
-                        "postal_code":""
+                            "no": "",
+                            "tax_num": "",
+                            "branch": "",
+                            "name": "",
+                            "address": "",
+                            "postal_code": ""
                         }
-                        
+
                         # print(menu_element) <<หาทั้งหมด
                         # tr = menu_element.find('tr')
                         # ในแต่ละ <tr> มี <td> หลายอัน
@@ -2507,17 +2512,17 @@ class Bot_POS:
                         for idx, key in enumerate(result_data):
                             b = tds[idx].find('b')
                             result = b.find('font').text.strip()
-                            result = re.sub("\s{2,}"," ",result)
-                            
-                            #ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
-                            if idx == 1 and len(result)>13:             
+                            result = re.sub("\s{2,}", " ", result)
+
+                            # ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
+                            if idx == 1 and len(result) > 13:
                                 result = result[-13:]
-                                
-                            print(result)  
-                            result_data[key] = result 
-                        print(" ")   
+
+                            print(result)
+                            result_data[key] = result
+                        print(" ")
                         search_result.append(result_data)
-                    
+
                     # เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
                     for item in search_result:
                         if item['branch'] == branch:
@@ -2526,26 +2531,25 @@ class Bot_POS:
                             break
                     if bool(output) == False:
                         print("ว่างต้องวนใหม่")
-                        times+=1
+                        times += 1
                         continue
                     else:
-                        print("ใช้ได้",output)
+                        print("ใช้ได้", output)
                         break
-                            
+
                 elif bool(menu_elements) == False:
-                    #ไม่มี <tr>
+                    # ไม่มี <tr>
                     print("ไม่มีใบกำกับ")
                     break
-                
-                
+
             except requests.exceptions.HTTPError as e:
                 print(f"HTTP Error occurred: {e}")
             except Exception as e:
                 print(f"An error occured: {e}")
             break
-                
+
         output = self.extract_address_info(output)
-        print("output: ", output) 
+        print("output: ", output)
         return output
 
 
@@ -2601,6 +2605,7 @@ if __name__ == "__main__":
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
 # *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
 # !36 ใช้หาใบกำกับได้ดีกว่า vatinfo สะอีก https://www.dataforthai.com/company/{เลข13หลัก}/
+# !37 ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
 
 
 # เก็บข้อมูล
