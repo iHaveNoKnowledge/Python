@@ -2149,7 +2149,8 @@ class Bot_POS:
                             if self.final_popup.is_displayed() == True:
                                 break
                             else:
-                                continue
+                                # continue
+                                break
 
                         else:
                             print("จบสูตร")
