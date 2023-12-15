@@ -776,7 +776,7 @@ class MyApp:
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
-        pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W]+$')
+        pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W\_]+$')
         is_usable = bool(re.match(pattern, text))
         if is_usable:
             return text
@@ -2607,6 +2607,7 @@ if __name__ == "__main__":
 # *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
 # !36 ใช้หาใบกำกับได้ดีกว่า vatinfo สะอีก https://www.dataforthai.com/company/{เลข13หลัก}/
 # !37 ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
+# !38 module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
 
 
 # เก็บข้อมูล
