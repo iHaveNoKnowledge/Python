@@ -776,7 +776,12 @@ class MyApp:
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
-        pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W\_]+$')
+        #! Pattern เก่า
+        #! pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W\_]+$')
+
+        # * สำหรับแก้ปัญหาข้อที่ 38 // pattern ใหม่
+        pattern = re.compile(
+            r'^[a-zA-Z0-9ก-๙\s\W_!@#$%^&*()\-_=+/[\]{}|;:\'",<.>/?]+$')
         is_usable = bool(re.match(pattern, text))
         if is_usable:
             return text
@@ -1104,10 +1109,16 @@ class MyApp:
                     f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price)+float(self.cus_ship_cost.get()))}")
                 self.update_log(
                     f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
-                self.update_log(
-                    f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
-                self.update_log(
-                    f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+
+                # * จากปัญหาข้อที่ 37 // การอัพเดท LOG เนื่องจาก LAZ กับ Shopee มีเงื่อนไข การใส่ค่าขนส่งในการออกบิลไม่เหมือนกัน SHOPEE ใส่หมด แต่ LAZ ใส่เป็นบาง ORDER ขึ้นอยู่กับว่า ลูกค้า จะ inbox มาขอให้ใส่หรือไม่
+                if self.marketplace_target.get() == "SHOPEE":
+                    self.update_log(
+                        f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                elif self.marketplace_target.get() == "LAZADA":
+                    self.update_log(
+                        f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
+                    self.update_log(
+                        f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
             else:
                 print(
@@ -1220,12 +1231,6 @@ class MyApp:
         self.search_thread = threading.Thread(
             target=lambda: self.order_search(self.search_query, self.search_complete))
         self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
-
-        # if self.search_thread.is_alive() or self.get_tabs_thread.is_alive():
-        #     print("Thread ยังไม่ตาย")
-        #     self.bot_state.set(False)
-        #     print("ฆ่า Thread")
-        # self.bot_state.set(True)
 
         print("เริ่มThreadใหม่")
         self.search_thread.start()
@@ -1801,7 +1806,7 @@ class Bot_POS:
                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
             print("self.app.tax_bool: ", self.app.tax_bool.get())
 
-            # * แก้ปัญหาในข้อ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ search
+            # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ search
             self.wait1.until(EC.element_to_be_clickable(
                 (By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
             if self.app.tax_bool.get() == True:
@@ -1880,8 +1885,8 @@ class Bot_POS:
                                 self.addTaxInvCustomer()
 
                             # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
-                            # elif self.app.marketplace_target.get() == 'LAZADA':
-                            #     self.addTaxInvCustomerLaz()
+                            elif self.app.marketplace_target.get() == 'LAZADA':
+                                self.addTaxInvCustomerLaz()
 
                         else:
                             print("no_Tax_needed")
@@ -2268,14 +2273,18 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+
+        # * กด Save
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+
         # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
         #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-        # รอมันหายก่อน
+
+        # รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
@@ -2376,16 +2385,14 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-        # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
-        # self.wait1.until(EC.visibility_of_element_located(
-        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+
+        # #* กด Save
         # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-        # รอมันหายก่อน
-        self.wait1.until(EC.invisibility_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+
+        # #* รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
+        # self.wait1.until(EC.invisibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
     def extract_address_info(self, input):
         try:
@@ -2544,7 +2551,7 @@ class Bot_POS:
 
                 elif bool(menu_elements) == False:
                     # ไม่มี <tr>
-                    print("ไม่มีใบกำกับ")
+                    print("ไม่มีใบกำกับจาก request")
                     break
 
             except requests.exceptions.HTTPError as e:
@@ -2610,9 +2617,9 @@ if __name__ == "__main__":
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
 # *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
 # !36 ใช้หาใบกำกับได้ดีกว่า vatinfo สะอีก https://www.dataforthai.com/company/{เลข13หลัก}/
-# !37 ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
-# !38 module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
-# ?39 แก้แล้ว //โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
+# ?37 แก้แล้ว //ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
+# ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
+# ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
 
 
 # เก็บข้อมูล
