@@ -455,6 +455,7 @@ class MyApp:
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
         df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['อีเมลสำหรับรับใบกำกับภาษี'], df[
             'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0.00, "", "", 0, "", "", ""
+
         # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
                       'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'taxCode': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str}
@@ -527,8 +528,12 @@ class MyApp:
         # result = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
 
-        # เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy เพิ่ม
+        # เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result['รายละเอียดที่อยู่'] = result['billingAddr'].copy()
+
+        result['ประเภทสาขา'] = result['branchNumber'].copy()
+        print("result d-type", type(result['ประเภทสาขา']))
+        result['ประเภทสาขา'] = result['ประเภทสาขา'].apply(self.find_branch)
 
         # ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
@@ -810,6 +815,7 @@ class MyApp:
                 return b_no_code
 
     def find_branch(self, input):
+        # จะ method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น
         # ตัวแปร branch
         input = re.sub(r'\s+', '', input)
         branch = str(input).strip()
@@ -832,6 +838,12 @@ class MyApp:
         else:
             print("Branch not found return as Headoffice")
             return 'สำนักงานใหญ่'
+
+    def branch_to_branch_type(self, branch):
+        if 'สำนักงานใหญ่' in branch:
+            return 'สำนักงานใหญ่'
+        else:
+            return ''
 
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
@@ -2295,7 +2307,7 @@ class Bot_POS:
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
-            self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
+            self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
             name = f"""{name} ({self.app.tax_branch.get()})"""
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
@@ -2537,7 +2549,7 @@ class Bot_POS:
 
                     # เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
                     for item in search_result:
-                        if item['branch'] == branch:
+                        if item['branch'] == self.app.tax_branch.get():
                             output = item
                             print("เกบค่าลง output")
                             break
