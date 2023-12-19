@@ -864,24 +864,26 @@ class MyApp:
         match = pattern.findall(branch)
         # ตรวจสอบค่าของตัวแปร branch
         if match:
-            # print("ค่าของตัวแปร branch เป็น 'สำนักงานใหญ่' เลขสาขาเป็น 00000")
-            # print("return ค่า 'สำนักงานใหญ่'")
             return 'สำนักงานใหญ่'
-        
+
         elif re.findall(r'[0-9]', branch):
+            print("2nd condition", branch)
             matches = re.findall(r'สาขา[0-9]+|0[0-9]{4}', branch)
-            print("2nd condition")
-            
-            for match in matches:   
-                match = re.sub('สาขา','',match)
-                branch = match.strip()
-                print("branch = ",branch)
-            
-            if len(branch) > 5 and re.match(r'[0-9]', branch):
+            print("matches", matches)
+
+            for match in matches:
+                if len(match) >= 5:
+                    match = re.sub('สาขา', '', match)
+                    branch = match.strip()
+                    print("branch = ", branch)
+                else:
+                    branch = "สำนักงานใหญ่"
+
+            if len(branch) > 5 and re.match(r'[0-9]', branch) and bool(matches):
                 print(branch[-5:])
                 print("Return แค่ 5 ตัวท้าย")
                 return branch
-            elif re.match(r'[0-9]', branch):
+            elif re.match(r'[0-9]', branch) and bool(matches):
                 txt = "{:0>5}"
                 print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
                 print(txt.format(branch))
@@ -889,7 +891,7 @@ class MyApp:
             else:
                 print("บิดเบี้ยว", branch)
                 return 'สำนักงานใหญ่'
-                
+
         else:
             # print("Branch not found return as Headoffice")
             return 'สำนักงานใหญ่'
