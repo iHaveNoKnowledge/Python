@@ -825,7 +825,7 @@ class MyApp:
         # ตรวจสอบค่าของตัวแปร branch
         if match:
             # print("ค่าของตัวแปร branch เป็น 'สำนักงานใหญ่' เลขสาขาเป็น 00000")
-            print("return ค่า 'สำนักงานใหญ่'")
+            # print("return ค่า 'สำนักงานใหญ่'")
             return 'สำนักงานใหญ่'
         elif re.match(r'^[0-9]+$', branch):
             if len(branch) > 5:
@@ -836,7 +836,7 @@ class MyApp:
                 print("Branch: ", txt.format(branch))
                 return txt.format(branch)
         else:
-            print("Branch not found return as Headoffice")
+            # print("Branch not found return as Headoffice")
             return 'สำนักงานใหญ่'
 
     def branch_to_branch_type(self, branch):
@@ -2240,7 +2240,7 @@ class Bot_POS:
         return (self.splited)
 
     def addTaxInvCustomer(self):
-        print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
+        print("ชื่อลูกค้าเป็นไง SHOP", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
@@ -2303,7 +2303,7 @@ class Bot_POS:
     def addTaxInvCustomerLaz(self):
         tax_info = self.get_tax_info(
             self.app.tax_num.get(), self.app.tax_branch)
-        print("ชื่อลูกค้าเป็นไง", self.app.cus_name.get())
+        print("ชื่อลูกค้าเป็นไง LAZ", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
