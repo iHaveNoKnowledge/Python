@@ -497,13 +497,26 @@ class MyApp:
             'ประเภทสาขา': 'first',
             'หมายเหตุจากผู้ซื้อ': 'first',
             'บันทึก': 'first',
-            'billingName': 'first', 'billingAddr': 'first', 'billingAddr2': 'first', 'billingAddr4': 'first', 'billingAddr3': 'first', 'billingAddr5': 'first', 'taxCode': 'first', 'billingPhone': 'first', 'customerName': 'first', 'paidPrice': 'sum', 'createTime': 'first', 'branchNumber': 'first'
+            'billingName': 'first',
+            'billingAddr': 'first',
+            'billingAddr2': 'first',
+            'billingAddr4': 'first',
+            'billingAddr3': 'first',
+            'billingAddr5': 'first',
+            'taxCode': 'first',
+            'billingPhone': 'first',
+            'customerName': 'first',
+            'paidPrice': 'sum',
+            'createTime': 'first',
+            'branchNumber': 'first'
         })
         result_with_additional_columns_df = result_with_additional_columns_df.astype(
             {'billingAddr5': str, 'taxCode': str, 'billingPhone': str})
 
         # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
-        # สร้าง sum_column  ขึ้นมาใหม่
+
+        # ** ปรับแต่ง Column --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        # * สร้าง sum_column  ขึ้นมาใหม่
         # > 'ราคาขายสุทธิ'
         total_per_order_df = df.groupby('orderNumber')[
             'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
@@ -517,40 +530,67 @@ class MyApp:
         total_shippingfee_df = df.groupby('orderNumber')['shippingFee'].sum(
         ).reset_index(name='ค่าจัดส่งที่ชำระโดยผู้ซื้อ')
 
-        merge1 = pd.merge(result_count, total_per_order_df,
-                          on='orderNumber', how='left')
-        merge2 = pd.merge(merge1, total_sellerDiscountTotal_df,
-                          on='orderNumber', how='left')
-        merge3 = pd.merge(
-            merge2, result_with_additional_columns_df, on='orderNumber', how='left')
-        result = pd.merge(merge3, total_shippingfee_df,
-                          on='orderNumber', how='left')
-        # result = pd.concat([result_count, total_per_order_df,
+        # * ปรับแต่งค่าใน Column
+        # result_with_additional_columns_df = result_with_additional_columns_df['branchNumber'].map(lambda x: )
+
+        # *  รวม dataframe เป็น dataframe ใหม่
+        merge1_df = pd.merge(result_count, total_per_order_df,
+                             on='orderNumber', how='left')
+        merge2_df = pd.merge(merge1_df, total_sellerDiscountTotal_df,
+                             on='orderNumber', how='left')
+        merge3_df = pd.merge(
+            merge2_df, result_with_additional_columns_df, on='orderNumber', how='left')
+        result_df = pd.merge(merge3_df, total_shippingfee_df,
+                             on='orderNumber', how='left')
+        # result_df = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
 
-        # เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
-        result['รายละเอียดที่อยู่'] = result['billingAddr'].copy()
+        # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
+        result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
 
-        result['ประเภทสาขา'] = result['branchNumber'].copy()
-        print("result d-type", type(result['ประเภทสาขา']))
-        result['ประเภทสาขา'] = result['ประเภทสาขา'].apply(self.find_branch)
+        result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
+        print("result_df d-type", type(result_df['ประเภทสาขา']))
 
-        # ตรวจสอบผลลัพธ์
+        result_df['ประเภทสาขา'] = result_df['ประเภทสาขา'].apply(
+            self.find_branch)
+
+        # * ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
         print(result_count)
 
         print("ราคาขายสุทธิ")
         print(total_per_order_df)
 
-        # เปลี่ยนชื่อ column
-        result.rename(columns={'orderNumber': 'หมายเลขคำสั่งซื้อ',
-                               'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)', 'itemName': 'ชื่อสินค้า', 'unitPrice': 'ราคาขาย',  'status': 'สถานะการสั่งซื้อ', 'billingName': 'ชื่อ', 'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'billingAddr2': 'แขวง/ตำบล', 'billingAddr4': 'เขต/อำเภอ.1', 'billingAddr3': 'จังหวัด.1', 'billingAddr5': 'รหัสไปรษณีย์.1', 'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี', 'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'paidPrice': 'จำนวนเงินทั้งหมด', 'createTime': 'วันที่ทำการสั่งซื้อ', 'branchNumber': 'รหัสประจำสาขา', 'variation': 'ชื่อตัวเลือก'}, inplace=True)
-        result['หมายเลขคำสั่งซื้อ'] = result['หมายเลขคำสั่งซื้อ'].astype(str)
+        # * เปลี่ยนชื่อ column
+        result_df.rename(columns={
+            'orderNumber': 'หมายเลขคำสั่งซื้อ',
+            'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)',
+            'itemName': 'ชื่อสินค้า',
+            'unitPrice': 'ราคาขาย',
+            'status': 'สถานะการสั่งซื้อ',
+            'billingName': 'ชื่อ',
+            'billingAddr': 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป',
+            'billingAddr2': 'แขวง/ตำบล',
+            'billingAddr4': 'เขต/อำเภอ.1',
+            'billingAddr3': 'จังหวัด.1',
+            'billingAddr5': 'รหัสไปรษณีย์.1',
+            'taxCode': 'หมายเลขประจำตัวผู้เสียภาษี',
+            'billingPhone': 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี',
+            'customerName': 'ชื่อผู้ใช้ (ผู้ซื้อ)',
+            'paidPrice': 'จำนวนเงินทั้งหมด',
+            'createTime': 'วันที่ทำการสั่งซื้อ',
+            'branchNumber': 'รหัสประจำสาขา',
+            'variation': 'ชื่อตัวเลือก'
+        },
+            inplace=True
+        )
+        result_df['หมายเลขคำสั่งซื้อ'] = result_df['หมายเลขคำสั่งซื้อ'].astype(
+            str)
         print("ตารางใหม่")
-        print(result)
+        print(result_df)
         excel_file_path = "output_test.xlsx"
-        result.to_excel(excel_file_path, index=False)
-        return result
+        result_df.to_excel(excel_file_path, index=False)
+        return result_df
 
     def f(self, d):
         return '{0:n}'.format(d)
@@ -827,14 +867,29 @@ class MyApp:
             # print("ค่าของตัวแปร branch เป็น 'สำนักงานใหญ่' เลขสาขาเป็น 00000")
             # print("return ค่า 'สำนักงานใหญ่'")
             return 'สำนักงานใหญ่'
-        elif re.match(r'^[0-9]+$', branch):
-            if len(branch) > 5:
-                print("Branch: ", branch[-5:])
-                return branch[-5:]
-            else:
+        
+        elif re.findall(r'[0-9]', branch):
+            matches = re.findall(r'สาขา[0-9]+|0[0-9]{4}', branch)
+            print("2nd condition")
+            
+            for match in matches:   
+                match = re.sub('สาขา','',match)
+                branch = match.strip()
+                print("branch = ",branch)
+            
+            if len(branch) > 5 and re.match(r'[0-9]', branch):
+                print(branch[-5:])
+                print("Return แค่ 5 ตัวท้าย")
+                return branch
+            elif re.match(r'[0-9]', branch):
                 txt = "{:0>5}"
-                print("Branch: ", txt.format(branch))
-                return txt.format(branch)
+                print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
+                print(txt.format(branch))
+                return branch
+            else:
+                print("บิดเบี้ยว", branch)
+                return 'สำนักงานใหญ่'
+                
         else:
             # print("Branch not found return as Headoffice")
             return 'สำนักงานใหญ่'
@@ -1024,7 +1079,8 @@ class MyApp:
                 elif self.marketplace_target.get() == 'LAZADA':
                     pass
 
-                self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
+                    self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                 if "กรุงเทพ" in self.cleaned_address:
                     self.cleaned_address = self.cleaned_address.replace(
@@ -1469,7 +1525,8 @@ class UserAccount:
             is_closable = True
             print("ปิดได้ไหม ", is_closable)
             if is_closable:
-                self.display_btn_txt = f"Logged in !! ID : {self.app.user_id.get()}"
+                self.display_btn_txt = f"Logged in !! ID : {
+                    self.app.user_id.get()}"
                 self.app.display_acc_btn.config(text=self.display_btn_txt)
                 self.subwindow.destroy()
                 return self.display_btn_txt
@@ -2364,7 +2421,8 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
+            # province input
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             tax_info['province'].replace("จังหวัด", ""))  # province input
         time.sleep(1.75)
@@ -2372,11 +2430,14 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+            # District drop
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
+            # District
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            tax_info['dist'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+            # District
+            tax_info['dist'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
@@ -2385,9 +2446,11 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
+            # SubDistrict
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            tax_info['sub_dist'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
+            # SubDistrict
+            tax_info['sub_dist'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
