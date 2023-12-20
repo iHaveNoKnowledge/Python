@@ -860,41 +860,47 @@ class MyApp:
         input = re.sub(r'\s+', '', input)
         branch = str(input).strip()
 
-        pattern = re.compile(r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|^0+$")
+        pattern = re.compile(r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
         match = pattern.findall(branch)
         # ตรวจสอบค่าของตัวแปร branch
         if match:
             return 'สำนักงานใหญ่'
 
-        elif re.findall(r'[0-9]', branch):
+          # เมื่อไม่มีสำนักงานใหญ่ ให้ดูว่ามีเลขไหม
+        elif re.findall(r'[0-9]+', branch):
+            #   เมื่อมีเลขให้ดูว่ามีคำว่าสาขากับเลขหรือไม่
             print("2nd condition", branch)
-            matches = re.findall(r'สาขา[0-9]+|0[0-9]{4}', branch)
-            print("matches", matches)
-
-            for match in matches:
-                if len(match) >= 5:
-                    match = re.sub('สาขา', '', match)
-                    branch = match.strip()
-                    print("branch = ", branch)
+            if re.search(r'สาขา.*[0-9]', branch): 
+                matches = re.search(r'สาขา.*[0-9]', branch)
+                match = matches[0]
+                match = re.sub("สาขา",'', match).strip()
+                print("return", match)
+                
+            elif re.search(r'0[0-9]{0,4}', branch):
+                print("เลขสาขาตรงๆ ครบบ้างไม่ครบบ้าง")
+                if len(branch) == 5:
+                    print("Return แค่ 5 ตัวท้าย")
+                    print("return", branch[-5:])
+                    #todo return branch
+                
+                elif len(branch) < 5:
+                    txt = "{:0>5}"
+                    print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
+                    print("return", txt.format(branch))
+                    #todo return branch
                 else:
-                    branch = "สำนักงานใหญ่"
-
-            if len(branch) > 5 and re.match(r'[0-9]', branch) and bool(matches):
-                print(branch[-5:])
-                print("Return แค่ 5 ตัวท้าย")
-                return branch
-            elif re.match(r'[0-9]', branch) and bool(matches):
-                txt = "{:0>5}"
-                print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
-                print(txt.format(branch))
-                return branch
+                    print("บิดเบี้ยว", branch)
+                    print("return สำนักงานใหญ่")
+                    #todo return "สำนักงานใหญ่"
             else:
-                print("บิดเบี้ยว", branch)
-                return 'สำนักงานใหญ่'
-
+                print("not match any subcondition in the 2nd condition")
+                print("return สำนักงานใหญ่")
+                #todo return "สำนักงานใหญ่"
+                
         else:
-            # print("Branch not found return as Headoffice")
-            return 'สำนักงานใหญ่'
+            print("ไม่มีบอกสำนักงาน")
+            print("return ค่า สำนักงานใหญ่ แล้วกัน")
+            #todo return "สำนักงานใหญ่"
 
     def branch_to_branch_type(self, branch):
         if 'สำนักงานใหญ่' in branch:
