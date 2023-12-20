@@ -871,11 +871,20 @@ class MyApp:
         elif re.findall(r'[0-9]+', branch):
             #   เมื่อมีเลขให้ดูว่ามีคำว่าสาขากับเลขหรือไม่
             print("2nd condition", branch)
-            if re.search(r'สาขา.*[0-9]', branch):
-                matches = re.search(r'สาขา.*[0-9]', branch)
+            if re.search(r'สาขา.*[0-9]', branch): 
+                matches = re.search(r'[0-9]+', branch)
                 match = matches[0]
-                match = re.sub("สาขา", '', match).strip()
-                print("return", match)
+                match = match.strip()
+                if len(match) == 5 and match[0] == "0":
+                    print("ตัดสาขาออกแล้วมีเลขครบ 5 หลักพอดี", match)
+                    return match
+                
+                elif len(match) < 5: 
+                    txt = "{:0>5}"
+                    print("เลขที่ได้หลังตัดสาขาออก มีหลักไม่ครบ เติมหลัก แล้ว Return")
+                    print("ปรับ Format เป็น 5 หลัก")
+                    print("return", txt.format(match))
+                    return match
 
             elif re.search(r'0[0-9]{0,4}', branch) and (branch[0] == "0" and len(branch) <= 5):
                 branch = re.search(r'0[0-9]{0,4}', branch)[0]
