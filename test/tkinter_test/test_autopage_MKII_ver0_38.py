@@ -551,8 +551,18 @@ class MyApp:
         result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
         print("result_df d-type", type(result_df['ประเภทสาขา']))
 
-        result_df['ประเภทสาขา'] = result_df['ประเภทสาขา'].apply(
+        #* สกัดและหาเลขสาขา จากข้อมูลที่กรอกมั่วๆไร้ซึ่ง pattern จาก lazada exportfile และเก็บไว้ในตัวแปร extracted_branch_df สาขาจะแสดงเป็นเลข 5 หลักแทนช่องว่างด้วย 0 แต่สาขา 00000 จะแสดงเป็น "สำนักงานใหญ่"
+        extracted_branch_df = result_df['ประเภทสาขา'].apply(
             self.find_branch)
+
+        #* เปลี่ยน ค่าใน col branchNumber ให้กลายเป็นบอกเฉพาะเลขสาขาถ้าเป็นสาขาย่อย และ เป็นค่าว่างถ้าเป็นสำนักงานใหญ่ 
+        result_df['branchNumber'] = extracted_branch_df.copy()
+        result_df['branchNumber'] = result_df['branchNumber'].map(
+            lambda row: "" if row == "สำนักงานใหญ่" else row)
+
+        #* นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย"
+        result_df['ประเภทสาขา'] = extracted_branch_df.map(
+            lambda row: "สำนักงานใหญ่" if row == "สำนักงานใหญ่" else "สาขาย่อย")
 
         # * ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
@@ -860,7 +870,8 @@ class MyApp:
         input = re.sub(r'\s+', '', input)
         branch = str(input).strip()
 
-        pattern = re.compile(r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
+        pattern = re.compile(
+            r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
         match = pattern.findall(branch)
         # ตรวจสอบค่าของตัวแปร branch
         if match:
@@ -870,15 +881,15 @@ class MyApp:
         elif re.findall(r'[0-9]+', branch):
             #   เมื่อมีเลขให้ดูว่ามีคำว่าสาขากับเลขหรือไม่
             print("2nd condition", branch)
-            if re.search(r'สาขา.*[0-9]', branch): 
+            if re.search(r'สาขา.*[0-9]', branch):
                 matches = re.search(r'[0-9]+', branch)
                 match = matches[0]
                 match = match.strip()
                 if len(match) == 5 and match[0] == "0":
                     print("ตัดสาขาออกแล้วมีเลขครบ 5 หลักพอดี", match)
                     return match
-                
-                elif len(match) < 5: 
+
+                elif len(match) < 5:
                     txt = "{:0>5}"
                     print("เลขที่ได้หลังตัดสาขาออก มีหลักไม่ครบ เติมหลัก แล้ว Return")
                     print("ปรับ Format เป็น 5 หลัก")
