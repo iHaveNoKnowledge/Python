@@ -2501,7 +2501,9 @@ class Bot_POS:
         # self.wait1.until(EC.invisibility_of_element_located(
         #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
-    def extract_address_info(self, input):
+    #* function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
+    #! WIP ยังไม่พร้อมใช้งาน กำลังทำ
+    def classify_address_info(self, input):
         try:
             # Create a copy of the output dictionary
             result = input.copy()
@@ -2533,6 +2535,7 @@ class Bot_POS:
 
             return result
         except:
+            result['address_shortened'] = 
             return input
         
 
@@ -2612,9 +2615,9 @@ class Bot_POS:
                 search_result = []
                 output = ""
 
-                # ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
+                #* ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
                 if len(menu_elements):
-                    # มี <tr>
+                    #* มี <tr>
                     for menu_element in menu_elements:
                         result_data = {
                             "no": "",
@@ -2626,15 +2629,15 @@ class Bot_POS:
                         }
 
                         # print(menu_element) <<หาทั้งหมด
-                        # tr = menu_element.find('tr')
-                        # ในแต่ละ <tr> มี <td> หลายอัน
+                        #* tr = menu_element.find('tr')
+                        #* ในแต่ละ <tr> มี <td> หลายอัน
                         tds = menu_element.find_all('td')
                         for idx, key in enumerate(result_data):
                             b = tds[idx].find('b')
                             result = b.find('font').text.strip()
                             result = re.sub("\s{2,}", " ", result)
 
-                            # ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
+                            #* ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
                             if idx == 1 and len(result) > 13:
                                 result = result[-13:]
 
@@ -2643,7 +2646,7 @@ class Bot_POS:
                         print(" ")
                         search_result.append(result_data)
 
-                    # เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
+                    #* เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
                     for item in search_result:
                         if item['branch'] == self.app.tax_branch.get():
                             output = item
@@ -2668,7 +2671,7 @@ class Bot_POS:
                 print(f"An error occured: {e}")
             break
 
-        output = self.extract_address_info(output)
+        output = self.classify_address_info(output)
         print("output: ", output)
         return output
     
@@ -2682,11 +2685,11 @@ class Bot_POS:
         if bool(result) == False:
             # เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             manual_result_strcuture = {
-                'tax_num':'',
-                'branch':'',
-                'name':'',
-                'address':'',
-                'postal_code':'',
+                'tax_num':f'{self.app.tax_num.get()}',
+                'branch':f'{self.app.tax_branch.get()}',
+                'name':f'{self.app.cus_name.get()}',
+                'address':f'{}',
+                'postal_code':f'{self.app.nondistortedData['รหัสไปรษณีย์.1']}',
             }
             
         
