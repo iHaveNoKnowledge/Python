@@ -2678,8 +2678,18 @@ class Bot_POS:
         print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
         result = self.get_tax_info(str(tax_num), str(branch))
         
+        #กรณี หา
         if bool(result) == False:
+            # เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
+            manual_result_strcuture = {
+                'tax_num':'',
+                'branch':'',
+                'name':'',
+                'address':'',
+                'postal_code':'',
+            }
             
+        
 
 if __name__ == "__main__":
     def on_closing():
