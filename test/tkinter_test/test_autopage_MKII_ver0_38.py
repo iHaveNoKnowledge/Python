@@ -860,8 +860,7 @@ class MyApp:
         input = re.sub(r'\s+', '', input)
         branch = str(input).strip()
 
-        pattern = re.compile(
-            r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
+        pattern = re.compile(r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
         match = pattern.findall(branch)
         # ตรวจสอบค่าของตัวแปร branch
         if match:
@@ -884,6 +883,7 @@ class MyApp:
                     print("เลขที่ได้หลังตัดสาขาออก มีหลักไม่ครบ เติมหลัก แล้ว Return")
                     print("ปรับ Format เป็น 5 หลัก")
                     print("return", txt.format(match))
+                    match = txt.format(match)
                     return match
 
             elif re.search(r'0[0-9]{0,4}', branch) and (branch[0] == "0" and len(branch) <= 5):
@@ -893,13 +893,14 @@ class MyApp:
                 if len(branch) == 5:
                     print("Return แค่ 5 ตัวท้าย")
                     print("return", branch[-5:])
+                    branch = branch[-5:]
                     return branch
 
                 elif len(branch) < 5:
                     txt = "{:0>5}"
                     print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
                     print("return", txt.format(branch))
-                    return branch
+                    return txt.format(branch)
                 else:
                     print("บิดเบี้ยว", branch)
                     print("return สำนักงานใหญ่")
