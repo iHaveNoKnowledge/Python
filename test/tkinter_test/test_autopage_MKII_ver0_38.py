@@ -2534,6 +2534,7 @@ class Bot_POS:
             return result
         except:
             return input
+        
 
     def get_tax_info(self, tax_num, tax_branch):
         tax_input = str(tax_num)
@@ -2670,7 +2671,15 @@ class Bot_POS:
         output = self.extract_address_info(output)
         print("output: ", output)
         return output
-
+    
+    def get_vatinfo_data(self, tax_num, branch):
+        if branch == "":
+            branch = "สำนักงานใหญ่"
+        print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
+        result = self.get_tax_info(str(tax_num), str(branch))
+        
+        if bool(result) == False:
+            
 
 if __name__ == "__main__":
     def on_closing():
