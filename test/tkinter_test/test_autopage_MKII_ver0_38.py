@@ -447,7 +447,6 @@ class MyApp:
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
 
-        #! WIP กำลังทำ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def group_by_order(self, file_input, dtype):
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input, dtype=dtype)
@@ -2535,7 +2534,8 @@ class Bot_POS:
 
             return result
         except:
-            result['address_shortened'] = 
+            # result['address_shortened'] = 
+            print("เหวอ")
             return input
         
 
