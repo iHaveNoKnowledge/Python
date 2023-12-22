@@ -1110,8 +1110,11 @@ class MyApp:
                 elif self.marketplace_target.get() == 'LAZADA':
                     pass
 
-                self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
+                if self.app.marketplace_target.get() == "SHOPEE":
+                    self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
                     self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                else:
+                    self.cleaned_address = 
 
                 if "กรุงเทพ" in self.cleaned_address:
                     self.cleaned_address = self.cleaned_address.replace(
