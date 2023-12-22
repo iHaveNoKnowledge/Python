@@ -1556,8 +1556,8 @@ class UserAccount:
             is_closable = True
             print("ปิดได้ไหม ", is_closable)
             if is_closable:
-                self.display_btn_txt = f"Logged in !! ID : {
-                    self.app.user_id.get()}"
+                self.display_btn_txt = f"""Logged in !! ID : {
+                    self.app.user_id.get()}"""
                 self.app.display_acc_btn.config(text=self.display_btn_txt)
                 self.subwindow.destroy()
                 return self.display_btn_txt
