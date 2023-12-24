@@ -2402,7 +2402,7 @@ class Bot_POS:
 
     def addTaxInvCustomerLaz(self):
         tax_info = self.get_vatinfo_data(
-            self.app.tax_num.get(), self.app.tax_branch)
+            self.app.tax_num.get(), self.app.tax_branch.get())
         print("ชื่อลูกค้าเป็นไง LAZ: ", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
@@ -2512,38 +2512,42 @@ class Bot_POS:
     # * function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
     #! WIP ยังไม่พร้อมใช้งาน กำลังทำ
     def classify_vatinfo_address(self, input):
-        # Create a copy of the output dictionary
-        result = input.copy()
+        try:
+            # Create a copy of the output dictionary
+            result = input
+            print("resultสำหรับ classify คือไร :", result)
 
-        # Remove the "ตำบล" and everything after it from the address
-        address_only = re.compile(r'ตำบล.*')
-        result['address_shortened'] = address_only.sub(
-            '', result['address']).strip()
+            # Remove the "ตำบล" and everything after it from the address
+            address_only = re.compile(r'ตำบล.*')
+            result['address_shortened'] = address_only.sub(
+                '', result['address']).strip()
 
-        # Define the regular expression pattern
-        pattern = re.compile(
-            r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
+            # Define the regular expression pattern
+            pattern = re.compile(
+                r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
 
-        # Use the pattern to find matches in the address
-        matches = pattern.search(result['address'])
+            # Use the pattern to find matches in the address
+            matches = pattern.search(result['address'])
 
-        # Extract the matched groups
-        if matches:
-            result['sub_dist'] = matches.group(1)
-            result['dist'] = matches.group(2)
-            result['province'] = matches.group(3)
-        else:
-            result['sub_dist'] = None
-            result['dist'] = None
-            result['province'] = None
+            # Extract the matched groups
+            if matches:
+                result['sub_dist'] = matches.group(1)
+                result['dist'] = matches.group(2)
+                result['province'] = matches.group(3)
+            else:
+                result['sub_dist'] = None
+                result['dist'] = None
+                result['province'] = None
 
-        # Add a space after the word "บริษัท" in the company name
-        result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
+            # Add a space after the word "บริษัท" in the company name
+            result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
 
-        return result
-        
+            return result
+        except:
+            print("Input is empty. Cannot be classify, result = ", result)
+            return result
 
-    def get_tax_info(self, tax_num, tax_branch):
+    def get_res_vatinfo(self, tax_num, tax_branch):
         tax_input = str(tax_num)
         branch = str(tax_branch)
         jsession_id = ''
@@ -2684,20 +2688,23 @@ class Bot_POS:
             branch = "สำนักงานใหญ่"
         print(
             f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
-        result = self.get_tax_info(str(tax_num), str(branch))
+        result = self.get_res_vatinfo(str(tax_num), str(branch))
 
-        # กรณี หา
+        # กรณี หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
-            # เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
+            #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
+            #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
                 'name': f'{self.app.cus_name.get()}',
+                'address_shortened': f'{self.app.cus_address}',
                 'address': f'{self.app.cus_address}',
                 'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
             }
+            result = manual_result_strcuture
 
-        return manual_result_strcuture
+        return result
 
 
 if __name__ == "__main__":
