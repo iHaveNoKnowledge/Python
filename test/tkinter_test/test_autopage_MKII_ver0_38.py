@@ -2,6 +2,7 @@
 from bs4 import BeautifulSoup
 from googletrans import Translator
 import requests
+import traceback
 
 # * user interface
 from tkinter import *
@@ -550,16 +551,16 @@ class MyApp:
         result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
         print("result_df d-type", type(result_df['ประเภทสาขา']))
 
-        #* สกัดและหาเลขสาขา จากข้อมูลที่กรอกมั่วๆไร้ซึ่ง pattern จาก lazada exportfile และเก็บไว้ในตัวแปร extracted_branch_df สาขาจะแสดงเป็นเลข 5 หลักแทนช่องว่างด้วย 0 แต่สาขา 00000 จะแสดงเป็น "สำนักงานใหญ่"
+        # * สกัดและหาเลขสาขา จากข้อมูลที่กรอกมั่วๆไร้ซึ่ง pattern จาก lazada exportfile และเก็บไว้ในตัวแปร extracted_branch_df สาขาจะแสดงเป็นเลข 5 หลักแทนช่องว่างด้วย 0 แต่สาขา 00000 จะแสดงเป็น "สำนักงานใหญ่"
         extracted_branch_df = result_df['ประเภทสาขา'].apply(
             self.find_branch)
 
-        #* เปลี่ยน ค่าใน col branchNumber ให้กลายเป็นบอกเฉพาะเลขสาขาถ้าเป็นสาขาย่อย และ เป็นค่าว่างถ้าเป็นสำนักงานใหญ่ 
+        # * เปลี่ยน ค่าใน col branchNumber ให้กลายเป็นบอกเฉพาะเลขสาขาถ้าเป็นสาขาย่อย และ เป็นค่าว่างถ้าเป็นสำนักงานใหญ่
         result_df['branchNumber'] = extracted_branch_df.copy()
         result_df['branchNumber'] = result_df['branchNumber'].map(
             lambda row: "" if row == "สำนักงานใหญ่" else row)
 
-        #* นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย"
+        # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย"
         result_df['ประเภทสาขา'] = extracted_branch_df.map(
             lambda row: "สำนักงานใหญ่" if row == "สำนักงานใหญ่" else "สาขาย่อย")
 
@@ -1092,7 +1093,7 @@ class MyApp:
                 if self.tax_bool.get() == True and len(tax_num_only) == 13:
                     pass
 
-                # * แสดงผล
+                # * ส่วนสำหรับการแสดงผล UI ------------------------------------------------------
                 # self.address = self.filter_data.iat[0, 59]
                 self.address = self.nondistortedData['รายละเอียดที่อยู่']
                 self.cus_remark: str = str(
@@ -1105,16 +1106,22 @@ class MyApp:
                 print("ตรวจบันทึก: ", self.order_note,
                       "type: ", type(self.order_note))
 
+                # * ดึงบันทึกลูกค้า SHOPEE
                 if self.marketplace_target.get() == 'SHOPEE':
                     self.note_extractor()
                 elif self.marketplace_target.get() == 'LAZADA':
                     pass
 
-                if self.app.marketplace_target.get() == "SHOPEE":
-                    self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
-                    self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
-                else:
-                    self.cleaned_address = 
+                # * เอาที่อยู่มาโชว์ ใน UI
+                # ? แบบ แบ่ง Channel
+                # if self.marketplace_target.get() == "SHOPEE":
+                #     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
+                #     self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                # else:
+                #     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))}"""
+                # ? แบบ ไม่แบ่ง Channel
+                self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
+                self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                 if "กรุงเทพ" in self.cleaned_address:
                     self.cleaned_address = self.cleaned_address.replace(
@@ -1639,7 +1646,9 @@ class Bot_POS:
                 print("มี tabs ไรบ้าง", self.merged_dict)
                 self.operation_start()
         except Exception as e:
+            traceback_str = traceback.format_exc()
             print(f"An error occirred: {e}")
+            print(traceback_str)
 
     def enter_cus_name(self, cus_search):
         # เคลียและกรอกชื่อลูกค้า
@@ -2331,7 +2340,7 @@ class Bot_POS:
         return (self.splited)
 
     def addTaxInvCustomer(self):
-        print("ชื่อลูกค้าเป็นไง SHOP", self.app.cus_name.get())
+        print("ชื่อลูกค้าเป็นไง SHOP: ", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
@@ -2392,9 +2401,9 @@ class Bot_POS:
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
     def addTaxInvCustomerLaz(self):
-        tax_info = self.get_tax_info(
+        tax_info = self.get_vatinfo_data(
             self.app.tax_num.get(), self.app.tax_branch)
-        print("ชื่อลูกค้าเป็นไง LAZ", self.app.cus_name.get())
+        print("ชื่อลูกค้าเป็นไง LAZ: ", self.app.cus_name.get())
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
@@ -2422,13 +2431,10 @@ class Bot_POS:
             # nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f"{tax_info['name']}")
 
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
-        # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = self.addressExtractor(
-        #     self.app.cus_address)  # ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
-        # self.finProvince = finProvince.strip().lstrip("จังหวัด")
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
 
         # กรอก Address
         self.driver.find_element(
@@ -2503,43 +2509,38 @@ class Bot_POS:
         # self.wait1.until(EC.invisibility_of_element_located(
         #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
-    #* function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
+    # * function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
     #! WIP ยังไม่พร้อมใช้งาน กำลังทำ
-    def classify_address_info(self, input):
-        try:
-            # Create a copy of the output dictionary
-            result = input.copy()
+    def classify_vatinfo_address(self, input):
+        # Create a copy of the output dictionary
+        result = input.copy()
 
-            # Remove the "ตำบล" and everything after it from the address
-            address_only = re.compile(r'ตำบล.*')
-            result['address_shortened'] = address_only.sub(
-                '', result['address']).strip()
+        # Remove the "ตำบล" and everything after it from the address
+        address_only = re.compile(r'ตำบล.*')
+        result['address_shortened'] = address_only.sub(
+            '', result['address']).strip()
 
-            # Define the regular expression pattern
-            pattern = re.compile(
-                r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
+        # Define the regular expression pattern
+        pattern = re.compile(
+            r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
 
-            # Use the pattern to find matches in the address
-            matches = pattern.search(result['address'])
+        # Use the pattern to find matches in the address
+        matches = pattern.search(result['address'])
 
-            # Extract the matched groups
-            if matches:
-                result['sub_dist'] = matches.group(1)
-                result['dist'] = matches.group(2)
-                result['province'] = matches.group(3)
-            else:
-                result['sub_dist'] = None
-                result['dist'] = None
-                result['province'] = None
+        # Extract the matched groups
+        if matches:
+            result['sub_dist'] = matches.group(1)
+            result['dist'] = matches.group(2)
+            result['province'] = matches.group(3)
+        else:
+            result['sub_dist'] = None
+            result['dist'] = None
+            result['province'] = None
 
-            # Add a space after the word "บริษัท" in the company name
-            result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
+        # Add a space after the word "บริษัท" in the company name
+        result['name'] = re.sub(r'(บริษัท)\s*', r'\1 ', result['name'])
 
-            return result
-        except:
-            # result['address_shortened'] = 
-            print("เหวอ")
-            return input
+        return result
         
 
     def get_tax_info(self, tax_num, tax_branch):
@@ -2614,13 +2615,13 @@ class Bot_POS:
                 # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
                 menu_elements = soup.select('tr[class^="trMenu"]')
                 is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
-                print("มีหลายหน้า?: ", is_many_page)
+                print("มีหลายหน้า?: ", bool(is_many_page))
                 search_result = []
                 output = ""
 
-                #* ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
+                # * ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
                 if len(menu_elements):
-                    #* มี <tr>
+                    # * มี <tr>
                     for menu_element in menu_elements:
                         result_data = {
                             "no": "",
@@ -2632,15 +2633,15 @@ class Bot_POS:
                         }
 
                         # print(menu_element) <<หาทั้งหมด
-                        #* tr = menu_element.find('tr')
-                        #* ในแต่ละ <tr> มี <td> หลายอัน
+                        # * tr = menu_element.find('tr')
+                        # * ในแต่ละ <tr> มี <td> หลายอัน
                         tds = menu_element.find_all('td')
                         for idx, key in enumerate(result_data):
                             b = tds[idx].find('b')
                             result = b.find('font').text.strip()
                             result = re.sub("\s{2,}", " ", result)
 
-                            #* ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
+                            # * ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
                             if idx == 1 and len(result) > 13:
                                 result = result[-13:]
 
@@ -2649,11 +2650,11 @@ class Bot_POS:
                         print(" ")
                         search_result.append(result_data)
 
-                    #* เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
+                    # * เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
                     for item in search_result:
                         if item['branch'] == self.app.tax_branch.get():
                             output = item
-                            print("เกบค่าลง output")
+                            print("เกบค่าลง output", output)
                             break
                     if bool(output) == False:
                         print("ว่างต้องวนใหม่")
@@ -2665,7 +2666,7 @@ class Bot_POS:
 
                 elif bool(menu_elements) == False:
                     # ไม่มี <tr>
-                    print("ไม่มีใบกำกับจาก request")
+                    print("ไม่มีใบกำกับจาก request", output)
                     break
 
             except requests.exceptions.HTTPError as e:
@@ -2674,28 +2675,30 @@ class Bot_POS:
                 print(f"An error occured: {e}")
             break
 
-        output = self.classify_address_info(output)
+        output = self.classify_vatinfo_address(output)
         print("output: ", output)
         return output
-    
+
     def get_vatinfo_data(self, tax_num, branch):
         if branch == "":
             branch = "สำนักงานใหญ่"
-        print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
+        print(
+            f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
         result = self.get_tax_info(str(tax_num), str(branch))
-        
-        #กรณี หา
+
+        # กรณี หา
         if bool(result) == False:
             # เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             manual_result_strcuture = {
-                'tax_num':f'{self.app.tax_num.get()}',
-                'branch':f'{self.app.tax_branch.get()}',
-                'name':f'{self.app.cus_name.get()}',
-                'address':f'{}',
-                'postal_code':f'{self.app.nondistortedData['รหัสไปรษณีย์.1']}',
+                'tax_num': f'{self.app.tax_num.get()}',
+                'branch': f'{self.app.tax_branch.get()}',
+                'name': f'{self.app.cus_name.get()}',
+                'address': f'{self.app.cus_address}',
+                'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
             }
-            
-        
+
+        return manual_result_strcuture
+
 
 if __name__ == "__main__":
     def on_closing():
