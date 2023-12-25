@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="b2hoj1XGLBaST6Yk1tYi" name="Page-1">
-        <mxGraphModel dx="1016" dy="763" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+        <mxGraphModel dx="1228" dy="687" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -56,8 +56,10 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="35" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#a20025;strokeColor=#6F0000;" parent="1" source="26" target="34" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                <mxCell id="35" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#a20025;strokeColor=#6F0000;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="26" target="48" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="800" y="530" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="38" value="NO" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" parent="35" vertex="1" connectable="0">
                     <mxGeometry x="-0.5064" y="-2" relative="1" as="geometry">
@@ -75,15 +77,13 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="45" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=12;entryPerimeter=0;" parent="1" source="34" target="46" edge="1">
+                <mxCell id="45" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=12;entryPerimeter=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="48" target="46" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="1050" y="580"/>
                         </Array>
+                        <mxPoint x="900" y="580" as="sourcePoint"/>
                     </mxGeometry>
-                </mxCell>
-                <mxCell id="34" value="เสิชจาก Excel" style="whiteSpace=wrap;html=1;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="740" y="550" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="36" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;นำมาแอดลงระบบ&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;ด้วย function addtaxlaz&lt;/span&gt;&lt;/div&gt;" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=process;whiteSpace=wrap;rounded=1;size=0.08333333333333333;arcSize=0;fontSize=12;align=center;" parent="1" vertex="1">
                     <mxGeometry x="1120" y="390" width="120" height="60" as="geometry"/>
@@ -93,6 +93,35 @@
                 </mxCell>
                 <mxCell id="46" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;fontSize=12;" parent="1" vertex="1">
                     <mxGeometry x="1020" y="390" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="48" value="เลือกจาก Excel" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=process;whiteSpace=wrap;rounded=1;size=0.14;arcSize=6;" vertex="1" parent="1">
+                    <mxGeometry x="750" y="550" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="54" style="edgeStyle=none;html=1;" edge="1" parent="1" source="50" target="57">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1605" y="230" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="50" value="Start" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+                    <mxGeometry x="1555" y="120" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="52" value="" style="endArrow=none;html=1;fillColor=#1ba1e2;strokeColor=#006EAF;" edge="1" parent="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1280" y="840" as="sourcePoint"/>
+                        <mxPoint x="1280" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="55" value="สร้างตัวแปร เก็บค่าเป็น dict โดยเลียนแบบโครงสร้าง output จาก output ของ request vatAPIs&lt;br&gt;ยกเว้นบางตัวต้องใช้ค่าที่แปลงมาดังนี้&lt;br&gt;address_shorened = pure_address&lt;br&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=0;strokeWidth=2;" vertex="1" parent="1">
+                    <mxGeometry x="1390" y="480" width="430" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="59" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="57" target="55">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="57" value="ปรับแต่งค่าก่อนส่งออก เนื่องจาก Input มันหลากหลายเกินไปในแต่ละ Column&lt;br&gt;pure_address = address_purify(address )" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=0;strokeWidth=2;" vertex="1" parent="1">
+                    <mxGeometry x="1390" y="250" width="430" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="60" value="&lt;span style=&quot;&quot;&gt;เลือกจาก Excel&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=0;strokeWidth=2;" vertex="1" parent="1">
+                    <mxGeometry x="1555" y="20" width="100" height="40" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

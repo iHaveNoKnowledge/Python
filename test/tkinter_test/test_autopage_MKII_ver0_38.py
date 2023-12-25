@@ -560,9 +560,15 @@ class MyApp:
         result_df['branchNumber'] = result_df['branchNumber'].map(
             lambda row: "" if row == "สำนักงานใหญ่" else row)
 
-        # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย"
+        # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย" (มีค่าเป็นเลขสาขา จะ return เป็น สาขาย่อย)
         result_df['ประเภทสาขา'] = extracted_branch_df.map(
             lambda row: "สำนักงานใหญ่" if row == "สำนักงานใหญ่" else "สาขาย่อย")
+        
+        # * เปลี่ยนค่าใน Col billingAddrs ตัดภาษาอังกฤษออก เนื่องจาก ที่อยู่ที่ได้จาก exportfile laz จะมี pattern เป็น ไทย/ อังกิก เช่น "บางปะกง/ Bang Pakong"
+        # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
+        address_divs = ['billingAddr4', 'billingAddr3']
+        for address_div in address_divs:
+            result_df[f'{address_div}'] = result_df[f'{address_div}'].map(lambda row: row.split('/')[0].strip())
 
         # * ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
@@ -2692,10 +2698,11 @@ class Bot_POS:
             f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
         result = self.get_res_vatinfo(str(tax_num), str(branch))
 
-        # กรณี หาจาก Excel ที่ import เข้ามา
+        # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
+            #! WIP
 
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
