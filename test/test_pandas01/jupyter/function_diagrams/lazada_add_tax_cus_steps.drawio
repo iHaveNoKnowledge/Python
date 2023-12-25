@@ -1,73 +1,73 @@
 <mxfile host="65bd71144e">
     <diagram id="b2hoj1XGLBaST6Yk1tYi" name="Page-1">
-        <mxGraphModel dx="1458" dy="668" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+        <mxGraphModel dx="1016" dy="763" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
-                <mxCell id="17" value="" style="edgeStyle=none;html=1;fontSize=12;" edge="1" parent="1" source="15" target="16">
+                <mxCell id="17" value="" style="edgeStyle=none;html=1;fontSize=12;" parent="1" source="15" target="16" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="15" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;start&lt;/font&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+                <mxCell id="15" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;start&lt;/font&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" parent="1" vertex="1">
                     <mxGeometry x="485" y="40" width="125" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="19" value="" style="edgeStyle=none;html=1;fontSize=12;" edge="1" parent="1" source="16" target="18">
+                <mxCell id="19" value="" style="edgeStyle=none;html=1;fontSize=12;" parent="1" source="16" target="18" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="16" value="เอาเลขtax ไปเสิช" style="whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+                <mxCell id="16" value="เอาเลขtax ไปเสิช SMCO" style="whiteSpace=wrap;html=1;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="487.5" y="140" width="120" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="20" style="edgeStyle=none;html=1;fontSize=12;fillColor=#60a917;strokeColor=#2D7600;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="18" target="21">
+                <mxCell id="20" style="edgeStyle=none;html=1;fontSize=12;fillColor=#60a917;strokeColor=#2D7600;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="18" target="21" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="210" y="280" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="22" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" vertex="1" connectable="0" parent="20">
+                <mxCell id="22" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" parent="20" vertex="1" connectable="0">
                     <mxGeometry x="-0.3569" y="-1" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="24" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#a20025;strokeColor=#6F0000;" edge="1" parent="1" source="18" target="23">
+                <mxCell id="24" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#a20025;strokeColor=#6F0000;" parent="1" source="18" target="23" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="25" value="NO" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" vertex="1" connectable="0" parent="24">
+                <mxCell id="25" value="NO" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" parent="24" vertex="1" connectable="0">
                     <mxGeometry x="-0.3295" y="-2" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="18" value="เจอไหม" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+                <mxCell id="18" value="เจอไหม" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="470" y="240" width="160" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="21" value="จบ" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;fontSize=12;" vertex="1" parent="1">
+                <mxCell id="21" value="จบ" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;fontSize=12;" parent="1" vertex="1">
                     <mxGeometry x="497.5" y="760" width="100" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="27" value="" style="edgeStyle=none;html=1;fontSize=12;" edge="1" parent="1" source="23" target="26">
+                <mxCell id="27" value="" style="edgeStyle=none;html=1;fontSize=12;" parent="1" source="23" target="26" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="23" value="เอาเลขไปเสิช vatinfo" style="whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+                <mxCell id="23" value="เอาเลขไปเสิช vatinfo" style="whiteSpace=wrap;html=1;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="740" y="250" width="120" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="29" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#008a00;strokeColor=#005700;" edge="1" parent="1" source="26">
+                <mxCell id="29" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#008a00;strokeColor=#005700;" parent="1" source="26" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="1020" y="420" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="31" value="YES" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" vertex="1" connectable="0" parent="29">
+                <mxCell id="31" value="YES" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" parent="29" vertex="1" connectable="0">
                     <mxGeometry x="-0.2558" y="3" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="35" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#a20025;strokeColor=#6F0000;" edge="1" parent="1" source="26" target="34">
+                <mxCell id="35" value="" style="edgeStyle=none;html=1;fontSize=12;fillColor=#a20025;strokeColor=#6F0000;" parent="1" source="26" target="34" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="38" value="NO" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" vertex="1" connectable="0" parent="35">
+                <mxCell id="38" value="NO" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" parent="35" vertex="1" connectable="0">
                     <mxGeometry x="-0.5064" y="-2" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="26" value="เจอไหม" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+                <mxCell id="26" value="เจอไหม" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="720" y="380" width="160" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="30" style="edgeStyle=none;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="36" target="16">
+                <mxCell id="30" style="edgeStyle=none;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" parent="1" source="36" target="16" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="1040" y="390" as="sourcePoint"/>
                         <Array as="points">
@@ -75,23 +75,23 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="45" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=12;entryPerimeter=0;" edge="1" parent="1" source="34" target="46">
+                <mxCell id="45" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=12;entryPerimeter=0;" parent="1" source="34" target="46" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="1050" y="580"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="34" value="เสิชจาก Excel" style="whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+                <mxCell id="34" value="เสิชจาก Excel" style="whiteSpace=wrap;html=1;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="740" y="550" width="120" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="36" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;นำมาแอดลงระบบ&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;ด้วย function addtaxlaz&lt;/span&gt;&lt;/div&gt;" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=process;whiteSpace=wrap;rounded=1;size=0.08333333333333333;arcSize=0;fontSize=12;align=center;" vertex="1" parent="1">
+                <mxCell id="36" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;นำมาแอดลงระบบ&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;ด้วย function addtaxlaz&lt;/span&gt;&lt;/div&gt;" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=process;whiteSpace=wrap;rounded=1;size=0.08333333333333333;arcSize=0;fontSize=12;align=center;" parent="1" vertex="1">
                     <mxGeometry x="1120" y="390" width="120" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="47" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;" edge="1" parent="1" source="46" target="36">
+                <mxCell id="47" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;" parent="1" source="46" target="36" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="46" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;fontSize=12;" vertex="1" parent="1">
+                <mxCell id="46" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;fontSize=12;" parent="1" vertex="1">
                     <mxGeometry x="1020" y="390" width="60" height="60" as="geometry"/>
                 </mxCell>
             </root>

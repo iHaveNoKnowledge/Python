@@ -1113,15 +1113,15 @@ class MyApp:
                     pass
 
                 # * เอาที่อยู่มาโชว์ ใน UI
-                # ? แบบ แบ่ง Channel
+                # ? แบบที่1 แบ่ง Channel
                 # if self.marketplace_target.get() == "SHOPEE":
                 #     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
                 #     self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
                 # else:
                 #     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))}"""
-                # ? แบบ ไม่แบ่ง Channel
+                # ? แบบที่2 ไม่แบ่ง Channel
                 self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
-                self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                    self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                 if "กรุงเทพ" in self.cleaned_address:
                     self.cleaned_address = self.cleaned_address.replace(
@@ -2205,15 +2205,15 @@ class Bot_POS:
                                 print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
                                 break
 
-                            # ค้นหา element โดยใช้ XPath
+                            # * ค้นหา element โดยใช้ XPath
                             self.is_input_on = self.driver.find_element(
                                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
 
-                            # ดึงข้อความจาก element ที่ค้นหาได้
+                            # * ดึงข้อความจาก element ที่ค้นหาได้
                             text_value = self.is_input_on.get_attribute(
                                 "title")
 
-                            # พิมพ์ผลลัพธ์
+                            # * พิมพ์ผลลัพธ์
                             print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
                             while True:
@@ -2432,9 +2432,11 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f"{tax_info['name']}")
 
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()  # Identity ID
+            # Identity ID
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())  # Identity ID
+            # Identity ID
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())
 
         # กรอก Address
         self.driver.find_element(
@@ -2531,12 +2533,12 @@ class Bot_POS:
 
             # Extract the matched groups
             if matches:
-                result['sub_dist'] = matches.group(1)
-                result['dist'] = matches.group(2)
+                result['sub_district'] = matches.group(1)
+                result['district'] = matches.group(2)
                 result['province'] = matches.group(3)
             else:
-                result['sub_dist'] = None
-                result['dist'] = None
+                result['sub_district'] = None
+                result['district'] = None
                 result['province'] = None
 
             # Add a space after the word "บริษัท" in the company name
@@ -2694,11 +2696,15 @@ class Bot_POS:
         if bool(result) == False:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
+
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
                 'name': f'{self.app.cus_name.get()}',
-                'address_shortened': f'{self.app.cus_address}',
+                'address_shortened': f'{self.app.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป']}',
+                'province': f'{self.app.cus_province.get()}',
+                'district': f'{self.app.cus_district.get()}',
+                'province': f'{self.app.cus_province.get()}',
                 'address': f'{self.app.cus_address}',
                 'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
             }

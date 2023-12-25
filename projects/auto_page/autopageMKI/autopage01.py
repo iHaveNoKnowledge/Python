@@ -647,7 +647,7 @@ zeroExpectElmt = wait2.until(EC.text_to_be_present_in_element(
 myFunctions.get_input(zeroExpectElmt, lambda:
                       driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[2]/div/div').click())  # Paymenbtnกดปุ่มเขียว แล้วจะมี pop-up เด้งมา
 
-# ####(optional)popup สุดท้ายเด้ง สำหรับ etax
+# ####(optional)popup สุดท้ายเด้ง สำหรับ etax e-tax ---------------------------------------------------------------------------------------------------
 # if taxBool: ##มีใบกำกับ
 #     final_popup_element_email = wait2.until(EC.visibility_of_element_located((By.XPATH,'/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input'))) ##เจอradio Send Email
 #     final_popup_element_email.click()
