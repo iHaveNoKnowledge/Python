@@ -563,12 +563,13 @@ class MyApp:
         # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย" (มีค่าเป็นเลขสาขา จะ return เป็น สาขาย่อย)
         result_df['ประเภทสาขา'] = extracted_branch_df.map(
             lambda row: "สำนักงานใหญ่" if row == "สำนักงานใหญ่" else "สาขาย่อย")
-        
+
         # * เปลี่ยนค่าใน Col billingAddrs ตัดภาษาอังกฤษออก เนื่องจาก ที่อยู่ที่ได้จาก exportfile laz จะมี pattern เป็น ไทย/ อังกิก เช่น "บางปะกง/ Bang Pakong"
         # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
         address_divs = ['billingAddr4', 'billingAddr3']
         for address_div in address_divs:
-            result_df[f'{address_div}'] = result_df[f'{address_div}'].map(lambda row: row.split('/')[0].strip())
+            result_df[f'{address_div}'] = result_df[f'{address_div}'].map(
+                lambda row: row.split('/')[0].strip())
 
         # * ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
@@ -2485,7 +2486,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             # District
-            tax_info['dist'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
+            tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
@@ -2498,7 +2499,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             # SubDistrict
-            tax_info['sub_dist'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
+            tax_info['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
@@ -2702,13 +2703,13 @@ class Bot_POS:
         if bool(result) == False:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
-            #! WIP
+            #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
 
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
                 'name': f'{self.app.cus_name.get()}',
-                'address_shortened': f'{self.app.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป']}',
+                'address_shortened': f"{self.app.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป']}",
                 'province': f'{self.app.cus_province.get()}',
                 'district': f'{self.app.cus_district.get()}',
                 'province': f'{self.app.cus_province.get()}',
