@@ -963,14 +963,13 @@ class MyApp:
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง
-                print("ของมีไรบ้าง: ", self.data_frame['ชื่อตัวเลือก'])
-                print("ของมีไรบ้าง: ", self.data_frame['ราคาขายสุทธิ'])
-                print("ของมีไรบ้าง: ", self.data_frame['ส่วนลดจาก Shopee'])
+                # print("ของมีไรบ้าง: ", self.data_frame['ชื่อตัวเลือก'])
+                # print("ของมีไรบ้าง: ", self.data_frame['ราคาขายสุทธิ'])
+                # print("ของมีไรบ้าง: ", self.data_frame['ส่วนลดจาก Shopee'])
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
-                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
-                )
-
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
+                print('self.nondistortedData',self.nondistortedData)
                 self.update_log(f"สินค้าที่มี")
 
                 for row in self.items:
