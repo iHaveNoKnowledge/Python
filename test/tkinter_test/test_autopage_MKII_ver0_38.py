@@ -571,6 +571,13 @@ class MyApp:
             result_df[f'{address_div}'] = result_df[f'{address_div}'].map(
                 lambda row: row.split('/')[0].strip())
 
+        # * เปลี่ยน Dtype ของ Column ['createTime'] (วันที่ทำการสั่งซื้อ) จาก Series ให้เป็นobjวันที่ เนื่องจากอันเดิมมันเอาไป Sort ไม่ได้ เวลาออกเป็นตาราง
+        result_df['createTime'] = pd.to_datetime(
+            result_df['createTime'], format='mixed', dayfirst=True)
+        # * >  แปลง objวันที่ ให้กลายเป็น number ใน excel เพื่อให้แสดงผลใน cel เหมือนกับ exported file ของ shopee
+        result_df['createTime'] = result_df['createTime'].dt.strftime(
+            '%Y-%m-%d %H:%M')
+
         # * ตรวจสอบผลลัพธ์
         print(f"""qty ใน lazada""")
         print(result_count)
@@ -578,7 +585,7 @@ class MyApp:
         print("ราคาขายสุทธิ")
         print(total_per_order_df)
 
-        # * เปลี่ยนชื่อ column
+        # * เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column
         result_df.rename(columns={
             'orderNumber': 'หมายเลขคำสั่งซื้อ',
             'sellerSku': 'เลขอ้างอิง SKU (SKU Reference No.)',
@@ -968,8 +975,9 @@ class MyApp:
                 # print("ของมีไรบ้าง: ", self.data_frame['ส่วนลดจาก Shopee'])
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
-                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
-                print('self.nondistortedData',self.nondistortedData)
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
+                )
+                print('self.nondistortedData', self.nondistortedData)
                 self.update_log(f"สินค้าที่มี")
 
                 for row in self.items:
