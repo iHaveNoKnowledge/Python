@@ -2713,6 +2713,7 @@ class Bot_POS:
         return output
 
     def find_tambon(self, df, order):
+        print("find_tambon order:", order)
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
         df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
             str)
@@ -2734,7 +2735,7 @@ class Bot_POS:
 
             # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
             # จัวนี้ต้องผูกกับ exe
-            tambon_data_address = r'./Addresscleaner_TambonData.xlsx'
+            tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
                 str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
@@ -2760,8 +2761,7 @@ class Bot_POS:
                 elif tambon in cus_address:
                     decent_tambon.append("ตำบล" + tambon)
 
-            cleaned_address = self.app.get_pure_address(
-                cus_address, decent_tambon, amphoe_short, province, postal_code)
+            cleaned_address = self.app.get_pure_address(cus_address)
 
             return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code}
         elif any(target_row_index) == False:
@@ -2779,12 +2779,13 @@ class Bot_POS:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
             #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
+            
             cus_address_from_table = self.find_tambon(self.app.data_frame, self.app.cus_order.get())
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
                 'name': f'{self.app.cus_name.get()}',
-                'address_shortened': f"{self.app.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป']}",
+                'address_shortened': f"{cus_address_from_table['cleaned_address']}",
                 'province': f'{self.app.cus_province.get()}',
                 'district': f'{self.app.cus_district.get()}',
                 'sub_district': f'{cus_address_from_table['decent_tambon'][0]}',
