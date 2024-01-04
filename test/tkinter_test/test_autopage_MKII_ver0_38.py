@@ -845,12 +845,13 @@ class MyApp:
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
-        #! Pattern เก่า
+        #! Patterns เก่าๆ
         #! pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W\_]+$')
+        #! pattern = re.compile(r'^[a-zA-Z0-9ก-๙\s\W_!@#$%^&*()\-_=+/[\]{}|;:\'",<.>/?]+$') ต่างกันตรงที่มี "     กับไม่มี " ตอน testใน regex101 มันใส่ " แล้ววมันไม่ทำงาน ซึ่งพอลบออกมาก็ใช้งานได้ปกติ
 
         # * สำหรับแก้ปัญหาข้อที่ 38 // pattern ใหม่
         pattern = re.compile(
-            r'^[a-zA-Z0-9ก-๙\s\W_!@#$%^&*()\-_=+/[\]{}|;:\'",<.>/?]+$')
+            r'^[a-zA-Z0-9ก-๙\s\W_!@#$%^&*()\-_=+/[\]{}|;:\',<.>/?]+$')
         is_usable = bool(re.match(pattern, text))
         if is_usable:
             return text
@@ -1047,7 +1048,8 @@ class MyApp:
                 self.cus_name.set(self.translator(re.sub(
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
                 # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
-                self.cus_name.set(re.sub(r'[^\x00-\x7F\wก-๙]+','', self.cus_name.get().strip()))
+                self.cus_name.set(
+                    re.sub(r'[^\x00-\x20\x30\x40\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standarizer(self.cus_name.get()))
@@ -1163,7 +1165,7 @@ class MyApp:
                         print("สร้างinputอันที่ ", idx+1)
 
                 self.cus_account_name.set(
-                    re.sub(r'[^\x00-\x7F\wก-๙]+','',self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
+                    re.sub(r'[^\x00-\x20\x30\x40\wA-Zก-๙|/]+', '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
                 self.cus_account_name.set(self.cus_account_name.get().strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
 
@@ -2702,6 +2704,62 @@ class Bot_POS:
         print("output: ", output)
         return output
 
+    def find_tambon(self, export_file, order):
+        # เตรียมข้อมูล Pattern ที่อยู่คนไทย
+        shopee_df = pd.read_excel(export_file)
+        shopee_df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = shopee_df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
+            str)
+        shopee_df['หมายเลขคำสั่งซื้อ'] = shopee_df['หมายเลขคำสั่งซื้อ'].astype(
+            str)
+
+        target_row_index = shopee_df['หมายเลขคำสั่งซื้อ'] == order
+        if any(target_row_index) == True:
+            print("เจอ Order ใน ไฟล์")
+            cus_address = shopee_df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
+            print("cus_address", cus_address)
+            amphoe = str(shopee_df[target_row_index]['เขต/อำเภอ.1'].iloc[0])
+            amphoe_short = amphoe.replace("อำเภอ", "").replace("เขต", "")
+            province = str(shopee_df[target_row_index]['จังหวัด.1'].iloc[0])
+            print("amphoe", amphoe)
+            print("amphoe_short", amphoe_short)
+            postal_code = str(
+                shopee_df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
+
+            # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
+            # จัวนี้ต้องผูกกับ exe
+            tambon_data_address = r"../excel/Addresscleaner_TambonData.xlsx"
+            df_thai_addr = pd.read_excel(tambon_data_address)
+            allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
+                str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
+            possible_tambons = list(allfiltered_df['TambonThaiShort'])
+
+            # possible_tambons.remove(amphoe_short)
+
+            print("ตำบลที่เป็นไปได้: ", possible_tambons)
+
+            ##
+            decent_tambon = []
+            for tambon in possible_tambons:
+                # เขต แขวง อ ต ไรก็ตามเอาออกให้หมด
+
+                if "ตำบล" in tambon:
+                    tambon = re.sub(r'\bตำบล\b', '', tambon)
+                elif "แขวง" in tambon:
+                    tambon = re.sub(r'แขวง', '', tambon)
+                # ช่องว่างตั้งแต่ 1 อันขึ้นไป จะกลายเป็น โดนลบทั้งหมด
+                tambon = re.sub(r'\s{1,}', '', tambon)
+                if tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
+                    decent_tambon.append("แขวง" + tambon)
+                elif tambon in cus_address:
+                    decent_tambon.append("ตำบล" + tambon)
+
+            cleaned_address = self.app.get_pure_address(
+                cus_address, decent_tambon, amphoe_short, province, postal_code)
+
+            return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code}
+        elif any(target_row_index) == False:
+            print("ไม่เจอOrder")
+
     def get_vatinfo_data(self, tax_num, branch):
         if branch == "":
             branch = "สำนักงานใหญ่"
@@ -2714,7 +2772,7 @@ class Bot_POS:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
             #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
-
+            cus_address_from_table = self.find_tambon(self, self.app.cus_order.get())
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
@@ -2775,10 +2833,10 @@ if __name__ == "__main__":
 # *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
 # *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
 # *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
-# TODO29 เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
+# *29 เพิ่มแล้ว //เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
 # *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
 # *31 แก้แล้ว//เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
-# !32 ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
+# *32 แก้แล้วมั้ง ปัจจุบันไม่มีปัญหา จำไม่ได้ว่าแก้ตอนไหน // ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
 # !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
 # *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
 # *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
@@ -2786,6 +2844,7 @@ if __name__ == "__main__":
 # ?37 แก้แล้ว //ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
 # ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
 # ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
+# !40 อยากให้ display Email ใน gui
 
 
 # เก็บข้อมูล
