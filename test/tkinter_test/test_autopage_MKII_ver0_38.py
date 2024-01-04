@@ -45,6 +45,14 @@ locale.setlocale(locale.LC_ALL, 'en_us')
 
 # beautifulsoup
 
+current_directory = os.getcwd()
+print("current_directory:", current_directory)
+file_name = "Addresscleaner_TambonData.xlsx"
+file_path = os.path.join(current_directory, file_name)
+directory_of_file = os.path.dirname(file_path)
+print("file located:", directory_of_file)
+# sys.path.append(os.path.dirname(os.getcwd()))
+
 
 class MyApp:
     def __init__(self, root):
@@ -2704,30 +2712,29 @@ class Bot_POS:
         print("output: ", output)
         return output
 
-    def find_tambon(self, export_file, order):
+    def find_tambon(self, df, order):
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
-        shopee_df = pd.read_excel(export_file)
-        shopee_df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = shopee_df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
+        df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
             str)
-        shopee_df['หมายเลขคำสั่งซื้อ'] = shopee_df['หมายเลขคำสั่งซื้อ'].astype(
+        df['หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(
             str)
 
-        target_row_index = shopee_df['หมายเลขคำสั่งซื้อ'] == order
+        target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
         if any(target_row_index) == True:
             print("เจอ Order ใน ไฟล์")
-            cus_address = shopee_df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
+            cus_address = df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
             print("cus_address", cus_address)
-            amphoe = str(shopee_df[target_row_index]['เขต/อำเภอ.1'].iloc[0])
+            amphoe = str(df[target_row_index]['เขต/อำเภอ.1'].iloc[0])
             amphoe_short = amphoe.replace("อำเภอ", "").replace("เขต", "")
-            province = str(shopee_df[target_row_index]['จังหวัด.1'].iloc[0])
+            province = str(df[target_row_index]['จังหวัด.1'].iloc[0])
             print("amphoe", amphoe)
             print("amphoe_short", amphoe_short)
             postal_code = str(
-                shopee_df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
+                df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
 
             # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
             # จัวนี้ต้องผูกกับ exe
-            tambon_data_address = r"../excel/Addresscleaner_TambonData.xlsx"
+            tambon_data_address = r'./Addresscleaner_TambonData.xlsx'
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
                 str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
@@ -2772,7 +2779,7 @@ class Bot_POS:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
             #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
-            cus_address_from_table = self.find_tambon(self, self.app.cus_order.get())
+            cus_address_from_table = self.find_tambon(self.app.data_frame, self.app.cus_order.get())
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
@@ -2780,6 +2787,7 @@ class Bot_POS:
                 'address_shortened': f"{self.app.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป']}",
                 'province': f'{self.app.cus_province.get()}',
                 'district': f'{self.app.cus_district.get()}',
+                'sub_district': f'{cus_address_from_table['decent_tambon'][0]}',
                 'province': f'{self.app.cus_province.get()}',
                 'address': f'{self.app.cus_address}',
                 'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
