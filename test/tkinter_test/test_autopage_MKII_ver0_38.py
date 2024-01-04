@@ -1036,16 +1036,18 @@ class MyApp:
                         self.total_rebate_price_col_value)
                 print("none ได้ไง:", self.widget_no_col_lst)
                 print("ไม่สามารถ grid: ", self.all_cols)
-                for colidx, col_list in enumerate(self.all_cols):
+                for col_idx, col_list in enumerate(self.all_cols):
                     for idxrow, col in enumerate(col_list):
                         col.grid(
-                            row=idxrow+1, column=self.cols_location[colidx], columnspan=self.colspan_amount[colidx])
+                            row=idxrow+1, column=self.cols_location[col_idx], columnspan=self.colspan_amount[col_idx])
                         col.configure(state="readonly")
 
                 # self.row_header_maker(self.items)
                 # * ชื่อที่ต้องอกใบกำกับ
                 self.cus_name.set(self.translator(re.sub(
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
+                # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
+                self.cus_name.set(re.sub(r'[^\x00-\x7F\wก-๙]+','', self.cus_name.get().strip()))
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standarizer(self.cus_name.get()))
@@ -1161,7 +1163,8 @@ class MyApp:
                         print("สร้างinputอันที่ ", idx+1)
 
                 self.cus_account_name.set(
-                    self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)'].strip())
+                    re.sub(r'[^\x00-\x7F\wก-๙]+','',self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
+                self.cus_account_name.set(self.cus_account_name.get().strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
 
                 # * update display text ใน gui
