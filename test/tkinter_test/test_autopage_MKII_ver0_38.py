@@ -89,7 +89,7 @@ class MyApp:
         self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
         self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
-        self.cus_name_ul = '/html/body/span/span/span[2]/ul'
+        self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
@@ -281,7 +281,7 @@ class MyApp:
         # * > Tax Number display component
         # >> Labels
         self.label_tax_number = Label(
-            self.order_details_frame, text="เลขใบกำกับ: ", bg="#FFF")
+            self.order_details_frame, text="เลขผู้เสียภาษี: ", bg="#FFF")
         self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_tax_number = Entry(
@@ -959,7 +959,7 @@ class MyApp:
         print("order_search ทำงาน")
         self.on_complete = on_complete
         self.order = order.strip()
-        self.cus_order.set(order)
+        self.cus_order.set(self.order)
         differential_col_data = [
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
@@ -1075,25 +1075,25 @@ class MyApp:
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
                       bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
-                # ถ้า col หมายเลขประจำตัวผู้เสียภาษี ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
+                # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
                 if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
                 else:
-                    tax_num_only = ""
+                    tax_num_only = "ไม่มีเลข"
 
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.config(
                         background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
-                    self.tax_num.set("ไม่มี")
+                    self.tax_num.set(tax_num_only)
                 elif tax_num_only != "" and len(tax_num_only) != 13:
                     self.tax_bool.set(False)
                     self.is_tax.set("ขอ//เลขไม่ครบ")
                     self.display_is_tax.config(
                         background="#8502d1", foreground="#FFF", font='Chiller 10 normal')
-                    self.tax_num.set("ไม่มี")
+                    self.tax_num.set(tax_num_only)
 
                 else:
 
@@ -1243,6 +1243,9 @@ class MyApp:
                     f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
                 self.update_log(
                     f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price)+float(self.cus_ship_cost.get()))}")
+
+                self.update_log(f" ")
+                self.update_log(f"-↓↓↓↓↓↓-หน้าสุดท้าย-↓↓↓↓↓↓-")
                 self.update_log(
                     f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
 
@@ -1253,6 +1256,7 @@ class MyApp:
                 elif self.marketplace_target.get() == "LAZADA":
                     self.update_log(
                         f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
+                    self.update_log(f"---------------------------------")
                     self.update_log(
                         f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
@@ -1345,7 +1349,7 @@ class MyApp:
 
     def search(self):
         self.autofinal = False
-        # ลบ result products list เก่า
+        # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
 
@@ -1976,7 +1980,7 @@ class Bot_POS:
 
             # * จับตาดูว่า ul เปิดอยู่ไหม
             self.is_ul_not_open = False if self.driver.find_elements(
-                By.XPATH, self.app.cus_name_ul) else True
+                By.XPATH, self.app.cus_name_dropdown_ul) else True
             # กรณีไม่ได้เปิดไว้ จะเปิดให้
             if self.is_ul_not_open:
                 self.driver.find_element(
@@ -1991,14 +1995,16 @@ class Bot_POS:
                 By.XPATH, self.app.cusNameLi1)
             print("มันทำไม", self.wait_condition.text)
 
-            #! น่าสงสัย เป็นเหตุให้หน้าท้ายค้าง
+            # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่
             self.customer_add_times = 0
             self.customer_name_search_count = 0
             while True:
-                if self.driver.find_element(By.XPATH, self.app.cus_name_ul):
+                if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
                     time.sleep(0.7)
                     # self.wait1.until(EC.visibility_of_element_located(
                     #     (By.XPATH, self.app.cusNameLi1)))
+
+                    # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
                     self.wait_condition = self.driver.find_element(
                         By.XPATH, self.app.cusNameLi1)
 
@@ -2779,8 +2785,9 @@ class Bot_POS:
             #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
             #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
-            
-            cus_address_from_table = self.find_tambon(self.app.data_frame, self.app.cus_order.get())
+
+            cus_address_from_table = self.find_tambon(
+                self.app.data_frame, self.app.cus_order.get())
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
