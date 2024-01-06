@@ -2250,6 +2250,7 @@ class Bot_POS:
                             print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
                             while True:
+
                                 self.final_popup = self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]')
                                 # self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
@@ -2259,17 +2260,24 @@ class Bot_POS:
                                 # print("self.is_previous_page= ",
                                 #       self.is_previous_page)
                                 if self.final_popup.is_displayed() == True:
+
                                     try:
-                                        self.wait1.until(EC.element_to_be_clickable(
-                                            (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
+                                        self.final_popup_btn = self.wait1.until(EC.element_to_be_clickable(
+                                            (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+                                        # *> ให้เวลาดูเลขบิล 1 วิ
+                                        time.sleep(1)
+                                        self.final_popup_btn.click()
                                     except:
                                         self.final_popup.click()
 
-                                    # > รอหน้า canvas โผล่ก่อน
-                                    self.wait1.until(EC.visibility_of_element_located(
-                                        (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
-                                    self.printtingPage()
-                                    break
+                                    # * > รอหน้า canvas โผล่ก่อน
+                                    # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
+                                    # self.wait1.until(EC.visibility_of_element_located(
+                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                    # self.printtingPage()
+                                    # break
+
+                                    # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
 
                                 elif self.is_previous_page.is_displayed() == False:
                                     print("End or back")
@@ -2786,8 +2794,10 @@ class Bot_POS:
             #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
             #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
 
+            # * หาตำบล จาก address ที่ลูกค้าให้มา
             cus_address_from_table = self.find_tambon(
                 self.app.data_frame, self.app.cus_order.get())
+
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
                 'branch': f'{self.app.tax_branch.get()}',
@@ -2795,7 +2805,7 @@ class Bot_POS:
                 'address_shortened': f"{cus_address_from_table['cleaned_address']}",
                 'province': f'{self.app.cus_province.get()}',
                 'district': f'{self.app.cus_district.get()}',
-                'sub_district': f'{cus_address_from_table['decent_tambon'][0]}',
+                'sub_district': f"{cus_address_from_table['decent_tambon'][0]}",
                 'province': f'{self.app.cus_province.get()}',
                 'address': f'{self.app.cus_address}',
                 'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
@@ -2860,7 +2870,14 @@ if __name__ == "__main__":
 # ?37 แก้แล้ว //ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
 # ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
 # ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
-# !40 อยากให้ display Email ใน gui
+
+# Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
+#!--------------------- ETAX SAGA ------------------------------------
+# !E1 อยากให้ display Email ใน gui ปัญหาจริงๆมาจาก Shopee ไม่รู้ว่ามีลูกค้าขอใบกำกับ เขาไม่ได้ขอมาโดยตรง แล้วมันขัดกับ วิธีการทำใบกำกับของ SHOPEE สูตร BigM ด้วย
+# !E1.5 ในบิลมันมีคำว่า tax ID : ขึ้นรอไว้เลย แบบมันมัดมือชกเลยว่ามึงต้องแอดใบกำกับเท่านั้น 555+ ต้องกลับมาทำเวย์เดิมแล้ว
+# !E2 The POS does not lead to the printing page. ทำให้ต้องไปเปิดหน้า print แยก ซึ่งอาจจะถูกแก้สักวันละมั้ง
+# !E3 canvas มันไม่โผล่ ทำให้ bot status มันไม่จบ มันจะค้างที่ Your turn
+# Todo ETAX ได้ข่าวมาว่าจะไม่ได้ใช้ตลอดไป แต่อาจจะเลิกใช้ที่เดือนกุมภา วันที่ 15 แปลว่า etax อาจจะเป็นโหมดชั่วคราว
 
 
 # เก็บข้อมูล
