@@ -2200,9 +2200,11 @@ class Bot_POS:
                                 print("หน้า SN ไม่ได้โ๙ว์")
                                 break
                         except:
+                            time.sleep(3)
                             print('popup โผลมาแล้ว')
-                            WebDriverWait(self.driver, 3).until(EC.presence_of_all_elements_located(
-                                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')))
+                            # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
+                            print("รอ 3 วิ")
+                            
                             print("ออกจาก SN")
                             break
 
