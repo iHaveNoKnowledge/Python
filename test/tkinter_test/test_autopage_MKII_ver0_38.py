@@ -1077,9 +1077,13 @@ class MyApp:
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
                 if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
+                    print('ไม่ใช่ na? if', pd.isna(
+                        self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
                 else:
+                    print('ไม่ใช่ na? else', pd.isna(
+                        self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
                     tax_num_only = "ไม่มีเลข"
 
                 if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
@@ -2752,10 +2756,9 @@ class Bot_POS:
             tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
-                str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
+                str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]   
             possible_tambons = list(allfiltered_df['TambonThaiShort'])
-
-            # possible_tambons.remove(amphoe_short)
+            possible_tambons.sort(key=len, reverse=True)
 
             print("ตำบลที่เป็นไปได้: ", possible_tambons)
 
@@ -2772,8 +2775,10 @@ class Bot_POS:
                 tambon = re.sub(r'\s{1,}', '', tambon)
                 if tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
                     decent_tambon.append("แขวง" + tambon)
+                    break
                 elif tambon in cus_address:
                     decent_tambon.append("ตำบล" + tambon)
+                    break
 
             cleaned_address = self.app.get_pure_address(cus_address)
 
