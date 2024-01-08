@@ -646,6 +646,7 @@ class MyApp:
             elif self.marketplace_target.get() == 'LAZADA':
                 self.data_frame = self.group_by_order(
                     self.file_path, self.columns)
+                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -1072,8 +1073,12 @@ class MyApp:
                     str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch.set(branch)
 
+                print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ",
+                      self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
                 print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
-                      bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                      bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(
+                          self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]),
+                      pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
                 if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
@@ -1633,14 +1638,19 @@ class Bot_POS:
         Download_dir = Dir_path+self.custom_path
 
         os.environ["WDM_LOCAL"] = self.custom_path
+        print("มีไรบ้างใน obj Options:", dir(self.opt))
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
         #     "download.default_directory" : Download_dir,
         #     "directory_upgrade": True
         # })
 
-        self.driver = webdriver.Chrome(service=Service(
-            r'C:\bin\chromedriver.exe'), options=self.opt)
+        self.driver = webdriver.Chrome(
+            service=Service(r'C:\bin\chromedriver.exe'),
+            options=self.opt
+        )
+
         # self.driver = webdriver.Chrome(service=Service(
         #     ChromeDriverManager().install()), options=self.opt)
 
@@ -2168,17 +2178,40 @@ class Bot_POS:
                 print("เข้า final loop ")
                 print("รอให้มันโผล่")
                 while self.parent.winfo_exists() and self.autofinal:
-                    time.sleep(0.1)
-                    self.is_input_empty = self.driver.find_element(
+                    # time.sleep(0.1)
+                    # print()
+                    self.cus_name_input_element = self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
                     self.is_final_displayed = self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
+                    self.is_input_empty = re.search(
+                        "^C[0-9]+\-", self.cus_name_input_element.text)
 
-                    if (self.is_input_empty.text == "Select Customer" or self.is_input_empty.text == "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
+                    while True:
+                        time.sleep(1)
+                        try:
+                            if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[1]').is_displayed():
+                                print("หน้า SN กำลังโชว์")
+
+                                # if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').is_displayed():
+                                continue
+                                #! WIP pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หาย
+                            else:
+                                print("หน้า SN ไม่ได้โ๙ว์")
+                                break
+                        except:
+                            print('popup โผลมาแล้ว')
+                            WebDriverWait(self.driver, 3).until(EC.presence_of_all_elements_located(
+                                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')))
+                            print("ออกจาก SN")
+                            break
+
+                    if self.is_input_empty == False and self.is_final_displayed == False:
+                        print("ชื่อหาย")
                         break
-                    elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == False:
+                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
                         continue
-                    elif (self.is_input_empty.text != "Select Customer" or self.is_input_empty.text != "กรุณาเลือกลูกค้า") and self.is_final_displayed == True:
+                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
                         time.sleep(0.75)
                         print("หน้า จ่ายตัง")
                         self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
@@ -2315,8 +2348,8 @@ class Bot_POS:
                             if self.final_popup.is_displayed() == True:
                                 break
                             else:
-                                # continue
-                                break
+                                continue
+                                # break ที่แก้เป็น break ดูเหมือน code ด้านบนมันจะผิด และไม่สามารถรับมือกับเหตุการณืแบบ dynamic ได้ ทำให้ continue ตรงนี้ทำงานอย่างผิดปกติ แต่ตอนนี้แก้ถูกแล้ว
 
                         else:
                             print("จบสูตร")
@@ -2756,7 +2789,7 @@ class Bot_POS:
             tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
-                str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]   
+                str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
             possible_tambons = list(allfiltered_df['TambonThaiShort'])
             possible_tambons.sort(key=len, reverse=True)
 
