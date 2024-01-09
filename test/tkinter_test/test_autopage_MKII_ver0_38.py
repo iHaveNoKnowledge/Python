@@ -1462,7 +1462,9 @@ class DataSourceSelector:
 
 
 class PopUp:
-    def __init__(self, title, message, parent):
+    def __init__(self, title, message, parent, mode):
+        self.mode_opt = {"form": "Submit", "alert": "Close"}
+        self.mode = mode
         self.parent = parent
         self.title = title
         self.message = message
@@ -1474,22 +1476,31 @@ class PopUp:
     def create_subwindow(self):
         self.subwindow = Toplevel(self.parent)
         self.subwindow.transient(self.parent)
-        self.subwindow.geometry("250x140+650+400")
+        self.subwindow.geometry("400x140+650+400")
         self.subwindow.title(f"{self.title}")
         self.subwindow.grab_set()
-        self.subwindow.resizable(False, False)
-        # สร้างเฟรม
+        self.subwindow.resizable(True, False)
+
+        # * สร้างเฟรม
         self.subwin_frame = Frame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
-        # สร้าง widget
-        self.id_label = Label(
-            self.subwin_frame, text=self.message, font=("bazooka", 9))
-        self.id_label.pack(fill='x', expand=True)
 
-        # Submit Button
+        # * สร้าง Texted widget
+        self.id_label = Text(
+            self.subwin_frame, font=("bazooka", 9))
+        self.id_label.insert(END, f'{self.message}')
+        self.id_label.pack(fill=BOTH, expand=True)
+
+        # * Submit Button
         self.submit_btn = Button(
-            self.subwin_frame, text="Submit", command=self.delete)
+            self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
         self.submit_btn.pack(fill='x', expand=True)
+
+        # * ยก widget นี้ ขึ้นมาหน้าสุด
+        # > กำหนดตำแหน่งเฉยๆ ยังไม่ขยับ ต้องไปสั่งขยับอีกที
+        self.subwindow.attributes('-topmost', 1)
+        # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
+        self.subwindow.lift()
 
 
 class UserAccount:
@@ -1597,7 +1608,7 @@ class UserAccount:
         else:
             print("Incorrect username or password")
             self.login_alert = PopUp(
-                "Login Fail!!", "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู", self.parent)
+                "Login Fail!!", "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู", self.parent, "form")
             return False
 
     def update_btn(self):
@@ -2196,7 +2207,7 @@ class Bot_POS:
 
                                 # if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').is_displayed():
                                 continue
-                                
+
                             else:
                                 # print("หน้า SN ไม่ได้โ๙ว์")
                                 break
@@ -2204,6 +2215,8 @@ class Bot_POS:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
                             print("เอาแค่ส่วนเดียว", err.alert_text)
+                            PopUp("SNซ้ำ", f'{err.alert_text}',
+                                  self.parent, "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
@@ -2593,7 +2606,7 @@ class Bot_POS:
         #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
 
     # * function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
-    #! WIP ยังไม่พร้อมใช้งาน กำลังทำ
+
     def classify_vatinfo_address(self, input):
         try:
             # Create a copy of the output dictionary
