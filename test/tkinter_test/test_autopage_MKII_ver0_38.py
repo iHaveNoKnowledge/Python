@@ -20,6 +20,7 @@ import time
 import win32com.client as comclt
 import re
 from selenium import webdriver
+from selenium.common.exceptions import UnexpectedAlertPresentException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -1638,7 +1639,7 @@ class Bot_POS:
         Download_dir = Dir_path+self.custom_path
 
         os.environ["WDM_LOCAL"] = self.custom_path
-        print("มีไรบ้างใน obj Options:", dir(self.opt))
+        # print("มีไรบ้างใน obj Options:", dir(self.opt))
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
@@ -1660,18 +1661,18 @@ class Bot_POS:
                 print("รายงานจำนวนtabs")
 
                 self.title_list = []
-                self.title_list_Idx = []
+                # self.title_list_Idx = [] #!เหมือนจะไม่ได้ใช้
                 self.value_list = []
-                self.title_dict = {}
+                # self.title_dict = {} #!เหมือนจะไม่ได้ใช้
                 for idx, handle in enumerate(self.driver.window_handles):
                     self.driver.switch_to.window(handle)
-                    self.title_list_Idx.append(
-                        self.driver.title + "["+str(idx)+"]")
+                    # self.title_list_Idx.append(
+                    #     self.driver.title + "["+str(idx)+"]") #!เหมือนจะไม่ได้ใช้
                     self.title_list.append(self.driver.title)
 
                     self.value_list.append(self.driver.current_window_handle)
-                    self.title_dict.update(
-                        {self.driver.title: self.driver.current_window_handle})
+                    # self.title_dict.update(
+                    #     {self.driver.title: self.driver.current_window_handle}) #!เหมือนจะไม่ได้ใช้
 
                 self.unique_titles = []
                 self.counter = {}
@@ -2191,22 +2192,22 @@ class Bot_POS:
                         time.sleep(1)
                         try:
                             if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[1]').is_displayed():
-                                print("หน้า SN กำลังโชว์")
+                                # print("หน้า SN กำลังโชว์")
 
                                 # if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').is_displayed():
                                 continue
-                                #! WIP pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หาย
+                                
                             else:
-                                print("หน้า SN ไม่ได้โ๙ว์")
+                                # print("หน้า SN ไม่ได้โ๙ว์")
                                 break
-                        except:
-                            time.sleep(3)
-                            print('popup โผลมาแล้ว')
+                        except UnexpectedAlertPresentException as err:
+                            # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
+                            # print("alertทั้งหมดคือไร", err)
+                            print("เอาแค่ส่วนเดียว", err.alert_text)
+                            # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
-                            print("รอ 3 วิ")
-                            
-                            print("ออกจาก SN")
-                            break
+                            # print("Popupโผล่")
+                            continue
 
                     if self.is_input_empty == False and self.is_final_displayed == False:
                         print("ชื่อหาย")
@@ -2910,6 +2911,7 @@ if __name__ == "__main__":
 # *37 แก้แล้ว //ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
 # ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
 # ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
+# *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
