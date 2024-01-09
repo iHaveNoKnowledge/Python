@@ -223,7 +223,7 @@ class MyApp:
         self.inp1_order_input.grid(row=0, column=3)
         # >> Buttons
         self.inp1_search_btn = Button(
-            self.entry_frame, text="Start", bg="#747474", command=self.search, width=10)
+            self.entry_frame, text="Start", bg="#969696", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
         # * > A BTN to display the User_account
@@ -241,7 +241,7 @@ class MyApp:
             self.import_file_frame, text=f"ยังไม่เลือก Import File")
         self.display_location_result.grid(row=0, column=1, padx=(5, 0))
         self.display_location_result_btn = Button(
-            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel)
+            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, bg="#969696")
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
         # >> bot status
         self.display_bot_status_label = Label(
@@ -272,7 +272,7 @@ class MyApp:
         # * > Is Tax?? display component
         # >> Labels
         self.label_is_tax = Label(
-            self.order_details_frame, text="ใบกำกับ: ", bg="#FFF")
+            self.order_details_frame, text="ใบกำกับ", bg="#FFF")
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_is_tax = Label(
@@ -282,17 +282,27 @@ class MyApp:
         # * > Tax Number display component
         # >> Labels
         self.label_tax_number = Label(
-            self.order_details_frame, text="เลขผู้เสียภาษี: ", bg="#FFF")
+            self.order_details_frame, text="เลขผู้เสียภาษี", bg="#FFF")
         self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_tax_number = Entry(
             self.order_details_frame, width=15,  borderwidth=0, textvariable=self.tax_num, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
         self.display_tax_number.grid(row=2, column=5, padx=(1, 0), sticky='ew')
 
+        # * > Customer Email display component
+        # >> Labels
+        self.label_cus_email = Label(
+            self.order_details_frame, text="Email", bg="#FFF")
+        self.label_cus_email.grid(row=2, column=6, padx=(5, 0), sticky='ew')
+        # >> Value display
+        self.display_cus_email = Entry(
+            self.order_details_frame, width=15,  borderwidth=0, textvariable=self.cus_email, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
+        self.display_cus_email.grid(row=2, column=7, padx=(1, 0), sticky='ew')
+
         # * > Customer Name display component
         # >> Labels
         self.label_cus_name = Label(
-            self.order_details_frame, text="ชื่อ: ", bg="#FFF", height=1)
+            self.order_details_frame, text="ชื่อ", bg="#FFF", height=1)
         self.label_cus_name.grid(row=2, column=0, padx=(
             5, 0), pady=(2, 2), sticky='ew')
         # >> Value display
@@ -393,7 +403,7 @@ class MyApp:
         self.cus_address = ""
         self.cus_remark = ""
         self.order_note = ""
-        self.update_gui_address('')
+        self.update_gui('', self.display_cus_address)
         self.cus_province.set("")
         self.cus_district.set("")
         self.cus_sub_district.set("")
@@ -662,20 +672,33 @@ class MyApp:
         # except Exception as e:
         #     print(f"อะไรสักอย่างพัง {e}")
 
-    def update_gui_address(self, address):
-        self.address = address.strip()
+# ! เลิกใช้ deprecated หรือป่าว
+    #! def update_gui_address(self, address):
+    #!     self.address = address.strip()
+    #!     if address != "":
+    #!         self.cus_address = self.address
+    #!         self.display_cus_address.config(state=NORMAL)
+    #!         self.display_cus_address.delete(1.0, END)
+    #!         self.display_cus_address.insert(END, self.address)
+    #!         self.display_cus_address.config(state=DISABLED)
+    #!     else:
+    #!         self.cus_address = "-"
+    #!         self.display_cus_address.config(state=NORMAL)
+    #!         self.display_cus_address.delete(1.0, END)
+    #!         self.display_cus_address.insert(END, '')
+    #!         self.display_cus_address.config(state=DISABLED)
+
+    def update_gui(self, address, widget):
         if address != "":
-            self.cus_address = self.address
-            self.display_cus_address.config(state=NORMAL)
-            self.display_cus_address.delete(1.0, END)
-            self.display_cus_address.insert(END, self.address)
-            self.display_cus_address.config(state=DISABLED)
+            input = address.strip()
         else:
-            self.cus_address = "-"
-            self.display_cus_address.config(state=NORMAL)
-            self.display_cus_address.delete(1.0, END)
-            self.display_cus_address.insert(END, '')
-            self.display_cus_address.config(state=DISABLED)
+            input = "-"
+
+        self.cus_address = input
+        widget.config(state=NORMAL)
+        widget.delete(1.0, END)
+        widget.insert(END, input)
+        widget.config(state=DISABLED)
 
     def update_gui_remark(self):
         if self.cus_remark == "" or self.cus_remark == "nan":
@@ -884,16 +907,16 @@ class MyApp:
                 return tel
             else:
                 print("ลืมใส่เลข 0 แหละ")
-                print("เติม 0 ให้","0"+tel)
+                print("เติม 0 ให้", "0"+tel)
                 return tel
         elif len(tel) > 10:
             if len(tel) == 11:
                 tel_no_code = tel[-8:]
-                print('เบอร์บ้านแต่ติดรหัสประเทศ')               
+                print('เบอร์บ้านแต่ติดรหัสประเทศ')
             elif len(tel) == 12:
                 tel_no_code = tel[-9:]
-                print('เบอร์มือถือแต่ติดรหัสประเทศ') 
-                
+                print('เบอร์มือถือแต่ติดรหัสประเทศ')
+
             if tel_no_code[0] != 0:
                 print("ตัดรหัสประเทศและเพิ่มเลข 0")
                 fixed_tel = "0" + str(tel_no_code)
@@ -1207,14 +1230,25 @@ class MyApp:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
                         print("แขวง/ตำบล ไม่เท่ากับ nan: ",
                               self.nondistortedData['แขวง/ตำบล'])
-                        self.update_gui_address(
-                            re.sub(r'\s{2,}', " ", self.cleaned_address.replace('\u200b', '')).strip())
+                        self.update_gui(
+                            re.sub(r'\s{2,}', " ", self.cleaned_address.replace(
+                                '\u200b', '')).strip(),
+                            self.display_cus_address
+                        )
                     else:
                         print("ถ้ามี nan")
-                        self.update_gui_address(re.sub(
-                            r'\s{2,}', " ", self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace('\u200b', '')))
+                        self.update_gui(
+                            re.sub(
+                                r'\s{2,}',
+                                " ",
+                                self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace(
+                                    '\u200b', ''
+                                )
+                            ),
+                            self.display_cus_address
+                        )
                 except:
-                    self.update_gui_address('-')
+                    self.update_gui('-', self.display_cus_address)
 
                 self.update_gui_remark()
                 self.update_gui_note()
@@ -1229,7 +1263,8 @@ class MyApp:
                         self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
-                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ",self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ",
+                      self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
                     tel_for_set = self.cus_tel_fixer(
                         self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
@@ -1504,6 +1539,7 @@ class PopUp:
             self.subwin_frame, font=("bazooka", 9))
         self.id_label.insert(END, f'{self.message}')
         self.id_label.pack(fill=BOTH, expand=True)
+        self.id_label.config(state=DISABLED)
 
         # * Submit Button
         self.submit_btn = Button(
@@ -2536,9 +2572,12 @@ class Bot_POS:
 
     def addTaxInvCustomerLaz(self):
         tax_info = self.get_vatinfo_data(
-            self.app.tax_num.get(), self.app.tax_branch.get())
+            self.app.tax_num.get(),
+            self.app.tax_branch.get()
+        )
         print("ชื่อลูกค้าเป็นไง LAZ: ", self.app.cus_name.get())
         name = self.app.cus_name.get()
+
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
             self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
