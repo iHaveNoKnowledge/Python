@@ -1216,6 +1216,7 @@ class MyApp:
                         self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
+                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ",self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
                     tel_for_set = self.cus_tel_fixer(
                         self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
@@ -2304,13 +2305,31 @@ class Bot_POS:
 
                             # * สำหรับ prefinal  pop-up (optional by ETAX)
                             while True:
-                                if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[1]/label/input').is_displayed():
-                                    #! WIP อันนี้ค่อนข้างเสี่ยง เดะทดลองก่อน
-                                    pass
-                                else:
+                                #! WIP อันนี้ค่อนข้างเสี่ยง เดะทดลองก่อน
+                                try:
+                                    self.etax_radio_printout = self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[1]/label/input')
+                                    self.etax_radio_sendmail = self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
+
+                                    if self.etax_radio_printout.is_displayed():
+                                        print("Click Print Out Radio")
+                                        self.etax_radio_printout.click()
+                                        print("Press Print, and break the loop")
+                                        break
+                                    elif self.etax_radio_sendmail.is_displayed():
+                                        print("Click Send Email Radio")
+                                        self.etax_radio_sendmail.click()
+                                        print(
+                                            "Press Send Email, and break the loop")
+                                        break
+                                except:
+                                    print("radio has Disappeared")
                                     continue
-                            # * สำหรับ final pop-up
+
+                            # * สำหรับ final pop-up after click the green btn
                             while True:
+                                print("auto click Before print loop")
                                 self.final_popup = self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]')
                                 # self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
