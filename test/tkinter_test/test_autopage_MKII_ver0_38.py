@@ -2302,8 +2302,15 @@ class Bot_POS:
                             # * พิมพ์ผลลัพธ์
                             print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
+                            # * สำหรับ prefinal  pop-up (optional by ETAX)
                             while True:
-
+                                if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[1]/label/input').is_displayed():
+                                    #! WIP อันนี้ค่อนข้างเสี่ยง เดะทดลองก่อน
+                                    pass
+                                else:
+                                    continue
+                            # * สำหรับ final pop-up
+                            while True:
                                 self.final_popup = self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]')
                                 # self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
@@ -2321,6 +2328,7 @@ class Bot_POS:
                                         time.sleep(1)
                                         self.final_popup_btn.click()
                                     except:
+                                        time.sleep(1)
                                         self.final_popup.click()
 
                                     # * > รอหน้า canvas โผล่ก่อน
