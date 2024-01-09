@@ -874,20 +874,33 @@ class MyApp:
             return translation.text
 
     def cus_tel_fixer(self, tel):
-        b_no_code = tel[2:]
-        print("เบอร์มีขนาดความยาว: ", len(tel))
         if len(tel) == 10:
+            print("เบอร์มือถือ")
             return tel
         elif len(tel) == 9:
             print("ดูก่อนว่าเบอร์บ้านไหม")
-        else:
-            if b_no_code[0] != "0":
-                b_no_code_fixed = "0"+b_no_code
-                print("แบบตัดรหัสประเทศและเพิ่มเลข0", b_no_code_fixed)
-                return b_no_code_fixed
+            if tel[0] == "0":
+                print('โอเคเบอร์บ้าน')
+                return tel
             else:
-                print("แบบตัดรหัสประเทศ", b_no_code)
-                return b_no_code
+                print("ลืมใส่เลข 0 แหละ")
+                print("เติม 0 ให้","0"+tel)
+                return tel
+        elif len(tel) > 10:
+            if len(tel) == 11:
+                tel_no_code = tel[-8:]
+                print('เบอร์บ้านแต่ติดรหัสประเทศ')               
+            elif len(tel) == 12:
+                tel_no_code = tel[-9:]
+                print('เบอร์มือถือแต่ติดรหัสประเทศ') 
+                
+            if tel_no_code[0] != 0:
+                print("ตัดรหัสประเทศและเพิ่มเลข 0")
+                fixed_tel = "0" + str(tel_no_code)
+                print('')
+                return fixed_tel
+            else:
+                print('holy shetttttttttttt+')
 
     def find_branch(self, input):
         # จะ method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น
