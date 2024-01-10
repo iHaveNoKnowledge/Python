@@ -2575,8 +2575,8 @@ class Bot_POS:
             self.app.tax_num.get(),
             self.app.tax_branch.get()
         )
-        print("ชื่อลูกค้าเป็นไง LAZ: ", self.app.cus_name.get())
-        name = self.app.cus_name.get()
+        print("ชื่อลูกค้าเป็นไง LAZ: ", f"{tax_info['name']}")
+        name = f"{tax_info['name']}"
 
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
@@ -2595,21 +2595,21 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         self.driver.find_element(
             # nameTH
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f"{tax_info['name']}")
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(name)
 
         self.driver.find_element(
             # nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         self.driver.find_element(
             # nameEN
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f"{tax_info['name']}")
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(name)
 
         self.driver.find_element(
             # Identity ID
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
         self.driver.find_element(
             # Identity ID
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(tax_info['tax_num'])
 
         # กรอก Address
         self.driver.find_element(
@@ -2624,19 +2624,19 @@ class Bot_POS:
         # self.email_input.send_keys(self.app.cus_email.get())
 
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
-        # dropdown Country
+        # * dropdown Country
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
         time.sleep(1)
-        # select thailand in dropdown
+        # * > select thailand in dropdown
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
 
-        # province dropdown
+        # * province dropdown
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            # province input
+            # * > province input
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             tax_info['province'].replace("จังหวัด", ""))  # province input
@@ -2644,18 +2644,15 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-        self.driver.find_element(
-            # District drop
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            # District
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            # District
-            tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
+            # *> District drop
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
+            # *> District clear
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            # *> District fill input
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
         time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            # *> District Enter to submit District from the dropdown
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # SubDistrict drop
         self.driver.find_element(
@@ -2780,9 +2777,11 @@ class Bot_POS:
                 response = requests.post(
                     'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet', params=params, headers=headers, data=data)
                 print("responseไรมา", response.cookies)
+                # รอบแรกเราเก็บ cookies มา
                 jsession_id = response.cookies['JSESSIONID']
             elif times > 1:
                 print("jsession_id", jsession_id)
+                # รอบสองเราเอา cookies มาประกอบ request โดย data ที่ใช้ request รอบนี้เป็นอีกแบบนึงจะต้องมี cookie เป็นตัวยืนยันว่าเคย login มาแล้ว ถ้าไม่มี cookie จะผ่านไม่ได้ เหมือนจะเป็น authen
                 cookies['JSESSIONID'] = f'{jsession_id}'
                 data2['goto_page'] = f'{times}'
                 response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',
@@ -2833,7 +2832,7 @@ class Bot_POS:
                     for item in search_result:
                         if item['branch'] == self.app.tax_branch.get():
                             output = item
-                            print("เกบค่าลง output", output)
+                            print("เกบค่าลง dict result ลง output", output)
                             break
                     if bool(output) == False:
                         print("ว่างต้องวนใหม่")
