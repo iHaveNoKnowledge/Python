@@ -92,6 +92,7 @@ class MyApp:
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
+        self.cookies = {}
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
