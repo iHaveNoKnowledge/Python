@@ -1,47 +1,47 @@
 
+from decimal import Decimal
+import locale
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import sys
+import os
+from xml.dom.minidom import Document
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
+from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import UnexpectedAlertPresentException
+from selenium import webdriver
+import re
+import win32com.client as comclt
+import time
+import pandas as pd
+import numpy as np
+from tkinter import font
+from tkinter import ttk
+from tkinter import filedialog
+from tkinter import messagebox
+from tkinter import *
+import traceback
 from bs4 import BeautifulSoup
 from googletrans import Translator
 import requests
-import traceback
+session = requests.Session()
 
 # * user interface
-from tkinter import *
-from tkinter import messagebox
-from tkinter import filedialog
-from tkinter import ttk
-from tkinter import font
 # * dataframe table
-import numpy as np
-import pandas as pd
 # from test_auto_cus_name_MKII import *
 
 # * selenium
-import time
-import win32com.client as comclt
-import re
-from selenium import webdriver
-from selenium.common.exceptions import UnexpectedAlertPresentException
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver import ActionChains
-from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
-from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 # from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
 
-from xml.dom.minidom import Document
-import os
-import sys
 
-import threading
-from concurrent.futures import ThreadPoolExecutor
-
-import locale
-from decimal import Decimal
 locale.setlocale(locale.LC_ALL, 'en_us')
 
 # beautifulsoup
@@ -92,7 +92,9 @@ class MyApp:
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
-        self.cookies = {}
+        self.cookies = {'vatinfo': {
+            'JSESSIONID': '',
+        }}
         self.bot = Bot_POS(self.root, self)
         self.create_main_window()
         self.get_dataframe()
@@ -1641,7 +1643,7 @@ class UserAccount:
             ],
         }
 
-        response = requests.post(
+        response = session.post(
             'http://192.168.0.11:8080/smartcore/loginssoauthen.htm',
             cookies=cookies,
             headers=headers,
@@ -2645,15 +2647,19 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-            # *> District drop
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
-            # *> District clear
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-            # *> District fill input
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
+        # *> District drop
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
+        # *> District clear
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+        # *> District fill input
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
         time.sleep(1.75)
-            # *> District Enter to submit District from the dropdown
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        # *> District Enter to submit District from the dropdown
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # SubDistrict drop
         self.driver.find_element(
@@ -2725,9 +2731,9 @@ class Bot_POS:
         branch = str(tax_branch)
         jsession_id = ''
 
-        cookies = {
-            'JSESSIONID': '0000uelEKnUmVBz9ciAzvgnusDG:-1',
-        }
+        # เราจะไม่ใช้ cookies แต่จะใช้ค่าจาก class แรกสุด เพราะ
+        # cookies = self.app.cookies['vatinfo']
+        print("cookies for reqtaxinfo: ", self.app.cookies['vatinfo'])
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -2775,18 +2781,31 @@ class Bot_POS:
         while True:
             if times == 1:
                 print("times = 1")
-                response = requests.post(
-                    'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet', params=params, headers=headers, data=data)
-                print("responseไรมา", response.cookies)
-                # รอบแรกเราเก็บ cookies มา
-                jsession_id = response.cookies['JSESSIONID']
+                response = session.post(
+                    'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet', cookies=self.app.cookies['vatinfo'], params=params, headers=headers, data=data)
+
+                # Todo มันมีการตรวจสอบ cookies ตลอดเวลา แต่ครั้งแรกreqไปมันจะตรวจสอบก่อน ถ้าไม่มีมันจะ return มาให้  ครั้งถัดไปมันจะตรวจอีกถ้ามี"แล้วยังใช้ได้" มันจะไม่ return ให้ ถ้าใช้ไม่ได้มันจะ return ตัวใหม่ให้
+                try:
+                    # * กรณี ที่ มี cookies returns กลับมา เพราะอันเก่ามันหมดอายุแล้ว หรือไม่เคยมีมาก่อน
+                    print("response cookies ไรมา", response.cookies)
+                    # * > เก็บค่า cookies จาก response เข้าไปใน cookies ที่มีอยู่แล้ว
+                    jsession_id = response.cookies['JSESSIONID']
+                    print(
+                        "we never have usable cookies before that why the response has cookies. We'll use it like a state in app.cookies")
+                    self.app.cookies['vatinfo']['JSESSIONID'] = f'{
+                        jsession_id}'
+                except Exception as err:
+                    # * กรณี ที่ ไม่มี cookies returns กลับมา เพราะอันเก่าใช้ได้อยู่ ใช้ cookies เดิมได้เลย
+                    print("if the response is '<RequestCookieJar[]>', it indicates that no cookies were returned. Therefore, we already have available cookies now.", response)
+
             elif times > 1:
                 print("jsession_id", jsession_id)
                 # รอบสองเราเอา cookies มาประกอบ request โดย data ที่ใช้ request รอบนี้เป็นอีกแบบนึงจะต้องมี cookie เป็นตัวยืนยันว่าเคย login มาแล้ว ถ้าไม่มี cookie จะผ่านไม่ได้ เหมือนจะเป็น authen
-                cookies['JSESSIONID'] = f'{jsession_id}'
+
                 data2['goto_page'] = f'{times}'
-                response = requests.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',
-                                         params=params, cookies=cookies, headers=headers, data=data2)
+                response = session.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',
+                                        params=params, cookies=self.app.cookies['vatinfo'], headers=headers, data=data2)
+
             try:
                 response.raise_for_status()
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -2848,7 +2867,7 @@ class Bot_POS:
                     print("ไม่มีใบกำกับจาก request", output)
                     break
 
-            except requests.exceptions.HTTPError as e:
+            except session.exceptions.HTTPError as e:
                 print(f"HTTP Error occurred: {e}")
             except Exception as e:
                 print(f"An error occured: {e}")
