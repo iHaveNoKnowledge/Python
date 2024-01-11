@@ -1101,7 +1101,7 @@ class MyApp:
                     re.sub(r'[^\x00-\x20\x30\x40\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
-                    self.tax_name_standarizer(self.cus_name.get()))
+                    self.tax_name_standardizer(self.cus_name.get()))
 
                 # * ประเภทใบกำกับภาษี
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
@@ -1355,25 +1355,27 @@ class MyApp:
         print("name:", name)
         return name
 
-    def tax_name_standarizer(self, name):
+    def tax_name_standardizer(self, name):
         name_edited = name.replace('\u200b', '')
-        # ** ลบคำที่ไม่ใช่ชื่อลูกค้า
-        # * > ลบประเภทการจดทะเบียน ถ้าชื่อลูกค้าไม่มี บจก หรือ หจก เราก็จะไม่รู้ว่าลูกค้าให้ออกอะไร เลยทำให้ ไม่มีเงื่อนไขของคนที่ไม่ได้บอก
-        if "หจก" in name_edited or "ห้างหุ้นส่วนจำกัด" in name_edited:
+        name_edited = name_edited.replace(
+            "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
+        print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
+
+        if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
             print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
             name_edited = name_edited.replace(
-                "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").strip()
+                "หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
             name_edited = f"""ห้างหุ้นส่วนจำกัด {
                 name_edited}"""
 
-        elif "บจก" in name_edited or "บริษัท" in name_edited or "จำกัด" in name_edited:
+        elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
             print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
             name_edited = name_edited.replace(
-                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").strip()
+                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").strip()
             name_edited = f"""บริษัท {
                 name_edited} จำกัด"""
 
-        # * > ลบประเภทสาขา
+        # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ
         if "สำนักงานใหญ่" in name_edited or "(สำนักงานใหญ่)" in name_edited:
             name_edited = name_edited.replace(
                 "(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").strip()
@@ -2578,13 +2580,16 @@ class Bot_POS:
             self.app.tax_num.get(),
             self.app.tax_branch.get()
         )
+
         print("ชื่อลูกค้าเป็นไง LAZ: ", f"{tax_info['name']}")
         name = f"{tax_info['name']}"
 
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
-            self.app.tax_branch.set(self.app.nondistortedData['รหัสประจำสาขา'])
-            name = f"""{name} ({self.app.tax_branch.get()})"""
+            self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
+            name = name
+            if name.startswith("บริษัท") or "จำกัด" in name:
+                name += f" {tax_info['branch']}"
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
 
@@ -2963,6 +2968,21 @@ class Bot_POS:
                 'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
             }
             result = manual_result_strcuture
+        else:
+            result['name']
+            # * ตรวจสอบดูว่า ค่าที่ response กลับมา มีช่องว่างตามเงื่อนไขหรือไม่
+            x = re.search("^ห้างหุ้นส่วนจำกัด\s|^บริษัท\s", result['name'])
+
+            if x:
+                # * มีช่องว่าง แปลว่าดี
+                print("เจอช่องว่าง response ไม่ต้องทำอะไร return ได้เลย",
+                      result['name'])
+            else:
+                #! ไม่มีช่องว่าง แปลว่าอับปรีย์
+                result['name'] = result['name'].replace("บริษัท", "บริษัท ").replace(
+                    "ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนจำกัด ")
+                print("ไม่เจอช่องว่างจาก response แต่เพิ่มให้แล้ว",
+                      result['name'])
 
         return result
 
