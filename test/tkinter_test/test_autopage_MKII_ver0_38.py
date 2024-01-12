@@ -944,50 +944,50 @@ class MyApp:
           # เมื่อไม่มีสำนักงานใหญ่ ให้ดูว่ามีเลขไหม
         elif re.findall(r'[0-9]+', branch):
             #   เมื่อมีเลขให้ดูว่ามีคำว่าสาขากับเลขหรือไม่
-            print("2nd condition", branch)
+            # print("2nd condition", branch)
             if re.search(r'สาขา.*[0-9]', branch):
                 matches = re.search(r'[0-9]+', branch)
                 match = matches[0]
                 match = match.strip()
                 if len(match) == 5 and match[0] == "0":
-                    print("ตัดสาขาออกแล้วมีเลขครบ 5 หลักพอดี", match)
+                    # print("ตัดสาขาออกแล้วมีเลขครบ 5 หลักพอดี", match)
                     return match
 
                 elif len(match) < 5:
                     txt = "{:0>5}"
-                    print("เลขที่ได้หลังตัดสาขาออก มีหลักไม่ครบ เติมหลัก แล้ว Return")
-                    print("ปรับ Format เป็น 5 หลัก")
-                    print("return", txt.format(match))
+                    # print("เลขที่ได้หลังตัดสาขาออก มีหลักไม่ครบ เติมหลัก แล้ว Return")
+                    # print("ปรับ Format เป็น 5 หลัก")
+                    # print("return", txt.format(match))
                     match = txt.format(match)
                     return match
 
             elif re.search(r'0[0-9]{0,4}', branch) and (branch[0] == "0" and len(branch) <= 5):
                 branch = re.search(r'0[0-9]{0,4}', branch)[0]
-                print(branch)
-                print("เลขสาขาตรงๆ ครบบ้างไม่ครบบ้าง")
+                # print(branch)
+                # print("เลขสาขาตรงๆ ครบบ้างไม่ครบบ้าง")
                 if len(branch) == 5:
-                    print("Return แค่ 5 ตัวท้าย")
-                    print("return", branch[-5:])
+                    # print("Return แค่ 5 ตัวท้าย")
+                    # print("return", branch[-5:])
                     branch = branch[-5:]
                     return branch
 
                 elif len(branch) < 5:
                     txt = "{:0>5}"
-                    print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
-                    print("return", txt.format(branch))
+                    # print("ปรับผลลัพธ์ ให้ Return เป็น Format 5 หลัก")
+                    # print("return", txt.format(branch))
                     return txt.format(branch)
                 else:
-                    print("บิดเบี้ยว", branch)
-                    print("return สำนักงานใหญ่")
+                    # print("บิดเบี้ยว", branch)
+                    # print("return สำนักงานใหญ่")
                     return "สำนักงานใหญ่"
             else:
-                print("not match any subcondition in the 2nd condition")
-                print("return สำนักงานใหญ่")
+                # print("not match any subcondition in the 2nd condition")
+                # print("return สำนักงานใหญ่")
                 return "สำนักงานใหญ่"
 
         else:
-            print("ไม่มีบอกสำนักงาน")
-            print("return ค่า สำนักงานใหญ่ แล้วกัน")
+            # print("ไม่มีบอกสำนักงาน")
+            # print("return ค่า สำนักงานใหญ่ แล้วกัน")
             return "สำนักงานใหญ่"
 
     def branch_to_branch_type(self, branch):
@@ -1098,7 +1098,7 @@ class MyApp:
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
                 # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
                 self.cus_name.set(
-                    re.sub(r'[^\x00-\x20\x30\x40\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
+                    re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standardizer(self.cus_name.get()))
@@ -1224,7 +1224,7 @@ class MyApp:
                         print("สร้างinputอันที่ ", idx+1)
 
                 self.cus_account_name.set(
-                    re.sub(r'[^\x00-\x20\x30\x40\wA-Zก-๙|/]+', '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
+                    re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
                 self.cus_account_name.set(self.cus_account_name.get().strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
 
@@ -1373,20 +1373,21 @@ class MyApp:
         elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
             print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
             name_edited = name_edited.replace(
-                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").strip()
+                "บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
             name_edited = f"""บริษัท {
                 name_edited} จำกัด"""
 
         # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ
-        if "(สำนักงานใหญ่)" in name_edited or "สำนักงานใหญ่" in name_edited or "(สํานักงานใหญ่)" in name_edited or "สํานักงานใหญ่" in name_edited :
-            name_edited = name_edited.replace("(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").replace("(สํานักงานใหญ่)", "").replace("สํานักงานใหญ่", "").strip()
+        if "(สำนักงานใหญ่)" in name_edited or "สำนักงานใหญ่" in name_edited or "(สํานักงานใหญ่)" in name_edited or "สํานักงานใหญ่" in name_edited:
+            name_edited = name_edited.replace("(สำนักงานใหญ่)", "").replace(
+                "สำนักงานใหญ่", "").replace("(สํานักงานใหญ่)", "").replace("สํานักงานใหญ่", "").strip()
         elif "(สาขา" in name_edited or "สาขา" in name_edited:
             name_edited = re.sub(
                 r'\(สาขา.*\)', '', name_edited)
             name_edited = re.sub(
                 r'\สาขา\d*', '', name_edited)
-        
-        name_edited = re.sub(r"\s{2,}",' ',name_edited)
+
+        name_edited = re.sub(r"\s{2,}", ' ', name_edited)
         return name_edited
 
     def on_thread_done(self):
