@@ -1102,6 +1102,8 @@ class MyApp:
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standardizer(self.cus_name.get()))
+                print("self.cus_name.get()หลังจากทำการ standarrdizer",
+                      self.cus_name.get())
 
                 # * ประเภทใบกำกับภาษี
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
@@ -1357,9 +1359,9 @@ class MyApp:
 
     def tax_name_standardizer(self, name):
         name_edited = name.replace('\u200b', '')
-        name_edited = name_edited.replace(
-            "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
-        print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
+        # name_edited = name_edited.replace(
+        #     "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
+        # print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
 
         if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
             print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
@@ -1376,15 +1378,15 @@ class MyApp:
                 name_edited} จำกัด"""
 
         # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ
-        if "สำนักงานใหญ่" in name_edited or "(สำนักงานใหญ่)" in name_edited:
-            name_edited = name_edited.replace(
-                "(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").strip()
+        if "(สำนักงานใหญ่)" in name_edited or "สำนักงานใหญ่" in name_edited or "(สํานักงานใหญ่)" in name_edited or "สํานักงานใหญ่" in name_edited :
+            name_edited = name_edited.replace("(สำนักงานใหญ่)", "").replace("สำนักงานใหญ่", "").replace("(สํานักงานใหญ่)", "").replace("สํานักงานใหญ่", "").strip()
         elif "(สาขา" in name_edited or "สาขา" in name_edited:
             name_edited = re.sub(
                 r'\(สาขา.*\)', '', name_edited)
             name_edited = re.sub(
                 r'\สาขา\d*', '', name_edited)
-
+        
+        name_edited = re.sub(r"\s{2,}",' ',name_edited)
         return name_edited
 
     def on_thread_done(self):
