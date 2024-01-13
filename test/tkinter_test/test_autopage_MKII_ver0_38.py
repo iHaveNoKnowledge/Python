@@ -2885,6 +2885,41 @@ class Bot_POS:
         print("output: ", output)
         return output
 
+    def google_for_tambon(self, address, possible_tambons):
+        # Todo address รับค่าเป็น dict
+        # Todo possible_tambons รับค่าเป็น list
+
+        input = f"{address['cleaned_address']} {address['amphoe']} {address['province']} {address['postal']}"
+
+        session = requests.Session()
+
+        params = {
+            'q': f'{input}',
+            'oq': f'{input}',
+        }
+        response = session.get('https://www.google.com/search', params=params)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # print("soup type:", type(soup))
+        # print("soupหน้าตาเปนไง: ", soup)
+
+        found_tambon = {}
+        # * การหาแบบ alltag มาจาก https://www.skytowner.com/explore/finding_elements_that_contain_a_specific_text_in_beautiful_soup#:~:text=To%20find%20elements%20that%20contain,together%20with%20a%20lambda%20function.
+        try:
+            for possible_tambon in possible_tambons:
+                found_tambon[f'{possible_tambon}'] = 0
+                matched_tags = soup.find_all(lambda tag: len(
+                    tag.find_all()) == 0 and possible_tambon in tag.text)
+                for matched_tag in matched_tags:
+                    # print("found_the_possible_tambon", possible_tambon,"matched_tag: ", matched_tag)
+                    found_tambon[f'{possible_tambon}'] += 1
+                # print(found_tambon)
+                most_tambon = max(found_tambon, key=found_tambon.get)
+            print("คนที่คะแนนเยอะสุด", most_tambon)
+            return most_tambon
+        except:
+            print('ไม่มี element')
+            return possible_tambons[0]
+
     def find_tambon(self, df, order):
         print("find_tambon order:", order)
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
@@ -2937,7 +2972,18 @@ class Bot_POS:
 
             cleaned_address = self.app.get_pure_address(cus_address)
 
-            return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code}
+            if decent_tambon:
+                print("เลือกตำบลที่เหมาะสมมาแล้ว")
+            else:
+                print("ไม่มีตำบลมาให้ต้อง search google")
+                address_dict = {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon,
+                                "amphoe": amphoe_short, "province": province, "postal": postal_code}
+                googled_tambon = self.google_for_tambon(
+                    address_dict, possible_tambons)
+                decent_tambon = googled_tambon
+                is_alert = True
+
+            return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code, "alert": is_alert}
         elif any(target_row_index) == False:
             print("ไม่เจอOrder")
 
