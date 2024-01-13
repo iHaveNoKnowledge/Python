@@ -2800,8 +2800,8 @@ class Bot_POS:
                     jsession_id = response.cookies['JSESSIONID']
                     print(
                         "we never have usable cookies before that why the response has cookies. We'll use it like a state in app.cookies")
-                    self.app.cookies['vatinfo']['JSESSIONID'] = f'{
-                        jsession_id}'
+                    self.app.cookies['vatinfo']['JSESSIONID'] = f"""{
+                        jsession_id}"""
                 except Exception as err:
                     # * กรณี ที่ ไม่มี cookies returns กลับมา เพราะอันเก่าใช้ได้อยู่ ใช้ cookies เดิมได้เลย
                     print("if the response is '<RequestCookieJar[]>', it indicates that no cookies were returned. Therefore, we already have available cookies now.", response)
