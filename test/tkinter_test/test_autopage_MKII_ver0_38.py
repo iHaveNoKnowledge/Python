@@ -593,6 +593,12 @@ class MyApp:
         #     lambda row: "สาขาย่อย" if len(row) == 0 else "สำนักงานใหญ่")
         result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
             lambda row: "สาขาย่อย" if (isinstance(row, str) and len(row) == 0) else "สำนักงานใหญ่")
+        result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
+            lambda row: print("ทำไมไม่ได้สาขาย่อยวะ", row) if (isinstance(row, str) and len(row) == 0) else print("ทำไมไม่ได้สาขาย่อยวะ", type(row)))
+        result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
+            lambda row: "สาขาย่อย" if (pd.notna(row) and isinstance(row, str) and len(
+                row) == 0) else "สำนักงานใหญ่" if isinstance(row, str) else "สาขาย่อย"
+        )
 
         # * เปลี่ยนค่าใน Col billingAddrs ตัดภาษาอังกฤษออก เนื่องจาก ที่อยู่ที่ได้จาก exportfile laz จะมี pattern เป็น ไทย/ อังกิก เช่น "บางปะกง/ Bang Pakong"
         # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
@@ -671,9 +677,9 @@ class MyApp:
             elif self.marketplace_target.get() == 'LAZADA':
                 self.data_frame = self.group_by_order(
                     self.file_path, self.columns)
-                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'] = self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].apply(
-                    lambda row: print(row))
-                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(float)
+                # self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'] = self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].apply(
+                #     lambda row: print(row))
+                # self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(float)
                 self.data_frame['โค้ดส่วนลดชำระโดยผู้ขาย'].astype(float)
 
             print("df มี type เป็นไร", type(self.data_frame))
@@ -1156,7 +1162,7 @@ class MyApp:
                     tax_num_only = "ไม่มีเลข"
 
                 # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
-                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "ไม่มีเลข":
+                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.config(
