@@ -473,14 +473,16 @@ class MyApp:
     def group_by_order(self, file_input, dtype):
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input, dtype=dtype)
+        #! สำคัญมาก ถ้ากยาอให้ nan หาย เอา dfมาใช้ method fillna('', inplace=True) "//การใช้ Inplace ทำให้แก้ ที่ df โดยตรงโดยไม่ต้องเก็บค่าใหม่
+        # df.fillna('', inplace=True)
 
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
-        df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['อีเมลสำหรับรับใบกำกับภาษี'], df[
-            'โค้ดส่วนลดชำระโดย Shopee'], df['ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0.00, "", "", 0, "", "", ""
+        df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['โค้ดส่วนลดชำระโดย Shopee'], df[
+            'ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0.00, "", 0, "", "", ""
 
         # กำหนด Datatype
-        data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str, 'อีเมลสำหรับรับใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'taxCode': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str}
+        data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str,
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str}
         df = df.astype(data_types)
 
         # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
@@ -500,7 +502,7 @@ class MyApp:
             elif column_type[column] == 'str':
                 df[column] = df[column].replace('nan', '')
             else:
-                df.fillna(value=0, inplace=True)
+                df.fillna(np.nan, inplace=True)
 
         # เพิ่มส่วนที่ไม่มี แต่สามารถหาคำนวณเพิ่มเองได้
         result_count = df.groupby(['orderNumber', 'sellerSku', 'itemName',
@@ -514,7 +516,7 @@ class MyApp:
             'status': 'first',
             'ส่วนลดจาก Shopee': 'first',
             'ประเภทใบกำกับภาษี': 'first',
-            'อีเมลสำหรับรับใบกำกับภาษี': 'first',
+            'customerEmail': 'first',
             'โค้ดส่วนลดชำระโดย Shopee': 'first',
             'ประเภทสาขา': 'first',
             'หมายเหตุจากผู้ซื้อ': 'first',
@@ -533,7 +535,7 @@ class MyApp:
             'branchNumber': 'first'
         })
         result_with_additional_columns_df = result_with_additional_columns_df.astype(
-            {'billingAddr5': str, 'taxCode': str, 'billingPhone': str})
+            {'billingAddr5': str, 'billingPhone': str})
 
         # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
 
@@ -586,6 +588,12 @@ class MyApp:
         result_df['ประเภทสาขา'] = extracted_branch_df.map(
             lambda row: "สำนักงานใหญ่" if row == "สำนักงานใหญ่" else "สาขาย่อย")
 
+        # * แยกย่อยออกมาจาก บรรทัดบนเพื่อ กรองส่วนที่ไม่มีเลขให้เป็นคำว่า สาขาย่อย เพราอันบน มันจะเปนสำนักงานใหญ่หมดถ้าหากหาค่าไม่ได้
+        # result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
+        #     lambda row: "สาขาย่อย" if len(row) == 0 else "สำนักงานใหญ่")
+        result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
+            lambda row: "สาขาย่อย" if (isinstance(row, str) and len(row) == 0) else "สำนักงานใหญ่")
+
         # * เปลี่ยนค่าใน Col billingAddrs ตัดภาษาอังกฤษออก เนื่องจาก ที่อยู่ที่ได้จาก exportfile laz จะมี pattern เป็น ไทย/ อังกิก เช่น "บางปะกง/ Bang Pakong"
         # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
         address_divs = ['billingAddr4', 'billingAddr3']
@@ -626,16 +634,19 @@ class MyApp:
             'paidPrice': 'จำนวนเงินทั้งหมด',
             'createTime': 'วันที่ทำการสั่งซื้อ',
             'branchNumber': 'รหัสประจำสาขา',
-            'variation': 'ชื่อตัวเลือก'
+            'variation': 'ชื่อตัวเลือก',
+            'customerEmail': 'อีเมลสำหรับรับใบกำกับภาษี'
         },
             inplace=True
         )
         result_df['หมายเลขคำสั่งซื้อ'] = result_df['หมายเลขคำสั่งซื้อ'].astype(
             str)
+
         print("ตารางใหม่")
         print(result_df)
         excel_file_path = "output_test.xlsx"
-        result_df.to_excel(excel_file_path, index=False)
+        result_df.to_excel(excel_file_path, index=False,
+                           na_rep="",)
         return result_df
 
     def f(self, d):
@@ -647,7 +658,7 @@ class MyApp:
         print('self.marketplace_target.get()', self.marketplace_target.get())
         shopee = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
-        lazada = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
+        lazada = {'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
         self.columns = shopee if self.marketplace_target.get(
         ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
@@ -660,7 +671,10 @@ class MyApp:
             elif self.marketplace_target.get() == 'LAZADA':
                 self.data_frame = self.group_by_order(
                     self.file_path, self.columns)
-                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
+                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'] = self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].apply(
+                    lambda row: print(row))
+                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(float)
+                self.data_frame['โค้ดส่วนลดชำระโดยผู้ขาย'].astype(float)
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -931,7 +945,7 @@ class MyApp:
     def find_branch(self, input):
         # จะ method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น
         # ตัวแปร branch
-        input = re.sub(r'\s+', '', input)
+        input = re.sub(r'\s+', '', str(input))
         branch = str(input).strip()
 
         pattern = re.compile(
@@ -1117,29 +1131,38 @@ class MyApp:
 
                 print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ",
                       self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
-                print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง",
-                      bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])), pd.isna(
-                          self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]),
-                      pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
+                print(
+                    "self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง")
+                print(bool(pd.isna(
+                    self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])))
+                print(
+                    pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                print(
+                    pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
+                print("ค่าจาก DFเพียวๆ: ",
+                      self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])
+                print("ดูtype: ",
+                      type(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
                 if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
-                    print('ไม่ใช่ na? if', pd.isna(
+                    print('ไม่ใช่ NaN? if', pd.isna(
                         self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
                 else:
-                    print('ไม่ใช่ na? else', pd.isna(
+                    print('ไม่ใช่ NaN? else', pd.isna(
                         self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
                     tax_num_only = "ไม่มีเลข"
 
-                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "":
+                # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
+                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]) or tax_num_only == "ไม่มีเลข":
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.config(
                         background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
                     self.tax_num.set(tax_num_only)
-                elif tax_num_only != "" and len(tax_num_only) != 13:
+                elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
                     self.tax_bool.set(False)
                     self.is_tax.set("ขอ//เลขไม่ครบ")
                     self.display_is_tax.config(
@@ -1154,7 +1177,7 @@ class MyApp:
                         self.display_is_tax.config(
                             background="#ff0000", foreground="#FFF", font='Chiller 10 bold')
                         self.tax_num.set(tax_num_only)
-                    elif self.branch_type == "สาขาย่อย" and not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0]):
+                    elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สาขาย่อย")
                         self.display_is_tax.config(
@@ -1235,11 +1258,20 @@ class MyApp:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
                         print("แขวง/ตำบล ไม่เท่ากับ nan: ",
                               self.nondistortedData['แขวง/ตำบล'])
-                        self.update_gui(
-                            re.sub(r'\s{2,}', " ", self.cleaned_address.replace(
-                                '\u200b', '')).strip(),
-                            self.display_cus_address
-                        )
+                        # * Lazada กับ shopee มันแสดงผล address ไม่เหมือนกันเพราะ ตาราง Excel ที่มันให้มา
+                        if self.marketplace_target.get() == "LAZADA":
+                            self.update_gui(
+                                re.sub(r'\s{2,}',
+                                       " ",
+                                       f"""{self.address} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', '')).strip(),
+                                self.display_cus_address
+                            )
+                        else:
+                            self.update_gui(
+                                re.sub(r'\s{2,}', " ", self.cleaned_address.replace(
+                                    '\u200b', '')).strip(),
+                                self.display_cus_address
+                            )
                     else:
                         print("ถ้ามี nan")
                         self.update_gui(
@@ -1252,7 +1284,8 @@ class MyApp:
                             ),
                             self.display_cus_address
                         )
-                except:
+                except Exception as err:
+                    print("Cannot Update Address", err)
                     self.update_gui('-', self.display_cus_address)
 
                 self.update_gui_remark()
@@ -1280,7 +1313,7 @@ class MyApp:
                 self.cus_ship_cost.set(
                     self.nondistortedData['ค่าจัดส่งที่ชำระโดยผู้ซื้อ'])
                 self.cus_seller_voucher.set(abs(
-                    self.nondistortedData['โค้ดส่วนลดชำระโดยผู้ขาย']))
+                    int(self.nondistortedData['โค้ดส่วนลดชำระโดยผู้ขาย'])))
                 self.cus_purchase_time.set(
                     self.nondistortedData['วันที่ทำการสั่งซื้อ'])
 
@@ -1519,6 +1552,15 @@ class DataSourceSelector:
 
 
 class PopUp:
+    """
+    Class PopUp use for create a pop-up for THE BOT GUI
+    Parameters:
+        - title (str): Title name of the pop-up.
+        - message (str): For display a message in the pop-up.
+        - parent (obj): class parent obj.
+        - mode (str): มี 2 ทางเลือก "form" สำหรับ submit, "alert" สำหรับ alert
+    """
+
     def __init__(self, title, message, parent, mode):
         self.mode_opt = {"form": "Submit", "alert": "Close"}
         self.mode = mode
@@ -2166,65 +2208,67 @@ class Bot_POS:
                 (By.XPATH, self.app.cusNameInput)))
 
             # ใส่ค่าขนส่ง
-
-            if int(self.app.cus_ship_cost.get()) != int(0):
-                try:
-                    self.skuInput = self.wait1.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                    # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                    self.skuInput.clear()
-                    self.skuInput.send_keys("SV0-000101")
-                    print("กรอก Code ขนส่งสำเร็จ")
-
-                    self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                    # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                    self.skuAddBtn.send_keys(Keys().ENTER)
-                    print("กด Enter ที่ช่อง SKU Input สำเร็จ")
-                    time.sleep(2)
-
-                    # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                    self.definePrice = self.wait1.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                    # self.definePrice = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
-                    self.definePrice.click()
-                    time.sleep(1)
-                    # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-                    print("กดที่ SKU ELEMENT 1 สำเร็จ")
-
-                    self.changePriceInput = self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
-                    self.changePriceInput.clear()
-                    self.changePriceInput.send_keys(
-                        self.app.cus_ship_cost.get())
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').clear()
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
-
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').clear()
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
-
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').clear()
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
-
-                    self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
+            # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
+            if self.app.marketplace_target.get() == "SHOPEE":
+                if int(self.app.cus_ship_cost.get()) != int(0):
                     try:
-                        print("รอหาย")
-                        self.wait1(EC.invisibility_of_element_located((
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
-                    except:
-                        print("ไม่มีให้รอ")
-                except Exception as err:
-                    print("ค่าขนส่งโดนข้าม")
-                    print(err)
-            else:
-                print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
+                        self.skuInput = self.wait1.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                        # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                        self.skuInput.clear()
+
+                        self.skuInput.send_keys("SV0-000101")
+                        print("กรอก Code ขนส่งสำเร็จ")
+
+                        self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                        # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                        self.skuAddBtn.send_keys(Keys().ENTER)
+                        print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+                        time.sleep(2)
+
+                        # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
+                        self.definePrice = self.wait1.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+                        # self.definePrice = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+                        self.definePrice.click()
+                        time.sleep(1)
+                        # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
+                        print("กดที่ SKU ELEMENT 1 สำเร็จ")
+
+                        self.changePriceInput = self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
+                        self.changePriceInput.clear()
+                        self.changePriceInput.send_keys(
+                            self.app.cus_ship_cost.get())
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').clear()
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
+
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').clear()
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
+
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').clear()
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
+
+                        self.driver.find_element(
+                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
+                        try:
+                            print("รอหาย")
+                            self.wait1(EC.invisibility_of_element_located((
+                                By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
+                        except:
+                            print("ไม่มีให้รอ")
+                    except Exception as err:
+                        print("ค่าขนส่งโดนข้าม")
+                        print(err)
+                else:
+                    print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
 
             self.app.update_log(
                 "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
@@ -2889,7 +2933,8 @@ class Bot_POS:
         # Todo address รับค่าเป็น dict
         # Todo possible_tambons รับค่าเป็น list
 
-        input = f"{address['cleaned_address']} {address['amphoe']} {address['province']} {address['postal']}"
+        input = f"{address['cleaned_address']} {address['amphoe']} {
+            address['province']} {address['postal']}"
 
         session = requests.Session()
 
@@ -2928,6 +2973,7 @@ class Bot_POS:
         df['หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(
             str)
 
+        # * หาตำบลจากไฟล์
         target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
         if any(target_row_index) == True:
             print("เจอ Order ใน ไฟล์")
@@ -2973,8 +3019,11 @@ class Bot_POS:
             cleaned_address = self.app.get_pure_address(cus_address)
 
             if decent_tambon:
+                # * เจอตำบลในไฟล์
                 print("เลือกตำบลที่เหมาะสมมาแล้ว")
+
             else:
+                # * ตำบลในไฟล์ไม่มีต้อง Google เอา
                 print("ไม่มีตำบลมาให้ต้อง search google")
                 address_dict = {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon,
                                 "amphoe": amphoe_short, "province": province, "postal": postal_code}
@@ -2982,8 +3031,11 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
+                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""")
 
             return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code, "alert": is_alert}
+
+        # * หาตำบลจากไฟล์ไม่เจอ
         elif any(target_row_index) == False:
             print("ไม่เจอOrder")
 
@@ -2992,6 +3044,8 @@ class Bot_POS:
             branch = "สำนักงานใหญ่"
         print(
             f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
+
+        # * หาชื่อใบกำกับจาก vatinfo
         result = self.get_res_vatinfo(str(tax_num), str(branch))
 
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
