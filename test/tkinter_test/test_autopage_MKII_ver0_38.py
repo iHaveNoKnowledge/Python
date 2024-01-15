@@ -3118,7 +3118,7 @@ if __name__ == "__main__":
     def on_closing():
         print("Tkinter window is closing")
         root.destroy()
-
+        
     root = Tk()
     # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
