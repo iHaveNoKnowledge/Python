@@ -2410,29 +2410,30 @@ class Bot_POS:
                             # * พิมพ์ผลลัพธ์
                             print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
-                            # * สำหรับ prefinal  pop-up (optional by ETAX)
-                            while True:
-                                #! WIP อันนี้ค่อนข้างเสี่ยง เดะทดลองก่อน
-                                try:
-                                    self.etax_radio_printout = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[1]/label/input')
-                                    self.etax_radio_sendmail = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
+                            #! WIP อันนี้ค่อนข้างเสี่ยง เดะทดลองก่อน เคยพังไปรอบนึงละ
+                            # # * สำหรับ prefinal  pop-up (optional by ETAX)
+                            # while True:
+                            #
+                            #     try:
+                            #         self.etax_radio_printout = self.driver.find_element(
+                            #             By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[1]/label/input')
+                            #         self.etax_radio_sendmail = self.driver.find_element(
+                            #             By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
 
-                                    if self.etax_radio_printout.is_displayed():
-                                        print("Click Print Out Radio")
-                                        self.etax_radio_printout.click()
-                                        print("Press Print, and break the loop")
-                                        break
-                                    elif self.etax_radio_sendmail.is_displayed():
-                                        print("Click Send Email Radio")
-                                        self.etax_radio_sendmail.click()
-                                        print(
-                                            "Press Send Email, and break the loop")
-                                        break
-                                except:
-                                    print("radio has Disappeared")
-                                    continue
+                            #         if self.etax_radio_printout.is_displayed():
+                            #             print("Click Print Out Radio")
+                            #             self.etax_radio_printout.click()
+                            #             print("Press Print, and break the loop")
+                            #             break
+                            #         elif self.etax_radio_sendmail.is_displayed():
+                            #             print("Click Send Email Radio")
+                            #             self.etax_radio_sendmail.click()
+                            #             print(
+                            #                 "Press Send Email, and break the loop")
+                            #             break
+                            #     except:
+                            #         print("radio has Disappeared")
+                            #         continue
 
                             # * สำหรับ final pop-up after click the green btn
                             while True:
@@ -2495,6 +2496,7 @@ class Bot_POS:
                                     # except Exception as err:
                                     #     print('ไม่ใช่จุดจบ', err)
                                     #     pass
+
                             if self.final_popup.is_displayed() == True:
                                 break
                             else:
@@ -2583,32 +2585,32 @@ class Bot_POS:
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
         self.driver.find_element(
-            # nameTH
+            # * > nameTH
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         self.driver.find_element(
-            # nameTH
+            # * >nameTH
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
 
         self.driver.find_element(
-            # nameEN
+            # * >nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         self.driver.find_element(
-            # nameEN
+            # * > nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
 
-        # กรอก Address
+        # * กรอก Address
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
 
-        # กรอก email
+        # * กรอก email
         self.email_input = self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
         self.email_input.clear()
         self.email_input.send_keys(self.app.cus_email.get())
 
-        # tel.
+        # * tel.
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
@@ -2652,37 +2654,38 @@ class Bot_POS:
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
         self.driver.find_element(
-            # nameTH
+            # clear nameTH
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         self.driver.find_element(
             # nameTH
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(name)
 
         self.driver.find_element(
-            # nameEN
+            # clear nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         self.driver.find_element(
             # nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(name)
 
         self.driver.find_element(
-            # Identity ID
+            # clear Identity ID
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
         self.driver.find_element(
             # Identity ID
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(tax_info['tax_num'])
 
-        # กรอก Address
+        # * กรอก Address
+
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(tax_info['address_shortened'])
 
-        # # กรอก email
-        # self.email_input = self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
-        # self.email_input.clear()
-        # self.email_input.send_keys(self.app.cus_email.get())
+        # * กรอก email
+        self.email_input = self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
+        self.email_input.clear()
+        self.email_input.send_keys(self.app.cus_email.get())
 
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # * dropdown Country
@@ -2701,7 +2704,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             tax_info['province'].replace("จังหวัด", ""))  # province input
-        time.sleep(1.75)
+        time.sleep(1.55)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
@@ -2714,33 +2717,33 @@ class Bot_POS:
         # *> District fill input
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
-        time.sleep(1.75)
+        time.sleep(1.55)
         # *> District Enter to submit District from the dropdown
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-        # SubDistrict drop
+        # * SubDistrict drop
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            # SubDistrict
+            # > SubDistrict
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            # SubDistrict
+            # > SubDistrict
             tax_info['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
-        time.sleep(1.75)
+        time.sleep(1.55)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-        # tel.
+        # * tel.
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
 
-        # #* กด Save
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        # * กด Save
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
         # #* รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
         # self.wait1.until(EC.invisibility_of_element_located(
@@ -2755,7 +2758,7 @@ class Bot_POS:
             print("resultสำหรับ classify คือไร :", result)
 
             # Remove the "ตำบล" and everything after it from the address
-            address_only = re.compile(r'ตำบล.*')
+            address_only = re.compile(r'(?:ตำบล|ต\.).*')
             result['address_shortened'] = address_only.sub(
                 '', result['address']).strip()
 
@@ -2990,8 +2993,8 @@ class Bot_POS:
             province = str(df[target_row_index]['จังหวัด.1'].iloc[0])
             print("amphoe", amphoe)
             print("amphoe_short", amphoe_short)
-            postal_code = str(
-                df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
+            postal_code = str(df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
+            is_alert = False
 
             # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
             # จัวนี้ต้องผูกกับ exe
@@ -3007,26 +3010,28 @@ class Bot_POS:
             ##
             decent_tambon = []
             for tambon in possible_tambons:
-                # เขต แขวง อ ต ไรก็ตามเอาออกให้หมด
+                # * เขต แขวง อ ต ไรก็ตามเอาออกให้หมด
 
                 if "ตำบล" in tambon:
                     tambon = re.sub(r'\bตำบล\b', '', tambon)
+                elif "ต." in tambon:
+                    tambon = re.sub(r'\bต.\b', '', tambon)
                 elif "แขวง" in tambon:
                     tambon = re.sub(r'แขวง', '', tambon)
-                # ช่องว่างตั้งแต่ 1 อันขึ้นไป จะกลายเป็น โดนลบทั้งหมด
+                # * ช่องว่างตั้งแต่ 1 อันขึ้นไป จะกลายเป็น โดนลบทั้งหมด
                 tambon = re.sub(r'\s{1,}', '', tambon)
-                if tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
-                    decent_tambon.append("แขวง" + tambon)
-                    break
-                elif tambon in cus_address:
-                    decent_tambon.append("ตำบล" + tambon)
+
+                # decent_tambon.append(tambon) เลิกใช้ list แล้ว เก็บค่าตรงๆไปเลย
+                if tambon in cus_address:
+                    print("ทำไมได้ตลาดยอดวะ", tambon)
+                    decent_tambon = tambon
                     break
 
             cleaned_address = self.app.get_pure_address(cus_address)
 
             if decent_tambon:
                 # * เจอตำบลในไฟล์
-                print("เลือกตำบลที่เหมาะสมมาแล้ว")
+                print("เลือกตำบลที่เหมาะสมมาแล้ว", decent_tambon)
 
             else:
                 # * ตำบลในไฟล์ไม่มีต้อง Google เอา
@@ -3037,7 +3042,20 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""")
+                PopUp(
+                    "Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
+
+            # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
+            print("ก่อนลบ", cleaned_address)
+            prog = re.compile(fr'{re.escape(decent_tambon)}.*')
+            cleaned_address = prog.sub('', cleaned_address)
+            print("ลบไม่ได้วะ", cleaned_address)
+
+            # * เลือกว่าจะ ตำบล หรหือ แขวง
+            if decent_tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
+                decent_tambon = "แขวง" + tambon
+            elif decent_tambon in cus_address:
+                decent_tambon = "ตำบล" + tambon
 
             return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code, "alert": is_alert}
 
@@ -3071,7 +3089,7 @@ class Bot_POS:
                 'address_shortened': f"{cus_address_from_table['cleaned_address']}",
                 'province': f'{self.app.cus_province.get()}',
                 'district': f'{self.app.cus_district.get()}',
-                'sub_district': f"{cus_address_from_table['decent_tambon'][0]}",
+                'sub_district': f"{cus_address_from_table['decent_tambon']}",
                 'province': f'{self.app.cus_province.get()}',
                 'address': f'{self.app.cus_address}',
                 'postal_code': f"{self.app.nondistortedData['รหัสไปรษณีย์.1']}",
