@@ -494,7 +494,7 @@ class MyApp:
         print("createTimeerr?:", df['createTime'])
         print("column_type: ", column_type['variation'])
         for column in df.columns:
-            print("ทำไมคืนค่า0: ", column_type[column])
+            # print("ทำไมคืนค่า0: ", column_type[column])
             if column_type[column] == 'float':
                 df[column] = df[column].replace(np.nan, 0)
             elif column_type[column] == 'object':
@@ -593,8 +593,8 @@ class MyApp:
         #     lambda row: "สาขาย่อย" if len(row) == 0 else "สำนักงานใหญ่")
         result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
             lambda row: "สาขาย่อย" if (isinstance(row, str) and len(row) == 0) else "สำนักงานใหญ่")
-        result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
-            lambda row: print("ทำไมไม่ได้สาขาย่อยวะ", row) if (isinstance(row, str) and len(row) == 0) else print("ทำไมไม่ได้สาขาย่อยวะ", type(row)))
+        # result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
+        #     lambda row: print("ทำไมไม่ได้สาขาย่อยวะ", row) if (isinstance(row, str) and len(row) == 0) else print("ทำไมไม่ได้สาขาย่อยวะ", type(row)))
         result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
             lambda row: "สาขาย่อย" if (pd.notna(row) and isinstance(row, str) and len(
                 row) == 0) else "สำนักงานใหญ่" if isinstance(row, str) else "สาขาย่อย"
@@ -615,11 +615,11 @@ class MyApp:
             '%Y-%m-%d %H:%M')
 
         # * ตรวจสอบผลลัพธ์
-        print(f"""qty ใน lazada""")
-        print(result_count)
+        # print(f"""qty ใน lazada""")
+        # print(result_count)
 
-        print("ราคาขายสุทธิ")
-        print(total_per_order_df)
+        # print("ราคาขายสุทธิ")
+        # print(total_per_order_df)
 
         # * เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column
         result_df.rename(columns={
