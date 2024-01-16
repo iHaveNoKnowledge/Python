@@ -2444,12 +2444,13 @@ class Bot_POS:
                                 print("auto click Before print loop")
                                 self.final_popup = self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                                # self.is_previous_page = self.wait1.until(EC.invisibility_of_element_located(
+                                # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
                                 #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                                self.is_previous_page = self.driver.find_element(
+                                self.is_final_page = self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
-                                # print("self.is_previous_page= ",
-                                #       self.is_previous_page)
+                                # print("self.is_final_page= ",
+                                #       self.is_final_page)
+                                
                                 if self.final_popup.is_displayed() == True:
 
                                     try:
@@ -2471,10 +2472,13 @@ class Bot_POS:
 
                                     # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
 
-                                elif self.is_previous_page.is_displayed() == False:
+                                elif self.is_final_page.is_displayed() == False:
                                     print("End or back")
                                     if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
                                         print("ไปหน้าสุดท้าย จบ loop")
+                                        break
+                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == True :
+                                        print("มันจบละ")
                                         break
                                     elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
                                         print("กลับมาหน้าเดิม")
@@ -2504,7 +2508,7 @@ class Bot_POS:
                             if self.final_popup.is_displayed() == True:
                                 break
                             else:
-                                continue
+                                break
                                 # break ที่แก้เป็น break ดูเหมือน code ด้านบนมันจะผิด และไม่สามารถรับมือกับเหตุการณืแบบ dynamic ได้ ทำให้ continue ตรงนี้ทำงานอย่างผิดปกติ แต่ตอนนี้แก้ถูกแล้ว
 
                         else:
@@ -2670,8 +2674,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
         
         # # * กด Save
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
         # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
