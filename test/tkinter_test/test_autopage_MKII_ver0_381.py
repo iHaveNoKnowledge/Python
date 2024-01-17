@@ -114,7 +114,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.38")
+        self.root.title("Autosamatic ver0.381")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2476,15 +2476,18 @@ class Bot_POS:
                                 if self.final_popup.is_displayed() == True:
 
                                     try:
+                                        #! Wip แก้ไม่ได้ ยากอยู่
                                         self.final_popup_btn = self.wait1.until(EC.element_to_be_clickable(
                                             (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
                                         # *> ให้เวลาดูเลขบิล 1 วิ
                                         time.sleep(3)
-                                        self.final_popup_btn.click()
+                                        
                                         alert_text =self.driver.find_element(By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
                                         match = re.search(r'B\d+-W\d+-\d+', alert_text)
+                                        print("match: ", match)
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
+                                        self.final_popup_btn.click()
                                         break
                                     except:
                                         time.sleep(1)
@@ -3286,6 +3289,7 @@ if __name__ == "__main__":
 # ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
 # ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
 # *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
+# ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
