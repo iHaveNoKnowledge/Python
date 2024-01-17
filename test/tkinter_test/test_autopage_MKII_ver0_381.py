@@ -2463,7 +2463,7 @@ class Bot_POS:
 
                             # * สำหรับรอ final pop-up after click the green btn
                             while True:
-                                print("auto click Before print loop")
+                                # print("auto click Before print loop")
                                 self.final_popup = self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]')
                                 # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
@@ -2480,7 +2480,7 @@ class Bot_POS:
                                         self.final_popup_btn = self.wait1.until(EC.element_to_be_clickable(
                                             (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
                                         # *> ให้เวลาดูเลขบิล 1 วิ
-                                        time.sleep(3)
+                                        time.sleep(1)
                                         
                                         alert_text =self.driver.find_element(By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
                                         match = re.search(r'B\d+-W\d+-\d+', alert_text)
@@ -2574,12 +2574,15 @@ class Bot_POS:
                     self.driver.switch_to.window(latest_window_handle)
                     print("ไม่มีเปิดใหม่")
                     
-                #* เริ่มทำการกรอกบิลล่าสุด    
+                #* เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ  
                 try:
                     print("Start reprint")
                     time.sleep(0.75)
+                    #* > เปิด dropdownก่อน ไม่งั้นใช้ input ไม่ได้
                     self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').click()
+                    self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
+                    self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
                     self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Etax")
                     
                 except:
