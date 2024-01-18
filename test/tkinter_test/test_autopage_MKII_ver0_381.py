@@ -2307,12 +2307,22 @@ class Bot_POS:
                     time.sleep(1)
                     print("loop หลัก")
                     self.cus_name_input_element = self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                    title_attribute = self.cus_name_input_element.get_attribute("title")
+                    
                     self.is_final_displayed = self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
-                    self.is_input_empty = re.search(
-                        "^C[0-9]+\-", self.cus_name_input_element.text)
-
+                    # self.is_input_empty = re.search(
+                    #     "^C[0-9]+\-", self.cus_name_input_element.text)
+                    
+                    #*ดึงตัวอักษรออกมา
+                    x = re.search(
+                        "^C[0-9]+", title_attribute)
+                    try:
+                        self.is_input_empty = x.group()
+                    except:
+                        self.is_input_empty = ""
+                        
                     #* แก้ bot ดับจาก alert
                     while True:
                         time.sleep(1)
@@ -2336,8 +2346,10 @@ class Bot_POS:
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
                             continue
-                    print("ว่างแล้วไม่ใช่เหรอวะ: ",self.is_input_empty, self.cus_name_input_element.text)
-                    if self.is_input_empty == False and self.is_final_displayed == False:
+                    print("ว่างแล้วไม่ใช่เหรอวะ: ", self.is_input_empty)
+                    print("type(self.is_input_empty): ", type(self.is_input_empty))
+                    print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
+                    if self.is_input_empty == "" and self.is_final_displayed == False:
                         print("ชื่อหาย")
                         break
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
@@ -2557,7 +2569,7 @@ class Bot_POS:
                                     if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
                                         print("ไปหน้าสุดท้าย จบ loop")
                                         break
-                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == True :
+                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == "" :
                                         print("มันจบละ")
                                         break
                                     elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
