@@ -2620,7 +2620,7 @@ class Bot_POS:
             self.autofinal = False
             
             # * ไปหน้า Reprint ##########################################################################################
-            if is_etax:
+            if is_etax and inv_number != "":
                 try:
                     #* สลับหน้าไป reprint
                     self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
@@ -2645,9 +2645,16 @@ class Bot_POS:
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
                     self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
                     self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Etax")
+                    while True:
+                        # if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
+                        #     continue
+                        time.sleep(0.75)
+                        if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
+                            self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                            break
                     
-                except:
-                    print("reprint พัง")
+                except Exception as err:
+                    print("reprint พัง: ", err)
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
 
@@ -3354,6 +3361,7 @@ if __name__ == "__main__":
 # ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
 # *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
 # ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข 
+# ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
