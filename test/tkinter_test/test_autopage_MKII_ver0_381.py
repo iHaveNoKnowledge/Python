@@ -48,8 +48,8 @@ locale.setlocale(locale.LC_ALL, 'en_us')
 
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
-file_name = "Addresscleaner_TambonData.xlsx"
-file_path = os.path.join(current_directory, file_name)
+address_file = "Addresscleaner_TambonData.xlsx"
+file_path = os.path.join(current_directory, address_file)
 directory_of_file = os.path.dirname(file_path)
 print("file located:", directory_of_file)
 # sys.path.append(os.path.dirname(os.getcwd()))
@@ -3163,6 +3163,13 @@ class Bot_POS:
         except:
             print('ไม่มี element')
             return possible_tambons[0]
+        
+    def resource_path(self ,relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
 
     def find_tambon(self, df, order):
         print("find_tambon order:", order)
@@ -3171,7 +3178,7 @@ class Bot_POS:
             str)
         df['หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(
             str)
-
+        
         # * หาตำบลจากไฟล์
         target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
         if any(target_row_index) == True:
@@ -3188,7 +3195,9 @@ class Bot_POS:
 
             # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
             # จัวนี้ต้องผูกกับ exe
-            tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
+            # tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
+            
+            tambon_data_address = self.resource_path("Addresscleaner_TambonData.xlsx")
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
                 str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
@@ -3309,6 +3318,9 @@ if __name__ == "__main__":
         print("Tkinter window is closing")
         root.destroy()
         
+    
+    
+    
     root = Tk()
     # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -3362,6 +3374,7 @@ if __name__ == "__main__":
 # *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
 # ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข 
 # ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
+# !43 File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
