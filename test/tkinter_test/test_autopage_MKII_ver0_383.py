@@ -114,7 +114,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.381")
+        self.root.title("Autosamatic ver0.383")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -401,6 +401,7 @@ class MyApp:
         self.cus_order.set("")
         self.tax_bool.set(False)
         self.tax_num.set("")
+        self.cus_email.set("")
         self.is_tax.set("")
         self.cus_name.set("")
         self.cus_address = ""
@@ -1829,6 +1830,49 @@ class Bot_POS:
         self.action01 = ActionChains(
             self.driver).context_click(self.printing_page)
         self.action01.perform()
+        
+    def etax_reprint(self, inv_number):
+        try:
+            #* เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
+            prev_window = self.driver.current_window_handle
+            #* สลับหน้าไป reprint
+            self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
+            print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
+            
+        except:
+            #* สลับไม่ได้เปิด reprint ใหม่
+            print("ไม่มีหน้าให้สลับ เปิดใหม่")
+            self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
+            all_window_handles = self.driver.window_handles
+            latest_window_handle  = all_window_handles[-1]
+            self.driver.switch_to.window(latest_window_handle)
+            print("ไม่มีเปิดใหม่")
+            
+        #* เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ  
+        try:
+            print("Start reprint")
+            time.sleep(0.75)
+            #* > เปิด dropdownก่อน ไม่งั้นใช้ input ไม่ได้
+            self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
+            self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
+            self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
+            self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Etax")
+            while True:
+                # if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
+                #     continue
+                time.sleep(0.75)
+                if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
+                    self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                    break
+            
+            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+            
+        except Exception as err:
+            print("reprint พัง: ", err)
+            
+        #* กลับหน้าเดิม   
+        self.driver.switch_to.window(prev_window)
 
     def operation_start(self):
         is_etax = False
@@ -2305,15 +2349,22 @@ class Bot_POS:
                 print("รอให้มันโผล่")
                 while self.parent.winfo_exists() and self.autofinal:
                     time.sleep(1)
-                    print("loop หลัก")
-                    self.cus_name_input_element = self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
-                    title_attribute = self.cus_name_input_element.get_attribute("title")
-                    
-                    self.is_final_displayed = self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
-                    # self.is_input_empty = re.search(
-                    #     "^C[0-9]+\-", self.cus_name_input_element.text)
+                    while True:
+                        #* รอ elementก่อน ถ้ามีค่อยออกจาก loop
+                        try:
+                            print("loop หลัก")
+                            self.cus_name_input_element = self.driver.find_element(
+                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                            title_attribute = self.cus_name_input_element.get_attribute("title")
+                            
+                            self.is_final_displayed = self.driver.find_element(
+                                By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
+                            # self.is_input_empty = re.search(
+                            #     "^C[0-9]+\-", self.cus_name_input_element.text)
+                            break
+                        except:
+                            #* ไม่มี element ให้วนเรื่อยๆ
+                            continue
                     
                     #*ดึงตัวอักษรออกมา
                     x = re.search(
@@ -2346,9 +2397,9 @@ class Bot_POS:
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
                             continue
-                    print("ว่างแล้วไม่ใช่เหรอวะ: ", self.is_input_empty)
-                    print("type(self.is_input_empty): ", type(self.is_input_empty))
-                    print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
+                    # print("ว่างแล้วไม่ใช่เหรอวะ: ", self.is_input_empty)
+                    # print("type(self.is_input_empty): ", type(self.is_input_empty))
+                    # print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
                     if self.is_input_empty == "" and self.is_final_displayed == False:
                         print("ชื่อหาย")
                         break
@@ -2548,6 +2599,11 @@ class Bot_POS:
                                         print("match: ", match)
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
+                                        # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
+                                        # * ไปหน้า Reprint ##########################################################################################
+                                        if is_etax and inv_number != "":
+                                            self.etax_reprint(inv_number)
+                                        
                                         self.final_popup_btn.click()
                                         
                                     except:
@@ -2618,43 +2674,8 @@ class Bot_POS:
 
             print("จบ auto_last_page")
             self.autofinal = False
+    
             
-            # * ไปหน้า Reprint ##########################################################################################
-            if is_etax and inv_number != "":
-                try:
-                    #* สลับหน้าไป reprint
-                    self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
-                    print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
-                    
-                except:
-                    #* สลับไม่ได้เปิด reprint ใหม่
-                    print("ไม่มีหน้าให้สลับ เปิดใหม่")
-                    self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
-                    all_window_handles = self.driver.window_handles
-                    latest_window_handle  = all_window_handles[-1]
-                    self.driver.switch_to.window(latest_window_handle)
-                    print("ไม่มีเปิดใหม่")
-                    
-                #* เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ  
-                try:
-                    print("Start reprint")
-                    time.sleep(0.75)
-                    #* > เปิด dropdownก่อน ไม่งั้นใช้ input ไม่ได้
-                    self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
-                    self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
-                    self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
-                    self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Etax")
-                    while True:
-                        # if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
-                        #     continue
-                        time.sleep(0.75)
-                        if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
-                            self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                            break
-                    
-                except Exception as err:
-                    print("reprint พัง: ", err)
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
 
@@ -3374,7 +3395,9 @@ if __name__ == "__main__":
 # *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
 # ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข 
 # ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
-# !43 File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
+# *43 แก้แล้ว 0.82 // File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
+# *๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒0.83 ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒
+# *44 แก้แล้ว // pop-up ของ contextwindow browser มันยังคงทำให้บอทดับอยู่ดีน่าจะเกิดจากการที่เราใช้ time.sleep แต่เราแก้ด้วยการใช้ while + try,except
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
