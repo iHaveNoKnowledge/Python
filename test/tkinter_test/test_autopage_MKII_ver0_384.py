@@ -114,7 +114,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.383")
+        self.root.title("Autosamatic ver0.384")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1858,15 +1858,16 @@ class Bot_POS:
             self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
             self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
             self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Etax")
-            while True:
-                # if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
-                #     continue
-                time.sleep(0.75)
-                if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
-                    self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                    break
+            # while True:
+            #     # if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
+            #     #     continue
+            #     time.sleep(0.75)
+            #     if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
+            #         self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+            #         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+            #         break
             
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+            
             
         except Exception as err:
             print("reprint พัง: ", err)
@@ -3256,14 +3257,11 @@ class Bot_POS:
             else:
                 # * ตำบลในไฟล์ไม่มีต้อง Google เอา
                 print("ไม่มีตำบลมาให้ต้อง search google")
-                address_dict = {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon,
-                                "amphoe": amphoe_short, "province": province, "postal": postal_code}
-                googled_tambon = self.google_for_tambon(
-                    address_dict, possible_tambons)
+                address_dict = {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon,"amphoe": amphoe_short, "province": province, "postal": postal_code}
+                googled_tambon = self.google_for_tambon(address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                PopUp(
-                    "Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
+                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
@@ -3393,7 +3391,7 @@ if __name__ == "__main__":
 # ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
 # ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
 # *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
-# ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข 
+# ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข
 # ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
 # *43 แก้แล้ว 0.82 // File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
 # *๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒0.83 ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒
