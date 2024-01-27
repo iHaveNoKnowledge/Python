@@ -1875,7 +1875,7 @@ class Bot_POS:
         #* กลับหน้าเดิม   
         self.driver.switch_to.window(prev_window)
 
-    def operation_start(self, app):
+    def operation_start(self):
         is_etax = False
         inv_number = ""
         if self.app.order != "":
@@ -2600,7 +2600,8 @@ class Bot_POS:
                                         print("match: ", match)
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
-                                        self.app.update_log("เลขบิล: ",inv_number)
+                                        self.app.update_log(f'เลขบิล: ,{inv_number}')
+                                        
                                         # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                                         # * ไปหน้า Reprint ##########################################################################################
                                         if is_etax and inv_number != "":
