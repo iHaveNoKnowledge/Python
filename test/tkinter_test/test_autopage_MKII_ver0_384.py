@@ -1812,7 +1812,7 @@ class Bot_POS:
                 self.merged_dict = dict(
                     zip(self.unique_titles, self.value_list))
                 print("มี tabs ไรบ้าง", self.merged_dict)
-                self.operation_start()
+                self.operation_start(self)
         except Exception as e:
             traceback_str = traceback.format_exc()
             print(f"An error occirred: {e}")
@@ -1875,7 +1875,7 @@ class Bot_POS:
         #* กลับหน้าเดิม   
         self.driver.switch_to.window(prev_window)
 
-    def operation_start(self):
+    def operation_start(self, app):
         is_etax = False
         inv_number = ""
         if self.app.order != "":
@@ -2600,6 +2600,7 @@ class Bot_POS:
                                         print("match: ", match)
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
+                                        self.app.update_log("เลขบิล: ",inv_number)
                                         # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                                         # * ไปหน้า Reprint ##########################################################################################
                                         if is_etax and inv_number != "":
@@ -3399,6 +3400,7 @@ if __name__ == "__main__":
 # *๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒0.384 ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒
 # *45 แก้แล้ว // ปรับความเร็วกรอกบิล ในขั้นตอน reprint
 # *46 แสดงlogเลขบิล
+# !47 เอาเลขบิลมาโชว์ที่ GUI
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
