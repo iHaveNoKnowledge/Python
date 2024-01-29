@@ -114,7 +114,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.384")
+        self.root.title("Autosamatic ver0.385")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1812,7 +1812,7 @@ class Bot_POS:
                 self.merged_dict = dict(
                     zip(self.unique_titles, self.value_list))
                 print("มี tabs ไรบ้าง", self.merged_dict)
-                self.operation_start(self)
+                self.operation_start()
         except Exception as e:
             traceback_str = traceback.format_exc()
             print(f"An error occirred: {e}")
@@ -2349,11 +2349,11 @@ class Bot_POS:
                 print("เข้า final loop ")
                 print("รอให้มันโผล่")
                 while self.parent.winfo_exists() and self.autofinal:
-                    time.sleep(1)
+                    time.sleep(0.55)
                     while True:
                         #* รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
-                            print("loop หลัก")
+                            # print("loop หลัก")
                             self.cus_name_input_element = self.driver.find_element(
                                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
                             title_attribute = self.cus_name_input_element.get_attribute("title")
@@ -2377,7 +2377,7 @@ class Bot_POS:
                         
                     #* แก้ bot ดับจาก alert
                     while True:
-                        time.sleep(1)
+                        time.sleep(0.55)
                         try:
                             if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[1]').is_displayed():
                                 # print("หน้า SN กำลังโชว์")
@@ -2407,7 +2407,7 @@ class Bot_POS:
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
                         continue
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
-                        time.sleep(0.75)
+                        time.sleep(0.55)
                         print("หน้า จ่ายตัง")
                         self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
@@ -2543,7 +2543,7 @@ class Bot_POS:
                             while True:
                                 
                                 time.sleep(1)
-                                print("auto click Before print loop")
+                                # print("auto click Before print loop")
                                 self.final_popup = self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]')
                                 # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
@@ -2557,7 +2557,7 @@ class Bot_POS:
                                 if self.final_popup.is_displayed():
                                     pass
                                 elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
-                                    print("Radio ยังไม่โผล่")
+                                    # print("Radio ยังไม่โผล่")
                                     continue
                                 elif self.is_final_page.is_displayed() == False:
                                     print("หน้า final หายไป")
@@ -2600,7 +2600,7 @@ class Bot_POS:
                                         print("match: ", match)
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
-                                        self.app.update_log(f'เลขบิล: ,{inv_number}')
+                                        self.app.update_log(f'เลขบิล: {inv_number}')
                                         
                                         # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                                         # * ไปหน้า Reprint ##########################################################################################
@@ -2611,6 +2611,7 @@ class Bot_POS:
                                         
                                     except:
                                         time.sleep(1)
+                                        print("ไม่ได้เลขบิล")
                                         self.final_popup.click()
                                         
 
@@ -3401,7 +3402,8 @@ if __name__ == "__main__":
 # *๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒0.384 ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒
 # *45 แก้แล้ว // ปรับความเร็วกรอกบิล ในขั้นตอน reprint
 # *46 แสดงlogเลขบิล
-# !47 เอาเลขบิลมาโชว์ที่ GUI
+# *๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒0.385 ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒
+# *47 เอาเลขบิลมาโชว์ที่ GUI
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
