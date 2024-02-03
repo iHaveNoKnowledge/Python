@@ -2610,9 +2610,11 @@ class Bot_POS:
                                         self.final_popup_btn.click()
                                         
                                     except:
-                                        time.sleep(1)
-                                        print("ไม่ได้เลขบิล")
-                                        self.final_popup.click()
+                                        # time.sleep(1)
+                                        # print("ไม่ได้เลขบิล")
+                                        # self.final_popup.click()
+                                        print("พัง ข้ามไปเลยละกัน")
+                                        
                                         
 
                                     # * > รอหน้า canvas โผล่ก่อน
@@ -2672,7 +2674,7 @@ class Bot_POS:
                         break
                     
                     
-                    print("WHileหลัก ถ้ามาถึงนี่แปลว่าต้องเริ่มใหม่")
+                    print("Whileหลัก ถ้ามาถึงนี่แปลว่าต้องเริ่มใหม่")
                     continue
                 break 
 
@@ -3340,9 +3342,6 @@ if __name__ == "__main__":
         print("Tkinter window is closing")
         root.destroy()
         
-    
-    
-    
     root = Tk()
     # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -3404,6 +3403,7 @@ if __name__ == "__main__":
 # *46 แสดงlogเลขบิล
 # *๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒0.385 ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒
 # *47 เอาเลขบิลมาโชว์ที่ GUI
+# !48 กรอกก่อน element show ได้ ดูเหมือนจะเป็นเช่นนั้น
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
