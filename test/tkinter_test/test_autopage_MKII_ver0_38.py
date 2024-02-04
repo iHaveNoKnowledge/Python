@@ -215,16 +215,16 @@ class MyApp:
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
         # * > search order component
-        # >> Labels
+        # * >> Labels
         self.inp1_label_order = Label(
             self.entry_frame, text="Order: ", bg="#FFF", width=10)
         self.inp1_label_order.grid(row=0, column=1, padx=5)
-        # >> Inputs
+        # * >> Inputs
         self.entered_order = StringVar()
         self.inp1_order_input = Entry(
             self.entry_frame, textvariable=self.entered_order, width=50)
         self.inp1_order_input.grid(row=0, column=3)
-        # >> Buttons
+        # * >> Buttons
         self.inp1_search_btn = Button(
             self.entry_frame, text="Start", bg="#969696", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
@@ -246,22 +246,24 @@ class MyApp:
         self.display_location_result_btn = Button(
             self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, bg="#969696")
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
-        # >> bot status
+
+        # * >> bot status
         self.display_bot_status_label = Label(
             self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", bg="#1f242e", fg="#ffec1f")
         self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0))
 
         # * > Current Order display component
-        # >> Labels
+        # * >> Label
         self.label_current_order = Label(
             self.order_details_frame, text="Current Order: ", bg="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
+        # * >> Input
         self.display_current_order = Entry(
             self.order_details_frame, width=40, state="readonly",  borderwidth=0, textvariable=self.cus_order)
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=W)
 
-        # * > Current Status display component
-        # >> Labels
+        # * > Current order status display component
+        # * >> Labels
         self.label_current_status = Label(
             self.order_details_frame, text="Status: ", bg="#FFF",)
         self.label_current_status.grid(
@@ -273,11 +275,11 @@ class MyApp:
             row=1, column=3, padx=(1, 0), sticky=W)
 
         # * > Is Tax?? display component
-        # >> Labels
+        # * >> Label
         self.label_is_tax = Label(
             self.order_details_frame, text="ใบกำกับ", bg="#FFF")
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew')
-        # >> Value display
+        # * >> Value display
         self.display_is_tax = Label(
             self.order_details_frame,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky='ew')
@@ -2450,7 +2452,7 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
                                 # print("self.is_final_page= ",
                                 #       self.is_final_page)
-                                
+
                                 if self.final_popup.is_displayed() == True:
 
                                     try:
@@ -2477,7 +2479,7 @@ class Bot_POS:
                                     if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
                                         print("ไปหน้าสุดท้าย จบ loop")
                                         break
-                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == True :
+                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == True:
                                         print("มันจบละ")
                                         break
                                     elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
@@ -2593,24 +2595,30 @@ class Bot_POS:
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
         # * > nameTH clear
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         # # * >nameTH fill input better style ปิดการใช้งาน
         # self.driver.find_element( By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
         # * >nameTH SMCO style
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name}')
-        
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name}')
+
         # * >nameEN clear
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         # * >nameEN fill input better style ปิดการใช้งาน
         # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
         # * >nameEN SMCO style
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name}')
-        
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name}')
+
         # ! เปิดใช้การออกใบกำกับ ตาม SMCO style (ถ้าไม่เปิดจะถือว่าเป็นการใช้ Better style)
         # * clear Identity ID
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
         # * Identity ID
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())
 
         # * กรอก Address
         self.driver.find_element(
@@ -2618,7 +2626,8 @@ class Bot_POS:
         # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
         # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
         # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.address)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.address)
 
         # * กรอก email
         self.email_input = self.driver.find_element(
@@ -2645,7 +2654,8 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # province input
+            # province input
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_province.get().replace("จังหวัด", ""))  # province input
         time.sleep(1.75)
@@ -2653,9 +2663,11 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+            # District drop
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # District
+            # District
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
         time.sleep(1.75)
@@ -2666,15 +2678,17 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()  # SubDistrict
+            # SubDistrict
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
-        
+
         # # * กด Save
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
         # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
@@ -3174,7 +3188,7 @@ if __name__ == "__main__":
     def on_closing():
         print("Tkinter window is closing")
         root.destroy()
-        
+
     root = Tk()
     # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
