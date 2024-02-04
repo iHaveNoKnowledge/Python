@@ -34,3 +34,5 @@ input("Press Enter to end the script")
 # * การใช้ --onefile จะทำให้ antivirus มอง exe เป็น trojan ฉะนั้น ######
 
 # pyinstaller  --add-data "thai_address_pattern.json;./" exetestwithjson_data.py
+# if cannot install try this
+#python -m PyInstaller --add-data bla...
