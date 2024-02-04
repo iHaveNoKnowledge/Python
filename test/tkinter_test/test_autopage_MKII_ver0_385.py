@@ -96,8 +96,14 @@ class MyApp:
             'JSESSIONID': '',
         }}
         self.bot = Bot_POS(self.root, self)
+
         self.create_main_window()
         self.get_dataframe()
+        self.mimic_list_item_states = []
+
+    def demonic_cp_selection(self):
+        self.bot.demonic_cp_bot(
+            self.entered_item_no.get(), self.entered_cp_no.get())
 
     def validate_input(self, value):
         pattern = r'[A-z]'
@@ -145,7 +151,7 @@ class MyApp:
 
         # > Frame2 Log Frame
         self.log_frame = Frame(self.canvas, bg="#444")
-        self.log_frame.pack(side='bottom', pady=(0, 30))
+        self.log_frame.pack(side='bottom', pady=(0, 20))
 
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = Frame(self.canvas, bg="#444")
@@ -172,6 +178,10 @@ class MyApp:
         self.mp_products_list_frame.pack(side='top',  padx=(
             5, 5), pady=(5, 5), fill="x")
 
+        # > Frame7 The Upper Log Frame Demonic Frame
+        self.demonic_frame = Frame(self.canvas, bg="#444")
+        self.demonic_frame.pack(side='bottom', pady=(0, 2))
+
         # Create widgets in the main window
         self.create_widgets()
 
@@ -191,7 +201,7 @@ class MyApp:
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
-        self.cols_width = [5, 112, 10, 10, 10, 10]
+        self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
         self.entry_list = []
         i = 0
@@ -380,6 +390,27 @@ class MyApp:
                    'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
         self.row_header_maker(headers)
 
+        # * > demonic cp segment
+        # * >> Label
+        self.demonic_cp_label = Label(
+            self.demonic_frame, text="Ulti CP", bg="#FFF", height=1)
+        self.demonic_cp_label.grid(row=0, column=0)
+        # * >> Inputs
+        self.entered_item_no = StringVar()
+        self.inp1_order_input = Entry(
+            self.demonic_frame, textvariable=self.entered_item_no, width=10)
+        self.inp1_order_input.grid(row=0, column=3, padx=(0, 2))
+
+        self.entered_cp_no = StringVar()
+        self.inp1_order_input = Entry(
+            self.demonic_frame, textvariable=self.entered_cp_no, width=10)
+        self.inp1_order_input.grid(row=0, column=4)
+
+        # * >> Buttons
+        self.inp1_search_btn = Button(
+            self.demonic_frame, text="Attack on CP!!", bg="#969696", command=self.demonic_cp_selection, width=10)
+        self.inp1_search_btn.grid(row=0, column=5)
+
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=13)
 
@@ -391,7 +422,6 @@ class MyApp:
         self.report_log.config(yscrollcommand=self.scrollbar.set)
 
         ## * Create DataSourceSelector instance ###########
-
         self.data_source_selector = DataSourceSelector(self.root, self)
         self.user_account = UserAccount(self.root, self)
 
@@ -1060,15 +1090,19 @@ class MyApp:
                     # if str(row['ชื่อตัวเลือก']) != "nan"
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
+
+                # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like shopee
                 self.widget_no_col_lst = []
                 self.widget_product_col_lst = []
                 self.widget_prc_unit_lst = []
                 self.widget_qty_lst = []
                 self.widget_total_prc_lst = []
                 self.widget_total_rebt_prc_lst = []
+                self.widget_demonic_cp_btn_lst = []
                 self.all_cols = [self.widget_no_col_lst, self.widget_product_col_lst, self.widget_prc_unit_lst,
-                                 self.widget_qty_lst, self.widget_total_prc_lst, self.widget_total_rebt_prc_lst]
+                                 self.widget_qty_lst, self.widget_total_prc_lst, self.widget_total_rebt_prc_lst, self.widget_demonic_cp_btn_lst]
                 self.idx = 0
+                self.mimic_list_item_states = []
                 for row in self.items:
 
                     self.no_col_value = Entry(
@@ -1083,6 +1117,8 @@ class MyApp:
                         0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} : {str(row['ชื่อสินค้า'])}")
                     self.widget_product_col_lst.append(
                         self.product_col_name_value)
+                    self.mimic_list_item_states.append(
+                        f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
                     self.price_unit_col_value = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[2]))
@@ -1107,8 +1143,11 @@ class MyApp:
                         0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
                     self.widget_total_rebt_prc_lst.append(
                         self.total_rebate_price_col_value)
-                print("none ได้ไง:", self.widget_no_col_lst)
-                print("ไม่สามารถ grid: ", self.all_cols)
+                    # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
+                    # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search, width=10)
+                    # self.widget_demonic_cp_btn_lst.append(self.demonic_cp_btn)
+                # print("none ได้ไง:", self.widget_no_col_lst)
+                # print("ไม่สามารถ grid: ", self.all_cols)
                 for col_idx, col_list in enumerate(self.all_cols):
                     for idxrow, col in enumerate(col_list):
                         col.grid(
@@ -1498,6 +1537,70 @@ class MyApp:
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
 
+    def convert_text(self, text):
+        result = []
+        elements = text.split("+")
+
+        for element in elements:
+            prefix = element.split("-")[0]
+            code = element.split("-")[1]
+            code = code.zfill(6)
+            result.append(prefix + "-00" + code)
+
+        return result
+
+    def demonic_cp(self):
+        self.item_no = int(self.entered_item_no.get())-1
+        self.cp_no = int(self.entered_cp_no.get())
+        self.demonic_list = self.convert_text(
+            self.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        print(self.demonic_list)
+        print(self.cp_no)
+
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        self.cp_no = 1
+        # *>  element location
+        # * >> ปุ่มคูปองด้านนอก ที่ตำแหน่ง [-4] จะเป็นตัวแยก element หรือ ตัวบอกตำแหน่งของ element ว่าเป็นลำดับที่เท่าไหร่ อย่างตัวอย่างนี้เป็น อันที่1
+        cp_btn_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
+        green_agree_btn_xpath = '/html/body/div[1]/div[2]/div[9]/div/div[1]/div[2]/a'
+
+        items_lsit = self.driver.find_elements(
+            By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        cp_list = self.driver.find_elements(
+            By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
+
+        # print("items_lsit", items_lsit)
+        for idx, item in enumerate(self.demonic_list):
+            print("มาถึงนี่ไหม")
+            for idx2, div in enumerate(items_lsit):
+                print("รอบ", idx2)
+                # time.sleep(0.55)
+                try:
+                    is_found = div.text.find(item)
+                except:
+                    pass
+                li_position = idx+1
+                if is_found != -1:
+                    print("เจอที่ ", li_position)
+                    print("is_found: ", is_found)
+                    cp_btn_xpath = f'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
+                        li_position}]/div/div[2]/div[3]/div[1]/a'
+                    self.driver.find_element(By.XPATH, cp_btn_xpath).click()
+
+                    # * เลือก cp เป้าหมาย
+                    selected_btn = f'/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
+                        self.cp_no}]/div[1]/button'
+                    self.driver.find_element(By.XPATH, selected_btn).click()
+
+                    self.driver.find_element(
+                        By.XPATH, green_agree_btn_xpath).click()
+                    # time.sleep(0.55)
+                    continue
+                    # print(div.text)
+                else:
+                    print("ไม่เจอ", item, "นะ")
+                    pass
+
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
 
@@ -1751,6 +1854,7 @@ class UserAccount:
 
 class Bot_POS:
     def __init__(self, parent, app):
+        # super().__init__(parent)
         self.parent = parent
         self.app = app
         self.setup_chrome()
@@ -1778,6 +1882,69 @@ class Bot_POS:
 
         # self.driver = webdriver.Chrome(service=Service(
         #     ChromeDriverManager().install()), options=self.opt)
+    def convert_text(self, text):
+        result = []
+        elements = text.split("+")
+
+        for element in elements:
+            prefix, code = element.split("-")
+            code = code.zfill(6)
+            result.append(prefix + "-" + code)
+
+        return result
+
+    def demonic_cp_bot(self, item_no, cp_no):
+        self.item_no = int(item_no)-1
+        self.cp_no = int(cp_no)
+        print("ตอนแรกเปนงี้",
+              self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        self.demonic_list = self.convert_text(
+            self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        print(self.demonic_list)
+        print(self.cp_no)
+
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        # *>  element location
+        # * >> ปุ่มคูปองด้านนอก ที่ตำแหน่ง [-4] จะเป็นตัวแยก element หรือ ตัวบอกตำแหน่งของ element ว่าเป็นลำดับที่เท่าไหร่ อย่างตัวอย่างนี้เป็น อันที่1
+        cp_btn_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
+        green_agree_btn_xpath = '/html/body/div[1]/div[2]/div[9]/div/div[1]/div[2]/a'
+
+        items_lsit = self.driver.find_elements(
+            By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        cp_list = self.driver.find_elements(
+            By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
+
+        # print("items_lsit", items_lsit)
+        for idx, item in enumerate(self.demonic_list):
+            print("มาถึงนี่ไหม")
+            for idx2, div in enumerate(items_lsit):
+                print("รอบ", idx2)
+                # time.sleep(0.55)
+                try:
+                    is_found = div.text.find(item)
+                except:
+                    pass
+                li_position = idx+1
+                if is_found != -1:
+                    print("เจอที่ ", li_position)
+                    print("is_found: ", is_found)
+                    cp_btn_xpath = f'''/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
+                        li_position}]/div/div[2]/div[3]/div[1]/a'''
+                    self.driver.find_element(By.XPATH, cp_btn_xpath).click()
+
+                    # * เลือก cp เป้าหมาย
+                    selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
+                        self.cp_no}]/div[1]/button'''
+                    self.driver.find_element(By.XPATH, selected_btn).click()
+
+                    self.driver.find_element(
+                        By.XPATH, green_agree_btn_xpath).click()
+                    # time.sleep(0.55)
+                    continue
+                    # print(div.text)
+                else:
+                    print("ไม่เจอ", item, "นะ")
+                    pass
 
     def get_tabs(self):
         try:
@@ -2406,7 +2573,7 @@ class Bot_POS:
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
                             continue
-                        
+
                     # print("ว่างแล้วไม่ใช่เหรอวะ: ", self.is_input_empty)
                     # print("type(self.is_input_empty): ", type(self.is_input_empty))
                     # print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
