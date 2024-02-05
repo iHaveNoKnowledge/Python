@@ -945,12 +945,17 @@ class MyApp:
         if is_usable:
             return text
         else:
-            translator = Translator()
-            lang_src = translator.detect(text).lang
-            print("Whare are you from: ", lang_src)
-            translation = translator.translate(text, src=lang_src, dest='en')
-            print("Translated name", translation.text)
-            return translation.text
+            
+            try:
+                translator = Translator()
+                lang_src = translator.detect(text).lang
+                print("Whare are you from: ", lang_src)
+                translation = translator.translate(text, src=lang_src, dest='en')
+                print("Translated name", translation.text)
+                return translation.text
+            except:
+                print("google ก็แปลให้ไม่ได้เอาชื่อ", text, "ไปแทนนะ")
+                return text
 
     def cus_tel_fixer(self, tel):
         if len(tel) == 10:
@@ -3594,6 +3599,8 @@ if __name__ == "__main__":
 # !48 กรอกก่อน element show ได้ ดูเหมือนจะเป็นเช่นนั้น
 # *49 fixed 0.386 // lazada ราคารวม bug
 # *50 fixed 0.386 // Ultimate CP prototype for หมึก
+# *51 fixed 0.387 // lazada ลูกค้า ภาษาสเปน googletrans ช่วยไม่ได้ กรณีถ้าแปลแล้วไม่ได้จริงๆ return ค่าinput ไปแหละ
+# !52 Order ยกเลิกแสดงผลไม่ชัดเจน
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
