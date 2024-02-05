@@ -408,7 +408,7 @@ class MyApp:
 
         # * >> Buttons
         self.inp1_search_btn = Button(
-            self.demonic_frame, text="Attack on CP!!", bg="#969696", command=self.demonic_cp_selection, width=10)
+            self.demonic_frame, text="SonicBlow!!", bg="#969696", command=self.demonic_cp_selection, width=10)
         self.inp1_search_btn.grid(row=0, column=5)
 
         # * > Log windows component
@@ -1918,32 +1918,35 @@ class Bot_POS:
         for idx, item in enumerate(self.demonic_list):
             print("มาถึงนี่ไหม")
             for idx2, div in enumerate(items_lsit):
-                print("รอบ", idx2)
-                # time.sleep(0.55)
                 try:
-                    is_found = div.text.find(item)
-                except:
-                    pass
-                li_position = idx+1
-                if is_found != -1:
-                    print("เจอที่ ", li_position)
-                    print("is_found: ", is_found)
-                    cp_btn_xpath = f'''/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
-                        li_position}]/div/div[2]/div[3]/div[1]/a'''
-                    self.driver.find_element(By.XPATH, cp_btn_xpath).click()
-
-                    # * เลือก cp เป้าหมาย
-                    selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
-                        self.cp_no}]/div[1]/button'''
-                    self.driver.find_element(By.XPATH, selected_btn).click()
-
-                    self.driver.find_element(
-                        By.XPATH, green_agree_btn_xpath).click()
+                    print("จำนนวน div ",len(items_lsit))
+                    # print("รอบ", idx2)
                     # time.sleep(0.55)
-                    continue
-                    # print(div.text)
-                else:
-                    print("ไม่เจอ", item, "นะ")
+                
+                    is_found = div.text.find(item)
+                    
+                    li_position = idx2+1
+                    if is_found != -1:
+                        print("เจอที่ ", li_position)
+                        print("is_found: ", is_found)
+                        cp_btn_xpath = f'''/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
+                            li_position}]/div/div[2]/div[3]/div[1]/a'''
+                        self.driver.find_element(By.XPATH, cp_btn_xpath).click()
+
+                        # * เลือก cp เป้าหมาย
+                        selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
+                            self.cp_no}]/div[1]/button'''
+                        self.driver.find_element(By.XPATH, selected_btn).click()
+
+                        self.driver.find_element(
+                            By.XPATH, green_agree_btn_xpath).click()
+                        # time.sleep(1)
+                        continue
+                        # print(div.text)
+                    else:
+                        print("ไม่เจอ", item, "นะ")
+                        pass
+                except:
                     pass
 
     def get_tabs(self):
