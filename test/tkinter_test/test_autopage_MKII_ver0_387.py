@@ -82,6 +82,7 @@ class MyApp:
         self.cus_tel = StringVar(value="")
         self.cus_email = StringVar(value="")
         self.cus_cur_status = StringVar(value="")
+        self.is_suspend = False
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
         self.cus_purchase_time = StringVar(value="")
@@ -120,7 +121,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.386")
+        self.root.title("Autosamatic ver0.387")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -945,12 +946,13 @@ class MyApp:
         if is_usable:
             return text
         else:
-            
+
             try:
                 translator = Translator()
                 lang_src = translator.detect(text).lang
                 print("Whare are you from: ", lang_src)
-                translation = translator.translate(text, src=lang_src, dest='en')
+                translation = translator.translate(
+                    text, src=lang_src, dest='en')
                 print("Translated name", translation.text)
                 return translation.text
             except:
@@ -1924,24 +1926,26 @@ class Bot_POS:
             print("มาถึงนี่ไหม")
             for idx2, div in enumerate(items_lsit):
                 try:
-                    print("จำนนวน div ",len(items_lsit))
+                    print("จำนนวน div ", len(items_lsit))
                     # print("รอบ", idx2)
                     # time.sleep(0.55)
-                
+
                     is_found = div.text.find(item)
-                    
+
                     li_position = idx2+1
                     if is_found != -1:
                         print("เจอที่ ", li_position)
                         print("is_found: ", is_found)
                         cp_btn_xpath = f'''/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
                             li_position}]/div/div[2]/div[3]/div[1]/a'''
-                        self.driver.find_element(By.XPATH, cp_btn_xpath).click()
+                        self.driver.find_element(
+                            By.XPATH, cp_btn_xpath).click()
 
                         # * เลือก cp เป้าหมาย
                         selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
                             self.cp_no}]/div[1]/button'''
-                        self.driver.find_element(By.XPATH, selected_btn).click()
+                        self.driver.find_element(
+                            By.XPATH, selected_btn).click()
 
                         self.driver.find_element(
                             By.XPATH, green_agree_btn_xpath).click()
@@ -2058,6 +2062,7 @@ class Bot_POS:
         self.driver.switch_to.window(prev_window)
 
     def operation_start(self):
+        self.is_suspend = False
         is_etax = False
         inv_number = ""
         if self.app.order != "":
@@ -2104,12 +2109,12 @@ class Bot_POS:
 
                 #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
-                    # สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
+                    # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
                     self.app.cus_cur_status.set(self.driver.find_element(
                         By.CLASS_NAME, 'big-text').text)
 
                 except:
-                    # สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
+                    # * สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
 
@@ -2123,6 +2128,9 @@ class Bot_POS:
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
                     self.app.display_current_status.config(
                         bg="#ff2b2b", fg="#FFF")
+                    self.is_suspend = True
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
+                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -2225,6 +2233,7 @@ class Bot_POS:
                 if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
                     self.app.display_current_status.config(
                         bg="#ff2b2b", fg="#FFF")
+                    self.is_suspend = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
                     self.app.display_current_status.config(
                         bg="#00ff11", fg="#000000")
@@ -2233,6 +2242,11 @@ class Bot_POS:
             else:
                 self.driver.switch_to.window(self.merged_dict[''])
                 print('Cannot Define What marketplace you are working with')
+
+            # * ถ้าสถานะยกเลิก ก็หยุดเลย
+            if self.is_suspend:
+
+                return
 
             ### * SMCO PART ############################################################################
             # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
@@ -2320,11 +2334,11 @@ class Bot_POS:
             if self.app.tax_bool.get() == True:
                 # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
                 if self.app.marketplace_target.get() == "SHOPEE":
-                    print("ขอใบกำกับSHOPEE ใช้ E:")
+                    print("ขอใบกำกับSHOPEE ใช้ T:")
                     self.driver.find_element(
-                        By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''').click()
+                        By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
                 elif self.app.marketplace_target.get() == "LAZADA":
-                    print("ขอใบกำกับLazada ใช้ P:")
+                    print("ขอใบกำกับLazada ใช้ T:")
                     self.driver.find_element(
                         By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
             elif self.app.tax_bool.get() == False:
@@ -2333,27 +2347,30 @@ class Bot_POS:
                 self.driver.find_element(
                     By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
-            # * ดูว่า self.cus_search จะเป็นเลขหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
+            # * ดูว่า self.cus_search จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
             # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
 
-            if self.app.marketplace_target.get() == "SHOPEE":
-                self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get(
-                ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
-            elif self.app.marketplace_target.get() == "LAZADA":
-                self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
-                ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+            # if self.app.marketplace_target.get() == "SHOPEE":
+            #     self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get(
+            #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+            # elif self.app.marketplace_target.get() == "LAZADA":
+            #     self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+            #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+
+            self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+            ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
             # * จับตาดูว่า ul เปิดอยู่ไหม
             self.is_ul_not_open = False if self.driver.find_elements(
                 By.XPATH, self.app.cus_name_dropdown_ul) else True
-            # กรณีไม่ได้เปิดไว้ จะเปิดให้
+            # * กรณีไม่ได้เปิดไว้ จะเปิดให้
             if self.is_ul_not_open:
                 self.driver.find_element(
                     By.XPATH, self.app.cus_arrow_btn).click()
 
                 self.wait1.until(EC.visibility_of_element_located(
                     (By.XPATH, self.app.cusNameInput)))
-            # ถ้าเปิดแล้วจะข้ามมานี่
+            # * ถ้าเปิดแล้วจะข้ามมานี่
             self.enter_cus_name(self.cus_search)
             print("กรอกชื่อเสร็จ")
             self.wait_condition = self.driver.find_element(
@@ -2965,8 +2982,11 @@ class Bot_POS:
         # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
         # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
         # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
+        address = self.app.address
+        if self.app.tax_bool.get():
+            address = self.app.get_pure_address(self.app.address)
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.address)
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
 
         # * กรอก email
         self.email_input = self.driver.find_element(
@@ -3017,7 +3037,11 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            # SubDistrict
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+        # SubDistrict
+        self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
@@ -3026,8 +3050,8 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # # * กด Save
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
         # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
@@ -3597,10 +3621,10 @@ if __name__ == "__main__":
 # *46 0.384 แสดงlogเลขบิล
 # *47 0.385 เอาเลขบิลมาโชว์ที่ GUI
 # !48 กรอกก่อน element show ได้ ดูเหมือนจะเป็นเช่นนั้น
-# *49 fixed 0.386 // lazada ราคารวม bug
-# *50 fixed 0.386 // Ultimate CP prototype for หมึก
+# *49 fixed 0.387 // lazada ราคารวม bug
+# *50 fixed 0.387 // Ultimate CP prototype for หมึก
 # *51 fixed 0.387 // lazada ลูกค้า ภาษาสเปน googletrans ช่วยไม่ได้ กรณีถ้าแปลแล้วไม่ได้จริงๆ return ค่าinput ไปแหละ
-# !52 Order ยกเลิกแสดงผลไม่ชัดเจน
+# *52 fixed 0.387 // Order ยกเลิกแสดงผลไม่ชัดเจน
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
