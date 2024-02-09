@@ -3050,8 +3050,8 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # # * กด Save
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
         # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
@@ -3628,6 +3628,7 @@ if __name__ == "__main__":
 # *52 fixed 0.387 // Order ยกเลิกแสดงผลไม่ชัดเจน
 # *53 fixed 0.387 // shopee ปรับเปลี่ยนวิธีหาชื่อลูกค้าจาก Email เป็น ใช้ เลขผู้เสียภาษี
 # *54 fixed 0.387 // shopee ลดความเร็วในการกรอก แขวง/ตำบล ใน dropdown ตอน เพิ่มชื่อลูกค้าใหม่
+# !55 วัฒนา ทวีวัฒนา dropdown จะมีสองค่า แล้วมันจะเอาค่าที่ยาวกว่าขึ้นก่อน การเลือกอันที่ 1 มันจะ ผิด
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
