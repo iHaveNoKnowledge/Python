@@ -1868,7 +1868,9 @@ class Bot_POS:
 
     def setup_chrome(self):
         self.opt = Options()
+        #* ใช้เพื่อเก็บที่อยู่ของไฟล์ที่ถูก execute ด้วย Python ผ่าน command line arguments ในตัวแปร exepath ซึ่ง sys.argv[0] คือชื่อของไฟล์ Python script ที่ถูกเรียกใช้งาน
         exepath = sys.argv[0]
+        
         Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'D:\\bin\\'
         Download_dir = Dir_path+self.custom_path
