@@ -483,6 +483,7 @@ class MyApp:
         self.result = "Excel"
         print("Select Excel")
         self.table_location = filedialog.askopenfilename()
+        #* ตัดเอาเฉพาะ ชื่อไฟล์
         self.display_location_result.config(
             text=f"{self.table_location.split('/')[-1]}")
 

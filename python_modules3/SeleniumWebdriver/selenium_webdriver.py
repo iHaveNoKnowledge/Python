@@ -66,11 +66,6 @@ class ChromeDriver:
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-        # except Exception as e:
-        #     print('error ตรงนี้ไงล่ะ ไอ here ')
-        #     print(e)
-        #     logger.error(f"'method: setup_chrome()', {e}")
-        #     raise e
         except:
             traceback_str = traceback.format_exc()
             print(traceback_str)
@@ -98,9 +93,6 @@ class ChromeDriver:
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-
-        # self.driver = webdriver.Chrome(service=Service(
-        #     ChromeDriverManager().install()), options=self.opt)
 
     def get_tabs(self):
         try:
