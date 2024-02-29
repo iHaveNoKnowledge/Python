@@ -251,12 +251,15 @@ class MyApp:
         self.display_location_label = Label(
             self.import_file_frame, text=f"File located: ")
         self.display_location_label.grid(row=0, column=0, padx=(5, 0))
+        
         self.display_location_result = Label(
             self.import_file_frame, text=f"ยังไม่เลือก Import File")
         self.display_location_result.grid(row=0, column=1, padx=(5, 0))
+        
         self.display_location_result_btn = Button(
             self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, bg="#969696")
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
+        
         # >> bot status
         self.display_bot_status_label = Label(
             self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", bg="#1f242e", fg="#ffec1f")
@@ -267,6 +270,7 @@ class MyApp:
         self.label_current_order = Label(
             self.order_details_frame, text="Current Order: ", bg="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
+        
         self.display_current_order = Entry(
             self.order_details_frame, width=40, state="readonly",  borderwidth=0, textvariable=self.cus_order)
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=W)
