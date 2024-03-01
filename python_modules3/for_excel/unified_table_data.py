@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-file_path = r"C:\Users\CSH0041\Downloads\DATA Program nHack.xlsx"
+
 
 #! ใช้ read_excel แบบนี้มันจะทำงานแบบทันที
 # data_frames = pd.read_excel(file_path, sheet_name=None, dtype=str)
@@ -31,6 +31,8 @@ file_path = r"C:\Users\CSH0041\Downloads\DATA Program nHack.xlsx"
 # #         print(f"Sheet: {sheet_name} ไม่มี รายการสินค้า")
 
 #! ใช้แบบ ExcelFile มันจะทำงานแบบ lazy loading ซึ่งหมายความว่ามันจะไม่โหลดข้อมูลจริงจนกว่าคุณจะใช้ method parse() เพื่อโหลดข้อมูลจากแผ่นข้อมูลในไฟล์ Excel นั้นๆ ทำให้มีประสิทธิภาพมากขึ้น
+
+file_path = r"C:\Users\CSH0041\Downloads\DATA Program nHack.xlsx"
 excel_file = pd.ExcelFile(file_path)
 sheet_names = excel_file.sheet_names
 
