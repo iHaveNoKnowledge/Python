@@ -2751,17 +2751,22 @@ class Bot_POS:
                             while True:
 
                                 time.sleep(1)
-                                # print("auto click Before print loop")
-                                self.final_popup = self.driver.find_element(
-                                    By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                                # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
-                                #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                                self.is_final_page = self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
-                                self.etax_radio_sendmail = self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
-                                # print("self.is_final_page= ",
-                                #       self.is_final_page)
+                                try:
+                                    # print("auto click Before print loop")
+                                    self.final_popup = self.driver.find_element(
+                                        By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                                    # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
+                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
+                                    self.is_final_page = self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
+                                    self.etax_radio_sendmail = self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
+                                    # print("self.is_final_page= ",
+                                    #       self.is_final_page)
+                                except:
+                                    print("Element not found, cotinuing loop...")
+                                    continue
+                                
                                 if self.final_popup.is_displayed():
                                     pass
                                 elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
