@@ -272,11 +272,11 @@ class MyApp:
 
         # *> FileName
         self.accl_dir_namedisplay = Button(
-            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_excel, bg="red")
-        
+            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, )
+
         # *> Buttons
         self.accl_dir_btn = Button(
-            self.entry_frame, text=f"ใส่ Accel_mode File", command=self.select_excel, bg="#969696")
+            self.entry_frame, text=f"Start", command=self.accel_search, bg="red")
 
         # *  Log in button component
         # * > A BTN to display the User_account
@@ -533,6 +533,25 @@ class MyApp:
             raise ValueError(
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
 
+    def select_accel_file(self):
+        self.accel_location = filedialog.askopenfilename()
+        if self.accel_location:
+            self.accl_dir_namedisplay.config(
+                text=f"{self.accel_location.split('/')[-1]}")
+        else:
+            self.accl_dir_namedisplay.config(
+                text=f"ยังไม่เลือก Accel File")
+
+        self.accel_df = pd.read_excel(
+            self.accel_location, dtype=str)
+
+        self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
+        self.sn_list = self.accel_df['sn'].dropna().tolist()
+        self.CP_list = self.accel_df['cp'].dropna().tolist()
+        print(self.accel_orders_list)
+        print(self.sn_list)
+        print(self.CP_list)
+
     def select_excel(self):
         self.result = "Excel"
         print("Select Excel")
@@ -541,7 +560,7 @@ class MyApp:
         self.display_location_result.config(
             text=f"{self.table_location.split('/')[-1]}")
 
-        # target should come before get dataframe
+        # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
@@ -1561,13 +1580,18 @@ class MyApp:
             self.display_bot_status_label.config(
                 text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
-    def search(self):
+        if self.is_accel_mode.get():
+            self.accel_round_end += 1
+
+    def search(self, accel_order=""):
         self.autofinal = False
         # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
-
-        self.search_query = self.entered_order.get()
+        if self.is_accel_mode.get():
+            self.search_query = accel_order
+        else:
+            self.search_query = self.entered_order.get()
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
         self.entered_order.set("")
         if self.search_query != "":
@@ -1598,6 +1622,24 @@ class MyApp:
 
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
+
+    def accel_search(self):
+        self.accel_round = 0
+        self.accel_round_end = 0
+        for order in self.accel_orders_list:
+
+            while True:
+                if self.accel_round == self.accel_round_end:
+                    try:
+                        self.search(order)
+                        self.accel_round += 1
+                    except:
+                        time.sleep(1)
+                        continue
+                else:
+                    # * ยังไม่ถึงรอบก็รอต่อไป
+                    time.sleep(3)
+                    continue
 
     def convert_text(self, text):
         result = []
