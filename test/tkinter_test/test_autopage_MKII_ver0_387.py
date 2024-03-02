@@ -58,10 +58,12 @@ print("file located:", directory_of_file)
 class MyApp:
     def __init__(self, root):
         self.root = root
+        self.dev_account = ["62078", "61651"]
         # self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
         self.result = ""
+        self.is_accel_mode = BooleanVar()
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
         self.bg_by_market_place = {
@@ -218,28 +220,65 @@ class MyApp:
                 row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
             entry.configure(state="readonly")
 
+    def accelmode_toggle(self):
+        order_label = self.inp1_label_order.winfo_ismapped
+        order_input = self.inp1_order_input.winfo_ismapped
+        order_btn = self.inp1_search_btn.winfo_ismapped
+        if self.is_accel_mode.get():
+            if order_label and order_input and order_btn:
+                self.inp1_label_order.grid_remove()
+                self.inp1_order_input.grid_remove()
+                self.inp1_search_btn.grid_remove()
+
+            self.accl_dir_label.grid(row=0, column=1, padx=5)
+            self.accl_dir_namedisplay.grid(row=0, column=3)
+            self.accl_dir_btn.grid(row=0, column=5, padx=5)
+        else:
+            self.accl_dir_label.grid_remove()
+            self.accl_dir_namedisplay.grid_remove()
+            self.accl_dir_btn.grid_remove()
+
+            self.inp1_label_order.grid(row=0, column=1, padx=5)
+            self.inp1_order_input.grid(row=0, column=3)
+            self.inp1_search_btn.grid(row=0, column=5, padx=5)
+
     def create_widgets(self):
-        # * > MarketPlace
-        # >> Label
+        # * entry_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # *  MarketPlace
+        # * > Label
         self.marketplace_label = Label(
             self.entry_frame, textvariable=self.marketplace_target, bg="#747474", fg="#FFF", font='bazooka 10 bold')
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
-        # * > search order component
-        # >> Labels
+        # *  search order component
+        # * > Labels
         self.inp1_label_order = Label(
             self.entry_frame, text="Order: ", bg="#FFF", width=10)
         self.inp1_label_order.grid(row=0, column=1, padx=5)
-        # >> Inputs
+        # *> Inputs
         self.entered_order = StringVar()
         self.inp1_order_input = Entry(
             self.entry_frame, textvariable=self.entered_order, width=50)
         self.inp1_order_input.grid(row=0, column=3)
-        # >> Buttons
+        # *> Buttons
         self.inp1_search_btn = Button(
             self.entry_frame, text="Start", bg="#969696", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
+        # *  search order Accel mode component
+        # * > Labels
+        self.accl_dir_label = Label(
+            self.entry_frame, text=f"Accel File Dir ")
+
+        # *> FileName
+        self.accl_dir_namedisplay = Button(
+            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_excel, bg="red")
+        
+        # *> Buttons
+        self.accl_dir_btn = Button(
+            self.entry_frame, text=f"ใส่ Accel_mode File", command=self.select_excel, bg="#969696")
+
+        # *  Log in button component
         # * > A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
         ) and self.user_pw.get() else "Login"
@@ -247,19 +286,31 @@ class MyApp:
             self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
         self.display_acc_btn.grid(row=0, column=6, padx=5)
 
-        # * > Export File and Bot status location display component
+        # * Accel mode
+        # * > Checkbox for activation toggle
+        self.accel_mode_checkbox = Checkbutton(
+            self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
+
+        # for method
+        # if self.user_id in self.dev_account and self.is_accel_mode.get():
+        #     print("Accel mode Activated")
+        # else:
+        #     print("Normal mode")
+
+        # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # *  Export File and Bot status location display component
         self.display_location_label = Label(
             self.import_file_frame, text=f"File located: ")
         self.display_location_label.grid(row=0, column=0, padx=(5, 0))
-        
+
         self.display_location_result = Label(
             self.import_file_frame, text=f"ยังไม่เลือก Import File")
         self.display_location_result.grid(row=0, column=1, padx=(5, 0))
-        
+
         self.display_location_result_btn = Button(
             self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, bg="#969696")
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
-        
+
         # >> bot status
         self.display_bot_status_label = Label(
             self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", bg="#1f242e", fg="#ffec1f")
@@ -270,7 +321,7 @@ class MyApp:
         self.label_current_order = Label(
             self.order_details_frame, text="Current Order: ", bg="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
-        
+
         self.display_current_order = Entry(
             self.order_details_frame, width=40, state="readonly",  borderwidth=0, textvariable=self.cus_order)
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=W)
@@ -397,24 +448,23 @@ class MyApp:
 
         # * > demonic cp segment
         # * >> Label
-        self.demonic_cp_label = Label(
+        self.demonicCp_label = Label(
             self.demonic_frame, text="Ulti CP", bg="#FFF", height=1)
-        self.demonic_cp_label.grid(row=0, column=0)
-        # * >> Inputs
-        self.entered_item_no = StringVar()
-        self.inp1_order_input = Entry(
-            self.demonic_frame, textvariable=self.entered_item_no, width=10)
-        self.inp1_order_input.grid(row=0, column=3, padx=(0, 2))
-
-        self.entered_cp_no = StringVar()
-        self.inp1_order_input = Entry(
-            self.demonic_frame, textvariable=self.entered_cp_no, width=10)
-        self.inp1_order_input.grid(row=0, column=4)
-
+        self.demonicCp_label.grid(row=0, column=0)
+        # * >> Inputs1
+        self.demonicCp_itemNo = StringVar()
+        self.demonicCp_itemNo_input = Entry(
+            self.demonic_frame, textvariable=self.demonicCp_itemNo, width=10)
+        self.demonicCp_itemNo_input.grid(row=0, column=3, padx=(0, 2))
+        # * >> Inputs2
+        self.demonicCp_cpNo = StringVar()
+        self.demonicCp_cpNo_input = Entry(
+            self.demonic_frame, textvariable=self.demonicCp_cpNo, width=10)
+        self.demonicCp_cpNo_input.grid(row=0, column=4)
         # * >> Buttons
-        self.inp1_search_btn = Button(
+        self.demonicCp_btn = Button(
             self.demonic_frame, text="SonicBlow!!", bg="#969696", command=self.demonic_cp_selection, width=10)
-        self.inp1_search_btn.grid(row=0, column=5)
+        self.demonicCp_btn.grid(row=0, column=5)
 
         # * > Log windows component
         self.report_log = Text(self.log_frame, state=DISABLED, height=13)
@@ -487,7 +537,7 @@ class MyApp:
         self.result = "Excel"
         print("Select Excel")
         self.table_location = filedialog.askopenfilename()
-        #* ตัดเอาเฉพาะ ชื่อไฟล์
+        # * ตัดเอาเฉพาะ ชื่อไฟล์
         self.display_location_result.config(
             text=f"{self.table_location.split('/')[-1]}")
 
@@ -1777,7 +1827,7 @@ class UserAccount:
             'bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
 
-        # Submit Button
+        # * Submit Button
         self.submit_btn = Button(
             self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
@@ -1850,12 +1900,28 @@ class UserAccount:
                     self.app.user_id.get()}"""
                 self.app.display_acc_btn.config(text=self.display_btn_txt)
                 self.subwindow.destroy()
-                return self.display_btn_txt
+
             else:
                 print("ไม่ติด")
                 self.display_btn_txt = "Login"
                 # self.subwindow.destroy()
                 # return self.display_btn_txt
+
+            if self.app.user_id.get() in self.app.dev_account:
+
+                print("Accel mode")
+                if self.app.accel_mode_checkbox.winfo_ismapped():
+                    pass
+                else:
+                    self.app.accel_mode_checkbox.grid(row=0, column=7, padx=5)
+            else:
+                print("Normal mode", self.app.user_id.get()
+                      in self.app.dev_account)
+                self.app.accel_mode_checkbox.grid_remove()
+                print(self.app.user_id.get())
+                print(self.app.dev_account)
+
+            return self.display_btn_txt
 
     def show_and_hide(self):
         if self.pass_input['show'] == '*':
@@ -1873,9 +1939,9 @@ class Bot_POS:
 
     def setup_chrome(self):
         self.opt = Options()
-        #* ใช้เพื่อเก็บที่อยู่ของไฟล์ที่ถูก execute ด้วย Python ผ่าน command line arguments ในตัวแปร exepath ซึ่ง sys.argv[0] คือชื่อของไฟล์ Python script ที่ถูกเรียกใช้งาน
+        # * ใช้เพื่อเก็บที่อยู่ของไฟล์ที่ถูก execute ด้วย Python ผ่าน command line arguments ในตัวแปร exepath ซึ่ง sys.argv[0] คือชื่อของไฟล์ Python script ที่ถูกเรียกใช้งาน
         exepath = sys.argv[0]
-        
+
         Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'D:\\bin\\'
         Download_dir = Dir_path+self.custom_path
@@ -2766,7 +2832,7 @@ class Bot_POS:
                                 except:
                                     print("Element not found, cotinuing loop...")
                                     continue
-                                
+
                                 if self.final_popup.is_displayed():
                                     pass
                                 elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
@@ -2890,6 +2956,7 @@ class Bot_POS:
 
             print("จบ auto_last_page")
             self.autofinal = False
+            self.driver.quit()
 
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
@@ -3633,18 +3700,18 @@ if __name__ == "__main__":
 # *46 0.384 แสดงlogเลขบิล
 # *47 0.385 เอาเลขบิลมาโชว์ที่ GUI
 # !48 กรอกก่อน element show ได้ ดูเหมือนจะเป็นเช่นนั้น
-#* 8/2/2024
+# * 8/2/2024
 # *49 fixed 0.387 // lazada ราคารวม bug
 # *50 fixed 0.387 // Ultimate CP prototype for หมึก
 # *51 fixed 0.387 // lazada ลูกค้า ภาษาสเปน googletrans ช่วยไม่ได้ กรณีถ้าแปลแล้วไม่ได้จริงๆ return ค่าinput ไปแหละ
 # *52 fixed 0.387 // Order ยกเลิกแสดงผลไม่ชัดเจน
 # *53 fixed 0.387 // shopee ปรับเปลี่ยนวิธีหาชื่อลูกค้าจาก Email เป็น ใช้ เลขผู้เสียภาษี
 # *54 fixed 0.387 // shopee ลดความเร็วในการกรอก แขวง/ตำบล ใน dropdown ตอน เพิ่มชื่อลูกค้าใหม่
-# !55 เอาเป็นว่าใช้เขตบางบอนดีกว่า มีแขวง บางบอนอยู่ 5 อัน แนวทางการแก้ไขอาจจะต้องใช้ req/res เพื่อดึงค่าจาก SMCO มาใช้แล้วแหละไม่งั้นทำไม่ได้ //วัฒนา ทวีวัฒนา dropdown จะมีสองค่า แล้วมันจะเอาค่าที่ยาวกว่าขึ้นก่อน การเลือกอันที่ 1 มันจะ ผิด 
+# !55 เอาเป็นว่าใช้เขตบางบอนดีกว่า มีแขวง บางบอนอยู่ 5 อัน แนวทางการแก้ไขอาจจะต้องใช้ req/res เพื่อดึงค่าจาก SMCO มาใช้แล้วแหละไม่งั้นทำไม่ได้ //วัฒนา ทวีวัฒนา dropdown จะมีสองค่า แล้วมันจะเอาค่าที่ยาวกว่าขึ้นก่อน การเลือกอันที่ 1 มันจะ ผิด
 # !56 จาก กรุงเทพ กลายเป็น ภูเก็ตได้ order นี้ 2401309DCMAYCS มันคนละแบบกับที่เจอตอนแรกที่ผิดแค่ ตำบล แต่อันนี้ผิดที่จังหวัด ต้องไป recheck ที่จุดเริ่มต้น
 # !57 ประเทศไม่เลือกไทยในบางกรณี บางกรณีเลือกเป็น china เป็นเพราะเลือกจาก index แต่ไม่ได้เลือกจากข้อความด้านใน
 # !!58 สำคัญมาก ใบกำกับที่ print ออกมาจะ !!!แสดงผลด้วยภาษาไทย!!! แต่จะ !!!เสิชจากภาษาอังกิด!!! ถ้าจะใช้เพื่อ เสิช ต้องใช้ภาษาอังกิด อังกิดจะใส่ไรก็ใส่
-# !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า 
+# !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------

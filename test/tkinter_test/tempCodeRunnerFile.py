@@ -1,1 +1,1 @@
-MyApp
+accl_dir_namedisplay
