@@ -1623,37 +1623,42 @@ class MyApp:
 
         timer = threading.Timer(0.2, self.on_thread_done)
         timer.start()
-        
+
     def on_accel_thread_done(self):
         self.accel_search_thread_stat = self.accel_search_thread.is_alive()
         if self.accel_search_thread.is_alive():
             self.accel_search_thread.join()
             # self.accel_round_end += 1
-            
 
     def accel_search(self):
         self.accel_round = 0
         self.accel_round_end = 0
+        self.accel_threads = []
         for order in self.accel_orders_list:
             print('accel_search')
             # while True:
-                # if self.accel_round == self.accel_round_end:
+            # if self.accel_round == self.accel_round_end:
             try:
                 # self.search(order)
+                # for thread in self.accel_threads:
+                #     thread.join()
                 
-                self.accel_search_thread = threading.Thread(target=self.search, args=(order,))
+
+                self.accel_search_thread = threading.Thread(
+                    target=self.search, args=(order,))
                 self.accel_search_thread.start()
-                self.accel_timer = threading.Timer(0.2, self.on_accel_thread_done)
+                self.accel_threads.append(self.accel_search_thread)
+                # self.accel_timer = threading.Timer(0.2, self.on_accel_thread_done)
                 # self.accel_timer.start()
-                
+
                 # while True:
                 #     if self.accel_round == self.accel_round_end:
                 #         timer.start()
                 #         self.accel_round += 1
-                    
+
                 # self.accel_search_thread.join()  # รอให้เทรดเสร็จสิ้นก่อนที่จะดำเนินการต่อ
                 # break  # เมื่อเทรดเสร็จสิ้นแล้วออกจากลูป while
-                
+
             except:
                 print('continue1')
                 continue
@@ -1662,6 +1667,7 @@ class MyApp:
                 #     time.sleep(3)
                 #     print('continue2')
                 #     continue
+        
 
     def convert_text(self, text):
         result = []
@@ -3024,7 +3030,9 @@ class Bot_POS:
 
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
-            
+
+        self.app.accel_timer = threading.Timer(
+            0.2, self.app.on_accel_thread_done)
         self.app.accel_timer.start()
 
     def addNormalCustomer(self, cusname_fixed):
