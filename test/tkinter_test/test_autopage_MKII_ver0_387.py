@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from decimal import Decimal
 import locale
 from concurrent.futures import ThreadPoolExecutor
@@ -6,6 +6,7 @@ import threading
 import sys
 import os
 from xml.dom.minidom import Document
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
@@ -1593,7 +1594,7 @@ class MyApp:
             self.search_query = accel_order
         else:
             self.search_query = self.entered_order.get()
-        print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
+        print("search() Working.. and result: ", self.search_query)
         self.entered_order.set("")
         if self.search_query != "":
             self.report_log.config(state=NORMAL)
@@ -1626,48 +1627,88 @@ class MyApp:
 
     def on_accel_thread_done(self):
         self.accel_search_thread_stat = self.accel_search_thread.is_alive()
-        if self.accel_search_thread.is_alive():
-            self.accel_search_thread.join()
-            # self.accel_round_end += 1
+        for thread in self.accel_threads:
+            if thread.is_alive():
+                print(f"Waiting for thread {thread} to finish...")
+                thread.join()
+                print(f"Thread {thread} has finished.")
+        print("All threads are done.")
 
-    def accel_search(self):
-        self.accel_round = 0
-        self.accel_round_end = 0
-        self.accel_threads = []
-        for order in self.accel_orders_list:
-            print('accel_search')
-            # while True:
-            # if self.accel_round == self.accel_round_end:
-            try:
-                # self.search(order)
-                # for thread in self.accel_threads:
-                #     thread.join()
-                
 
-                self.accel_search_thread = threading.Thread(
-                    target=self.search, args=(order,))
-                self.accel_search_thread.start()
-                self.accel_threads.append(self.accel_search_thread)
-                # self.accel_timer = threading.Timer(0.2, self.on_accel_thread_done)
-                # self.accel_timer.start()
+def accel_search(self):
+    self.accel_round = 0
+    self.accel_round_end = 0
+    self.accel_threads = []
+    threads_working = True
 
-                # while True:
-                #     if self.accel_round == self.accel_round_end:
-                #         timer.start()
-                #         self.accel_round += 1
+    for i, orders in enumerate(self.accel_orders_list):
+        print(f'accel_search - Thread {i + 1}')
 
-                # self.accel_search_thread.join()  # รอให้เทรดเสร็จสิ้นก่อนที่จะดำเนินการต่อ
-                # break  # เมื่อเทรดเสร็จสิ้นแล้วออกจากลูป while
+        try:
+            accel_search_thread = threading.Thread(
+                target=self.search, args=(orders,))
+            accel_search_thread.start()
+            self.accel_threads.append(accel_search_thread)
 
-            except:
-                print('continue1')
-                continue
-                # else:
-                #     # * ยังไม่ถึงรอบก็รอต่อไป
-                #     time.sleep(3)
-                #     print('continue2')
-                #     continue
-        
+            # รอไม่เกิน 5 วินาที
+            accel_search_thread.join(5)
+
+            if accel_search_thread.is_alive():
+                print(
+                    f"Thread {i + 1} has not finished within 5 seconds. Stopping it.")
+                accel_search_thread._stop()  # หยุด Thread ที่ยังไม่เสร็จสิ้น
+            else:
+                print(f"Thread {i + 1} has finished.")
+
+        except Exception as e:
+            print(f"Error: {e}")
+            continue
+
+        # ตรวจสอบว่ามี Thread ที่กำลังทำงานหรือไม่
+        threads_working = any(thread.is_alive()
+                              for thread in self.accel_threads)
+
+        # หยุด loop ถ้าไม่มี Thread ที่กำลังทำงาน
+        if not threads_working:
+            print("All threads are done.")
+            break
+
+    # def accel_search(self):
+    #     self.accel_round = 0
+    #     self.accel_round_end = 0
+    #     self.accel_threads = []
+    #     for orders in self.accel_orders_list:
+    #         print('accel_search')
+    #         # while True:
+    #         # if self.accel_round == self.accel_round_end:
+    #         try:
+    #             # self.search(order)
+    #             # for thread in self.accel_threads:
+    #             #     thread.join()
+
+    #             self.accel_search_thread = threading.Thread(
+    #                 target=self.search, args=(orders,))
+    #             self.accel_search_thread.start()
+    #             self.accel_threads.append(self.accel_search_thread)
+    #             # self.accel_timer = threading.Timer(0.2, self.on_accel_thread_done)
+    #             # self.accel_timer.start()
+
+    #             # while True:
+    #             #     if self.accel_round == self.accel_round_end:
+    #             #         timer.start()
+    #             #         self.accel_round += 1
+
+    #             # self.accel_search_thread.join()  # รอให้เทรดเสร็จสิ้นก่อนที่จะดำเนินการต่อ
+    #             # break  # เมื่อเทรดเสร็จสิ้นแล้วออกจากลูป while
+
+    #         except:
+    #             print('continue1')
+    #             continue
+    #             # else:
+    #             #     # * ยังไม่ถึงรอบก็รอต่อไป
+    #             #     time.sleep(3)
+    #             #     print('continue2')
+    #             #     continue
 
     def convert_text(self, text):
         result = []
@@ -1715,13 +1756,11 @@ class MyApp:
                 if is_found != -1:
                     print("เจอที่ ", li_position)
                     print("is_found: ", is_found)
-                    cp_btn_xpath = f'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
-                        li_position}]/div/div[2]/div[3]/div[1]/a'
+                    cp_btn_xpath = f'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/a'
                     self.driver.find_element(By.XPATH, cp_btn_xpath).click()
 
                     # * เลือก cp เป้าหมาย
-                    selected_btn = f'/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
-                        self.cp_no}]/div[1]/button'
+                    selected_btn = f'/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'
                     self.driver.find_element(By.XPATH, selected_btn).click()
 
                     self.driver.find_element(
@@ -2018,7 +2057,7 @@ class Bot_POS:
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
-        self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        # self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
         #     "download.default_directory" : Download_dir,
@@ -2026,7 +2065,8 @@ class Bot_POS:
         # })
 
         self.driver = webdriver.Chrome(
-            service=Service(r'C:\bin\chromedriver.exe'),
+            service=ChromeService(ChromeDriverManager().install()),
+            # service=Service(r'C:\bin\chromedriver.exe'),
             options=self.opt
         )
 
@@ -2272,8 +2312,8 @@ class Bot_POS:
                     self.app.display_current_status.config(
                         bg="#ff2b2b", fg="#FFF")
                     self.is_suspend = True
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
-                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp(
+                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -3528,8 +3568,7 @@ class Bot_POS:
         # Todo address รับค่าเป็น dict
         # Todo possible_tambons รับค่าเป็น list
 
-        input = f"{address['cleaned_address']} {address['amphoe']} {
-            address['province']} {address['postal']}"
+        input = f"{address['cleaned_address']} {address['amphoe']} {address['province']} {address['postal']}"
 
         session = requests.Session()
 
