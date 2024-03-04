@@ -1627,51 +1627,39 @@ class MyApp:
 
     def on_accel_thread_done(self):
         self.accel_search_thread_stat = self.accel_search_thread.is_alive()
-        for thread in self.accel_threads:
-            if thread.is_alive():
-                print(f"Waiting for thread {thread} to finish...")
-                thread.join()
-                print(f"Thread {thread} has finished.")
+
+        if self.accel_search_thread_stat:
+            print(
+                f"Waiting for thread {self.accel_search_thread} to finish...")
+            self.accel_search_thread.join()
+            print(f"Thread {self.accel_search_thread} has finished.")
+
         print("All threads are done.")
 
+    def accel_search(self):
+        self.accel_round = 0
+        self.accel_round_end = 0
+        self.accel_threads = []
+        threads_working = True
 
-def accel_search(self):
-    self.accel_round = 0
-    self.accel_round_end = 0
-    self.accel_threads = []
-    threads_working = True
+        for i, orders in enumerate(self.accel_orders_list):
+            print(f'accel_search - Thread {i + 1}')
 
-    for i, orders in enumerate(self.accel_orders_list):
-        print(f'accel_search - Thread {i + 1}')
+            try:
+                # ยัด เปิด thread เรักใช้งาน ฟังชั่น search(callback) => {[order]}
+                print("in loop", orders)
+                self.accel_search_thread = threading.Thread(
+                    target=self.search, args=(orders,))
+                self.accel_search_thread.start()
+                self.accel_threads.append(self.accel_search_thread)
 
-        try:
-            accel_search_thread = threading.Thread(
-                target=self.search, args=(orders,))
-            accel_search_thread.start()
-            self.accel_threads.append(accel_search_thread)
-
-            # รอไม่เกิน 5 วินาที
-            accel_search_thread.join(5)
-
-            if accel_search_thread.is_alive():
-                print(
-                    f"Thread {i + 1} has not finished within 5 seconds. Stopping it.")
-                accel_search_thread._stop()  # หยุด Thread ที่ยังไม่เสร็จสิ้น
-            else:
-                print(f"Thread {i + 1} has finished.")
-
-        except Exception as e:
-            print(f"Error: {e}")
-            continue
-
-        # ตรวจสอบว่ามี Thread ที่กำลังทำงานหรือไม่
-        threads_working = any(thread.is_alive()
-                              for thread in self.accel_threads)
-
-        # หยุด loop ถ้าไม่มี Thread ที่กำลังทำงาน
-        if not threads_working:
-            print("All threads are done.")
-            break
+                if self.skuAddBtn:
+                    print("next order ....")
+                    continue
+            except:
+                print('continue1')
+                continue
+            # หยุด loop ถ้าไม่มี Thread ที่กำลังทำงาน
 
     # def accel_search(self):
     #     self.accel_round = 0
@@ -2057,7 +2045,7 @@ class Bot_POS:
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
-        # self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
         #     "download.default_directory" : Download_dir,
@@ -2065,8 +2053,8 @@ class Bot_POS:
         # })
 
         self.driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()),
-            # service=Service(r'C:\bin\chromedriver.exe'),
+            # service=ChromeService(ChromeDriverManager().install()),
+            service=Service(r'C:\bin\chromedriver.exe'),
             options=self.opt
         )
 
