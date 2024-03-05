@@ -1,16 +1,16 @@
 import tkinter as tk
 from tkinter import ttk
 
+from modules.selenium_webdriver import *
+
 
 class MainApp:
-    def __init_(self, root):
+    def __init__(self, root):
         self.root = root
         self.data_file_dir = ''
         self.sku = ''
         self.set_num = ''
-        
-    
-        
+        ChromeDriver()
 
 
 def main():

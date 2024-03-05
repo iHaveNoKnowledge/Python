@@ -237,3 +237,73 @@ Stacktrace:
                                  ^^^^^^^^^^^
 AttributeError: 'ChromeDriver' object has no attribute 'driver'
 
+2024-03-05 10:28:11,660 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 110, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 10:28:46,567 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 110, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 10:30:00,528 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 110, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 10:33:21,584 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 112, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 10:40:20,433 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 113, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:06:15,708 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 114, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:13:01,120 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 117, in get_tabs
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:44:15,248 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 126, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:48:26,682 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 121, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:48:53,306 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 121, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:50:44,724 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 121, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
+2024-03-05 11:55:05,793 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\CSH0041\Documents\GitHub\Python\projects\auto_sn\modules\selenium_webdriver.py", line 120, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'driver'
+
