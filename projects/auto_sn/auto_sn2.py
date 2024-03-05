@@ -12,7 +12,7 @@ class MainApp:
         self.set_num = ''
         ChromeDriver()
         
-    def
+    
 
 
 def main():
