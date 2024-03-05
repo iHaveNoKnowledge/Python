@@ -65,26 +65,25 @@ class ChromeDriver:
         #     "download.default_directory" : Download_dir,
         #     "directory_upgrade": True
         # })
-        
-        #* Opening a Chrome in debuggermode port:8989##########################################################
-        self.chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-        print("พบไฟล์ chrome.exe ที่:", self.chrome_path)
-        self.chrome_command = f'{self.chrome_path} --remote-debugging-port=8989 --user-data-dir="C:/bin/chromeProfile"'
+
+        # * Opening a Chrome in debuggermode port:8989##########################################################
+        #! ยังไม่ใช้ หาวิธี ห้ามเปิดซ้ำไม่ได้
+        # self.chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        # print("พบไฟล์ chrome.exe ที่:", self.chrome_path)
+        # self.chrome_command = f'{self.chrome_path} --remote-debugging-port=8989 --user-data-dir="C:/bin/chromeProfile"'
+        # subprocess.Popen(self.chrome_command)
         #! ตรวจก่อนเปิดซ้ำ WIP
         # if 'chorme_process'
-        
-        
-        
+
         try:
-            subprocess.Popen(self.chrome_command)
             print("create driver")
             self.driver = webdriver.Chrome(
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-            
+
             print("driver created")
-        except :
+        except:
             traceback_str = traceback.format_exc()
             print("Cannot Create Driver")
             print(traceback_str)
@@ -92,27 +91,26 @@ class ChromeDriver:
             chrome_app_version = chrome_app_utils.get_chrome_version()
             print("Chrome version: ", chrome_app_version)
 
-            # # * Target directory to store chromedriver
-            # driver_directory = 'C:/bin'
+            # * Target directory to store chromedriver
+            driver_directory = 'C:/bin'
 
-            # # * Create an inst of WebDriverManager
-            # driver_manager = WebDriverManager(driver_directory)
+            # * Create an inst of WebDriverManager
+            driver_manager = WebDriverManager(driver_directory)
 
-            # # * Call the main method to manage chromdriver
-            # try:
-            #     driver_manager.main()
-            #     driver_manager.check_driver()
-            # except Exception as err:
+            # * Call the main method to manage chromdriver
+            try:
+                driver_manager.main()
+                driver_manager.check_driver()
+            except Exception as err:
 
-            #     print('error from driver_manager.main()')
-            #     print(err)
-            #     raise
+                print('error from driver_manager.main()')
+                print(err)
+                raise
 
-            # self.driver = webdriver.Chrome(
-            #     service=Service(r'C:\bin\chromedriver.exe'),
-            #     options=self.opt
-            # )
-            
+            self.driver = webdriver.Chrome(
+                service=Service(r'C:\bin\chromedriver.exe'),
+                options=self.opt
+            )
 
     def get_tabs(self):
         try:
@@ -162,14 +160,14 @@ class ChromeDriver:
             # logger.critical('This is a critical message')
 
 
-try:
-    chromeDriver_browser = ChromeDriver()
-except Exception as e:
-    traceback_str = traceback.format_exc()
-    print(f"An error occirred: {e}")
-    print(traceback_str)
-    # logger.debug('This is a debug message')
-    # logger.info('This is an info message')
-    logger.warning(f"'from class ChromeDriver()', {traceback_str}")
-    # logger.error('This is an error message')
-    # logger.critical('This is a critical message')
+# try:
+#     chromeDriver_browser = ChromeDriver()
+# except Exception as e:
+#     traceback_str = traceback.format_exc()
+#     print(f"An error occirred: {e}")
+#     print(traceback_str)
+#     # logger.debug('This is a debug message')
+#     # logger.info('This is an info message')
+#     logger.warning(f"'from class ChromeDriver()', {traceback_str}")
+#     # logger.error('This is an error message')
+#     # logger.critical('This is a critical message')
