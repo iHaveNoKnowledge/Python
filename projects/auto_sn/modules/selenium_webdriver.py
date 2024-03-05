@@ -70,18 +70,19 @@ class ChromeDriver:
         self.chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         print("พบไฟล์ chrome.exe ที่:", self.chrome_path)
         self.chrome_command = f'{self.chrome_path} --remote-debugging-port=8989 --user-data-dir="C:/bin/chromeProfile"'
-        #* ตรวจก่อนเปิดซ้ำ
-        if 'chorme_process'
-        subprocess.Popen(self.chrome_command)
+        #! ตรวจก่อนเปิดซ้ำ WIP
+        # if 'chorme_process'
+        
         
         
         try:
+            subprocess.Popen(self.chrome_command)
             print("create driver")
             self.driver = webdriver.Chrome(
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-
+            
             print("driver created")
         except :
             traceback_str = traceback.format_exc()

@@ -11,6 +11,8 @@ class MainApp:
         self.sku = ''
         self.set_num = ''
         ChromeDriver()
+        
+    def
 
 
 def main():
