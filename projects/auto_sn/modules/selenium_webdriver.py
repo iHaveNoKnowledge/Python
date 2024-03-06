@@ -158,6 +158,7 @@ class ChromeDriver:
             logger.warning(f"'method get_tabs()', {traceback_str}")
             # logger.error('This is an error message')
             # logger.critical('This is a critical message')
+            
 
 
 # try:

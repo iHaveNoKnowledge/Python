@@ -19,7 +19,7 @@ class MainApp:
         self.data_table = {}
         self.create_main_window()
         # ใช้ class unified
-        ChromeDriver()
+        self.chromdriver_controller = ChromeDriver()
 
     def resetAllValue(self):
         self.data_file_dir.set(value="")
