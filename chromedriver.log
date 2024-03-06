@@ -331,3 +331,5 @@ AttributeError: 'ChromeDriver' object has no attribute 'driver'
                                  ^^^^^^^^^^^
 AttributeError: 'ChromeDriver' object has no attribute 'driver'
 
+2024-03-06 15:18:29,781 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000022FBE2FD370>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it')': /session/16c490492823882f4e5abed233e98c51/element/f.35D16093C5618860D23FEEBB7D6A7753.d.94F2E31811D266B980616C532FDC3E92.e.737/click
+2024-03-06 15:18:33,852 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000022FBDACDA90>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it')': /session/16c490492823882f4e5abed233e98c51/element/f.35D16093C5618860D23FEEBB7D6A7753.d.94F2E31811D266B980616C532FDC3E92.e.737/click

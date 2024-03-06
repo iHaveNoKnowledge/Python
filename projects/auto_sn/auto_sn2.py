@@ -5,6 +5,8 @@ from tkinter import ttk
 from modules.selenium_webdriver import ChromeDriver
 from modules.unified_table_data import UnifyData
 
+import traceback
+
 
 class MainApp:
     def __init__(self, root):
@@ -53,42 +55,39 @@ class MainApp:
 
     def search(self):
         # * ลบ result products list เก่า
-        sku = self.sku.get()
-        set = self.set_num.get()
-        data_dict = self.data_table.get_result(sku, set)
-        #! wip you are here
+        try:
+            sku = self.sku.get().strip()
+            set = self.set_num.get().strip()
 
-        # self.search_query = self.entered_order.get()
-        # print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
-        # self.entered_order.set("")
-        # if self.search_query != "":
-        #     self.report_log.config(state=NORMAL)
-        #     self.report_log.delete("1.0", "end")
-        #     # self.report_log.insert(END, self.search_query + "\n")
-        #     self.report_log.config(state=DISABLED)
-        # else:
-        #     self.report_log.config(state=NORMAL)
-        #     self.report_log.delete("1.0", "end")
-        #     self.report_log.config(state=DISABLED)
+            # * เกี่ยวกับการแสดงผล GUI
+            self.clear_log()
+            data_dict = self.data_table.get_result(sku, set)
+            self.update_log(f"ชื่อชุด: {sku}")
+            self.update_log(f"เลขSet: {set}")
+            self.sku.set("")
+            self.set_num.set("")
 
-        # self.search_complete = threading.Event()
-        # # self.search_complete.set()
-        # self.search_thread = threading.Thread(
-        #     target=lambda: self.order_search(self.search_query, self.search_complete))
-        # self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
+            # todo Continue from here// wip you are here
+            try:
+                self.chromdriver_controller.operation_start(sku, data_dict)
+            except ValueError as e:
+                error_message = str(e)
+                self.update_log(error_message)
+        except:
+            self.update_log("พัง")
+            raise ValueError('search พัง: ', traceback.format_exc())
 
-        # print("เริ่มThreadใหม่")
-        # self.search_thread.start()
-        # self.display_bot_status_label.config(
-        #     text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
-        # # ปิดชั่วคราว get_tabs
-        # try:
-        #     self.get_tabs_thread.start()
-        # except EXCEPTION as err:
-        #     print("err จาก get_tabs", err)
+    def update_log(self, update_txt=""):
+        self.update_txt = update_txt
+        self.log_display.config(state=tk.NORMAL)
+        self.log_display.insert(tk.END, self.update_txt + "\n")
+        self.log_display.config(state=tk.DISABLED)
 
-        # timer = threading.Timer(0.2, self.on_thread_done)
-        # timer.start()
+    def clear_log(self):
+        print('เคลีย!!')
+        self.log_display.config(state=tk.NORMAL)
+        self.log_display.delete("1.0", tk.END)
+        self.log_display.config(state=tk.DISABLED)
 
     def create_widgets(self):
         # * Dir locator component
@@ -128,10 +127,15 @@ class MainApp:
             self.execute_frame, text="Execute!!", command=self.search)
         self.execute_btn.grid()
 
+        # * Log Display Component
+        # * > DisplayField
+        self.log_display = tk.Text(self.log_frame, state=tk.DISABLED)
+        self.log_display.grid(row=0, column=0, sticky='w')
+
     def create_main_window(self):
         self.root.geometry("400x400+400+300")
 
-        self.root.title("Auto SN v0.2")
+        self.root.title("Auto SN v0.4")
 
         # * use CANVAS as BG #################
         self.canvas = tk.Canvas(self.root, bg="#bdbdbd")
@@ -153,6 +157,11 @@ class MainApp:
         self.execute_frame = tk.Frame(
             self.canvas, padx=5, pady=5, borderwidth=1, bg="#bdbdbd")
         self.execute_frame.pack(side='top', padx=(90, 5), pady=7, anchor='w')
+
+        # *> Frame 4 Log frame
+        self.log_frame = tk.Frame(
+            self.canvas, padx=5, pady=5, borderwidth=1, bg="#bdbdbd")
+        self.log_frame.pack(side='top')
 
         self.create_widgets()
 

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import traceback
 
 
 class UnifyData:
@@ -44,8 +45,12 @@ class UnifyData:
         # print(f"self.data_state: {pd.DataFrame(self.data_state)['sn']}")
     def get_result(self, sku, set_number):
         # * คัดเอา data sku ที่ต้องการ
-        find_dict = self.data_state['sn'][self.data_state['sn']
-                                          ['set'] == set_number].iloc[0]
+        try:
+            find_dict = self.data_state['sn'][self.data_state['sn']
+                                              ['set'] == set_number].iloc[0]
+        except:
+            traceback_str = traceback.format_exc()
+            raise ValueError("พัง: ",traceback_str)
 
         # * ตัด nan
         result = {}
@@ -54,8 +59,8 @@ class UnifyData:
                 result[key] = value
 
         # * รวม me1
-        me1_values = [value for key, value in result.items()
-                      if key.startswith("me1_")]
+        me1_values = [value for key,
+                      value in result.items()if key.startswith("me1_")]
         result["me1"] = " ".join(me1_values)
 
         # * Return Result
@@ -64,9 +69,12 @@ class UnifyData:
             print(result)
             return result
         else:
-            print('Code และ เลขชุดset ไม่ถูกต้อง')
-            print(f"Code {sku}")
-            print(f"เลขชุดSet {set_number}")
+            # print('Code และ เลขชุดset ไม่ถูกต้อง')
+            # print(f"Code {sku}")
+            # print(f"เลขชุดSet {set_number}")
+            raise ValueError('Code และ เลขชุดset ไม่ถูกต้อง',
+                             f"Code {sku}, เลขชุดSet {set_number}")
+
 
 # * test case
 # file_path = r"C:\Users\CSH0041\Downloads\DATA Program nHack V3.xlsx"

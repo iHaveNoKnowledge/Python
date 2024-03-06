@@ -13,11 +13,12 @@ from selenium import webdriver
 from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
 from webdriver_auto_update.webdriver_manager import WebDriverManager
 
-
 import sys
 import os
 import subprocess
 import shutil
+import re
+import time
 
 import traceback
 import logging
@@ -158,7 +159,135 @@ class ChromeDriver:
             logger.warning(f"'method get_tabs()', {traceback_str}")
             # logger.error('This is an error message')
             # logger.critical('This is a critical message')
-            
+
+    def operation_start(self, kit_sku, target_data):
+        print("sku: ", kit_sku)
+        print("target_data: ", target_data)
+        self.get_tabs()
+        # * switch to the right page
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+
+        # * check ก่อนว่าใส่ชื่อลูกค้ายัง
+        self.cus_name_input_element = self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+        self.cus_name_title_attribute = self.cus_name_input_element.get_attribute(
+            "title")
+        self.prog = re.search("^C[0-9]+", self.cus_name_title_attribute)
+        try:
+            self.is_name_empty = self.prog.group()
+        except:
+            print("ไม่มีชื่อลูกค้า")
+            return
+
+        if self.is_name_empty:
+            # * arguments
+            self.kit_sku = kit_sku
+            self.target_data = target_data
+
+            # * sku input zone
+            self.sku_input = self.driver.find_element(
+                By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input")
+            self.sku_input.clear()
+            self.sku_input.send_keys(self.kit_sku)
+            self.sku_input.send_keys(Keys.ENTER)
+
+            # * Make sure if an sn btn element appear
+
+            while True:
+                # * ต้องรอ ถ้าไม่รอ แล้ว เปิด element ทันที หน้า sn มันจะหด แล้วก็ error เพราะหา element ไม่เจอ
+                time.sleep(2)
+                try:
+                    self.driver.find_element(
+                        By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/div[2]/div[1]/div[1]/a").is_displayed()
+                    break
+                except:
+                    continue
+
+            # * sn fill
+            self.sn_sequence_list = self.create_sn_fill_sequence(self.kit_sku)
+            # * SN Button Pattern Dir
+            # * /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/div[2]/div[1]/div[{dom_idx}]/a
+            # * Example ref
+            # * /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/div[2]/div[1]/div[1]/a ปุ่ม sn 1
+            # * /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/div[2]/div[1]/div[2]/a ปุ่ม sn 2
+
+            for i, sku in enumerate(self.sn_sequence_list):
+                self.dom_idx = i+1
+                self.sn_btn_dir = f"/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/div[2]/div[1]/div[{
+                    self.dom_idx}]/a"
+                self.sn_btn_elmt = self.driver.find_element(
+                    By.XPATH, self.sn_btn_dir)
+                try:
+                    self.sn_btn_elmt.click()
+                except:
+                    continue
+
+                # * SN input in the pop-up
+
+                while True:
+                    try:
+                        self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[2]/form/div/div[1]/div/input').is_displayed()
+                        self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[2]/form/div/div[1]/div/input').clear()
+                        break
+                    except:
+                        continue
+
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[2]/form/div/div[1]/div/input').send_keys(self.target_data[sku])
+
+                # *submit
+                self.submit_btn = self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[2]/div[2]/a[1]')
+                # * ปุ่มมันกระพริบมันมีช่วงที่ click ได้และไม่ได้ ต้องใช้ while มารัวให้มัน
+                for i in range(2):
+                    while True:
+                        try:
+                            self.submit_btn.click()
+                            break
+                        except:
+                            continue
+        else:
+            error_message = "ไม่มีชื่อลูกค้า"
+            print(error_message)
+            return error_message
+
+    def create_sn_fill_sequence(self, kit_sku):
+        # test case ที่ดีต้องดูหลายๆค่า เพราะแต่ละ sku มีลำดับไม่เหมือนกันฉะนั้นต้องลองเทสสองเคสนี้ KCU2-000781, KCU2-000777
+        # * Argument ต้องรับ
+        self.target = kit_sku
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        # sku_kit_list = self.driver.find_elements(By.CSS_SELECTOR, "div.col-sm-9.col-xs-8")
+        print("มีเซ็ตไรบ้าง")
+        try:
+            self.kit_name_target = self.driver.find_element(
+                By.XPATH, f"//a[contains(., '{self.target}')]")
+        except:
+            print(f"หา ชุดkit {self.target} ไม่เจอ")
+            return
+        self.kit_items_target_elmt = self.kit_name_target.find_element(
+            By.XPATH, "../div[1]")
+        self.kit_items_list = self.kit_items_target_elmt.find_elements(
+            By.CLASS_NAME, "ng-binding")
+        # print(f"element by kit name: {self.kit_name_target}, kit name: {self.kit_name_target.text}")
+        # print(f"kit_items_target: {self.kit_items_target_elmt}")
+        # print(f"kit_items_list: {self.kit_items_list}")
+
+        # * ดึง text แต่ละ elemtn ย่อย เพื่อเอา sku ภายในชุด kit
+        self.prog = re.compile(r"\w{2}\d\-\d{6}")
+
+        self.sku_type_list = []
+        for i, item in enumerate(self.kit_items_list):
+            try:
+                self.result = f"{self.prog.match(item.text).group()}"
+                self.sku_type_list.append(str(self.result[0:3].lower()))
+                # print(result[0:3])
+
+            except:
+                continue
+        print("gotcha: ", self.sku_type_list)
+        return self.sku_type_list
 
 
 # try:
