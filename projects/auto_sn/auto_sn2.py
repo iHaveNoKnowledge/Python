@@ -135,7 +135,7 @@ class MainApp:
     def create_main_window(self):
         self.root.geometry("400x400+400+300")
 
-        self.root.title("Auto SN v0.4")
+        self.root.title("Auto SN v0.5")
 
         # * use CANVAS as BG #################
         self.canvas = tk.Canvas(self.root, bg="#bdbdbd")

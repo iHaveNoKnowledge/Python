@@ -286,6 +286,18 @@ class ChromeDriver:
 
             except:
                 continue
+        
+        #! ส่วนนี้จะใช้ได้หาก smco เรียงของตาม step เท่านั้น หาก เรียง เป็น ts9(psu) ตามด้วย ts8(case)    
+        #* ดูว่ามี ts8 ซ้ำหรือไม่    
+        self.ts8_count = self.sku_type_list.count('ts8')
+        
+        #* หากมีซ้ำจะทำการเปลี่ยน
+        if self.ts8_count > 1:
+            for i in range(len(self.sku_type_list)):
+                if self.sku_type_list[i] == 'ts8':
+                    self.sku_type_list[i] = 'ts9'
+                    break
+            
         print("gotcha: ", self.sku_type_list)
         return self.sku_type_list
 
