@@ -1605,17 +1605,18 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
 
+        # * แยก Thread
         self.search_complete = threading.Event()
         # self.search_complete.set()
         self.search_thread = threading.Thread(
             target=lambda: self.order_search(self.search_query, self.search_complete))
         self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
 
+        # * เริ่มการทำงาน Thread
         print("เริ่มThreadใหม่")
         self.search_thread.start()
         self.display_bot_status_label.config(
             text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
-        # ปิดชั่วคราว get_tabs
         try:
             self.get_tabs_thread.start()
         except EXCEPTION as err:
@@ -1642,7 +1643,6 @@ class MyApp:
                 # self.search(order)
                 # for thread in self.accel_threads:
                 #     thread.join()
-                
 
                 self.accel_search_thread = threading.Thread(
                     target=self.search, args=(order,))
@@ -1667,7 +1667,6 @@ class MyApp:
                 #     time.sleep(3)
                 #     print('continue2')
                 #     continue
-        
 
     def convert_text(self, text):
         result = []
