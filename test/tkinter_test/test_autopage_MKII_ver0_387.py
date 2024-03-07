@@ -588,7 +588,7 @@ class MyApp:
 
         # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str}
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str, 'customerEmail': str}
         df = df.astype(data_types)
 
         # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
@@ -2142,7 +2142,7 @@ class Bot_POS:
             print(traceback_str)
 
     def enter_cus_name(self, cus_search):
-        # เคลียและกรอกชื่อลูกค้า
+        # * เคลียและกรอกชื่อลูกค้า
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
@@ -2223,44 +2223,44 @@ class Bot_POS:
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
                     self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
                     self.wait1.until(EC.text_to_be_present_in_element(
-                        (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/a'), 'การขายของฉัน'))
+                        (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
                 else:
                     pass
 
                 # * กรอก order ลงในช่อง search
                 self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+                    (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
                 self.search_elmt.clear()
                 self.search_elmt.send_keys(self.app.cus_order.get())
 
                 # * กด Search เพื่อ เก็บ Status
                 self.searchBtn = self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
                 self.searchBtn.click()
 
                 # * ตรวจสอบ Status และ update
-                # รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
+                # *> รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
                 try:
                     self.driver.find_element(
                         By.CLASS_NAME, 'big-text').is_displayed()
                 except:
                     self.wait1.until(EC.element_to_be_clickable(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
 
-                #  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
+                # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
                     # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
                     self.app.cus_cur_status.set(self.driver.find_element(
                         By.CLASS_NAME, 'big-text').text)
 
                 except:
-                    # * สำหรับ หาข้อความ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
+                    # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
 
-                # จะได้ element มา
+                # * จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
                 self.app.display_current_status.config(
                     fg="#000000", bg="#8fd4ff")
@@ -2512,14 +2512,17 @@ class Bot_POS:
 
                 self.wait1.until(EC.visibility_of_element_located(
                     (By.XPATH, self.app.cusNameInput)))
+
             # * ถ้าเปิดแล้วจะข้ามมานี่
             self.enter_cus_name(self.cus_search)
             print("กรอกชื่อเสร็จ")
+            # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
             self.wait_condition = self.driver.find_element(
                 By.XPATH, self.app.cusNameLi1)
+            # * มันจะได้ Searching...
             print("มันทำไม", self.wait_condition.text)
 
-            # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่
+            # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน => li[1] โดย li[1] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และบอก ผลลัพธ์ที่เจอลำดับแรก
             self.customer_add_times = 0
             self.customer_name_search_count = 0
             while True:
@@ -2569,12 +2572,14 @@ class Bot_POS:
                         self.enter_cus_name(self.cus_search)
                         print(f"Re enter name after add")
                         continue
+                    # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
                     elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
                         self.enter_cus_name(self.cus_search)
                         self.customer_name_search_count += 1
                         print(
                             f"Re enter name after add extra times{self.customer_name_search_count}")
                         continue
+                    # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
                     elif self.wait_condition.text == "No results found" and self.customer_add_times == 1:
                         print(
                             "I've already add it, but the element still shows 'No results found', you have to add by yourself")
@@ -2588,7 +2593,9 @@ class Bot_POS:
 
             self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
             print("Click the cusname li result")
-            if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]"):
+
+            # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
+            if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
                 try:
                     self.driver.find_element(
                         By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
@@ -2597,8 +2604,9 @@ class Bot_POS:
                     self.wait1.until(EC.visibility_of_element_located(
                         (By.XPATH, self.app.cusNameInput)))
                 except:
-                    print("ข้าม Element ไม่โผล่")
+                    print("Skip, Alert Element is appear but can not perform actions.")
             else:
+                print("Skip, Alert Element is Not appear")
                 pass
 
             print("search หายไปแล้ว")
@@ -3025,14 +3033,19 @@ class Bot_POS:
 
             print("จบ auto_last_page")
             self.autofinal = False
-            self.driver.quit()
+            # self.driver.quit()
 
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
 
-        self.app.accel_timer = threading.Timer(
-            0.2, self.app.on_accel_thread_done)
-        self.app.accel_timer.start()
+        # * จงใจให้ Error จงใจ Error // มันจะได้จบๆไป
+        if self.app.accel_search_thread:
+            self.app.accel_timer = threading.Timer(
+                0.2, self.app.on_accel_thread_done)
+            self.app.accel_timer.start()
+        else:
+            print("'MyApp' object has no attribute 'accel_search_thread'")
+            pass
 
     def addNormalCustomer(self, cusname_fixed):
         is_functionworking = False
