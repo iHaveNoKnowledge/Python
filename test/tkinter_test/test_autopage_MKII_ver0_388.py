@@ -105,8 +105,7 @@ class MyApp:
         self.mimic_list_item_states = []
 
     def demonic_cp_selection(self):
-        self.bot.demonic_cp_bot(
-            self.entered_item_no.get(), self.entered_cp_no.get())
+        self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
 
     def validate_input(self, value):
         pattern = r'[A-z]'
@@ -3799,6 +3798,7 @@ if __name__ == "__main__":
 # !!58 สำคัญมาก ใบกำกับที่ print ออกมาจะ !!!แสดงผลด้วยภาษาไทย!!! แต่จะ !!!เสิชจากภาษาอังกิด!!! ถ้าจะใช้เพื่อ เสิช ต้องใช้ภาษาอังกิด อังกิดจะใส่ไรก็ใส่
 # !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
 # *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
+# !61 Sonic blow บัค
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
