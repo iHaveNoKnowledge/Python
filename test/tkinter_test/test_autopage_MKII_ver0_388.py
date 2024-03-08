@@ -28,6 +28,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import *
+from customtkinter import *
 import traceback
 from bs4 import BeautifulSoup
 from googletrans import Translator
