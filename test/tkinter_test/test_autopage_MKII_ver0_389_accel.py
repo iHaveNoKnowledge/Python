@@ -124,7 +124,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.388")
+        self.root.title("Autosamatic ver0.389")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1625,6 +1625,7 @@ class MyApp:
         self.shorter_thread_cycle.start()
         self.longer_thread_cycle.start()
         #* ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
+        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
         self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
 
         # # * แยก Thread
@@ -1647,11 +1648,11 @@ class MyApp:
         # timer = threading.Timer(0.2, self.on_thread_done)
         # timer.start()
 
-    def on_accel_thread_done(self):
-        self.accel_search_thread_stat = self.accel_search_thread.is_alive()
-        if self.accel_search_thread.is_alive():
-            self.accel_search_thread.join()
-            # self.accel_round_end += 1
+    # def on_accel_thread_done(self):
+    #     self.accel_search_thread_stat = self.accel_search_thread.is_alive()
+    #     if self.accel_search_thread.is_alive():
+    #         self.accel_search_thread.join()
+    #         # self.accel_round_end += 1
 
     def accel_search(self):
         self.accel_round = 0
@@ -2199,6 +2200,10 @@ class Bot_POS:
 
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
+        
+    #! WIP หากใช้ accel_mode จะดูว่ามี SN หรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย    
+    def accel_fill_sku(self):
+        pass
 
     def operation_start(self):
         self.is_suspend = False
@@ -3039,14 +3044,14 @@ class Bot_POS:
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
 
-        # * จงใจให้ Error จงใจ Error // มันจะได้จบๆไป
-        if self.app.accel_search_thread:
-            self.app.accel_timer = threading.Timer(
-                0.2, self.app.on_accel_thread_done)
-            self.app.accel_timer.start()
-        else:
-            print("'MyApp' object has no attribute 'accel_search_thread'")
-            pass
+        # # * จงใจให้ Error จงใจ Error // มันจะได้จบๆไป
+        # if self.app.accel_search_thread:
+        #     self.app.accel_timer = threading.Timer(
+        #         0.2, self.app.on_accel_thread_done)
+        #     self.app.accel_timer.start()
+        # else:
+        #     print("'MyApp' object has no attribute 'accel_search_thread'")
+        #     pass
 
     def addNormalCustomer(self, cusname_fixed):
         is_functionworking = False
@@ -3800,7 +3805,7 @@ if __name__ == "__main__":
 # !!58 สำคัญมาก ใบกำกับที่ print ออกมาจะ !!!แสดงผลด้วยภาษาไทย!!! แต่จะ !!!เสิชจากภาษาอังกิด!!! ถ้าจะใช้เพื่อ เสิช ต้องใช้ภาษาอังกิด อังกิดจะใส่ไรก็ใส่
 # !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
 # *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
-# !61 Sonic blow บัค
+# *61 fixed 0.388 // Sonic blow บัค
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
