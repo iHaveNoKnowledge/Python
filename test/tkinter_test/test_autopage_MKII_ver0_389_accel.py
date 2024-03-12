@@ -2201,7 +2201,7 @@ class Bot_POS:
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
         
-    #! WIP หากใช้ accel_mode จะดูว่ามี SN หรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย    
+    #! WIP accel_fill_sku(1/2)หากใช้ accel_mode จะดูว่ามี SN หรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย    
     def accel_fill_sku(self):
         pass
 
@@ -2699,6 +2699,8 @@ class Bot_POS:
             #         print("ราคาตรงแล้ว")
             #         break
 
+            #! WIP accel_fill_sku(2/2) ต้องเอา accel_fill_sku
+            
             self.autofinal = True
             while self.autofinal:
                 print("เข้า final loop ")
