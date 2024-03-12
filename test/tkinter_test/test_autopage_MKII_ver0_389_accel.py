@@ -2838,7 +2838,7 @@ class Bot_POS:
                             # * พิมพ์ผลลัพธ์
                             print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
-                            #! WIP อันนี้ค่อนข้างเสี่ยง เดะทดลองก่อน เคยพังไปรอบนึงละ
+                            
                             # # * สำหรับ prefinal  pop-up (optional by ETAX)
                             # # * > แบบเลือกให้ตาม ข้อมูลลูกค้า
                             # while True:
@@ -2948,7 +2948,6 @@ class Bot_POS:
                                 if self.final_popup.is_displayed() == True:
                                     print("final pop-up has finally displayed!")
                                     try:
-                                        #! Wip แก้ไม่ได้ ยากอยู่
                                         self.final_popup_btn = self.wait1.until(EC.element_to_be_clickable(
                                             (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
                                         # *> ให้เวลาดูเลขบิล 1 วิ
@@ -3688,10 +3687,6 @@ class Bot_POS:
 
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
-            #! เราต้องเอาค่าจากไฟล์ manual ขึ้นเอง
-            #! อาจจะต้องใช้ข้อมูลจากไฟล์ ตำบล
-            #! WIP หา subdistrict ให้ได้ และ แก้ address ให้ clean ด้วย
-
             # * หาตำบล จาก address ที่ลูกค้าให้มา
             cus_address_from_table = self.find_tambon(
                 self.app.data_frame, self.app.cus_order.get())
