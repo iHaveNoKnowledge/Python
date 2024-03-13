@@ -85,7 +85,7 @@ class MyApp:
         self.cus_tel = StringVar(value="")
         self.cus_email = StringVar(value="")
         self.cus_cur_status = StringVar(value="")
-        self.is_suspend = False
+        self.is_forbid = False
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
         self.cus_purchase_time = StringVar(value="")
@@ -2201,12 +2201,12 @@ class Bot_POS:
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
         
-    #! WIP accel_fill_sku(1/2)หากใช้ accel_mode จะดูว่ามี SN หรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย    
+    #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย    
     def accel_fill_sku(self):
         pass
 
     def operation_start(self):
-        self.is_suspend = False
+        self.is_forbid = False
         is_etax = False
         inv_number = ""
         if self.app.order != "":
@@ -2274,11 +2274,10 @@ class Bot_POS:
                     self.app.display_current_status.config(
                         bg="#00ff11", fg="#000000")
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(
-                        bg="#ff2b2b", fg="#FFF")
-                    self.is_suspend = True
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
-                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.is_forbid = True
+                    #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -2381,7 +2380,7 @@ class Bot_POS:
                 if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
                     self.app.display_current_status.config(
                         bg="#ff2b2b", fg="#FFF")
-                    self.is_suspend = True
+                    self.is_forbid = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
                     self.app.display_current_status.config(
                         bg="#00ff11", fg="#000000")
@@ -2392,8 +2391,8 @@ class Bot_POS:
                 print('Cannot Define What marketplace you are working with')
 
             # * ถ้าสถานะยกเลิก ก็หยุดเลย
-            if self.is_suspend:
-
+            if self.is_forbid:
+                print("This order was forbidden.")
                 return
 
             ### * SMCO PART ############################################################################
@@ -2699,7 +2698,7 @@ class Bot_POS:
             #         print("ราคาตรงแล้ว")
             #         break
 
-            #! WIP accel_fill_sku(2/2) ต้องเอา accel_fill_sku
+            #! WIP accel_mode[2] ต้องเอา accel_fill_sku
             
             self.autofinal = True
             while self.autofinal:
