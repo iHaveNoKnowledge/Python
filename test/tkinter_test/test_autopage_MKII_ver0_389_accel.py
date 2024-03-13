@@ -1654,13 +1654,14 @@ class MyApp:
     #         self.accel_search_thread.join()
     #         # self.accel_round_end += 1
 
+    #* method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
         self.accel_round = 0
         self.accel_round_end = 0
         self.accel_threads = []
-        self.accel_orders = self.accel_orders_list.__len__()
+        self.accel_orders_len = self.accel_orders_list.__len__()
         def start_next_cycle(count):
-            if count < self.accel_orders:
+            if count < self.accel_orders_len:
                 self.search(self.accel_orders_list[count], lambda:start_next_cycle(count+1))
             else:
                 pass
