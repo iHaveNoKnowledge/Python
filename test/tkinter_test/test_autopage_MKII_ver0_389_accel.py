@@ -1578,12 +1578,12 @@ class MyApp:
                 text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
             
     def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
-        #* หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec 
+        #* เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec 
         if shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive():
             #* after(เวลาmillisec, callbackfunction)
             self.root.after(100, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
         else:
-            #* เมื่อ Thread ทั้งสองไม่ alive แล้วให้ทำงาน รวม thread เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
+            #* เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
             print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
