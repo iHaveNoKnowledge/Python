@@ -220,35 +220,35 @@ class MyApp:
             entry.grid(
                 row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
             entry.configure(state="readonly")
-            
-    #* เป็นส่วนของ GUI ช่อง input ที่รับ order sn ในรูปแบบ file excel 
+
+    # * เป็นส่วนของ GUI ช่อง input ที่รับ order sn ในรูปแบบ file excel
     def accelmode_toggle(self):
-        #* ระบุสถานะการแสดงผลของ GUI ที่ใช้สำหรับการ Input order แบบธรรมดา เพื่อทำการ remove มันแล้วแทนที่ ด้วย GUI ของ Accel mode 
+        # * ระบุสถานะการแสดงผลของ GUI ที่ใช้สำหรับการ Input order แบบธรรมดา เพื่อทำการ remove มันแล้วแทนที่ ด้วย GUI ของ Accel mode
         order_label = self.inp1_label_order.winfo_ismapped()
         order_input = self.inp1_order_input.winfo_ismapped()
         order_btn = self.inp1_search_btn.winfo_ismapped()
-        
-        #* ถ้า Accel mode ทำงาน
+
+        # * ถ้า Accel mode ทำงาน
         if self.is_accel_mode.get():
-            #* gui โหมดธรรมดาทุกตัวทำงานอยู่
+            # * gui โหมดธรรมดาทุกตัวทำงานอยู่
             if order_label and order_input and order_btn:
-                #* ลบ gui โหมดธรรมดา ทิ้งรายตัว
+                # * ลบ gui โหมดธรรมดา ทิ้งรายตัว
                 self.inp1_label_order.grid_remove()
                 self.inp1_order_input.grid_remove()
                 self.inp1_search_btn.grid_remove()
-                
-            #* เอา gui ของ accel mode มาแปะแทน 
+
+            # * เอา gui ของ accel mode มาแปะแทน
             self.accl_dir_label.grid(row=0, column=1, padx=5)
             self.accl_dir_namedisplay.grid(row=0, column=3)
             self.accl_dir_btn.grid(row=0, column=5, padx=5)
-            
-        #* ถ้า Accel mode ไม่ทำงาน
+
+        # * ถ้า Accel mode ไม่ทำงาน
         else:
-            #* ลบ gui ของ accel mode ทิ้งรายตัว
+            # * ลบ gui ของ accel mode ทิ้งรายตัว
             self.accl_dir_label.grid_remove()
             self.accl_dir_namedisplay.grid_remove()
             self.accl_dir_btn.grid_remove()
-            #* เอา gui ของ โหมดธรรมดา มาแปะแทน
+            # * เอา gui ของ โหมดธรรมดา มาแปะแทน
             self.inp1_label_order.grid(row=0, column=1, padx=5)
             self.inp1_order_input.grid(row=0, column=3)
             self.inp1_search_btn.grid(row=0, column=5, padx=5)
@@ -263,7 +263,8 @@ class MyApp:
 
         # *  search order component
         # * > Labels
-        self.inp1_label_order = Label(self.entry_frame, text="Order: ", bg="#FFF", width=10)
+        self.inp1_label_order = Label(
+            self.entry_frame, text="Order: ", bg="#FFF", width=10)
         self.inp1_label_order.grid(row=0, column=1, padx=5)
         # *> Inputs
         self.entered_order = StringVar()
@@ -1569,41 +1570,44 @@ class MyApp:
 
         print("Thread is done")
         if self.get_tabs_stat == False and self.search_thread_stat == False:
-            self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
-        
+            self.display_bot_status_label.config(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
 
         if self.get_tabs_thread.is_alive():
             print("มีthreadใหม่มาต่อ")
             self.display_bot_status_label.config(
                 text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
-            
+
     def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
-        #* เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec 
+        # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive():
-            #* after(เวลาmillisec, callbackfunction)
-            self.root.after(100, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
+            # * after(เวลาmillisec, callbackfunction)
+            self.root.after(100, lambda: self.check_threads(
+                shorter_thread_cycle, longer_thread_cycle, callback))
         else:
-            #* เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
+            # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
-            print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
-            print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
-            self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            print("shorter_thread_cycle is alive?: ",
+                  shorter_thread_cycle.is_alive())
+            print("longer_thread_cycle is alive?: ",
+                  longer_thread_cycle.is_alive())
+            self.display_bot_status_label.config(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
             if callback:
                 callback()
-            
 
     def search(self, accel_order=None, callback=None):
         self.autofinal = False
         # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
-            
+
         if self.is_accel_mode.get():
             self.search_query = accel_order
         else:
             self.search_query = self.entered_order.get()
-            
+
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
         self.entered_order.set("")
         if self.search_query != "":
@@ -1615,57 +1619,39 @@ class MyApp:
             self.report_log.config(state=NORMAL)
             self.report_log.delete("1.0", "end")
             self.report_log.config(state=DISABLED)
-        
+
         self.search_complete = threading.Event()
-        #* สร้าง Thread 
+        # * สร้าง Thread
         self.shorter_thread_cycle = threading.Thread(target=self.bot.get_tabs)
-        self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.search_complete))
-    
-        #* สั่ง Thread ให้เริ่มทำงาน
+        self.longer_thread_cycle = threading.Thread(
+            target=lambda: self.order_search(self.search_query, self.search_complete))
+
+        # * สั่ง Thread ให้เริ่มทำงาน
         self.shorter_thread_cycle.start()
         self.longer_thread_cycle.start()
-        #* ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
-        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
-        self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
+        # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
+        self.display_bot_status_label.config(
+            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+        self.check_threads(self.shorter_thread_cycle,
+                           self.longer_thread_cycle, callback)
 
-        # # * แยก Thread
-        # self.search_complete = threading.Event()
-        # # self.search_complete.set()
-        # self.search_thread = threading.Thread(
-        #     target=lambda: self.order_search(self.search_query, self.search_complete))
-        # self.get_tabs_thread = threading.Thread(target=self.bot.get_tabs)
-
-        # # * เริ่มการทำงาน Thread
-        # print("เริ่มThreadใหม่")
-        # self.search_thread.start()
-        # self.display_bot_status_label.config(
-        #     text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ Botกำลังทำงาน", bg="#cf1313", fg="#ffffff")
-        # try:
-        #     self.get_tabs_thread.start()
-        # except EXCEPTION as err:
-        #     print("err จาก get_tabs", err)
-
-        # timer = threading.Timer(0.2, self.on_thread_done)
-        # timer.start()
-
-    # def on_accel_thread_done(self):
-    #     self.accel_search_thread_stat = self.accel_search_thread.is_alive()
-    #     if self.accel_search_thread.is_alive():
-    #         self.accel_search_thread.join()
-    #         # self.accel_round_end += 1
-
-    #* method accel_search() จะทำงานจากการกดปุ่ม
+    # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
         self.accel_round = 0
         self.accel_round_end = 0
         self.accel_threads = []
         self.accel_orders_len = self.accel_orders_list.__len__()
+
+        # * สร้าง recursive function
         def start_next_cycle(count):
             if count < self.accel_orders_len:
-                self.search(self.accel_orders_list[count], lambda:start_next_cycle(count+1))
+                self.search(
+                    self.accel_orders_list[count], lambda: start_next_cycle(count+1))
             else:
                 pass
-        self.search(self.accel_orders_list[0],lambda: start_next_cycle(1))
+            
+        # * search รอบแรกใช้ตรงนี้
+        self.search(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
     def convert_text(self, text):
         result = []
@@ -2201,8 +2187,8 @@ class Bot_POS:
 
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
-        
-    #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย    
+
+    #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
         pass
 
@@ -2245,7 +2231,8 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
                     self.searchBtn.click()
                 except:
-                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
+                    raise ValueError(f"method operation_start Error : {
+                                     traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update
                 # *> รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
@@ -2275,10 +2262,12 @@ class Bot_POS:
                     self.app.display_current_status.config(
                         bg="#00ff11", fg="#000000")
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(
+                        bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
+                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -2700,7 +2689,7 @@ class Bot_POS:
             #         break
 
             #! WIP accel_mode[2] ต้องเอา accel_fill_sku
-            
+
             self.autofinal = True
             while self.autofinal:
                 print("เข้า final loop ")
@@ -2840,7 +2829,6 @@ class Bot_POS:
                             # * พิมพ์ผลลัพธ์
                             print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
 
-                            
                             # # * สำหรับ prefinal  pop-up (optional by ETAX)
                             # # * > แบบเลือกให้ตาม ข้อมูลลูกค้า
                             # while True:
