@@ -239,14 +239,14 @@ class MyApp:
 
             # * เอา gui ของ accel mode มาแปะแทน
             self.accl_dir_label.grid(row=0, column=1, padx=5)
-            self.accl_dir_namedisplay.grid(row=0, column=3)
+            self.accl_dir_namedisplay_on_btn.grid(row=0, column=3)
             self.accl_dir_btn.grid(row=0, column=5, padx=5)
 
         # * ถ้า Accel mode ไม่ทำงาน
         else:
             # * ลบ gui ของ accel mode ทิ้งรายตัว
             self.accl_dir_label.grid_remove()
-            self.accl_dir_namedisplay.grid_remove()
+            self.accl_dir_namedisplay_on_btn.grid_remove()
             self.accl_dir_btn.grid_remove()
             # * เอา gui ของ โหมดธรรมดา มาแปะแทน
             self.inp1_label_order.grid(row=0, column=1, padx=5)
@@ -281,8 +281,8 @@ class MyApp:
         self.accl_dir_label = Label(
             self.entry_frame, text=f"Accel File Dir ")
 
-        # *> FileName
-        self.accl_dir_namedisplay = Button(
+        # *> FileName Display on Button
+        self.accl_dir_namedisplay_on_btn = Button(
             self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, )
 
         # *> Buttons
@@ -545,12 +545,13 @@ class MyApp:
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
 
     def select_accel_file(self):
+        # * รับ dir ของไฟล์
         self.accel_location = filedialog.askopenfilename()
         if self.accel_location:
-            self.accl_dir_namedisplay.config(
+            self.accl_dir_namedisplay_on_btn.config(
                 text=f"{self.accel_location.split('/')[-1]}")
         else:
-            self.accl_dir_namedisplay.config(
+            self.accl_dir_namedisplay_on_btn.config(
                 text=f"ยังไม่เลือก Accel File")
 
         self.accel_df = pd.read_excel(self.accel_location, dtype=str)
@@ -1646,7 +1647,7 @@ class MyApp:
                     self.accel_orders_list[count], lambda: start_next_cycle(count+1))
             else:
                 pass
-            
+
         # * search รอบแรกใช้ตรงนี้
         self.search(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
@@ -2685,7 +2686,7 @@ class Bot_POS:
             #         print("ราคาตรงแล้ว")
             #         break
 
-            #! WIP accel_mode[2] ต้องเอา accel_fill_sku
+            #! WIP accel_mode[2] ต้องเอา accel_fill_sku() มาใส่ตรงนี้
 
             self.autofinal = True
             while self.autofinal:

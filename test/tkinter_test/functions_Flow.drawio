@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
-        <mxGraphModel dx="1742" dy="519" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2127" dy="1012" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="WIyWlLk6GJQsqaUBKTNV-0"/>
                 <mxCell id="WIyWlLk6GJQsqaUBKTNV-1" parent="WIyWlLk6GJQsqaUBKTNV-0"/>
@@ -424,6 +424,63 @@
                 </mxCell>
                 <mxCell id="192" value="" style="ellipse;whiteSpace=wrap;html=1;fontSize=16;fontColor=#FCFCFC;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
                     <mxGeometry x="932" y="1395" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="197" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-280" y="880" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="198" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-280" y="780" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="199" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-280" y="680" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="200" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-250" y="580" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="201" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-340" y="460" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="202" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-340" y="360" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="203" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-340" y="260" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="204" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-340" y="165" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="206" value="&lt;span style=&quot;&quot;&gt;พวก order ที่ยกเลิก สำเร็จ หรือจัดส่งแล้ว = forbidden&lt;/span&gt;" style="whiteSpace=wrap;html=1;fontSize=16;strokeColor=none;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-580" y="1072.5" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="207" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-130" y="1100" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="208" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-80" y="1250" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="209" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-425" y="970" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="210" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-757" y="1180" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="211" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-320" y="1650" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="212" value="Result ว่าแต่ละ Order มีบิลไร orderใดเป็น forbidden" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-783" y="1820" width="370" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="213" value="แปะ status ลง ไฟล์ excel ที่ import เข้ามา" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-245" y="1495" width="300" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="214" value="แปะ status ลง ไฟล์ excel ที่ import เข้ามา" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="-760" y="1495" width="300" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="215" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check;fontSize=16;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="854.5" y="150" width="62.5" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="216" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;verticalAlign=top;fillColor=#2D9C5E;shape=mxgraph.gcp2.check;fontSize=16;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+                    <mxGeometry x="1480" y="420" width="62.5" height="50" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
