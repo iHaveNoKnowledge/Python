@@ -1637,10 +1637,7 @@ class MyApp:
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
-        self.accel_round = 0
-        self.accel_round_end = 0
-        self.accel_threads = []
-        self.accel_orders_len = self.accel_orders_list.__len__()
+        self.accel_orders_len = len(self.accel_orders_list)
 
         # * สร้าง recursive function
         def start_next_cycle(count):
