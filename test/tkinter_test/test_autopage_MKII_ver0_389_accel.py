@@ -2133,7 +2133,7 @@ class Bot_POS:
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
     def printtingPage(self):
-        time.sleep(0.75)
+        time.sleep(1)
         self.printing_page = self.driver.find_element(By().XPATH, '/html/body')
         self.action01 = ActionChains(
             self.driver).context_click(self.printing_page)
@@ -2142,10 +2142,10 @@ class Bot_POS:
     def justPressP(self):
         time.sleep(1)
         self.wsh.SendKeys("P")
-        time.sleep(1)
+        time.sleep(1.55)
         self.wsh.SendKeys("{Enter}")
         print("print แล้วโว้ย")
-        time.sleep(1)
+        time.sleep(2)
         self.driver.find_element(
             By.XPATH, '/html/body/div[3]/div/div/div').click()
         self.wsh.SendKeys("{ESC}")
@@ -2404,7 +2404,6 @@ class Bot_POS:
                 self.merged_dict['SMCO :: เปิดการขาย'])
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
-            print("Error น่าจะอยู่แถวนี้")
             self.cus_name_span_elmt = self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
             self.cus_name_span_text = self.cus_name_span_elmt.text
@@ -2427,7 +2426,7 @@ class Bot_POS:
                         self.driver.find_element(
                             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
                     except:
-                        # ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
+                        # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
                         try:
                             print("wait for pop-up(try)")
                             # ระบุปุ่ม ok
@@ -2436,7 +2435,7 @@ class Bot_POS:
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
                                 print("Click OK")
-                                pass
+
                         except:
                             print("wait for pop-up(except)")
                             time.sleep(1)
@@ -2446,7 +2445,13 @@ class Bot_POS:
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
                                 print("Click OK")
-                                pass
+                        # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
+                        try:
+                            self.driver.find_element(
+                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
+                            print("Cusname still appear the btn 'x' is available.")
+                        except:
+                            print("Cusname has disappeared no 'x' to press.")
 
                     print("หน้าใหม่พร้อมแล้ว")
                 elif self.is_reset == False:
@@ -2981,7 +2986,7 @@ class Bot_POS:
 
                                     # * > รอหน้า canvas โผล่ก่อน
                                     # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
-                                    
+
                                     self.wait1.until(EC.visibility_of_element_located(
                                         (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
                                     time.sleep(1)
