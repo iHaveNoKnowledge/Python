@@ -58,6 +58,7 @@ print("file located:", directory_of_file)
 
 class MyApp:
     def __init__(self, root):
+
         self.root = root
         self.dev_account = ["62078", "61651"]
         # self.validate_input_variable = self.root.register(self.validate_input)
@@ -1987,6 +1988,7 @@ class Bot_POS:
         # super().__init__(parent)
         self.parent = parent
         self.app = app
+        self.wsh = comclt.Dispatch("WScript.Shell")
         self.setup_chrome()
 
     def setup_chrome(self):
@@ -2131,11 +2133,24 @@ class Bot_POS:
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
     def printtingPage(self):
-        time.sleep(2)
+        time.sleep(0.75)
         self.printing_page = self.driver.find_element(By().XPATH, '/html/body')
         self.action01 = ActionChains(
             self.driver).context_click(self.printing_page)
         self.action01.perform()
+
+    def justPressP(self):
+        time.sleep(1)
+        self.wsh.SendKeys("P")
+        time.sleep(1)
+        self.wsh.SendKeys("{Enter}")
+        print("print แล้วโว้ย")
+        time.sleep(1)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[3]/div/div/div').click()
+        self.wsh.SendKeys("{ESC}")
+        print("กด esc แล้ว")
+        # ถ้าเขียนเป็น cb แล้วมันจะพัง
 
     def etax_reprint(self, inv_number):
         try:
@@ -2966,10 +2981,15 @@ class Bot_POS:
 
                                     # * > รอหน้า canvas โผล่ก่อน
                                     # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
-                                    # self.wait1.until(EC.visibility_of_element_located(
-                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
-                                    # self.printtingPage()
-                                    # break
+                                    
+                                    self.wait1.until(EC.visibility_of_element_located(
+                                        (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                    time.sleep(1)
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                    self.printtingPage()
+                                    self.justPressP()
+                                    break
 
                                     # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
 
@@ -3789,6 +3809,7 @@ if __name__ == "__main__":
 # !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
 # *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
 # *61 fixed 0.388 // Sonic blow บัค
+# !62 Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
