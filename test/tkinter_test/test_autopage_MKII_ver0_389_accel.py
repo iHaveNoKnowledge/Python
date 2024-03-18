@@ -2694,7 +2694,7 @@ class Bot_POS:
             self.app.display_bot_status_label.config(
                 text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
 
-            ### PHASE2 After Add customer name###############################################################################################################
+            ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
             # while True:
             #     self.phase1_net_price = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]')
