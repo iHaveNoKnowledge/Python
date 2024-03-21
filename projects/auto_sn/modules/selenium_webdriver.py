@@ -68,7 +68,7 @@ class ChromeDriver:
         # })
 
         # * Opening a Chrome in debuggermode port:8989##########################################################
-        #! ยังไม่ใช้ หาวิธี ห้ามเปิดซ้ำไม่ได้
+        #! ยังไม่ใช้ หาวิธี ตรวจสอบ Browser เพื่อห้ามเปิดซ้ำไม่ได้
         # self.chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         # print("พบไฟล์ chrome.exe ที่:", self.chrome_path)
         # self.chrome_command = f'{self.chrome_path} --remote-debugging-port=8989 --user-data-dir="C:/bin/chromeProfile"'
@@ -286,18 +286,18 @@ class ChromeDriver:
 
             except:
                 continue
-        
-        #! ส่วนนี้จะใช้ได้หาก smco เรียงของตาม step เท่านั้น หาก เรียง เป็น ts9(psu) ตามด้วย ts8(case)    
-        #* ดูว่ามี ts8 ซ้ำหรือไม่    
+
+        #! ส่วนนี้จะใช้ได้หาก smco เรียงของตาม step เท่านั้น หาก เรียง เป็น ts9(psu) ตามด้วย ts8(case)
+        # * ดูว่ามี ts8 ซ้ำหรือไม่
         self.ts8_count = self.sku_type_list.count('ts8')
-        
-        #* หากมีซ้ำจะทำการเปลี่ยน
+
+        # * หากมีซ้ำจะทำการเปลี่ยน
         if self.ts8_count > 1:
             for i in range(len(self.sku_type_list)):
                 if self.sku_type_list[i] == 'ts8':
                     self.sku_type_list[i] = 'ts9'
                     break
-            
+
         print("gotcha: ", self.sku_type_list)
         return self.sku_type_list
 

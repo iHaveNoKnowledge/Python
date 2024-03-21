@@ -42,17 +42,17 @@ driver = webdriver.Chrome(service=Service(
 # service2 = Service(executable_path=ChromeDriverManager().install())
 # driver2= webdriver.Chrome(service=service2)
 
-## variable###
+#*# variable###
 allOrdersPage = "https://cms.itcity.in.th/order-management"
 smcoURL1 = 'http://115.31.167.28:8080/smartcore/smartpos/posmain.htm'
-smcoURL2 = 'http://115.31.167.28:8080/smartcore/smartpos/posmain.htm#'
+smcoURL2 = 'http://192.168.0.11:8080/smartcore/smartpos/posmain.htm'
 foundOrderElement = ''
 tax_Bool = False
 wsh = comclt.Dispatch("WScript.Shell")  # win32control controling context gui
 titleList = []
 titleListIdx = []
 
-# สาระ, น่าสนใจ## enumerate() จะคืนค่าให้ตัวแปรloop เป็น object ทำให้เจ้าfor loop ดึงตัวแปรสำหรับ loop ได้มากกว่า 1 ตัว {'ตัวแรกจะได้index', 'ตัวที่สอง จะได้ ค่าvalue'}
+# สาระ, น่าสนใจ## enumerate() จะคืนค่าให้ตัวแปรloop เป็น dict ทำให้เจ้าfor loop ดึงตัวแปรสำหรับ loop ได้มากกว่า 1 ตัว {'ตัวแรกจะได้index', 'ตัวที่สอง จะได้ ค่าvalue'}
 for idx, handle in enumerate(driver.window_handles):
     driver.switch_to.window(handle)
     titleListIdx.append(driver.title + "["+str(idx)+"]")
@@ -65,16 +65,14 @@ tax_address = ""
 tax_ID = ""
 tax_tel = "1"
 
-# หน้า smartCore XPATHlist
+#* หน้า smartCore XPATH list ##################################################
 cusNameSpan = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
 cusNameInput = '/html/body/span/span/span[1]/input'
 cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
 cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
 cusNameLi = '/html/body/span/span/span[2]/ul/li'
 
-# functions
-
-
+#* functions ##########################################
 def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
     element = wait.until(
         EC.visibility_of_element_located((By.XPATH, cusSearchSMCO)))
@@ -274,7 +272,7 @@ def customer_details(raw_data):
     print("เลขปณ.", post_code)
 
 
-# ############operation start
+#* ############ operation start
 
 handles = driver.window_handles
 driver.switch_to.window(handles[0])
@@ -284,21 +282,23 @@ time.sleep(0.75)
 handles = driver.window_handles
 driver.switch_to.window(handles[0])
 
-# หน้า ITCITY
-# ช่อง search
+#* หน้า ITCITY #############################
+#*> ช่อง search
 wait = WebDriverWait(driver, 100)
 searchInput = wait.until(EC.visibility_of_element_located(
     (By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[2]/div[2]/form/div[1]/div[1]/fieldset/div/input')))  # ช่อง input
 searchInput.clear()
 searchInput.send_keys(order)
 print("ช่องเสิชมีอะไร", searchInput.get_attribute("value"))
-# คลิกปุ่ม search
+
+#*> คลิกปุ่ม search
 while True:
     search_order()  # ดูผลลัพว่าใช้ order ที่เราเสิชจริงๆหรือไม่ เป็น bool
     if search_order():
         print('หา %s เจอ' % (order))
         break
-# เข้าไปใน detail
+    
+#*> เข้าไปใน detail
 driver.find_element(
     By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[3]/div[2]/table/tbody').click()
 
@@ -322,7 +322,7 @@ element.click()
 driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]")
 driver.find_element(By.XPATH, cusNameInput).send_keys(tax_name_g)
 
-# SMCO go to customer Add Page
+#* SMCO go to customer Add Page ##########################
 handles = driver.window_handles
 driver.switch_to.window(handles[2])
 addTaxInvCustomer(cusSearchSMCO, cusCreateBtn)
