@@ -262,7 +262,7 @@ class MyApp:
             self.entry_frame, textvariable=self.marketplace_target, bg="#747474", fg="#FFF", font='bazooka 10 bold')
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
-        # *  search order component
+        # *  search order component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Labels
         self.inp1_label_order = Label(
             self.entry_frame, text="Order: ", bg="#FFF", width=10)
@@ -277,7 +277,7 @@ class MyApp:
             self.entry_frame, text="Start", bg="#969696", command=self.search, width=10)
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
-        # *  search order Accel mode component
+        # *  search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Labels
         self.accl_dir_label = Label(
             self.entry_frame, text=f"Accel File Dir ")
@@ -584,6 +584,7 @@ class MyApp:
         # self.import_file_frame.config(
         #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
 
+        # * หลังจากได้ไฟล์เข้ามาแล้ว (self.table_location) เราจะทำการสร้างเป็น dataframe ด้วย function get_data_frame()
         self.get_data_frame()
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
@@ -1442,7 +1443,7 @@ class MyApp:
                 self.cus_ship_cost.set(
                     self.nondistortedData['ค่าจัดส่งที่ชำระโดยผู้ซื้อ'])
                 self.cus_seller_voucher.set(abs(
-                    int(self.nondistortedData['โค้ดส่วนลดชำระโดยผู้ขาย'])))
+                    float(self.nondistortedData['โค้ดส่วนลดชำระโดยผู้ขาย'])))
                 self.cus_purchase_time.set(
                     self.nondistortedData['วันที่ทำการสั่งซื้อ'])
 
@@ -1463,12 +1464,12 @@ class MyApp:
                 print("จำนวนเงิน", self.f(
                     self.nondistortedData['จำนวนเงินทั้งหมด']))
                 print('สินค้ารวมค่าส่ง: ',
-                      self.f(self.nondistortedData['จำนวนเงินทั้งหมด']+float(self.cus_ship_cost.get())))
+                      self.f(self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
                 self.update_log(f"เวลาที่สั่ง: {self.cus_purchase_time.get()}")
                 self.update_log(
                     f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
                 self.update_log(
-                    f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price)+float(self.cus_ship_cost.get()))}")
+                    f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price) + float(self.cus_ship_cost.get()))}")
 
                 self.update_log(f" ")
                 self.update_log(f"-↓↓↓↓↓↓-หน้าสุดท้าย-↓↓↓↓↓↓-")
@@ -1506,9 +1507,8 @@ class MyApp:
 
         else:
             self.reset_all_display()
-        print("ถึงแน่นอล")
         self.on_complete.set()
-        print("จบ")
+        print("End without order")
 
     def cusNameFixer5(self, name, account_name=":"):
         is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
@@ -1574,6 +1574,7 @@ class MyApp:
         if self.get_tabs_stat == False and self.search_thread_stat == False:
             self.display_bot_status_label.config(
                 text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวบน)")
 
         if self.get_tabs_thread.is_alive():
             print("มีthreadใหม่มาต่อ")
@@ -1587,15 +1588,20 @@ class MyApp:
             self.root.after(100, lambda: self.check_threads(
                 shorter_thread_cycle, longer_thread_cycle, callback))
         else:
+        
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
             print("shorter_thread_cycle is alive?: ",
-                  shorter_thread_cycle.is_alive())
+                shorter_thread_cycle.is_alive())
             print("longer_thread_cycle is alive?: ",
-                  longer_thread_cycle.is_alive())
+                longer_thread_cycle.is_alive())
             self.display_bot_status_label.config(
                 text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
+            
+            
+
             if callback:
                 callback()
 
@@ -1623,19 +1629,22 @@ class MyApp:
             self.report_log.config(state=DISABLED)
 
         self.search_complete = threading.Event()
+        
         # * สร้าง Thread
         self.shorter_thread_cycle = threading.Thread(target=self.bot.get_tabs)
         self.longer_thread_cycle = threading.Thread(
             target=lambda: self.order_search(self.search_query, self.search_complete))
+        print("Thread Name: ",self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
         self.shorter_thread_cycle.start()
         self.longer_thread_cycle.start()
+        
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
-        self.display_bot_status_label.config(
-            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
         self.check_threads(self.shorter_thread_cycle,
                            self.longer_thread_cycle, callback)
+        self.display_bot_status_label.config(
+            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
@@ -2744,7 +2753,11 @@ class Bot_POS:
                     while True:
                         time.sleep(0.55)
                         try:
-                            if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[1]').is_displayed():
+
+                            sn_window = self.driver.find_element(
+                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[1]')
+                            # print("SN_window is still there")
+                            if sn_window.is_displayed():
                                 # print("หน้า SN กำลังโชว์")
 
                                 # if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').is_displayed():
@@ -3815,6 +3828,7 @@ if __name__ == "__main__":
 # *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
 # *61 fixed 0.388 // Sonic blow บัค
 # !62 Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
+# *63 fixed 0.389 // seller voucher Lazada มันมีค่าทศนิยมด้วย แต่มีบัคใช้ค่าเป็น int ไม่ใช่ float
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
