@@ -5,6 +5,7 @@ import time
 import win32com.client as comclt
 import re
 import multiprocessing
+import traceback
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -42,17 +43,17 @@ driver = webdriver.Chrome(service=Service(
 # service2 = Service(executable_path=ChromeDriverManager().install())
 # driver2= webdriver.Chrome(service=service2)
 
-## variable###
+# *# variable###
 allOrdersPage = "https://cms.itcity.in.th/order-management"
 smcoURL1 = 'http://115.31.167.28:8080/smartcore/smartpos/posmain.htm'
-smcoURL2 = 'http://115.31.167.28:8080/smartcore/smartpos/posmain.htm#'
+smcoURL2 = 'http://192.168.0.11:8080/smartcore/smartpos/posmain.htm'
 foundOrderElement = ''
 tax_Bool = False
 wsh = comclt.Dispatch("WScript.Shell")  # win32control controling context gui
 titleList = []
 titleListIdx = []
 
-# สาระ, น่าสนใจ## enumerate() จะคืนค่าให้ตัวแปรloop เป็น object ทำให้เจ้าfor loop ดึงตัวแปรสำหรับ loop ได้มากกว่า 1 ตัว {'ตัวแรกจะได้index', 'ตัวที่สอง จะได้ ค่าvalue'}
+# สาระ, น่าสนใจ## enumerate() จะคืนค่าให้ตัวแปรloop เป็น dict ทำให้เจ้าfor loop ดึงตัวแปรสำหรับ loop ได้มากกว่า 1 ตัว {'ตัวแรกจะได้index', 'ตัวที่สอง จะได้ ค่าvalue'}
 for idx, handle in enumerate(driver.window_handles):
     driver.switch_to.window(handle)
     titleListIdx.append(driver.title + "["+str(idx)+"]")
@@ -65,14 +66,57 @@ tax_address = ""
 tax_ID = ""
 tax_tel = "1"
 
-# หน้า smartCore XPATHlist
+# * หน้า smartCore XPATH list ##################################################
 cusNameSpan = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
 cusNameInput = '/html/body/span/span/span[1]/input'
 cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
 cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[2]/button'
 cusNameLi = '/html/body/span/span/span[2]/ul/li'
 
-# functions
+# * functions ##########################################
+
+
+def get_tabs(self):
+    print("get_tabs function: Excuted!")
+    try:
+        # * เก็บชื่อ Tab(Title) into title_list และ driver window id into value_list
+        title_list = []
+        value_list = []
+        for idx, handle in enumerate(driver.window_handles):
+            driver.switch_to.window(handle)
+            title_list.append(driver.title)
+            value_list.append(driver.current_window_handle)
+
+        # * เปลี่ยนชื่อ Tab ที่ซ้ำกัน ให้ unique
+        # * > เป็นรายชื่อ title ที่ถูกทำให้ unique
+        unique_titles = []
+        # * > ตัวนับว่าซ้ำเท่าไหร่โดยมีค่าเป็น ครั้ง / ชื่อ
+        counter = {}
+        for title in title_list:
+            if title in counter:
+                # * ถ้าชื่อ title มีอยู่แล้วจะ +1 เพิ่มลงไป
+                counter[title] += 1
+                print("counter[title] คือไร: ", counter[title])
+                unique_titles.append(
+                    f"{title}{counter[title]-1}")
+            else:
+                # * ส่วนนี้จะเป็นตัวสร้างค่าเริ่มต้นให้ Dict counter ทำหน้าที่ เก็บชื่อ titleจาก tabที่เปิด พร้อมจำนวน(มี1แปลว่า มีหน้าเดียว มี n จำนวน แปลว่ามีหน้าที่ชื่อเดียวกัน n หน้า) แต่ด้วยความที่มันเป็นตัวเริ่มต้นมันจะเก็บค่า 1 หากมีมากกว่า 1 ส่วนของ if จะทำงานแทน (ตรงนี้คือส่วน else นะ)
+                counter[title] = 1
+                unique_titles.append(title)
+
+        # * เอา Lists มารวมกัน titles zip window handles
+        # * > ใช้ zip จะเป็นการ เอา list 2 argument "zip(list, list)" มาจับคู่กัน เป็น zip object แต่จะอ่านค่าไม่ได้ ต้องแปลงเป็น dtype ที่แสดงผลแบบคู่อันดับ นั่นคือ dict() ไม่ก็ list()
+        window_id_by_title_dict = dict(zip(unique_titles, value_list))
+        print("มี tabs ไรบ้าง", window_id_by_title_dict)
+        return window_id_by_title_dict
+
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        print(f"An error occirred: {e}")
+        print(traceback_str)
+
+    print("get_tabs function: Ended!")
+    return unique_titles
 
 
 def addNormalCustomer(cusSearchSMCO, cusCreateBtn):
@@ -101,16 +145,20 @@ def addTaxInvCustomer(cusSearchSMCO, cusCreateBtn):
     time.sleep(0.75)
     driver.find_element(By.XPATH, cusCreateBtn).click()
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(tax_name_g)  # nameTH
+        # nameTH
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(tax_name_g)
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(tax_name_g)  # nameEN
+        # nameEN
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(tax_name_g)
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(tax_ID)  # Identity ID
+        # Identity ID
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(tax_ID)
     # [finAddress, finSubdistrict, finDistrict, finProvince, finZipCode] = addressExtractor(tax_address) ##ปัญหา บางเคสลูกค้าใส่ comma มามากกว่า 5 อัน ทำให้ error
     # finProvince = finProvince.strip().lstrip("จังหวัด")
 
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address_detail_only)  # Address
+        # Address
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address_detail_only)
 
     # dropdown Country
     driver.find_element(
@@ -124,15 +172,18 @@ def addTaxInvCustomer(cusSearchSMCO, cusCreateBtn):
     driver.find_element(
         By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(province)  # province input
+        # province input
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(province)
     time.sleep(1.55)
     driver.find_element(
         By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()  # District drop
+        # District drop
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(district)  # District
+        # District
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(district)
     time.sleep(1.55)
     driver.find_element(
         By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
@@ -141,7 +192,8 @@ def addTaxInvCustomer(cusSearchSMCO, cusCreateBtn):
     driver.find_element(
         By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
     driver.find_element(
-        By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(sub_district)  # SubDistrict
+        # SubDistrict
+        By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(sub_district)
     time.sleep(1.55)
     driver.find_element(
         By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
@@ -194,7 +246,8 @@ def search_order():
         By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[2]/div[2]/form/div[2]/div[4]/div/button[2]')
     searchBtn.click()
     search_result_element = wait.until(EC.text_to_be_present_in_element(
-        (By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[3]/div[2]/table/tbody/tr/td[2]'), order))  # ดูผลลัพว่าใช้ order ที่เราเสิชจริงๆหรือไม่ เป็น bool
+        # ดูผลลัพว่าใช้ order ที่เราเสิชจริงๆหรือไม่ เป็น bool
+        (By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[3]/div[2]/table/tbody/tr/td[2]'), order))
     return search_result_element
 
 
@@ -274,7 +327,7 @@ def customer_details(raw_data):
     print("เลขปณ.", post_code)
 
 
-# ############operation start
+# * ############ operation start
 
 handles = driver.window_handles
 driver.switch_to.window(handles[0])
@@ -284,21 +337,24 @@ time.sleep(0.75)
 handles = driver.window_handles
 driver.switch_to.window(handles[0])
 
-# หน้า ITCITY
-# ช่อง search
+# * หน้า ITCITY #############################
+# *> ช่อง search
 wait = WebDriverWait(driver, 100)
 searchInput = wait.until(EC.visibility_of_element_located(
-    (By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[2]/div[2]/form/div[1]/div[1]/fieldset/div/input')))  # ช่อง input
+    # ช่อง input
+    (By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[2]/div[2]/form/div[1]/div[1]/fieldset/div/input')))
 searchInput.clear()
 searchInput.send_keys(order)
 print("ช่องเสิชมีอะไร", searchInput.get_attribute("value"))
-# คลิกปุ่ม search
+
+# *> คลิกปุ่ม search
 while True:
     search_order()  # ดูผลลัพว่าใช้ order ที่เราเสิชจริงๆหรือไม่ เป็น bool
     if search_order():
         print('หา %s เจอ' % (order))
         break
-# เข้าไปใน detail
+
+# *> เข้าไปใน detail
 driver.find_element(
     By.XPATH, '/html/body/div[1]/div[1]/div[3]/div[3]/div[2]/section/div[3]/div[2]/table/tbody').click()
 
@@ -322,7 +378,7 @@ element.click()
 driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[2]")
 driver.find_element(By.XPATH, cusNameInput).send_keys(tax_name_g)
 
-# SMCO go to customer Add Page
+# * SMCO go to customer Add Page ##########################
 handles = driver.window_handles
 driver.switch_to.window(handles[2])
 addTaxInvCustomer(cusSearchSMCO, cusCreateBtn)
