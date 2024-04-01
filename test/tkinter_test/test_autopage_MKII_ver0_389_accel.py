@@ -100,6 +100,7 @@ class MyApp:
         self.cookies = {'vatinfo': {
             'JSESSIONID': '',
         }}
+        self.is_gui_busy = BooleanVar(value=False)
         self.bot = Bot_POS(self.root, self)
 
         self.create_main_window()
@@ -1233,12 +1234,14 @@ class MyApp:
                         col.configure(state="readonly")
 
                 # self.row_header_maker(self.items)
-                # * ชื่อที่ต้องอกใบกำกับ
+                # * ชื่อที่ต้องออกใบกำกับ
                 self.cus_name.set(self.translator(re.sub(
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
+                
                 # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
                 self.cus_name.set(
                     re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
+                
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standardizer(self.cus_name.get()))
@@ -1431,6 +1434,7 @@ class MyApp:
                       self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                 print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?: ",
                       pd.isna(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']))
+                
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
                     print("มีเบอร์โทร")
                     tel_for_set = self.cus_tel_fixer(
@@ -1521,6 +1525,7 @@ class MyApp:
 
     def tax_name_standardizer(self, name):
         name_edited = name.replace('\u200b', '')
+        name_edited = name_edited.strip()
         # name_edited = name_edited.replace(
         #     "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
         # print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
@@ -1539,15 +1544,22 @@ class MyApp:
             name_edited = f"""บริษัท {
                 name_edited} จำกัด"""
 
-        # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ
-        if "(สำนักงานใหญ่)" in name_edited or "สำนักงานใหญ่" in name_edited or "(สํานักงานใหญ่)" in name_edited or "สํานักงานใหญ่" in name_edited:
-            name_edited = name_edited.replace("(สำนักงานใหญ่)", "").replace(
-                "สำนักงานใหญ่", "").replace("(สํานักงานใหญ่)", "").replace("สํานักงานใหญ่", "").strip()
-        elif "(สาขา" in name_edited or "สาขา" in name_edited:
-            name_edited = re.sub(
-                r'\(สาขา.*\)', '', name_edited)
-            name_edited = re.sub(
-                r'\สาขา\d*', '', name_edited)
+        # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ (ส่วนท้ายของ code)
+        # * >> สร้าง patterns ก่อน
+        head_office_patterns = [
+            r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
+            r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
+            r'\(สนญ\.\)', r'\(สนญ\)', r'สนญ\.', r'สนญ', 
+        ]
+
+        #* >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
+        if any(pattern in name_edited for pattern in head_office_patterns):
+            #* re.sub(pattern, คำที่เอามาแทน, ข้อความที่เป็นกรรม(ถูกกระทำ))
+            #* r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
+            name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
+        elif '(สาขา' in name_edited or 'สาขา' in name_edited:
+            name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
+            name_edited = re.sub(r'สาขา\d*', '', name_edited)
 
         name_edited = re.sub(r"\s{2,}", ' ', name_edited)
         return name_edited
@@ -1587,20 +1599,26 @@ class MyApp:
             # * after(เวลาmillisec, callbackfunction)
             self.root.after(100, lambda: self.check_threads(
                 shorter_thread_cycle, longer_thread_cycle, callback))
+
+            # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
+            if self.is_gui_busy.get() == True:
+                self.display_bot_status_label.config(
+                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+            elif self.is_gui_busy.get() == False:
+                self.display_bot_status_label.config(
+                    text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
         else:
-        
+
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
             print("shorter_thread_cycle is alive?: ",
-                shorter_thread_cycle.is_alive())
+                  shorter_thread_cycle.is_alive())
             print("longer_thread_cycle is alive?: ",
-                longer_thread_cycle.is_alive())
+                  longer_thread_cycle.is_alive())
             self.display_bot_status_label.config(
                 text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
-            
-            
 
             if callback:
                 callback()
@@ -1629,17 +1647,17 @@ class MyApp:
             self.report_log.config(state=DISABLED)
 
         self.search_complete = threading.Event()
-        
+
         # * สร้าง Thread
         self.shorter_thread_cycle = threading.Thread(target=self.bot.get_tabs)
         self.longer_thread_cycle = threading.Thread(
             target=lambda: self.order_search(self.search_query, self.search_complete))
-        print("Thread Name: ",self.longer_thread_cycle.name)
+        print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
         self.shorter_thread_cycle.start()
         self.longer_thread_cycle.start()
-        
+
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
         self.check_threads(self.shorter_thread_cycle,
                            self.longer_thread_cycle, callback)
@@ -2215,6 +2233,7 @@ class Bot_POS:
         pass
 
     def operation_start(self):
+        self.app.is_gui_busy.set(True)
         self.is_forbid = False
         is_etax = False
         inv_number = ""
@@ -2397,7 +2416,7 @@ class Bot_POS:
                     self.app.display_current_status.config(
                         bg="#00ff11", fg="#000000")
 
-            #### IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
+            #### * IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
             else:
                 self.driver.switch_to.window(self.merged_dict[''])
                 print('Cannot Define What marketplace you are working with')
@@ -2440,20 +2459,20 @@ class Bot_POS:
                             print("wait for pop-up(try)")
                             # ระบุปุ่ม ok
                             if self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]'):
-                                print("has pop-up")
+                                print("has pop-up(try)")
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-                                print("Click OK")
+                                print("Click OK(try)")
 
                         except:
                             print("wait for pop-up(except)")
                             time.sleep(1)
-                            # ระบุปุ่ม ok
+                            # * ระบุปุ่ม ok
                             if self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]'):
-                                print("has pop-up")
+                                print("has pop-up(except)")
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-                                print("Click OK")
+                                print("Click OK(except)")
                         # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
                         try:
                             self.driver.find_element(
@@ -2698,6 +2717,7 @@ class Bot_POS:
                 else:
                     print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
 
+            
             self.app.update_log(
                 "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.config(
@@ -2719,6 +2739,7 @@ class Bot_POS:
 
             self.autofinal = True
             while self.autofinal:
+                self.app.is_gui_busy.set(False)
                 print("เข้า final loop ")
                 print("รอให้มันโผล่")
                 while self.parent.winfo_exists() and self.autofinal:
@@ -2769,7 +2790,7 @@ class Bot_POS:
                         except UnexpectedAlertPresentException as err:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
-                            print("เอาแค่ส่วนเดียว", err.alert_text)
+                            print("แสดงผล obj err แค่ส่วนเดียว", err.alert_text)
                             PopUp("SNซ้ำ", f'{err.alert_text}',
                                   self.parent, "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
@@ -2786,6 +2807,7 @@ class Bot_POS:
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
                         continue
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
+                        self.app.is_gui_busy.set(True)
                         time.sleep(0.55)
                         print("หน้า จ่ายตัง")
                         self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
@@ -2917,6 +2939,7 @@ class Bot_POS:
                             #             break
 
                             # * สำหรับรอ final pop-up after click the green btn
+                            self.app.is_gui_busy.set(False)
                             auto_radio_times = 0
                             while True:
 
@@ -2934,7 +2957,7 @@ class Bot_POS:
                                     # print("self.is_final_page= ",
                                     #       self.is_final_page)
                                 except:
-                                    print("Element not found, cotinuing loop...")
+                                    print("Element not found, continuing loop...")
                                     continue
 
                                 if self.final_popup.is_displayed():
@@ -2967,6 +2990,7 @@ class Bot_POS:
                                         print("radio has Disappeared")
 
                                 if self.final_popup.is_displayed() == True:
+                                    self.app.is_gui_busy.set(True)
                                     print("final pop-up has finally displayed!")
                                     try:
                                         self.final_popup_btn = self.wait1.until(EC.element_to_be_clickable(
@@ -3009,8 +3033,7 @@ class Bot_POS:
                                     self.justPressP()
                                     break
 
-                                    # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
-
+                                # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
                                 elif self.is_final_page.is_displayed() == False:
                                     print("End or back")
                                     if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
@@ -3242,8 +3265,7 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
         time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # # * กด Save
         # self.driver.find_element(
@@ -3812,7 +3834,7 @@ if __name__ == "__main__":
 # *45 0.384 แก้แล้ว // ปรับความเร็วกรอกบิล ในขั้นตอน reprint
 # *46 0.384 แสดงlogเลขบิล
 # *47 0.385 เอาเลขบิลมาโชว์ที่ GUI
-# !48 กรอกก่อน element show ได้ ดูเหมือนจะเป็นเช่นนั้น
+# !48 กรอกก่อนที่ element จะ display ได้ ดูเหมือนจะเป็นเช่นนั้น
 # * 8/2/2024
 # *49 fixed 0.387 // lazada ราคารวม bug
 # *50 fixed 0.387 // Ultimate CP prototype for หมึก
@@ -3827,15 +3849,17 @@ if __name__ == "__main__":
 # !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
 # *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
 # *61 fixed 0.388 // Sonic blow บัค
-# !62 Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
-# *63 fixed 0.389 // seller voucher Lazada มันมีค่าทศนิยมด้วย แต่มีบัคใช้ค่าเป็น int ไม่ใช่ float
+# *62 fixed 0.389 // Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
+# *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
+# *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
+
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
-# !E1 อยากให้ display Email ใน gui ปัญหาจริงๆมาจาก Shopee ไม่รู้ว่ามีลูกค้าขอใบกำกับ เขาไม่ได้ขอมาโดยตรง แล้วมันขัดกับ วิธีการทำใบกำกับของ SHOPEE สูตร BigM ด้วย
-# !E1.5 ในบิลมันมีคำว่า tax ID : ขึ้นรอไว้เลย แบบมันมัดมือชกเลยว่ามึงต้องแอดใบกำกับเท่านั้น 555+ ต้องกลับมาทำเวย์เดิมแล้ว
-# !E2 The POS does not lead to the printing page. ทำให้ต้องไปเปิดหน้า print แยก ซึ่งอาจจะถูกแก้สักวันละมั้ง
-# !E3 canvas มันไม่โผล่ ทำให้ bot status มันไม่จบ มันจะค้างที่ Your turn
+# *E1 อยากให้ display Email ใน gui ปัญหาจริงๆมาจาก Shopee ไม่รู้ว่ามีลูกค้าขอใบกำกับ เขาไม่ได้ขอมาโดยตรง แล้วมันขัดกับ วิธีการทำใบกำกับของ SHOPEE สูตร BigM ด้วย
+# *E1.5 ในบิลมันมีคำว่า tax ID : ขึ้นรอไว้เลย แบบมันมัดมือชกเลยว่ามึงต้องแอดใบกำกับเท่านั้น 555+ ต้องกลับมาทำเวย์เดิมแล้ว
+# *E2 The POS does not lead to the printing page. ทำให้ต้องไปเปิดหน้า print แยก ซึ่งอาจจะถูกแก้สักวันละมั้ง
+# *E3 canvas มันไม่โผล่ ทำให้ bot status มันไม่จบ มันจะค้างที่ Your turn
 # Todo ETAX ได้ข่าวมาว่าจะไม่ได้ใช้ตลอดไป แต่อาจจะเลิกใช้ที่เดือนกุมภา วันที่ 15 แปลว่า etax อาจจะเป็นโหมดชั่วคราว
 
 
