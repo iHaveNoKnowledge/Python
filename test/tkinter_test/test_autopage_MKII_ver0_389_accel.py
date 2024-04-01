@@ -1165,67 +1165,63 @@ class MyApp:
                 for row in self.items:
                     print("ตัวเลือก", str(row['ชื่อตัวเลือก']))
                     self.update_log(
-                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
+                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อตัวเลือก'])}{str(row['ชื่อสินค้า'])} ")
                     # if str(row['ชื่อตัวเลือก']) != "nan"
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like shopee
-                self.widget_no_col_lst = []
-                self.widget_product_col_lst = []
-                self.widget_prc_unit_lst = []
-                self.widget_qty_lst = []
-                self.widget_total_prc_lst = []
-                self.widget_total_rebt_prc_lst = []
-                self.widget_demonic_cp_btn_lst = []
-                self.all_cols = [self.widget_no_col_lst, self.widget_product_col_lst, self.widget_prc_unit_lst,
-                                 self.widget_qty_lst, self.widget_total_prc_lst, self.widget_total_rebt_prc_lst, self.widget_demonic_cp_btn_lst]
+                self.widgets_no_col_lst = []
+                self.widgets_product_col_lst = []
+                self.widgets_prc_unit_lst = []
+                self.widgets_qty_lst = []
+                self.widgets_total_prc_lst = []
+                self.widgets_total_rebt_prc_lst = []
+                self.widgets_demonic_cp_btn_lst = []
+                self.all_cols = [self.widgets_no_col_lst, self.widgets_product_col_lst, self.widgets_prc_unit_lst,
+                                 self.widgets_qty_lst, self.widgets_total_prc_lst, self.widgets_total_rebt_prc_lst, self.widgets_demonic_cp_btn_lst]
                 self.idx = 0
                 self.mimic_list_item_states = []
                 for row in self.items:
 
-                    self.no_col_value = Entry(
+                    self.no_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[0]))
-                    self.no_col_value.insert(0, self.idx+1)
-                    self.widget_no_col_lst.append(self.no_col_value)
+                    self.no_col_value_widget.insert(0, self.idx+1)
+                    self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
 
-                    self.product_col_name_value = Entry(
-                        self.mp_products_list_frame, width=int(self.cols_width[1]))
-                    self.product_col_name_value.insert(
-                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} : {str(row['ชื่อสินค้า'])}")
-                    self.widget_product_col_lst.append(
-                        self.product_col_name_value)
-                    self.mimic_list_item_states.append(
-                        f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
+                    self.product_col_name_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[1]))
+                    self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{' : '+ str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
+                    self.widgets_product_col_lst.append(self.product_col_name_value_widget)
+                    self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
-                    self.price_unit_col_value = Entry(
+                    self.price_unit_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[2]))
-                    self.price_unit_col_value.insert(0, float(row['ราคาขาย']))
-                    self.widget_prc_unit_lst.append(self.price_unit_col_value)
+                    self.price_unit_col_value_widget.insert(0, float(row['ราคาขาย']))
+                    self.widgets_prc_unit_lst.append(self.price_unit_col_value_widget)
 
-                    self.qty_col_value = Entry(
+                    self.qty_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[3]))
-                    self.qty_col_value.insert(0, int(row['จำนวน']))
-                    self.widget_qty_lst.append(self.qty_col_value)
+                    self.qty_col_value_widget.insert(0, int(row['จำนวน']))
+                    self.widgets_qty_lst.append(self.qty_col_value_widget)
 
-                    self.total_price_col_value = Entry(
+                    self.total_price_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[4]))
-                    self.total_price_col_value.insert(
+                    self.total_price_col_value_widget.insert(
                         0, float(row['ราคาขายสุทธิ']))
-                    self.widget_total_prc_lst.append(
-                        self.total_price_col_value)
+                    self.widgets_total_prc_lst.append(
+                        self.total_price_col_value_widget)
 
-                    self.total_rebate_price_col_value = Entry(
+                    self.total_rebate_price_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[5]))
-                    self.total_rebate_price_col_value.insert(
+                    self.total_rebate_price_col_value_widget.insert(
                         0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
-                    self.widget_total_rebt_prc_lst.append(
-                        self.total_rebate_price_col_value)
+                    self.widgets_total_rebt_prc_lst.append(
+                        self.total_rebate_price_col_value_widget)
                     # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
                     # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search, width=10)
-                    # self.widget_demonic_cp_btn_lst.append(self.demonic_cp_btn)
-                # print("none ได้ไง:", self.widget_no_col_lst)
+                    # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
+                # print("none ได้ไง:", self.widgets_no_col_lst)
                 # print("ไม่สามารถ grid: ", self.all_cols)
                 for col_idx, col_list in enumerate(self.all_cols):
                     for idxrow, col in enumerate(col_list):
@@ -2230,6 +2226,7 @@ class Bot_POS:
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
+        
         pass
 
     def operation_start(self):
@@ -3803,7 +3800,7 @@ if __name__ == "__main__":
 # *14 ทำแล้ว // ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
 # ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
 # *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
-# !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
+# *17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
 # *18 มีเลขลำดับบอกใน productslist
 # ?19 แก้แล้ว!!!ยากมาก!!!เลยไม่ชัวว่าแก้ได้จริงป่าว ///order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
 # *20 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
