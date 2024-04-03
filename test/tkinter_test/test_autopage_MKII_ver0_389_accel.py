@@ -2056,6 +2056,7 @@ class Bot_POS:
             )
 
             print("driver created")
+            
         except:
             traceback_str = traceback.format_exc()
             print("Cannot Create Driver")
