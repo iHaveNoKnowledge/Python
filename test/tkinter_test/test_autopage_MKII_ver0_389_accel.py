@@ -69,6 +69,7 @@ class MyApp:
         self.user_pw = StringVar(value="")
         self.result = ""
         self.is_accel_mode = BooleanVar()
+        self.is_accel_mode_activated = BooleanVar(value=False)
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
         self.bg_by_market_place = {
@@ -558,6 +559,7 @@ class MyApp:
             self.accl_dir_namedisplay_on_btn.config(
                 text=f"ยังไม่เลือก Accel File")
 
+        #* accel data frame เราจะใช้แปลงค่า
         self.accel_df = pd.read_excel(self.accel_location, dtype=str)
 
         self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
@@ -1671,13 +1673,17 @@ class MyApp:
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
+        self.is_accel_mode_activated.set(True)
         self.accel_orders_len = len(self.accel_orders_list)
 
         # * สร้าง recursive function
         def start_next_cycle(count):
             if count < self.accel_orders_len:
-                self.search(
-                    self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                if self.is_accel_mode_activated.get():
+                    self.search(
+                        self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                else :
+                    raise ValueError("Accel mode has destroyed")
             else:
                 pass
 
@@ -2056,7 +2062,7 @@ class Bot_POS:
             )
 
             print("driver created")
-            
+
         except:
             traceback_str = traceback.format_exc()
             print("Cannot Create Driver")
@@ -2275,8 +2281,37 @@ class Bot_POS:
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
         items = self.app.items
+        if self.app.sn_list:
+            print("มี SN")
+            
+            sn = self.app.sn_list.pop(0)
+            self.skuInput = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+            self.skuInput.clear()
 
-        pass
+            self.skuInput.send_keys(sn)
+            print("fill sn complete")
+
+            self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+            self.skuAddBtn.send_keys(Keys().ENTER)
+            print("pressed Enter at SKU-Input")
+            time.sleep(2)
+
+            # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
+            self.definePrice = self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+            # self.definePrice = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+            self.definePrice.click()
+            time.sleep(1)
+            # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
+            print("กดที่ SKU ELEMENT 1 สำเร็จ")
+            
+                
+        else: 
+            print("ไม่มี SN, there are no functions available at this moment")
+            self.app.is_accel_mode_activated.set(False)
+            raise ValueError("There's no SN in Accel File, no functions to handle at this moment.")
+
+        
 
     def operation_start(self):
         self.app.is_gui_busy.set(True)
@@ -2781,6 +2816,7 @@ class Bot_POS:
             #         break
 
             #! WIP accel_mode[2] ต้องเอา accel_fill_sku() มาใส่ตรงนี้
+            self.accel_fill_sku()
 
             self.autofinal = True
             while self.autofinal:
