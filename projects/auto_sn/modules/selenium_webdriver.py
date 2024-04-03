@@ -51,11 +51,10 @@ class ChromeDriver:
         self.opt = Options()
         # * exepath จะมีค่าเป็น relativepath
         exepath = sys.argv[0]
-        # * abspath() ใช้เพื่อแปลงที่อยู่ของไฟล์ที่เป็น relative path ให้เป็น absolute path เช่นถ้าไฟล์อยู่ใน "/home/user/documents" และเราใช้ abspath() กับไฟล์นั้น ผลลัพธ์ที่ได้จะเป็น "/home/user/documents/file.txt" โดยที่ไม่ว่า working directory จะอยู่ที่ไหนก็ตาม
-        # * dirname() ใช้สำหรับดึงชื่อ directory จากที่อยู่ของไฟล์หรือ directory path ที่ให้มา และส่งคืนเป็นชื่อ directory เท่านั้นโดยไม่รวมชื่อไฟล์หรือส่วนท้ายของ path ถ้า path ที่ให้มาเป็น directory path จะคืนค่าเป็นชื่อ directory ตรงไปด้วย เช่นถ้า path เป็น "/home/user/documents/file.txt" ซึ่งเป็นที่อยู่ของไฟล์ ฟังก์ชัน dirname() จะคืนค่า "/home/user/documents" โดยที่ไม่รวมชื่อไฟล์ "file.txt" ด้วย
+        # * abspath() ใช้เพื่อแปลงที่อยู่ของไฟล์ที่เป็น relative path ให้เป็น absolute path เช่นถ้าไฟล์อยู่ใน "/home/user/documents" และเราใช้ abspath() กับไฟล์นั้น ผลลัพธ์ที่ได้จะเป็น "c:/bla_bla/xxx/home/user/documents/file.txt" โดยที่ไม่ว่า working directory จะอยู่ที่ไหนก็ตาม
+        # * dirname() ใช้สำหรับดึงชื่อ directory จากที่อยู่ของไฟล์หรือ directory path ที่ให้มา และส่งคืนเป็นชื่อ directory เท่านั้นโดยไม่รวมชื่อไฟล์หรือส่วนท้ายของ path ถ้า path ที่ให้มาเป็น directory path จะคืนค่าเป็นชื่อ directory ตรงไปด้วย เช่นถ้า path เป็น "c:/bla_bla/xxx/home/user/documents/file.txt" ซึ่งเป็นที่อยู่ของไฟล์ ฟังก์ชัน dirname() จะคืนค่า "c:/bla_bla/xxx/home/user/documents" โดยที่ไม่รวมชื่อไฟล์ "file.txt" ด้วย
         Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'C:\\bin\\'
-        Download_dir = Dir_path+self.custom_path
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
@@ -78,7 +77,7 @@ class ChromeDriver:
 
         try:
             print("create driver")
-            #* error มันจะเกิดแถวนี้
+            # * error มันจะเกิดแถวนี้
             self.driver = webdriver.Chrome(
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
@@ -102,6 +101,7 @@ class ChromeDriver:
             # * Call the main method to manage chromdriver
             try:
                 driver_manager.main()
+                # * check_driver() ใช้ปุ๊บมันจะทำการตรวจและโหลดเลย
                 driver_manager.check_driver()
             except Exception as err:
 
