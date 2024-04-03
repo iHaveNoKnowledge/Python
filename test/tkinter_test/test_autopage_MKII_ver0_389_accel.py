@@ -45,7 +45,7 @@ session = requests.Session()
 
 locale.setlocale(locale.LC_ALL, 'en_us')
 
-# beautifulsoup
+
 
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
@@ -188,10 +188,10 @@ class MyApp:
         self.demonic_frame = Frame(self.canvas, bg="#444")
         self.demonic_frame.pack(side='bottom', pady=(0, 2))
 
-        # Create widgets in the main window
+        #* Create widgets in the main window
         self.create_widgets()
 
-        # start the scrollbar
+        #* start the scrollbar
         self.canvas.update_idletasks()
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
         self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(
@@ -202,8 +202,7 @@ class MyApp:
         return font.Font().measure(str(text).strip())
 
     def row_header_maker(self, list_of_cols):
-
-        # สร้าง header
+        #* สร้าง header
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
