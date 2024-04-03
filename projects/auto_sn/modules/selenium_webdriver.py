@@ -78,6 +78,7 @@ class ChromeDriver:
 
         try:
             print("create driver")
+            #* error มันจะเกิดแถวนี้
             self.driver = webdriver.Chrome(
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
