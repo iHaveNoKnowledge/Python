@@ -18,6 +18,10 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import UnexpectedAlertPresentException
 from selenium import webdriver
+from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
+from webdriver_auto_update.webdriver_manager import WebDriverManager
+
+
 import re
 import win32com.client as comclt
 import time
@@ -45,7 +49,6 @@ session = requests.Session()
 
 locale.setlocale(locale.LC_ALL, 'en_us')
 
-# beautifulsoup
 
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
@@ -188,10 +191,10 @@ class MyApp:
         self.demonic_frame = Frame(self.canvas, bg="#444")
         self.demonic_frame.pack(side='bottom', pady=(0, 2))
 
-        # Create widgets in the main window
+        # * Create widgets in the main window
         self.create_widgets()
 
-        # start the scrollbar
+        # * start the scrollbar
         self.canvas.update_idletasks()
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
         self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(
@@ -202,8 +205,7 @@ class MyApp:
         return font.Font().measure(str(text).strip())
 
     def row_header_maker(self, list_of_cols):
-
-        # สร้าง header
+        # * สร้าง header
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
@@ -1165,67 +1167,69 @@ class MyApp:
                 for row in self.items:
                     print("ตัวเลือก", str(row['ชื่อตัวเลือก']))
                     self.update_log(
-                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อสินค้า'])} ")
+                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อตัวเลือก'])}{str(row['ชื่อสินค้า'])} ")
                     # if str(row['ชื่อตัวเลือก']) != "nan"
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like shopee
-                self.widget_no_col_lst = []
-                self.widget_product_col_lst = []
-                self.widget_prc_unit_lst = []
-                self.widget_qty_lst = []
-                self.widget_total_prc_lst = []
-                self.widget_total_rebt_prc_lst = []
-                self.widget_demonic_cp_btn_lst = []
-                self.all_cols = [self.widget_no_col_lst, self.widget_product_col_lst, self.widget_prc_unit_lst,
-                                 self.widget_qty_lst, self.widget_total_prc_lst, self.widget_total_rebt_prc_lst, self.widget_demonic_cp_btn_lst]
+                self.widgets_no_col_lst = []
+                self.widgets_product_col_lst = []
+                self.widgets_prc_unit_lst = []
+                self.widgets_qty_lst = []
+                self.widgets_total_prc_lst = []
+                self.widgets_total_rebt_prc_lst = []
+                self.widgets_demonic_cp_btn_lst = []
+                self.all_cols = [self.widgets_no_col_lst, self.widgets_product_col_lst, self.widgets_prc_unit_lst,
+                                 self.widgets_qty_lst, self.widgets_total_prc_lst, self.widgets_total_rebt_prc_lst, self.widgets_demonic_cp_btn_lst]
                 self.idx = 0
                 self.mimic_list_item_states = []
                 for row in self.items:
 
-                    self.no_col_value = Entry(
+                    self.no_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[0]))
-                    self.no_col_value.insert(0, self.idx+1)
-                    self.widget_no_col_lst.append(self.no_col_value)
+                    self.no_col_value_widget.insert(0, self.idx+1)
+                    self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
 
-                    self.product_col_name_value = Entry(
+                    self.product_col_name_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[1]))
-                    self.product_col_name_value.insert(
-                        0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} : {str(row['ชื่อสินค้า'])}")
-                    self.widget_product_col_lst.append(
-                        self.product_col_name_value)
+                    self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{
+                                                              ' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
+                    self.widgets_product_col_lst.append(
+                        self.product_col_name_value_widget)
                     self.mimic_list_item_states.append(
                         f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
-                    self.price_unit_col_value = Entry(
+                    self.price_unit_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[2]))
-                    self.price_unit_col_value.insert(0, float(row['ราคาขาย']))
-                    self.widget_prc_unit_lst.append(self.price_unit_col_value)
+                    self.price_unit_col_value_widget.insert(
+                        0, float(row['ราคาขาย']))
+                    self.widgets_prc_unit_lst.append(
+                        self.price_unit_col_value_widget)
 
-                    self.qty_col_value = Entry(
+                    self.qty_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[3]))
-                    self.qty_col_value.insert(0, int(row['จำนวน']))
-                    self.widget_qty_lst.append(self.qty_col_value)
+                    self.qty_col_value_widget.insert(0, int(row['จำนวน']))
+                    self.widgets_qty_lst.append(self.qty_col_value_widget)
 
-                    self.total_price_col_value = Entry(
+                    self.total_price_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[4]))
-                    self.total_price_col_value.insert(
+                    self.total_price_col_value_widget.insert(
                         0, float(row['ราคาขายสุทธิ']))
-                    self.widget_total_prc_lst.append(
-                        self.total_price_col_value)
+                    self.widgets_total_prc_lst.append(
+                        self.total_price_col_value_widget)
 
-                    self.total_rebate_price_col_value = Entry(
+                    self.total_rebate_price_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[5]))
-                    self.total_rebate_price_col_value.insert(
+                    self.total_rebate_price_col_value_widget.insert(
                         0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
-                    self.widget_total_rebt_prc_lst.append(
-                        self.total_rebate_price_col_value)
+                    self.widgets_total_rebt_prc_lst.append(
+                        self.total_rebate_price_col_value_widget)
                     # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
                     # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search, width=10)
-                    # self.widget_demonic_cp_btn_lst.append(self.demonic_cp_btn)
-                # print("none ได้ไง:", self.widget_no_col_lst)
+                    # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
+                # print("none ได้ไง:", self.widgets_no_col_lst)
                 # print("ไม่สามารถ grid: ", self.all_cols)
                 for col_idx, col_list in enumerate(self.all_cols):
                     for idxrow, col in enumerate(col_list):
@@ -1237,11 +1241,11 @@ class MyApp:
                 # * ชื่อที่ต้องออกใบกำกับ
                 self.cus_name.set(self.translator(re.sub(
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
-                
+
                 # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
                 self.cus_name.set(
                     re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
-                
+
                 # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
                 self.cus_name.set(
                     self.tax_name_standardizer(self.cus_name.get()))
@@ -1434,7 +1438,7 @@ class MyApp:
                       self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                 print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?: ",
                       pd.isna(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']))
-                
+
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
                     print("มีเบอร์โทร")
                     tel_for_set = self.cus_tel_fixer(
@@ -1549,14 +1553,15 @@ class MyApp:
         head_office_patterns = [
             r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
             r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
-            r'\(สนญ\.\)', r'\(สนญ\)', r'สนญ\.', r'สนญ', 
+            r'\(สนญ\.\)', r'\(สนญ\)', r'สนญ\.', r'สนญ',
         ]
 
-        #* >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
+        # * >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
         if any(pattern in name_edited for pattern in head_office_patterns):
-            #* re.sub(pattern, คำที่เอามาแทน, ข้อความที่เป็นกรรม(ถูกกระทำ))
-            #* r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
-            name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
+            # * re.sub(pattern, คำที่เอามาแทน, ข้อความที่เป็นกรรม(ถูกกระทำ))
+            # * r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
+            name_edited = re.sub(
+                r'|'.join(head_office_patterns), '', name_edited).strip()
         elif '(สาขา' in name_edited or 'สาขา' in name_edited:
             name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
             name_edited = re.sub(r'สาขา\d*', '', name_edited)
@@ -2025,24 +2030,62 @@ class Bot_POS:
 
         Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'D:\\bin\\'
-        Download_dir = Dir_path+self.custom_path
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.opt.add_argument("--disable-popup-blocking")
+        # self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
         #     "download.default_directory" : Download_dir,
         #     "directory_upgrade": True
         # })
 
-        self.driver = webdriver.Chrome(
-            service=Service(r'C:\bin\chromedriver.exe'),
-            options=self.opt
-        )
+        #! อันเก่า
+        # self.driver = webdriver.Chrome(
+        #     service=Service(r'C:\bin\chromedriver.exe'),
+        #     options=self.opt
+        # )
 
-        # self.driver = webdriver.Chrome(service=Service(
-        #     ChromeDriverManager().install()), options=self.opt)
+        # ?? อันใหม่ทดลอง
+        try:
+            print("create driver")
+            # * error มันจะเกิดแถวนี้
+            self.driver = webdriver.Chrome(
+                service=Service(r'C:\bin\chromedriver.exe'),
+                options=self.opt
+            )
+
+            print("driver created")
+        except:
+            traceback_str = traceback.format_exc()
+            print("Cannot Create Driver")
+            print(traceback_str)
+            chrome_app_utils = ChromeAppUtils()
+            chrome_app_version = chrome_app_utils.get_chrome_version()
+            print("Chrome version: ", chrome_app_version)
+
+            # * Target directory to store chromedriver
+            driver_directory = 'C:/bin'
+
+            # * Create an inst of WebDriverManager
+            driver_manager = WebDriverManager(driver_directory)
+
+            # * Call the main method to manage chromdriver
+            try:
+                driver_manager.main()
+                # * check_driver() ใช้ปุ๊บมันจะทำการตรวจและโหลดเลย
+                driver_manager.check_driver()
+            except Exception as err:
+
+                print('error from driver_manager.main()')
+                print(err)
+                raise
+
+            self.driver = webdriver.Chrome(
+                service=Service(r'C:\bin\chromedriver.exe'),
+                options=self.opt
+            )
+
     def convert_text(self, text):
         result = []
         elements = text.split("+")
@@ -2230,6 +2273,8 @@ class Bot_POS:
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
+        items = self.app.items
+
         pass
 
     def operation_start(self):
@@ -2717,7 +2762,6 @@ class Bot_POS:
                 else:
                     print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
 
-            
             self.app.update_log(
                 "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.config(
@@ -3265,7 +3309,8 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
         time.sleep(1.75)
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # # * กด Save
         # self.driver.find_element(
@@ -3803,7 +3848,7 @@ if __name__ == "__main__":
 # *14 ทำแล้ว // ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
 # ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
 # *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
-# !17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
+# *17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
 # *18 มีเลขลำดับบอกใน productslist
 # ?19 แก้แล้ว!!!ยากมาก!!!เลยไม่ชัวว่าแก้ได้จริงป่าว ///order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
 # *20 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
