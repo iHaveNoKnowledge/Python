@@ -3898,6 +3898,7 @@ if __name__ == "__main__":
 # *62 fixed 0.389 // Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
+# *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
