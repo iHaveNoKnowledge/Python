@@ -2041,50 +2041,50 @@ class Bot_POS:
         # })
 
         #! อันเก่า
-        # self.driver = webdriver.Chrome(
-        #     service=Service(r'C:\bin\chromedriver.exe'),
-        #     options=self.opt
-        # )
+        self.driver = webdriver.Chrome(
+            service=Service(r'C:\bin\chromedriver.exe'),
+            options=self.opt
+        )
 
-        # ?? อันใหม่ทดลอง
-        try:
-            print("create driver")
-            # * error มันจะเกิดแถวนี้
-            self.driver = webdriver.Chrome(
-                service=Service(r'C:\bin\chromedriver.exe'),
-                options=self.opt
-            )
+        #! อันใหม่ทดลอง
+        # try:
+        #     print("create driver")
+        #     # * error มันจะเกิดแถวนี้
+        #     self.driver = webdriver.Chrome(
+        #         service=Service(r'C:\bin\chromedriver.exe'),
+        #         options=self.opt
+        #     )
 
-            print("driver created")
-        except:
-            traceback_str = traceback.format_exc()
-            print("Cannot Create Driver")
-            print(traceback_str)
-            chrome_app_utils = ChromeAppUtils()
-            chrome_app_version = chrome_app_utils.get_chrome_version()
-            print("Chrome version: ", chrome_app_version)
+        #     print("driver created")
+        # except:
+        #     traceback_str = traceback.format_exc()
+        #     print("Cannot Create Driver")
+        #     print(traceback_str)
+        #     chrome_app_utils = ChromeAppUtils()
+        #     chrome_app_version = chrome_app_utils.get_chrome_version()
+        #     print("Chrome version: ", chrome_app_version)
 
-            # * Target directory to store chromedriver
-            driver_directory = 'C:/bin'
+        #     # * Target directory to store chromedriver
+        #     driver_directory = 'C:/bin'
 
-            # * Create an inst of WebDriverManager
-            driver_manager = WebDriverManager(driver_directory)
+        #     # * Create an inst of WebDriverManager
+        #     driver_manager = WebDriverManager(driver_directory)
 
-            # * Call the main method to manage chromdriver
-            try:
-                driver_manager.main()
-                # * check_driver() ใช้ปุ๊บมันจะทำการตรวจและโหลดเลย
-                driver_manager.check_driver()
-            except Exception as err:
+        #     # * Call the main method to manage chromdriver
+        #     try:
+        #         driver_manager.main()
+        #         # * check_driver() ใช้ปุ๊บมันจะทำการตรวจและโหลดเลย
+        #         driver_manager.check_driver()
+        #     except Exception as err:
 
-                print('error from driver_manager.main()')
-                print(err)
-                raise
+        #         print('error from driver_manager.main()')
+        #         print(err)
+        #         raise
 
-            self.driver = webdriver.Chrome(
-                service=Service(r'C:\bin\chromedriver.exe'),
-                options=self.opt
-            )
+        #     self.driver = webdriver.Chrome(
+        #         service=Service(r'C:\bin\chromedriver.exe'),
+        #         options=self.opt
+        #     )
 
     def convert_text(self, text):
         result = []
