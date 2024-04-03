@@ -559,7 +559,7 @@ class MyApp:
             self.accl_dir_namedisplay_on_btn.config(
                 text=f"ยังไม่เลือก Accel File")
 
-        #* accel data frame เราจะใช้แปลงค่า
+        # * accel data frame เราจะใช้แปลงค่า
         self.accel_df = pd.read_excel(self.accel_location, dtype=str)
 
         self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
@@ -1682,7 +1682,7 @@ class MyApp:
                 if self.is_accel_mode_activated.get():
                     self.search(
                         self.accel_orders_list[count], lambda: start_next_cycle(count+1))
-                else :
+                else:
                     raise ValueError("Accel mode has destroyed")
             else:
                 pass
@@ -2283,35 +2283,32 @@ class Bot_POS:
         items = self.app.items
         if self.app.sn_list:
             print("มี SN")
-            
+            time.sleep(1)
+            while True:
+                try:
+                    # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                    break
+                except:
+                    continue
             sn = self.app.sn_list.pop(0)
-            self.skuInput = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-            self.skuInput.clear()
+            skuInput = self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+            skuInput.clear()
 
-            self.skuInput.send_keys(sn)
+            skuInput.send_keys(sn)
             print("fill sn complete")
 
-            self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-            self.skuAddBtn.send_keys(Keys().ENTER)
+            skuInput.send_keys(Keys().ENTER)
             print("pressed Enter at SKU-Input")
             time.sleep(2)
 
-            # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-            self.definePrice = self.wait1.until(EC.visibility_of_element_located(
-                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-            # self.definePrice = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
-            self.definePrice.click()
-            time.sleep(1)
-            # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-            print("กดที่ SKU ELEMENT 1 สำเร็จ")
-            
-                
-        else: 
+        else:
             print("ไม่มี SN, there are no functions available at this moment")
             self.app.is_accel_mode_activated.set(False)
-            raise ValueError("There's no SN in Accel File, no functions to handle at this moment.")
-
-        
+            raise ValueError(
+                "There's no SN in Accel File, no functions to handle at this moment.")
 
     def operation_start(self):
         self.app.is_gui_busy.set(True)
