@@ -3947,3 +3947,11 @@ if __name__ == "__main__":
 # รอให้ final pop-up poped up /html/body/div[16]/div[2]/div[6]
 # หรือ
 # กดปุ่ม รอจนกว่าปุ่มนี้จะกดได้ /html/body/div[16]/div[2]/button[1] then click
+
+
+
+# note
+# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2] parent
+
+# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[1]/div[2]/a sv0
+# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div/div[1]/div[2]/a MNL
