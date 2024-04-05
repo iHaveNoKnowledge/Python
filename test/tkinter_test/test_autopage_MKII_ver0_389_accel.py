@@ -2300,6 +2300,7 @@ class Bot_POS:
             skuInput.send_keys(sn)
             print("fill sn complete")
 
+            # while True:
             skuInput.send_keys(Keys().ENTER)
             print("pressed Enter at SKU-Input")
             time.sleep(2)
