@@ -3956,3 +3956,6 @@ if __name__ == "__main__":
 
 # /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[1]/div[2]/a sv0
 # /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div/div[1]/div[2]/a MNL
+
+#you should try this to find child 2 <div>
+# div_elements = x.find_elements_by_xpath("./div")
