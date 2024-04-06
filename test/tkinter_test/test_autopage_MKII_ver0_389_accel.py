@@ -2306,10 +2306,12 @@ class Bot_POS:
             time.sleep(2)
 
         else:
+            
             print("ไม่มี SN, there are no functions available at this moment")
-            self.app.is_accel_mode_activated.set(False)
-            raise ValueError(
-                "There's no SN in Accel File, no functions to handle at this moment.")
+            pass
+            # self.app.is_accel_mode_activated.set(False)
+            # raise ValueError(
+            #     "There's no SN in Accel File, no functions to handle at this moment.")
 
     def operation_start(self):
         self.app.is_gui_busy.set(True)
@@ -3950,12 +3952,11 @@ if __name__ == "__main__":
 # กดปุ่ม รอจนกว่าปุ่มนี้จะกดได้ /html/body/div[16]/div[2]/button[1] then click
 
 
-
 # note
 # /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2] parent
 
 # /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[1]/div[2]/a sv0
 # /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div/div[1]/div[2]/a MNL
 
-#you should try this to find child 2 <div>
+# you should try this to find child 2 <div>
 # div_elements = x.find_elements_by_xpath("./div")
