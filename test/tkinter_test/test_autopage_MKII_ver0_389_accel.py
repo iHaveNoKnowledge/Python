@@ -33,6 +33,8 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import *
 from customtkinter import *
+
+
 import traceback
 from bs4 import BeautifulSoup
 from googletrans import Translator
@@ -3858,7 +3860,7 @@ if __name__ == "__main__":
         print("Tkinter window is closing")
         root.destroy()
 
-    root = Tk()
+    root = CTk()
     # * options
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.columnconfigure(0, weight=1)
