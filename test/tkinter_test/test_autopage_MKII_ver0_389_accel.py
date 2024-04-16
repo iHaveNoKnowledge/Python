@@ -1002,12 +1002,22 @@ class MyApp:
 
     def note_extractor(self):
         if self.order_note != 'nan':
-            self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
-            self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
-            self.address_match = re.search(r'ที่อยู่:(.*?)\n', self.order_note)
-            self.tax_id_match = re.search(r'Tax id:(.*?)', self.order_note)
-            print("regexบันทึก: ", self.name_match)
-            print("ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
+            try:
+                self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
+                self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
+                self.address_match = re.search(
+                    r'ที่อยู่:(.*?)\n', self.order_note)
+                self.tax_id_match = re.search(r'Tax id:(.*?)', self.order_note)
+                print("regexบันทึก: ", self.name_match)
+                print("ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
+            except:
+                self.name_match = re.search(r'บริษัท.*', self.order_note)
+                self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
+                self.address_match = re.search(
+                    r'ที่อยู่:(.*?)\n', self.order_note)
+                self.tax_id_match = re.search(r'\d{13}', self.order_note)
+                print("regexบันทึก: ", self.name_match)
+                print("ใช้ group กับ regexบันทึก: ", self.name_match.group())
         else:
             print("ไม่มีค่า")
 
@@ -2577,6 +2587,7 @@ class Bot_POS:
                         break
                     else:
                         continue
+
             print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
             # while True:
             #     if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
@@ -2637,6 +2648,7 @@ class Bot_POS:
                 self.wait1.until(EC.visibility_of_element_located(
                     (By.XPATH, self.app.cusNameInput)))
 
+            # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก
             # * ถ้าเปิดแล้วจะข้ามมานี่
             self.enter_cus_name(self.cus_search)
             print("กรอกชื่อเสร็จ")
@@ -2818,7 +2830,9 @@ class Bot_POS:
             #         break
 
             #! WIP accel_mode[2] ต้องเอา accel_fill_sku() มาใส่ตรงนี้
-            self.accel_fill_sku()
+
+            if self.app.is_accel_mode_activated.get():
+                self.accel_fill_sku()
 
             self.autofinal = True
             while self.autofinal:
@@ -3937,7 +3951,8 @@ if __name__ == "__main__":
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
 # *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
-
+# !66 การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# Todo67 ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
