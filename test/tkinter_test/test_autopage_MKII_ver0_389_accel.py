@@ -1530,7 +1530,7 @@ class MyApp:
         else:
             self.reset_all_display()
         self.on_complete.set()
-        print("End without order")
+        print("Error verify order")
 
     def cusNameFixer5(self, name, account_name=":"):
         is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
@@ -2012,7 +2012,7 @@ class UserAccount:
 
             if self.app.user_id.get() in self.app.dev_account:
 
-                print("Accel mode")
+                print("Accel mode approachable")
                 if self.app.accel_mode_checkbox.winfo_ismapped():
                     pass
                 else:
@@ -2318,7 +2318,7 @@ class Bot_POS:
             time.sleep(2)
 
         else:
-            
+
             print("ไม่มี SN, there are no functions available at this moment")
             pass
             # self.app.is_accel_mode_activated.set(False)
