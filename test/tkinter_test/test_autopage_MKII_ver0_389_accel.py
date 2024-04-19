@@ -1729,15 +1729,15 @@ class MyApp:
         cp_btn_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
         green_agree_btn_xpath = '/html/body/div[1]/div[2]/div[9]/div/div[1]/div[2]/a'
 
-        items_lsit = self.driver.find_elements(
+        items_list = self.driver.find_elements(
             By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         cp_list = self.driver.find_elements(
             By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
 
-        # print("items_lsit", items_lsit)
+        # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_list):
             print("มาถึงนี่ไหม")
-            for idx2, div in enumerate(items_lsit):
+            for idx2, div in enumerate(items_list):
                 print("รอบ", idx2)
                 # time.sleep(0.55)
                 try:
@@ -2132,17 +2132,17 @@ class Bot_POS:
         cp_btn_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
         green_agree_btn_xpath = '/html/body/div[1]/div[2]/div[9]/div/div[1]/div[2]/a'
 
-        items_lsit = self.driver.find_elements(
+        items_list = self.driver.find_elements(
             By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         cp_list = self.driver.find_elements(
             By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
 
-        # print("items_lsit", items_lsit)
+        # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_list):
             print("มาถึงนี่ไหม")
-            for idx2, div in enumerate(items_lsit):
+            for idx2, div in enumerate(items_list):
                 try:
-                    print("จำนนวน div ", len(items_lsit))
+                    print("จำนนวน div ", len(items_list))
                     # print("รอบ", idx2)
                     # time.sleep(0.55)
 
@@ -2220,6 +2220,25 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
+
+    # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
+    def select_cus_name_from_lis(self, names, cb=""):
+        cus_desire_name = self.app.cus_name.get().replace(" ", "")
+
+        # * ทำการคัดเอาเฉพาะชื่อลูกค้า ลง array ไม่เอารหัส
+        names_no_code = names.copy()
+        for i in range(len(names)):
+            prog = re.search(r'[^-]-(.*)', names_no_code[i])
+            names_no_code[i] = prog.group(1).replace(" ", "")
+
+        for i, name in enumerate(names_no_code):
+            if name == cus_desire_name:
+                self.driver.find_element(
+                    By.XPATH, f"//*[text()='{names[i]}']").click()
+                break
+
+        if cb:
+            cb(names)
 
     def printtingPage(self):
         time.sleep(1)
@@ -2624,17 +2643,17 @@ class Bot_POS:
                 self.driver.find_element(
                     By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
-            # * ดูว่า self.cus_search จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
+            # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
             # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
 
             # if self.app.marketplace_target.get() == "SHOPEE":
-            #     self.cus_search = self.app.cus_email.get() if self.app.tax_bool.get(
+            #     self.cus_search_input = self.app.cus_email.get() if self.app.tax_bool.get(
             #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
             # elif self.app.marketplace_target.get() == "LAZADA":
-            #     self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+            #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
             #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            self.cus_search = self.app.tax_num.get() if self.app.tax_bool.get(
+            self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
             ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
             # * จับตาดูว่า ul เปิดอยู่ไหม
@@ -2648,9 +2667,8 @@ class Bot_POS:
                 self.wait1.until(EC.visibility_of_element_located(
                     (By.XPATH, self.app.cusNameInput)))
 
-            # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก
             # * ถ้าเปิดแล้วจะข้ามมานี่
-            self.enter_cus_name(self.cus_search)
+            self.enter_cus_name(self.cus_search_input)
             print("กรอกชื่อเสร็จ")
             # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
             self.wait_condition = self.driver.find_element(
@@ -2659,7 +2677,7 @@ class Bot_POS:
             print("มันทำไม", self.wait_condition.text)
 
             # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน => li[1] โดย li[1] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และบอก ผลลัพธ์ที่เจอลำดับแรก
-            self.customer_add_times = 0
+            self.customer_added_times = 0
             self.customer_name_search_count = 0
             while True:
                 if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
@@ -2684,7 +2702,7 @@ class Bot_POS:
                         (By.XPATH, self.app.cusNameLi1)))
                     self.wait_condition = self.driver.find_element(
                         By.XPATH, self.app.cusNameLi1)
-                    if self.wait_condition.text == "No results found" and self.customer_add_times == 0:
+                    if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
                         print("No results found and NeverAdd")
                         # * ขอใบกำกับป่าว
                         if self.app.tax_bool.get():
@@ -2698,25 +2716,25 @@ class Bot_POS:
 
                         else:
                             print("no_Tax_needed")
-                            self.addNormalCustomer(self.cus_search)
+                            self.addNormalCustomer(self.cus_search_input)
 
-                        # เพิ่มจำนวนครั้งที่ add
-                        self.customer_add_times += 1
+                        # * เพิ่มจำนวนครั้งที่ add
+                        self.customer_added_times += 1
                         self.driver.switch_to.window(
                             self.merged_dict['SMCO :: เปิดการขาย'])
                         print("ก่อนRe Enter ชื่อลูกค้า")
-                        self.enter_cus_name(self.cus_search)
+                        self.enter_cus_name(self.cus_search_input)
                         print(f"Re enter name after add")
                         continue
                     # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
                     elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
-                        self.enter_cus_name(self.cus_search)
+                        self.enter_cus_name(self.cus_search_input)
                         self.customer_name_search_count += 1
                         print(
                             f"Re enter name after add extra times{self.customer_name_search_count}")
                         continue
                     # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
-                    elif self.wait_condition.text == "No results found" and self.customer_add_times == 1:
+                    elif self.wait_condition.text == "No results found" and self.customer_added_times == 1:
                         print(
                             "I've already add it, but the element still shows 'No results found', you have to add by yourself")
                         break
@@ -2727,8 +2745,28 @@ class Bot_POS:
                 print("addcustomer and select While end!")
                 break
 
-            self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-            print("Click the cusname li result")
+            # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก
+            while True:
+                try:
+                    customer_name_input_ul = self.driver.find_element(
+                        By.XPATH, self.app.cus_name_dropdown_ul)
+                    customer_name_dropdown_lis = customer_name_input_ul.find_elements(
+                        By.CSS_SELECTOR, '.select2-results__option')
+                    break
+
+                except:
+                    self.driver.find_element(
+                        By.XPATH, self.app.cus_arrow_btn).click()
+                    continue
+
+            if len(customer_name_dropdown_lis) > 1:
+                li_names = [
+                    element.text for element in customer_name_dropdown_lis]
+                self.select_cus_name_from_lis(
+                    li_names, self.select_cus_name_from_lis)
+            else:
+                self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+                print("Click the cusname li result")
 
             # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
             if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
