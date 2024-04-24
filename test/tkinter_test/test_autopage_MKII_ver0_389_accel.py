@@ -599,7 +599,7 @@ class MyApp:
     def group_by_order(self, file_input, dtype):
         print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input, dtype=dtype)
-        #! สำคัญมาก ถ้ากยาอให้ nan หาย เอา dfมาใช้ method fillna('', inplace=True) "//การใช้ Inplace ทำให้แก้ ที่ df โดยตรงโดยไม่ต้องเก็บค่าใหม่
+        #! สำคัญมาก ถ้าอยากให้ nan หาย เอา dfมาใช้ method fillna('', inplace=True) "//การใช้ Inplace ทำให้แก้ ที่ df โดยตรงโดยไม่ต้องเก็บค่าใหม่
         # df.fillna('', inplace=True)
 
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
@@ -667,18 +667,18 @@ class MyApp:
 
         # ** ปรับแต่ง Column --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # * สร้าง sum_column  ขึ้นมาใหม่
-        # > 'ราคาขายสุทธิ'
+        # *> 'ราคาขายสุทธิ'
         # total_per_order_df = df.groupby('orderNumber')[
         #     'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
         result_count['ราคาขายสุทธิ'] = result_count["จำนวน"] * \
             result_count["unitPrice"]
 
-        # > 'โค้ดส่วนลดชำระโดยผู้ขาย'
+        # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
         total_sellerDiscountTotal_df = df.groupby('orderNumber')[
             'sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
         total_sellerDiscountTotal_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
 
-        # > 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
+        # *> 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
         total_shippingfee_df = df.groupby('orderNumber')['shippingFee'].sum(
         ).reset_index(name='ค่าจัดส่งที่ชำระโดยผู้ซื้อ')
 
@@ -780,7 +780,7 @@ class MyApp:
         print(result_df)
         excel_file_path = "output_test.xlsx"
         result_df.to_excel(excel_file_path, index=False,
-                           na_rep="",)
+                           na_rep="", engine="openpyxl")
         return result_df
 
     def f(self, d):
@@ -793,21 +793,19 @@ class MyApp:
         shopee = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
         lazada = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
-                  'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
-        self.columns = shopee if self.marketplace_target.get(
+                  'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'taxCode': str}
+        self.columns_preset = shopee if self.marketplace_target.get(
         ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
         try:
             if self.marketplace_target.get() == 'SHOPEE':
                 print("เปลี่ยน dtype เป็น form shopee")
                 self.data_frame = pd.read_excel(
-                    self.file_path, dtype=self.columns)
+                    self.file_path, dtype=self.columns_preset)
                 self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
             elif self.marketplace_target.get() == 'LAZADA':
                 self.data_frame = self.group_by_order(
-                    self.file_path, self.columns)
-                # self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'] = self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].apply(
-                #     lambda row: print(row))
-                # self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(float)
+                    self.file_path, self.columns_preset)
+
                 self.data_frame['โค้ดส่วนลดชำระโดยผู้ขาย'].astype(float)
                 self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
 
@@ -937,7 +935,7 @@ class MyApp:
         else:
             truncated_address = cus_address
 
-        print(truncated_address.strip())
+        print("Address_cleaned: ", truncated_address.strip())
         return truncated_address.strip()
 
     def clean_duplicate_parts(self, address):
@@ -2190,6 +2188,26 @@ class Bot_POS:
                 # self.title_list_Idx = [] #!เหมือนจะไม่ได้ใช้
                 self.value_list = []
                 # self.title_dict = {} #!เหมือนจะไม่ได้ใช้
+
+                # * check ว่า self.driver เดิมยังทำงานได้ไหม
+                try:
+                    # * เช็คก่อนว่า driver ใช้ได้ไหม หรือการเชื่อมต่อ session หลุดไหม
+                    self.driver.window_handles
+                except:
+                    # * driver หลุดก็ออก seesion เก่า
+                    try:
+                        print(
+                            "Quit old driver, not sure if this process is auto or not")
+                        self.driver.quit()
+                    except:
+                        print("No need to quit old driver, no driver found")
+                        pass
+
+                    self.driver = webdriver.Chrome(
+                        service=Service(r'C:\bin\chromedriver.exe'),
+                        options=self.opt
+                    )
+
                 for idx, handle in enumerate(self.driver.window_handles):
                     self.driver.switch_to.window(handle)
                     # self.title_list_Idx.append(
@@ -2556,6 +2574,8 @@ class Bot_POS:
             # * ถ้าสถานะยกเลิก ก็หยุดเลย
             if self.is_forbid:
                 print("This order was forbidden.")
+                self.display_bot_status_label.config(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
                 return
 
             ### * SMCO PART ############################################################################
@@ -3833,8 +3853,9 @@ class Bot_POS:
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
-    def find_tambon(self, df, order):
-        print("find_tambon order:", order)
+    def assign_address(self, df, order):
+        # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ
+        print("assign_address order:", order)
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
         df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
             str)
@@ -3888,9 +3909,11 @@ class Bot_POS:
                     print("ทำไมได้ตลาดยอดวะ", tambon)
                     decent_tambon = tambon
                     break
-
+                
+            #*ลบตำบลออก
             cleaned_address = self.app.get_pure_address(cus_address)
-
+            
+            #* หาค่าตัวแปรที่เหมาะสมลงใน decent_tambon
             if decent_tambon:
                 # * เจอตำบลในไฟล์
                 print("เลือกตำบลที่เหมาะสมมาแล้ว", decent_tambon)
@@ -3909,9 +3932,10 @@ class Bot_POS:
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
-            prog = re.compile(fr'{re.escape(decent_tambon)}.*')
-            cleaned_address = prog.sub('', cleaned_address)
-            print("ลบไม่ได้วะ", cleaned_address)
+            #! ตรงนี้ผิด กุลบทำไมวะ
+            # prog = re.compile(fr'{re.escape(decent_tambon)}.*')
+            # cleaned_address = prog.sub('', cleaned_address)
+            # print("ลบไม่ได้วะ", cleaned_address)
 
             # * เลือกว่าจะ ตำบล หรหือ แขวง
             if decent_tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
@@ -3937,7 +3961,7 @@ class Bot_POS:
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
             # * หาตำบล จาก address ที่ลูกค้าให้มา
-            cus_address_from_table = self.find_tambon(
+            cus_address_from_table = self.assign_address(
                 self.app.data_frame, self.app.cus_order.get())
 
             manual_result_strcuture = {
