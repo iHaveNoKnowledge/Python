@@ -608,7 +608,7 @@ class MyApp:
 
         # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str, 'customerEmail': str}
+                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str, 'customerEmail': str, 'taxCode': str, 'billingAddr3': str, 'billingAddr4': str, 'billingAddr5': str, 'billingName': str, 'billingPhone': str, 'customerName': str, 'shippingFee': float, 'sellerDiscountTotal': float, 'unitPrice': float}
         df = df.astype(data_types)
 
         # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
@@ -792,7 +792,7 @@ class MyApp:
         print('self.marketplace_target.get()', self.marketplace_target.get())
         shopee = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
-        lazada = {'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
+        lazada = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str, 'ประเภทสาขา': str,
                   'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
         self.columns = shopee if self.marketplace_target.get(
         ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
@@ -809,6 +809,7 @@ class MyApp:
                 #     lambda row: print(row))
                 # self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(float)
                 self.data_frame['โค้ดส่วนลดชำระโดยผู้ขาย'].astype(float)
+                self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
 
             print("df มี type เป็นไร", type(self.data_frame))
             print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
@@ -1180,9 +1181,12 @@ class MyApp:
 
                 for row in self.items:
                     print("ตัวเลือก", str(row['ชื่อตัวเลือก']))
+                    option = ""
+                    if str(row['ชื่อตัวเลือก']) != "nan":
+                        option = str(row['ชื่อตัวเลือก'])
                     self.update_log(
-                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {str(row['ชื่อตัวเลือก'])}{str(row['ชื่อสินค้า'])} ")
-                    # if str(row['ชื่อตัวเลือก']) != "nan"
+                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {option} {str(row['ชื่อสินค้า'])} ")
+
                     self.update_log(
                         f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
 
@@ -1311,7 +1315,10 @@ class MyApp:
                     self.tax_num.set(tax_num_only)
                 elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
                     self.tax_bool.set(False)
-                    self.is_tax.set("ขอ//เลขไม่ครบ")
+                    if len(tax_num_only) > 13:
+                        self.is_tax.set("ขอ//เลขเกิน")
+                    else:
+                        self.is_tax.set("ขอ//เลขไม่ครบ")
                     self.display_is_tax.config(
                         background="#8502d1", foreground="#FFF", font='Chiller 10 normal')
                     self.tax_num.set(tax_num_only)
@@ -2209,7 +2216,15 @@ class Bot_POS:
                 self.merged_dict = dict(
                     zip(self.unique_titles, self.value_list))
                 print("มี tabs ไรบ้าง", self.merged_dict)
-                self.operation_start()
+
+                # * เริ่มการทำงาน Operation Start
+
+                if self.app.order != "":
+                    self.operation_start()
+                else:
+                    self.app.update_log("กรุณากรอก Order ก่อน")
+                    self.app.search_complete.set()
+
         except Exception as e:
             traceback_str = traceback.format_exc()
             print(f"An error occirred: {e}")
@@ -2237,8 +2252,12 @@ class Bot_POS:
                     By.XPATH, f"//*[text()='{names[i]}']").click()
                 break
 
-        if cb:
-            cb(names)
+        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+        try:
+            if cb:
+                cb(names)
+        except:
+            print("cb doesn't works")
 
     def printtingPage(self):
         time.sleep(1)
@@ -2366,8 +2385,9 @@ class Bot_POS:
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
-                    self.wait1.until(EC.text_to_be_present_in_element(
-                        (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
+                    #! ตรงนี้มันไม่ใช้แล้ว
+                    # self.wait1.until(EC.text_to_be_present_in_element(
+                    #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
                 else:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
                     pass
@@ -3251,6 +3271,15 @@ class Bot_POS:
             time.sleep(0.65)
             self.btnElement.click()  # create
 
+            # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            time.sleep(0.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
             self.driver.find_element(
@@ -3274,16 +3303,19 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
-            # # 09/11/2023 partนี้ ทาง SMCO ลบออกไปแล้ว
-            # self.wait1.until(EC.visibility_of_element_located(
-            #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-            # self.driver.find_element(
-            #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-
             # รอมันหายก่อน
             self.wait1.until(EC.invisibility_of_element_located(
                 (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
             is_functionworking = False
+
+            # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
+            # self.wait1.until(EC.visibility_of_element_located(
+            #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+            try:
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+            except:
+                pass
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
@@ -3304,6 +3336,16 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+
+        # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+        time.sleep(0.75)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+
         # * > nameTH clear
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
@@ -3407,15 +3449,18 @@ class Bot_POS:
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
-        # # กดเองตรวจเอง // 09/11/2023 partนี้ ลบออกไปแล้ว
-        # self.wait1.until(EC.visibility_of_element_located(
-        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-
         # รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+
+        # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
+        # self.wait1.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        except:
+            pass
 
     def addTaxInvCustomerLaz(self):
         tax_info = self.get_vatinfo_data(
@@ -3440,25 +3485,36 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
         time.sleep(0.75)
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+
+        # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
         self.driver.find_element(
-            # clear nameTH
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+        time.sleep(0.75)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+
+        # * clear nameTH
+        self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+
+        # * nameTH
         self.driver.find_element(
-            # nameTH
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(name)
 
+        # * clear nameEN
         self.driver.find_element(
-            # clear nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+        # * nameEN
         self.driver.find_element(
-            # nameEN
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(name)
 
+        # * clear Identity ID
         self.driver.find_element(
-            # clear Identity ID
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
+        # * Identity ID
         self.driver.find_element(
-            # Identity ID
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(tax_info['tax_num'])
 
         # * กรอก Address
@@ -3528,13 +3584,22 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
 
-        # * กด Save
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        # # * กด Save
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
 
         # #* รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป ใช้ได้
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+
+        # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
+        # self.wait1.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        except:
+            pass
 
     # * function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
 
@@ -3989,8 +4054,11 @@ if __name__ == "__main__":
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
 # *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
-# !66 การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
-# Todo67 ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
+# ?66 fixed 0.389 // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# ?67 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
+# *68 Fixed 0.389 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
+# *69 Fixed 0.389 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
+# *70 Update 0.389 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
