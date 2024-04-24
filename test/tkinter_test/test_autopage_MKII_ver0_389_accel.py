@@ -1294,35 +1294,33 @@ class MyApp:
                       type(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
-                if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
-                    print('ไม่ใช่ NaN? if', pd.isna(
-                        self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                
+                if self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0] != "":
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
                 else:
-                    print('ไม่ใช่ NaN? else', pd.isna(
-                        self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
                     tax_num_only = "ไม่มีเลข"
 
                 # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
-                if pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
+                if tax_num_only == "ไม่มีเลข":
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.config(
                         background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
-                    self.tax_num.set(tax_num_only)
+                    self.tax_num.set("")
                 elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
-                    self.tax_bool.set(False)
                     if len(tax_num_only) > 13:
+                        self.tax_bool.set(False)
                         self.is_tax.set("ขอ//เลขเกิน")
-                    else:
+                    elif len(tax_num_only) < 13: 
+                        self.tax_bool.set(False)
                         self.is_tax.set("ขอ//เลขไม่ครบ")
+                        
                     self.display_is_tax.config(
                         background="#8502d1", foreground="#FFF", font='Chiller 10 normal')
                     self.tax_num.set(tax_num_only)
 
                 else:
-
                     if "สำนักงานใหญ่" in self.branch_type:
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สนงใหญ่")
@@ -2575,7 +2573,7 @@ class Bot_POS:
             if self.is_forbid:
                 print("This order was forbidden.")
                 self.display_bot_status_label.config(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+                    text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
                 return
 
             ### * SMCO PART ############################################################################
@@ -3909,11 +3907,11 @@ class Bot_POS:
                     print("ทำไมได้ตลาดยอดวะ", tambon)
                     decent_tambon = tambon
                     break
-                
-            #*ลบตำบลออก
+
+            # *ลบตำบลออก
             cleaned_address = self.app.get_pure_address(cus_address)
-            
-            #* หาค่าตัวแปรที่เหมาะสมลงใน decent_tambon
+
+            # * หาค่าตัวแปรที่เหมาะสมลงใน decent_tambon
             if decent_tambon:
                 # * เจอตำบลในไฟล์
                 print("เลือกตำบลที่เหมาะสมมาแล้ว", decent_tambon)
