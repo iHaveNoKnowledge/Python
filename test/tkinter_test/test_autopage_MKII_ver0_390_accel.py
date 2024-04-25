@@ -132,7 +132,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.389")
+        self.root.title("Autosamatic ver0.390")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1294,7 +1294,7 @@ class MyApp:
                       type(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
-                
+
                 if self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0] != "":
                     tax_num_only = re.sub(
                         r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
@@ -1312,10 +1312,10 @@ class MyApp:
                     if len(tax_num_only) > 13:
                         self.tax_bool.set(False)
                         self.is_tax.set("ขอ//เลขเกิน")
-                    elif len(tax_num_only) < 13: 
+                    elif len(tax_num_only) < 13:
                         self.tax_bool.set(False)
                         self.is_tax.set("ขอ//เลขไม่ครบ")
-                        
+
                     self.display_is_tax.config(
                         background="#8502d1", foreground="#FFF", font='Chiller 10 normal')
                     self.tax_num.set(tax_num_only)
@@ -2411,13 +2411,15 @@ class Bot_POS:
                 try:
                     # * กรอก order ลงในช่อง search
                     self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+
                     self.search_elmt.clear()
                     self.search_elmt.send_keys(self.app.cus_order.get())
 
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]')
+
                     self.searchBtn.click()
                 except:
                     raise ValueError(f"method operation_start Error : {
@@ -4076,12 +4078,13 @@ if __name__ == "__main__":
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
 # *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
-# ?66 fixed 0.389 // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# ?66 fixed 0.390 // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
 # ?67 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
-# *68 Fixed 0.389 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
-# *69 Fixed 0.389 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
-# *70 Update 0.389 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
-# !71 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+# *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
+# *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
+# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
+# ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
