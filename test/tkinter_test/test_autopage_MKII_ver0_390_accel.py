@@ -1295,11 +1295,19 @@ class MyApp:
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
 
-                if self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0] != "":
-                    tax_num_only = re.sub(
-                        r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
-                else:
-                    tax_num_only = "ไม่มีเลข"
+                if self.marketplace_target.get() == 'SHOPEE':
+                    if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
+                        tax_num_only = re.sub(r'\D', '', str(
+                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
+                    else:
+                        tax_num_only = "ไม่มีเลข"
+
+                elif self.marketplace_target.get() == 'LAZADA':
+                    if self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0] != "":
+                        tax_num_only = re.sub(
+                            r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
+                    else:
+                        tax_num_only = "ไม่มีเลข"
 
                 # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
                 if tax_num_only == "ไม่มีเลข":
@@ -2255,6 +2263,7 @@ class Bot_POS:
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, names, cb=""):
         cus_desire_name = self.app.cus_name.get().replace(" ", "")
+        print("cus_desire_name: ", cus_desire_name)
 
         # * ทำการคัดเอาเฉพาะชื่อลูกค้า ลง array ไม่เอารหัส
         names_no_code = names.copy()
@@ -2263,7 +2272,7 @@ class Bot_POS:
             names_no_code[i] = prog.group(1).replace(" ", "")
 
         for i, name in enumerate(names_no_code):
-            if name == cus_desire_name:
+            if cus_desire_name in name:
                 self.driver.find_element(
                     By.XPATH, f"//*[text()='{names[i]}']").click()
                 break
@@ -3014,11 +3023,11 @@ class Bot_POS:
                                 if self.app.marketplace_target.get() == 'SHOPEE':
                                     # เลือก shopee
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+                                        By.XPATH, "//a[contains(.,'SHOPEE')]").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[3]/a').click()
+                                        By.XPATH, "//a[contains(., 'LAZ')]").click()
 
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
@@ -3292,13 +3301,16 @@ class Bot_POS:
             self.btnElement.click()  # create
 
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-            time.sleep(0.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+            try:
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+                time.sleep(0.75)
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+            except:
+                print("No customer category, Pass")
 
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
@@ -3358,13 +3370,16 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        time.sleep(0.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            time.sleep(0.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        except:
+            print("No customer category, Pass")
 
         # * > nameTH clear
         self.driver.find_element(
@@ -3507,13 +3522,16 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        time.sleep(0.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            time.sleep(0.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        except:
+            print("No customer category, Pass")
 
         # * clear nameTH
         self.driver.find_element(
@@ -4084,6 +4102,7 @@ if __name__ == "__main__":
 # *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
 # *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
 # ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+# *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
