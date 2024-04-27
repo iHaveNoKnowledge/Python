@@ -3186,6 +3186,7 @@ class Bot_POS:
                                             By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
                                         match = re.search(
                                             r'B\d+-W\d+-\d+', alert_text)
+                                        #* ถ้าไม่มีบิลมันจะพังตั้งแต่ match นี้แล้ว มันจะได้ค่า none
                                         print("match: ", match)
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
@@ -3208,6 +3209,7 @@ class Bot_POS:
                                     # * > รอหน้า canvas โผล่ก่อน
                                     # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
 
+                                    #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait1
                                     self.wait1.until(EC.visibility_of_element_located(
                                         (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
                                     time.sleep(1)
@@ -4104,6 +4106,7 @@ if __name__ == "__main__":
 # ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
 # *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
 # *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
+#Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
