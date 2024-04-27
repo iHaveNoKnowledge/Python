@@ -2260,6 +2260,21 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
+    def add_cusname(self):
+        # * ขอใบกำกับป่าว
+        if self.app.tax_bool.get():
+            print("Tax_needed")
+            if self.app.marketplace_target.get() == 'SHOPEE':
+                self.addTaxInvCustomer()
+
+            # * กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
+            elif self.app.marketplace_target.get() == 'LAZADA':
+                self.addTaxInvCustomerLaz()
+
+        else:
+            print("no_Tax_needed")
+            self.addNormalCustomer(self.cus_search_input)
+
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, names, cb=""):
         cus_desire_name = self.app.cus_name.get().replace(" ", "")
@@ -2272,17 +2287,26 @@ class Bot_POS:
             names_no_code[i] = prog.group(1).replace(" ", "")
 
         for i, name in enumerate(names_no_code):
+            print(cus_desire_name, "เทียบ", name)
             if cus_desire_name in name:
+                print("ชื่อที่ต้องการ อยู่ใน li")
                 self.driver.find_element(
                     By.XPATH, f"//*[text()='{names[i]}']").click()
-                break
-
-        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+                return
+            # * ถ้ามันเจอก็จะ break ไม่เจอค่อย cb
         try:
             if cb:
+                print("use callback")
                 cb(names)
+
+            # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
+            # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
+            # self.cus_search_input = self.app.cus_name.get()
+            # self.add_cusname()
         except:
             print("cb doesn't works")
+
+        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
 
     def printtingPage(self):
         time.sleep(1)
@@ -2423,6 +2447,8 @@ class Bot_POS:
                         (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
 
                     self.search_elmt.clear()
+                    print("กรอก order ลงในช่อง search: ",
+                          self.app.cus_order.get())
                     self.search_elmt.send_keys(self.app.cus_order.get())
 
                     # * กด Search เพื่อ เก็บ Status
@@ -2738,6 +2764,7 @@ class Bot_POS:
                     self.wait_condition = self.driver.find_element(
                         By.XPATH, self.app.cusNameLi1)
 
+                    # * ช่วงรอ ผลลัพของ Searching...
                     try:
                         if self.wait_condition.text == "Searching...":
                             continue
@@ -2747,25 +2774,30 @@ class Bot_POS:
                     except:
                         pass
 
+                    # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
                     self.wait1.until(EC.visibility_of_element_located(
                         (By.XPATH, self.app.cusNameLi1)))
                     self.wait_condition = self.driver.find_element(
                         By.XPATH, self.app.cusNameLi1)
+
+                    # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
                     if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
                         print("No results found and NeverAdd")
-                        # * ขอใบกำกับป่าว
-                        if self.app.tax_bool.get():
-                            print("Tax_needed")
-                            if self.app.marketplace_target.get() == 'SHOPEE':
-                                self.addTaxInvCustomer()
+                        #! ปิดไว้ก่อน จะเทสของใหม่
+                        # # * ขอใบกำกับป่าว
+                        # if self.app.tax_bool.get():
+                        #     print("Tax_needed")
+                        #     if self.app.marketplace_target.get() == 'SHOPEE':
+                        #         self.addTaxInvCustomer()
 
-                            # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
-                            elif self.app.marketplace_target.get() == 'LAZADA':
-                                self.addTaxInvCustomerLaz()
+                        #     # * กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
+                        #     elif self.app.marketplace_target.get() == 'LAZADA':
+                        #         self.addTaxInvCustomerLaz()
 
-                        else:
-                            print("no_Tax_needed")
-                            self.addNormalCustomer(self.cus_search_input)
+                        # else:
+                        #     print("no_Tax_needed")
+                        #     self.addNormalCustomer(self.cus_search_input)
+                        self.add_cusname()
 
                         # * เพิ่มจำนวนครั้งที่ add
                         self.customer_added_times += 1
@@ -2801,6 +2833,8 @@ class Bot_POS:
                         By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                         By.CSS_SELECTOR, '.select2-results__option')
+                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
+                          customer_name_dropdown_lis)
                     break
 
                 except:
@@ -2809,10 +2843,12 @@ class Bot_POS:
                     continue
 
             if len(customer_name_dropdown_lis) > 1:
+                print("มากกว่า 1")
                 li_names = [
                     element.text for element in customer_name_dropdown_lis]
                 self.select_cus_name_from_lis(
                     li_names, self.select_cus_name_from_lis)
+                print("click แล้ว")
             else:
                 self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
                 print("Click the cusname li result")
@@ -3186,8 +3222,8 @@ class Bot_POS:
                                             By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
                                         match = re.search(
                                             r'B\d+-W\d+-\d+', alert_text)
-                                        #* ถ้าไม่มีบิลมันจะพังตั้งแต่ match นี้แล้ว มันจะได้ค่า none
                                         print("match: ", match)
+                                        # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
                                         self.app.update_log(
@@ -3199,25 +3235,36 @@ class Bot_POS:
                                             self.etax_reprint(inv_number)
 
                                         self.final_popup_btn.click()
+                                        self.wait1.until(EC.visibility_of_element_located(
+                                            (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                        time.sleep(1)
+                                        self.driver.find_element(
+                                            By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                        self.printtingPage()
+                                        self.justPressP()
 
                                     except:
                                         # time.sleep(1)
                                         # print("ไม่ได้เลขบิล")
                                         # self.final_popup.click()
+                                        self.final_popup_btn.click()
                                         print("พัง ข้ามไปเลยละกัน")
+
+                                    break
 
                                     # * > รอหน้า canvas โผล่ก่อน
                                     # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
 
                                     #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait1
-                                    self.wait1.until(EC.visibility_of_element_located(
-                                        (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
-                                    time.sleep(1)
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
-                                    self.printtingPage()
-                                    self.justPressP()
-                                    break
+                                    #! ย้ายไปข้างบนแล้ว ถ้าข้างบนใช้ได้ข้างล่างลบทิ้งได้เลย
+                                    # self.wait1.until(EC.visibility_of_element_located(
+                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                    # time.sleep(1)
+                                    # self.driver.find_element(
+                                    #     By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                    # self.printtingPage()
+                                    # self.justPressP()
+                                    # break
 
                                 # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
                                 elif self.is_final_page.is_displayed() == False:
@@ -4098,7 +4145,7 @@ if __name__ == "__main__":
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
 # *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
-# ?66 fixed 0.390 // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# !66 ยังพังอยู่มันยัง Add ลูกค้าใหม่ได้ยังไม่ดีพอ // fixed 0.390  // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
 # ?67 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
 # *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
 # *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
@@ -4106,8 +4153,7 @@ if __name__ == "__main__":
 # ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
 # *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
 # *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
-#Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
-
+# Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
