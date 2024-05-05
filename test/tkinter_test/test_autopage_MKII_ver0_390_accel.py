@@ -1017,8 +1017,21 @@ class MyApp:
                 self.tax_id_match = re.search(r'\d{13}', self.order_note)
                 print("regexบันทึก: ", self.name_match)
                 print("ใช้ group กับ regexบันทึก: ", self.name_match.group())
+                self.note_extracted = {
+                    'name': self.name_match.group(),
+                    'branch': self.branch_match.group(),
+                    'address': self.address_match.group(),
+                    'tax_id': self.tax_id_match.group()
+                }
+                
+                self.cus_name.set(self.note_extracted['name'])
+                self.branch_type = self.note_extracted['branch']
+                self.update_gui(self.note_extracted['address'], self.display_cus_address)
+                self.tax_num.set(self.note_extracted['tax_id'])
+                
+            
         else:
-            print("ไม่มีค่า")
+            print("note_extractor not used")
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
@@ -1143,6 +1156,23 @@ class MyApp:
         else:
             return ''
 
+    def cus_name_simplifyer(self, name):
+        if name:
+            self.cus_name.set(self.translator(
+                re.sub(r'\s{2,}', " ", name.strip().replace('\u200b', ''))))
+
+            # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
+            self.cus_name.set(
+                re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
+
+            # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
+            self.cus_name.set(
+                self.tax_name_standardizer(self.cus_name.get()))
+            print("name.get()หลังจากทำการ standarrdizer",
+                  self.cus_name.get())
+        else:
+            print("Customer Name is empty")
+
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
         self.on_complete = on_complete
@@ -1254,19 +1284,12 @@ class MyApp:
                         col.configure(state="readonly")
 
                 # self.row_header_maker(self.items)
+
                 # * ชื่อที่ต้องออกใบกำกับ
                 self.cus_name.set(self.translator(re.sub(
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
 
-                # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
-                self.cus_name.set(
-                    re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
-
-                # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
-                self.cus_name.set(
-                    self.tax_name_standardizer(self.cus_name.get()))
-                print("self.cus_name.get()หลังจากทำการ standarrdizer",
-                      self.cus_name.get())
+                self.cus_name_simplifyer(self.cus_name.get())
 
                 # * ประเภทใบกำกับภาษี
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
@@ -1366,7 +1389,10 @@ class MyApp:
 
                 # * ดึงบันทึกลูกค้า SHOPEE
                 if self.marketplace_target.get() == 'SHOPEE':
+
                     self.note_extractor()
+                    # self.cus_name.set()
+                    # self.cus_name_simplifyer(self.name_match.group())
                 elif self.marketplace_target.get() == 'LAZADA':
                     pass
 
@@ -2439,9 +2465,9 @@ class Bot_POS:
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
                 else:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
-                    pass
 
                 try:
+                    print("Enter Fill order section")
                     # * กรอก order ลงในช่อง search
                     self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
                         (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
