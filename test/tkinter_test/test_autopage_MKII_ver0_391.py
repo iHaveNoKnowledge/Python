@@ -1308,11 +1308,19 @@ class MyApp:
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
 
-                if self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0] != "":
-                    tax_num_only = re.sub(
-                        r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
-                else:
-                    tax_num_only = "ไม่มีเลข"
+                if self.marketplace_target.get() == 'SHOPEE':
+                    if not pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]):
+                        tax_num_only = re.sub(r'\D', '', str(
+                            self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
+                    else:
+                        tax_num_only = "ไม่มีเลข"
+
+                elif self.marketplace_target.get() == 'LAZADA':
+                    if self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0] != "":
+                        tax_num_only = re.sub(
+                            r'\D', '', str(self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี']))
+                    else:
+                        tax_num_only = "ไม่มีเลข"
 
                 # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
                 if tax_num_only == "ไม่มีเลข":
