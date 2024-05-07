@@ -132,7 +132,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.391")
+        self.root.title("Autosamatic ver0.391R1")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1031,7 +1031,7 @@ class MyApp:
                 self.tax_num.set(self.note_extracted['tax_id'])
 
         else:
-            print("ไม่มีค่า")
+            print("note_extractor not used")
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
@@ -1156,6 +1156,23 @@ class MyApp:
         else:
             return ''
 
+    def cus_name_simplifyer(self, name):
+        if name:
+            self.cus_name.set(self.translator(
+                re.sub(r'\s{2,}', " ", name.strip().replace('\u200b', ''))))
+
+            # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
+            self.cus_name.set(
+                re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
+
+            # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
+            self.cus_name.set(
+                self.tax_name_standardizer(self.cus_name.get()))
+            print("name.get()หลังจากทำการ standarrdizer",
+                  self.cus_name.get())
+        else:
+            print("Customer Name is empty")
+
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
         self.on_complete = on_complete
@@ -1267,19 +1284,12 @@ class MyApp:
                         col.configure(state="readonly")
 
                 # self.row_header_maker(self.items)
+
                 # * ชื่อที่ต้องออกใบกำกับ
                 self.cus_name.set(self.translator(re.sub(
                     r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
 
-                # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
-                self.cus_name.set(
-                    re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
-
-                # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
-                self.cus_name.set(
-                    self.tax_name_standardizer(self.cus_name.get()))
-                print("self.cus_name.get()หลังจากทำการ standarrdizer",
-                      self.cus_name.get())
+                self.cus_name_simplifyer(self.cus_name.get())
 
                 # * ประเภทใบกำกับภาษี
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
@@ -1379,7 +1389,10 @@ class MyApp:
 
                 # * ดึงบันทึกลูกค้า SHOPEE
                 if self.marketplace_target.get() == 'SHOPEE':
+
                     self.note_extractor()
+                    # self.cus_name.set()
+                    # self.cus_name_simplifyer(self.name_match.group())
                 elif self.marketplace_target.get() == 'LAZADA':
                     pass
 
@@ -2273,6 +2286,21 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
+    def add_cusname(self):
+        # * ขอใบกำกับป่าว
+        if self.app.tax_bool.get():
+            print("Tax_needed")
+            if self.app.marketplace_target.get() == 'SHOPEE':
+                self.addTaxInvCustomer()
+
+            # * กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
+            elif self.app.marketplace_target.get() == 'LAZADA':
+                self.addTaxInvCustomerLaz()
+
+        else:
+            print("no_Tax_needed")
+            self.addNormalCustomer(self.cus_search_input)
+
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, names, cb=""):
         cus_desire_name = self.app.cus_name.get().replace(" ", "")
@@ -2326,6 +2354,8 @@ class Bot_POS:
                 cb(names)
         except:
             print("cb doesn't works")
+
+        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
 
     def printtingPage(self):
         time.sleep(1)
@@ -2452,13 +2482,12 @@ class Bot_POS:
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
                     self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click()
                     #! ตรงนี้มันไม่ใช้แล้ว
                     # self.wait1.until(EC.text_to_be_present_in_element(
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
                 else:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
-                    pass
 
                 try:
                     # * กรอก order ลงในช่อง search
@@ -2787,6 +2816,7 @@ class Bot_POS:
                     self.wait_condition = self.driver.find_element(
                         By.XPATH, self.app.cusNameLi1)
 
+                    # * ช่วงรอ ผลลัพของ Searching...
                     try:
                         if self.wait_condition.text == "Searching...":
                             continue
@@ -2796,25 +2826,30 @@ class Bot_POS:
                     except:
                         pass
 
+                    # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
                     self.wait1.until(EC.visibility_of_element_located(
                         (By.XPATH, self.app.cusNameLi1)))
                     self.wait_condition = self.driver.find_element(
                         By.XPATH, self.app.cusNameLi1)
+
+                    # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
                     if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
                         print("No results found and NeverAdd")
-                        # * ขอใบกำกับป่าว
-                        if self.app.tax_bool.get():
-                            print("Tax_needed")
-                            if self.app.marketplace_target.get() == 'SHOPEE':
-                                self.addTaxInvCustomer()
+                        #! ปิดไว้ก่อน จะเทสของใหม่
+                        # # * ขอใบกำกับป่าว
+                        # if self.app.tax_bool.get():
+                        #     print("Tax_needed")
+                        #     if self.app.marketplace_target.get() == 'SHOPEE':
+                        #         self.addTaxInvCustomer()
 
-                            # กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
-                            elif self.app.marketplace_target.get() == 'LAZADA':
-                                self.addTaxInvCustomerLaz()
+                        #     # * กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
+                        #     elif self.app.marketplace_target.get() == 'LAZADA':
+                        #         self.addTaxInvCustomerLaz()
 
-                        else:
-                            print("no_Tax_needed")
-                            self.addNormalCustomer(self.cus_search_input)
+                        # else:
+                        #     print("no_Tax_needed")
+                        #     self.addNormalCustomer(self.cus_search_input)
+                        self.add_cusname()
 
                         # * เพิ่มจำนวนครั้งที่ add
                         self.customer_added_times += 1
@@ -2850,6 +2885,8 @@ class Bot_POS:
                         By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                         By.CSS_SELECTOR, '.select2-results__option')
+                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
+                          customer_name_dropdown_lis)
                     break
 
                 except:
@@ -2858,10 +2895,12 @@ class Bot_POS:
                     continue
 
             if len(customer_name_dropdown_lis) > 1:
+                print("มากกว่า 1")
                 li_names = [
                     element.text for element in customer_name_dropdown_lis]
                 self.select_cus_name_from_lis(
                     li_names, self.select_cus_name_from_lis)
+                print("click แล้ว")
             else:
                 self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
                 print("Click the cusname li result")
@@ -3072,11 +3111,11 @@ class Bot_POS:
                                 if self.app.marketplace_target.get() == 'SHOPEE':
                                     # เลือก shopee
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[4]/a').click()
+                                        By.XPATH, "//a[contains(.,'SHOPEE')]").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[2]/div/div/div[3]/a').click()
+                                        By.XPATH, "//a[contains(., 'LAZ')]").click()
 
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
@@ -3236,6 +3275,7 @@ class Bot_POS:
                                         match = re.search(
                                             r'B\d+-W\d+-\d+', alert_text)
                                         print("match: ", match)
+                                        # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
                                         self.app.update_log(
@@ -3247,24 +3287,36 @@ class Bot_POS:
                                             self.etax_reprint(inv_number)
 
                                         self.final_popup_btn.click()
+                                        self.wait1.until(EC.visibility_of_element_located(
+                                            (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                        time.sleep(1)
+                                        self.driver.find_element(
+                                            By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                        self.printtingPage()
+                                        self.justPressP()
 
                                     except:
                                         # time.sleep(1)
                                         # print("ไม่ได้เลขบิล")
                                         # self.final_popup.click()
+                                        self.final_popup_btn.click()
                                         print("พัง ข้ามไปเลยละกัน")
+
+                                    break
 
                                     # * > รอหน้า canvas โผล่ก่อน
                                     # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
 
-                                    self.wait1.until(EC.visibility_of_element_located(
-                                        (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
-                                    time.sleep(1)
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
-                                    self.printtingPage()
-                                    self.justPressP()
-                                    break
+                                    #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait1
+                                    #! ย้ายไปข้างบนแล้ว ถ้าข้างบนใช้ได้ข้างล่างลบทิ้งได้เลย
+                                    # self.wait1.until(EC.visibility_of_element_located(
+                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                    # time.sleep(1)
+                                    # self.driver.find_element(
+                                    #     By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                    # self.printtingPage()
+                                    # self.justPressP()
+                                    # break
 
                                 # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
                                 elif self.is_final_page.is_displayed() == False:
@@ -3350,13 +3402,16 @@ class Bot_POS:
             self.btnElement.click()  # create
 
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-            time.sleep(0.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+            try:
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+                time.sleep(0.75)
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+            except:
+                print("No customer category, Pass")
 
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
@@ -3416,13 +3471,16 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        time.sleep(0.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            time.sleep(0.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        except:
+            print("No customer category, Pass")
 
         # * > nameTH clear
         self.driver.find_element(
@@ -3565,13 +3623,16 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        time.sleep(0.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            time.sleep(0.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        except:
+            print("No customer category, Pass")
 
         # * clear nameTH
         self.driver.find_element(
