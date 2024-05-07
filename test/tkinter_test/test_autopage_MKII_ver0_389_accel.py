@@ -132,7 +132,11 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
+<<<<<<< Updated upstream:test/tkinter_test/test_autopage_MKII_ver0_389_accel.py
         self.root.title("Autosamatic ver0.389")
+=======
+        self.root.title("Autosamatic ver0.391")
+>>>>>>> Stashed changes:test/tkinter_test/test_autopage_MKII_ver0_390_accel.py
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1017,6 +1021,22 @@ class MyApp:
                 self.tax_id_match = re.search(r'\d{13}', self.order_note)
                 print("regexบันทึก: ", self.name_match)
                 print("ใช้ group กับ regexบันทึก: ", self.name_match.group())
+<<<<<<< Updated upstream:test/tkinter_test/test_autopage_MKII_ver0_389_accel.py
+=======
+                self.note_extracted = {
+                    'name': self.name_match.group(),
+                    'branch': self.branch_match.group(),
+                    'address': self.address_match.group(),
+                    'tax_id': self.tax_id_match.group()
+                }
+
+                self.cus_name.set(self.note_extracted['name'])
+                self.branch_type = self.note_extracted['branch']
+                self.update_gui(
+                    self.note_extracted['address'], self.display_cus_address)
+                self.tax_num.set(self.note_extracted['tax_id'])
+
+>>>>>>> Stashed changes:test/tkinter_test/test_autopage_MKII_ver0_390_accel.py
         else:
             print("ไม่มีค่า")
 
@@ -2263,10 +2283,48 @@ class Bot_POS:
             names_no_code[i] = prog.group(1).replace(" ", "")
 
         for i, name in enumerate(names_no_code):
+<<<<<<< Updated upstream:test/tkinter_test/test_autopage_MKII_ver0_389_accel.py
             if name == cus_desire_name:
                 self.driver.find_element(
                     By.XPATH, f"//*[text()='{names[i]}']").click()
                 break
+=======
+            print("if ", cus_desire_name, " In ", name)
+            if cus_desire_name in name:
+                print("ชื่อที่ต้องการ อยู่ใน li")
+                while True:
+                    try:
+                        print("เลือกชื่อลูกค้า", names[i])
+                        # * 1st way error
+                        # self.driver.find_element(
+                        #     By.XPATH, f"//*[text()='{names[i]}']").click()
+
+                        # * 2nd way error
+                        # target = self.driver.find_element(By.XPATH, f"//*[text()='{names[i]}']")
+                        # target.click()
+
+                        # * 3rd way trying
+                        self.driver.find_element(
+                            By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+
+                        break
+                    except:
+
+                        continue
+                return
+            # * ถ้ามันเจอก็จะ break ไม่เจอค่อย cb
+        try:
+            if cb:
+                print("use callback")
+                cb(names)
+
+            # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
+            # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
+            # self.cus_search_input = self.app.cus_name.get()
+            # self.add_cusname()
+        except:
+            print("cb doesn't works")
+>>>>>>> Stashed changes:test/tkinter_test/test_autopage_MKII_ver0_390_accel.py
 
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
         try:
@@ -2411,26 +2469,42 @@ class Bot_POS:
                 try:
                     # * กรอก order ลงในช่อง search
                     self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
+<<<<<<< Updated upstream:test/tkinter_test/test_autopage_MKII_ver0_389_accel.py
                         (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+=======
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
+
+>>>>>>> Stashed changes:test/tkinter_test/test_autopage_MKII_ver0_390_accel.py
                     self.search_elmt.clear()
                     self.search_elmt.send_keys(self.app.cus_order.get())
 
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
+<<<<<<< Updated upstream:test/tkinter_test/test_autopage_MKII_ver0_389_accel.py
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+=======
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]')
+
+>>>>>>> Stashed changes:test/tkinter_test/test_autopage_MKII_ver0_390_accel.py
                     self.searchBtn.click()
                 except:
                     raise ValueError(f"method operation_start Error : {
                                      traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update
-                # *> รอให้ elemtn ที่อยู๋หลังสุดปรากดก่อน
+                time.sleep(0.75)
                 try:
+                    print("Found element classed big-text")
                     self.driver.find_element(
                         By.CLASS_NAME, 'big-text').is_displayed()
                 except:
+                    print(
+                        "Not found element classed big-text, try to wait and click element with XPATH")
                     self.wait1.until(EC.element_to_be_clickable(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div')))
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div')))
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
@@ -4076,12 +4150,26 @@ if __name__ == "__main__":
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
 # *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
+<<<<<<< Updated upstream:test/tkinter_test/test_autopage_MKII_ver0_389_accel.py
 # ?66 fixed 0.389 // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
 # ?67 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
 # *68 Fixed 0.389 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
 # *69 Fixed 0.389 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
 # *70 Update 0.389 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
 # !71 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+=======
+# !66 ยังพังอยู่มันยัง Add ลูกค้าใหม่ได้ยังไม่ดีพอ // fixed 0.390  // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# *67 fixed 0.390 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
+# *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
+# *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
+# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
+# ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+# *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
+# *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
+# Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
+# *75 Fixed 0.391 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่ อีกแล้วเรอะ
+# *76 Fixed 0.391 // จาก ข้อ 66 ปรับวิธีเลือก li ใบกำกับ เนื่องจากอันเดิม เป็นการเลือกจาก "ชื่อเต็ม"จาก li  แต่มันมีปัญหาคือ หา element ไม่เจอ เปลี่ยนไปใช้หาโดย idx แทนทดสอบแล้ว แม่นอยู่ (แต่เดี๋ยว พอใช้จริงพัง 55555)
+>>>>>>> Stashed changes:test/tkinter_test/test_autopage_MKII_ver0_390_accel.py
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
