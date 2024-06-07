@@ -132,7 +132,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.391R1")
+        self.root.title("Autosamatic ver0.392")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -563,6 +563,10 @@ class MyApp:
 
         # * accel data frame เราจะใช้แปลงค่า
         self.accel_df = pd.read_excel(self.accel_location, dtype=str)
+
+        #* สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
+        accel_file_columns = self.accel_df.columns.dropna().tolist()
+        self.obj_data = {col: self.accel_df[col].tolist() for col in accel_file_columns}
 
         self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
         self.sn_list = self.accel_df['sn'].dropna().tolist()
@@ -1741,6 +1745,7 @@ class MyApp:
 
     def convert_text(self, text):
         result = []
+        text = text.replace(" ", "")
         elements = text.split("+")
 
         for element in elements:
@@ -2428,38 +2433,80 @@ class Bot_POS:
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
+        # *  ดึง array items เก็บลงตัวแปร items
         items = self.app.items
-        if self.app.sn_list:
-            print("มี SN")
-            time.sleep(1)
-            while True:
-                try:
-                    # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                    break
-                except:
-                    continue
-            sn = self.app.sn_list.pop(0)
-            skuInput = self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-            skuInput.clear()
+        print('accel_fill_sku() ตรวจสอบ items = ', items)
+        if len(items) > 0:
+            for item in items:
+                if item in self.app.obj_data:
+                    self.app.obj_data[item]
+                    
+                    if self.app.obj_data[item]:
+                        print("มี SN")
+                        time.sleep(1)
+                        while True:
+                            try:
+                                # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
+                                self.driver.find_element(
+                                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                                break
+                            except:
+                                continue
+                        sn = self.app.obj_data[item].pop(0)
+                        skuInput = self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                        skuInput.clear()
 
-            skuInput.send_keys(sn)
-            print("fill sn complete")
+                        skuInput.send_keys(sn)
+                        print("fill sn complete")
 
-            # while True:
-            skuInput.send_keys(Keys().ENTER)
-            print("pressed Enter at SKU-Input")
-            time.sleep(2)
+                        # while True:
+                        skuInput.send_keys(Keys().ENTER)
+                        print("pressed Enter at SKU-Input")
+                        time.sleep(2)
 
-        else:
+                    else:
 
-            print("ไม่มี SN, there are no functions available at this moment")
-            pass
-            # self.app.is_accel_mode_activated.set(False)
-            # raise ValueError(
-            #     "There's no SN in Accel File, no functions to handle at this moment.")
+                        print("ไม่มี SN, there are no functions available at this moment")
+                        pass
+                        # self.app.is_accel_mode_activated.set(False)
+                        # raise ValueError(
+                        #     "There's no SN in Accel File, no functions to handle at this moment.")
+                        
+            
+            #*เก่า
+                    # if self.app.sn_list:
+                    #     print("มี SN")
+                    #     time.sleep(1)
+                    #     while True:
+                    #         try:
+                    #             # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
+                    #             self.driver.find_element(
+                    #                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                    #             break
+                    #         except:
+                    #             continue
+                    #     sn = self.app.sn_list.pop(0)
+                    #     skuInput = self.driver.find_element(
+                    #         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                    #     skuInput.clear()
+
+                    #     skuInput.send_keys(sn)
+                    #     print("fill sn complete")
+
+                    #     # while True:
+                    #     skuInput.send_keys(Keys().ENTER)
+                    #     print("pressed Enter at SKU-Input")
+                    #     time.sleep(2)
+
+                    # else:
+
+                    #     print("ไม่มี SN, there are no functions available at this moment")
+                    #     pass
+                    #     # self.app.is_accel_mode_activated.set(False)
+                    #     # raise ValueError(
+                    #     #     "There's no SN in Accel File, no functions to handle at this moment.")
+
 
     def operation_start(self):
         self.app.is_gui_busy.set(True)
@@ -4208,6 +4255,7 @@ if __name__ == "__main__":
 # Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
 # *75 Fixed 0.391 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่ อีกแล้วเรอะ
 # *76 Fixed 0.391 // จาก ข้อ 66 ปรับวิธีเลือก li ใบกำกับ เนื่องจากอันเดิม เป็นการเลือกจาก "ชื่อเต็ม"จาก li  แต่มันมีปัญหาคือ หา element ไม่เจอ เปลี่ยนไปใช้หาโดย idx แทนทดสอบแล้ว แม่นอยู่ (แต่เดี๋ยว พอใช้จริงพัง 55555)
+# *77 Fixed 0.392 // ปรับช่วงรับ Data ขาเข้าของ Sonicblow ให้ตัด space ออกก่อนแล้ว
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
