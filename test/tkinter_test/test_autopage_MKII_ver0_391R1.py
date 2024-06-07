@@ -132,7 +132,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.389")
+        self.root.title("Autosamatic ver0.392")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -563,6 +563,10 @@ class MyApp:
 
         # * accel data frame เราจะใช้แปลงค่า
         self.accel_df = pd.read_excel(self.accel_location, dtype=str)
+
+        #* สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
+        accel_file_columns = self.accel_df.columns.dropna().tolist()
+        self.obj_data = {col: self.accel_df[col].tolist() for col in accel_file_columns}
 
         self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
         self.sn_list = self.accel_df['sn'].dropna().tolist()
@@ -1017,6 +1021,19 @@ class MyApp:
                 self.tax_id_match = re.search(r'\d{13}', self.order_note)
                 print("regexบันทึก: ", self.name_match)
                 print("ใช้ group กับ regexบันทึก: ", self.name_match.group())
+                self.note_extracted = {
+                    'name': self.name_match.group(),
+                    'branch': self.branch_match.group(),
+                    'address': self.address_match.group(),
+                    'tax_id': self.tax_id_match.group()
+                }
+
+                self.cus_name.set(self.note_extracted['name'])
+                self.branch_type = self.note_extracted['branch']
+                self.update_gui(
+                    self.note_extracted['address'], self.display_cus_address)
+                self.tax_num.set(self.note_extracted['tax_id'])
+
         else:
             print("note_extractor not used")
 
@@ -1728,6 +1745,7 @@ class MyApp:
 
     def convert_text(self, text):
         result = []
+        text = text.replace(" ", "")
         elements = text.split("+")
 
         for element in elements:
@@ -2291,7 +2309,6 @@ class Bot_POS:
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, names, cb=""):
         cus_desire_name = self.app.cus_name.get().replace(" ", "")
-        print("cus_desire_name: ", cus_desire_name)
 
         # * ทำการคัดเอาเฉพาะชื่อลูกค้า ลง array ไม่เอารหัส
         names_no_code = names.copy()
@@ -2300,12 +2317,30 @@ class Bot_POS:
             names_no_code[i] = prog.group(1).replace(" ", "")
 
         for i, name in enumerate(names_no_code):
-            if name == cus_desire_name:
-                self.driver.find_element(
-                    By.XPATH, f"//*[text()='{names[i]}']").click()
-                break
+            print("if ", cus_desire_name, " In ", name)
+            if cus_desire_name in name:
+                print("ชื่อที่ต้องการ อยู่ใน li")
+                while True:
+                    try:
+                        print("เลือกชื่อลูกค้า", names[i])
+                        # * 1st way error
+                        # self.driver.find_element(
+                        #     By.XPATH, f"//*[text()='{names[i]}']").click()
 
-        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+                        # * 2nd way error
+                        # target = self.driver.find_element(By.XPATH, f"//*[text()='{names[i]}']")
+                        # target.click()
+
+                        # * 3rd way trying
+                        self.driver.find_element(
+                            By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+
+                        break
+                    except:
+
+                        continue
+                return
+            # * ถ้ามันเจอก็จะ break ไม่เจอค่อย cb
         try:
             if cb:
                 print("use callback")
@@ -2315,6 +2350,13 @@ class Bot_POS:
             # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
             # self.cus_search_input = self.app.cus_name.get()
             # self.add_cusname()
+        except:
+            print("cb doesn't works")
+
+        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+        try:
+            if cb:
+                cb(names)
         except:
             print("cb doesn't works")
 
@@ -2391,38 +2433,80 @@ class Bot_POS:
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
+        # *  ดึง array items เก็บลงตัวแปร items
         items = self.app.items
-        if self.app.sn_list:
-            print("มี SN")
-            time.sleep(1)
-            while True:
-                try:
-                    # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                    break
-                except:
-                    continue
-            sn = self.app.sn_list.pop(0)
-            skuInput = self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-            skuInput.clear()
+        print('accel_fill_sku() ตรวจสอบ items = ', items)
+        if len(items) > 0:
+            for item in items:
+                if item in self.app.obj_data:
+                    self.app.obj_data[item]
+                    
+                    if self.app.obj_data[item]:
+                        print("มี SN")
+                        time.sleep(1)
+                        while True:
+                            try:
+                                # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
+                                self.driver.find_element(
+                                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                                break
+                            except:
+                                continue
+                        sn = self.app.obj_data[item].pop(0)
+                        skuInput = self.driver.find_element(
+                            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                        skuInput.clear()
 
-            skuInput.send_keys(sn)
-            print("fill sn complete")
+                        skuInput.send_keys(sn)
+                        print("fill sn complete")
 
-            # while True:
-            skuInput.send_keys(Keys().ENTER)
-            print("pressed Enter at SKU-Input")
-            time.sleep(2)
+                        # while True:
+                        skuInput.send_keys(Keys().ENTER)
+                        print("pressed Enter at SKU-Input")
+                        time.sleep(2)
 
-        else:
+                    else:
 
-            print("ไม่มี SN, there are no functions available at this moment")
-            pass
-            # self.app.is_accel_mode_activated.set(False)
-            # raise ValueError(
-            #     "There's no SN in Accel File, no functions to handle at this moment.")
+                        print("ไม่มี SN, there are no functions available at this moment")
+                        pass
+                        # self.app.is_accel_mode_activated.set(False)
+                        # raise ValueError(
+                        #     "There's no SN in Accel File, no functions to handle at this moment.")
+                        
+            
+            #*เก่า
+                    # if self.app.sn_list:
+                    #     print("มี SN")
+                    #     time.sleep(1)
+                    #     while True:
+                    #         try:
+                    #             # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
+                    #             self.driver.find_element(
+                    #                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                    #             break
+                    #         except:
+                    #             continue
+                    #     sn = self.app.sn_list.pop(0)
+                    #     skuInput = self.driver.find_element(
+                    #         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                    #     skuInput.clear()
+
+                    #     skuInput.send_keys(sn)
+                    #     print("fill sn complete")
+
+                    #     # while True:
+                    #     skuInput.send_keys(Keys().ENTER)
+                    #     print("pressed Enter at SKU-Input")
+                    #     time.sleep(2)
+
+                    # else:
+
+                    #     print("ไม่มี SN, there are no functions available at this moment")
+                    #     pass
+                    #     # self.app.is_accel_mode_activated.set(False)
+                    #     # raise ValueError(
+                    #     #     "There's no SN in Accel File, no functions to handle at this moment.")
+
 
     def operation_start(self):
         self.app.is_gui_busy.set(True)
@@ -2445,7 +2529,7 @@ class Bot_POS:
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
                     self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[1]/div[1]/div/div/div/div[1]/div/div[1]/div[1]').click()
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click()
                     #! ตรงนี้มันไม่ใช้แล้ว
                     # self.wait1.until(EC.text_to_be_present_in_element(
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
@@ -2453,18 +2537,19 @@ class Bot_POS:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
 
                 try:
-                    print("Enter Fill order section")
                     # * กรอก order ลงในช่อง search
                     self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[1]/span[2]/div/div[1]/div/div/input')))
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
+
                     self.search_elmt.clear()
-                    print("กรอก order ลงในช่อง search: ",
-                          self.app.cus_order.get())
                     self.search_elmt.send_keys(self.app.cus_order.get())
 
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[2]/div[2]/div[2]/button[1]')
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]')
+
                     self.searchBtn.click()
                 except:
                     raise ValueError(f"method operation_start Error : {
@@ -4159,12 +4244,18 @@ if __name__ == "__main__":
 # *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
 # *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
 # *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
-# ?66 fixed 0.389 // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
-# ?67 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
-# *68 Fixed 0.389 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
-# *69 Fixed 0.389 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
-# *70 Update 0.389 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
-# !71 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+# !66 ยังพังอยู่มันยัง Add ลูกค้าใหม่ได้ยังไม่ดีพอ // fixed 0.390  // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# *67 fixed 0.390 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
+# *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
+# *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
+# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
+# ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+# *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
+# *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
+# Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
+# *75 Fixed 0.391 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่ อีกแล้วเรอะ
+# *76 Fixed 0.391 // จาก ข้อ 66 ปรับวิธีเลือก li ใบกำกับ เนื่องจากอันเดิม เป็นการเลือกจาก "ชื่อเต็ม"จาก li  แต่มันมีปัญหาคือ หา element ไม่เจอ เปลี่ยนไปใช้หาโดย idx แทนทดสอบแล้ว แม่นอยู่ (แต่เดี๋ยว พอใช้จริงพัง 55555)
+# *77 Fixed 0.392 // ปรับช่วงรับ Data ขาเข้าของ Sonicblow ให้ตัด space ออกก่อนแล้ว
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
