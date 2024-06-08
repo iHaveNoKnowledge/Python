@@ -567,13 +567,14 @@ class MyApp:
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
         accel_file_columns = self.accel_df.columns.dropna().tolist()
         self.obj_data = {
-            col: self.accel_df[col].tolist() for col in accel_file_columns}
+            col: self.accel_df[col].dropna().tolist() for col in accel_file_columns}
 
         self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
-        self.sn_list = self.accel_df['sn'].dropna().tolist()
+        # self.sn_list = self.accel_df['sn'].dropna().tolist()
         self.CP_list = self.accel_df['cp'].dropna().tolist()
         print(self.accel_orders_list)
-        print(self.sn_list)
+        print('self.obj_dataไมไม่ได้วะ: ', self.obj_data)
+        # print(self.sn_list)
         print(self.CP_list)
 
     def select_excel(self):
@@ -2435,14 +2436,15 @@ class Bot_POS:
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
         # *  ดึง array items เก็บลงตัวแปร items
-        items = self.app.items['เลขอ้างอิง SKU (SKU Reference No.)']
+        items = self.app.items
         print('accel_fill_sku() ตรวจสอบ items = ', items)
         if len(items) > 0:
             for item in items:
-                if item in self.app.obj_data:
-                    self.app.obj_data[item]
+                current_sku = item['เลขอ้างอิง SKU (SKU Reference No.)']
+                if current_sku in self.app.obj_data:
+                    self.app.obj_data[current_sku]
 
-                    if self.app.obj_data[item]:
+                    if self.app.obj_data[current_sku]:
                         print("มี SN")
                         time.sleep(1)
                         while True:
@@ -2453,7 +2455,7 @@ class Bot_POS:
                                 break
                             except:
                                 continue
-                        sn = self.app.obj_data[item].pop(0)
+                        sn = self.app.obj_data[current_sku].pop(0)
                         skuInput = self.driver.find_element(
                             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         skuInput.clear()
@@ -4256,7 +4258,8 @@ if __name__ == "__main__":
 # *75 Fixed 0.391 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่ อีกแล้วเรอะ
 # *76 Fixed 0.391 // จาก ข้อ 66 ปรับวิธีเลือก li ใบกำกับ เนื่องจากอันเดิม เป็นการเลือกจาก "ชื่อเต็ม"จาก li  แต่มันมีปัญหาคือ หา element ไม่เจอ เปลี่ยนไปใช้หาโดย idx แทนทดสอบแล้ว แม่นอยู่ (แต่เดี๋ยว พอใช้จริงพัง 55555)
 # *77 Fixed 0.392 // ปรับช่วงรับ Data ขาเข้าของ Sonicblow ให้ตัด space ออกก่อนแล้ว
-# ?78 WIP 0.392 // ปรับ accel mode แบบ อัดทุก SKU รอทดลองว่าพังไหม
+# *78 Done but bug 0.392 // สรุปว่าพัง // ปรับ accel mode แบบ อัดทุก SKU รอทดลองว่าพังไหม
+# !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
