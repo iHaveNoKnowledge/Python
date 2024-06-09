@@ -1208,6 +1208,11 @@ class MyApp:
                 # print("ของมีไรบ้าง: ", self.data_frame['ส่วนลดจาก Shopee'])
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict(
                     'records')
+                # ตัดช่องว่าง
+                for row in self.items:
+                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
+                        ' ', '')
+
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
                 )
                 print('self.nondistortedData', self.nondistortedData)
