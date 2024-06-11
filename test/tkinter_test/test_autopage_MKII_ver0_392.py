@@ -566,14 +566,15 @@ class MyApp:
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
         accel_file_columns = self.accel_df.columns.dropna().tolist()
-        self.obj_data = {
-            col: self.accel_df[col].dropna().tolist() for col in accel_file_columns}
+        self.obj_data_from_accel_file = {
+            col: self.accel_df[col].replace(" ", '').dropna().tolist() for col in accel_file_columns}
 
         self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
         # self.sn_list = self.accel_df['sn'].dropna().tolist()
         self.CP_list = self.accel_df['cp'].dropna().tolist()
         print(self.accel_orders_list)
-        print('self.obj_dataไมไม่ได้วะ: ', self.obj_data)
+        print('self.obj_data_from_accel_fileไมไม่ได้วะ: ',
+              self.obj_data_from_accel_file)
         # print(self.sn_list)
         print(self.CP_list)
 
@@ -2446,10 +2447,10 @@ class Bot_POS:
         if len(items) > 0:
             for item in items:
                 current_sku = item['เลขอ้างอิง SKU (SKU Reference No.)']
-                if current_sku in self.app.obj_data:
-                    self.app.obj_data[current_sku]
+                if current_sku in self.app.obj_data_from_accel_file:
+                    self.app.obj_data_from_accel_file[current_sku]
 
-                    if self.app.obj_data[current_sku]:
+                    if self.app.obj_data_from_accel_file[current_sku]:
                         print("มี SN")
                         time.sleep(1)
                         while True:
@@ -2460,7 +2461,8 @@ class Bot_POS:
                                 break
                             except:
                                 continue
-                        sn = self.app.obj_data[current_sku].pop(0)
+                        sn = self.app.obj_data_from_accel_file[current_sku].pop(
+                            0)
                         skuInput = self.driver.find_element(
                             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         skuInput.clear()
@@ -2514,6 +2516,9 @@ class Bot_POS:
                     #     # self.app.is_accel_mode_activated.set(False)
                     #     # raise ValueError(
                     #     #     "There's no SN in Accel File, no functions to handle at this moment.")
+        else:
+            print("No items, return!!")
+            return
 
     def operation_start(self):
         self.app.is_gui_busy.set(True)
@@ -4265,6 +4270,7 @@ if __name__ == "__main__":
 # *77 Fixed 0.392 // ปรับช่วงรับ Data ขาเข้าของ Sonicblow ให้ตัด space ออกก่อนแล้ว
 # *78 Done but bug 0.392 // สรุปว่าพัง // ปรับ accel mode แบบ อัดทุก SKU รอทดลองว่าพังไหม
 # !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
+# !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
