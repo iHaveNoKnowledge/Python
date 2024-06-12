@@ -2384,13 +2384,14 @@ class Bot_POS:
         self.wsh.SendKeys("{Enter}")
         print("print แล้วโว้ย")
         time.sleep(2)
-        #* กดข้างนอกแล้วส่ง event ปุ่ม  ESC จาก KB
+        # * กดข้างนอกแล้วส่ง event ปุ่ม  ESC จาก KB
         # self.driver.find_element(By.XPATH, '/html/body/div[3]/div/div/div').click()
         # self.wsh.SendKeys("{ESC}")
-        
-        #* ใช้ selenium กดปุ่มแดงโดยตรง
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button').click()
-        
+
+        # * ใช้ selenium กดปุ่มแดงโดยตรง ปุ่มแดงหน้า print ไม่เหมือน ปุ่มแดงหน้าแรก เพราะห้นปริ้นจะเป็น tag a ส่วนหน้าปกติมันเป็น button ใช้คนละ element แต่อยู๋ตำแหน่งเดียวกัน โคตรปั่น
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
+
         print("กด esc แล้ว")
         # ถ้าเขียนเป็น cb แล้วมันจะพัง
 
@@ -4284,6 +4285,11 @@ if __name__ == "__main__":
 # *E3 canvas มันไม่โผล่ ทำให้ bot status มันไม่จบ มันจะค้างที่ Your turn
 # Todo ETAX ได้ข่าวมาว่าจะไม่ได้ใช้ตลอดไป แต่อาจจะเลิกใช้ที่เดือนกุมภา วันที่ 15 แปลว่า etax อาจจะเป็นโหมดชั่วคราว
 
+# Todo Future Features
+#!--------------------- Auto CP SAGA ------------------------------------
+# * ACP1 CPs บางอันมันจะมีวันที่ทับกัน
+# * ACP2 CPs แต่ละอันมันอาจจะมีราคาที่ต้องออก เท่ากัน บางอัน
+# * ACP3 แต่ CPs แต่ละอันมันจะมีมูลค่า CP ไม่เท่ากัน ถึงแม้ปลายทางมันจะเหมือนกัน ผลรวมลด เท่ากัน
 
 # เก็บข้อมูล
 # รอให้ final pop-up poped up /html/body/div[16]/div[2]/div[6]
