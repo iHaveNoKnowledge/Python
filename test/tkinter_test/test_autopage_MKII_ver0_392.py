@@ -1767,9 +1767,9 @@ class MyApp:
     def demonic_cp(self):
         self.item_no = int(self.entered_item_no.get())-1
         self.cp_no = int(self.entered_cp_no.get())
-        self.demonic_list = self.convert_text(
+        self.demonic_ordered_items_list = self.convert_text(
             self.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        print(self.demonic_list)
+        print(self.demonic_ordered_items_list)
         print(self.cp_no)
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
@@ -1785,7 +1785,7 @@ class MyApp:
             By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
 
         # print("items_list", items_list)
-        for idx, item in enumerate(self.demonic_list):
+        for idx, item in enumerate(self.demonic_ordered_items_list):
             print("มาถึงนี่ไหม")
             for idx2, div in enumerate(items_list):
                 print("รอบ", idx2)
@@ -2171,9 +2171,9 @@ class Bot_POS:
         self.cp_no = int(cp_no)
         print("ตอนแรกเปนงี้",
               self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_list = self.convert_text(
+        self.demonic_ordered_items_list = self.convert_text(
             self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        print(self.demonic_list)
+        print(self.demonic_ordered_items_list)
         print(self.cp_no)
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
@@ -2188,7 +2188,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
 
         # print("items_list", items_list)
-        for idx, item in enumerate(self.demonic_list):
+        for idx, item in enumerate(self.demonic_ordered_items_list):
             print("มาถึงนี่ไหม")
             for idx2, div in enumerate(items_list):
                 try:
@@ -2384,9 +2384,13 @@ class Bot_POS:
         self.wsh.SendKeys("{Enter}")
         print("print แล้วโว้ย")
         time.sleep(2)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[3]/div/div/div').click()
-        self.wsh.SendKeys("{ESC}")
+        #* กดข้างนอกแล้วส่ง event ปุ่ม  ESC จาก KB
+        # self.driver.find_element(By.XPATH, '/html/body/div[3]/div/div/div').click()
+        # self.wsh.SendKeys("{ESC}")
+        
+        #* ใช้ selenium กดปุ่มแดงโดยตรง
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button').click()
+        
         print("กด esc แล้ว")
         # ถ้าเขียนเป็น cb แล้วมันจะพัง
 
