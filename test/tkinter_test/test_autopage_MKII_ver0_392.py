@@ -4184,11 +4184,27 @@ if __name__ == "__main__":
         print("Tkinter window is closing")
         root.destroy()
 
+    def ctrl_saraea_copy(event):
+        ctrl_state = event.state & 0x4 != 0  # 0x4 คือ flag สำหรับ Control key
+        # 67 คือรหัสสำหรับสระแอในภาษาไทย (อาจแตกต่างบนระบบอื่นๆ)
+        if ctrl_state and event.keycode == 67:
+            event.widget.event_generate("<<Copy>>")
+
     root = CTk()
     # * options
+
+    # * > ทำลาย root tkInter เมื่อguiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
     root.protocol("WM_DELETE_WINDOW", on_closing)
+
+    # * > ลืมไปละ น่าจะเกี่ยวกับช่องไฟ
     root.columnconfigure(0, weight=1)
+
+    # * > ปรับขนาดจอ
     # root.resizable(False, False)
+
+    # * > ทำให้กด copy จากภาษาอะไรก็ได้
+    root.bind('<Key>', ctrl_saraea_copy)
+
     # * Create Instance
     app = MyApp(root)
     root.mainloop()
@@ -4276,6 +4292,7 @@ if __name__ == "__main__":
 # *78 Done but bug 0.392 // สรุปว่าพัง // ปรับ accel mode แบบ อัดทุก SKU รอทดลองว่าพังไหม
 # !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
 # !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
+# *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
