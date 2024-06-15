@@ -591,9 +591,10 @@ class MyApp:
         if not has_order.empty:
             df.loc[df['orders'] == order, 'orders'] = ''
 
+        print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
         if sku_serials:
             for sn in sku_serials:
-                df.loc[df[sn.sku] == sn.sn, sn.sn] = ''
+                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
 
         df.to_excel(self.accel_location, sheet_name='Sheet1', index=False)
 
@@ -1303,6 +1304,7 @@ class MyApp:
                         0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
                     self.widgets_total_rebt_prc_lst.append(
                         self.total_rebate_price_col_value_widget)
+
                     # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
                     # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search, width=10)
                     # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
@@ -2466,48 +2468,54 @@ class Bot_POS:
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
+        self.used_serials = []
         # *  ดึง array items เก็บลงตัวแปร items
         items = self.app.items
         print('accel_fill_sku() ตรวจสอบ items = ', items)
         if len(items) > 0:
             for item in items:
                 current_sku = item['เลขอ้างอิง SKU (SKU Reference No.)']
+                sku_qty = item['จำนวน']
                 if current_sku in self.app.obj_data_from_accel_file:
-                    self.app.obj_data_from_accel_file[current_sku]
+                    for item in range(sku_qty):
+                        self.app.obj_data_from_accel_file[current_sku]
 
-                    if self.app.obj_data_from_accel_file[current_sku]:
-                        print("มี SN")
-                        time.sleep(1)
-                        while True:
-                            try:
-                                # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                                break
-                            except:
-                                continue
-                        sn = self.app.obj_data_from_accel_file[current_sku].pop(
-                            0)
-                        skuInput = self.driver.find_element(
-                            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                        skuInput.clear()
+                        if self.app.obj_data_from_accel_file[current_sku]:
+                            print("มี SN")
+                            time.sleep(1)
+                            while True:
+                                try:
+                                    # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                                    break
+                                except:
+                                    continue
+                            sn = self.app.obj_data_from_accel_file[current_sku].pop(
+                                0)
+                            skuInput = self.driver.find_element(
+                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                            skuInput.clear()
 
-                        skuInput.send_keys(sn)
-                        print("fill sn complete")
+                            skuInput.send_keys(sn)
+                            print("fill sn complete")
 
-                        # while True:
-                        skuInput.send_keys(Keys().ENTER)
-                        print("pressed Enter at SKU-Input")
-                        time.sleep(2)
+                            # while True:
+                            skuInput.send_keys(Keys().ENTER)
+                            #! wip ต้องมีตรวจสอบผลลัพธ์การกรอก sn ตรงนี้
+                            print("pressed Enter at SKU-Input")
+                            to_sent_dict = {'sku': current_sku, 'sn': sn}
+                            self.used_serials.append(to_sent_dict)
+                            time.sleep(2)
 
-                    else:
+                        else:
 
-                        print(
-                            "ไม่มี SN, there are no functions available at this moment")
-                        pass
-                        # self.app.is_accel_mode_activated.set(False)
-                        # raise ValueError(
-                        #     "There's no SN in Accel File, no functions to handle at this moment.")
+                            print(
+                                "ไม่มี SN, there are no functions available at this moment")
+                            pass
+                            # self.app.is_accel_mode_activated.set(False)
+                            # raise ValueError(
+                            #     "There's no SN in Accel File, no functions to handle at this moment.")
 
             # *เก่า
                     # if self.app.sn_list:
@@ -2592,7 +2600,7 @@ class Bot_POS:
                     raise ValueError(f"method operation_start Error : {
                                      traceback.format_exc()}")
 
-                # * ตรวจสอบ Status และ update
+                # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(0.75)
                 try:
                     print("Found element classed big-text")
@@ -2696,10 +2704,6 @@ class Bot_POS:
                         close_btn.click()
 
                 except Exception as err:
-                    # print("ไม่กดวะ: ", err)
-                    # print(
-                    #     "Cannot find the variable self.input_count (no counter number, so skip!)")
-                    # # print("1 times click as well")
                     try:
                         close_btn.click()
                         print('1 Button closed ')
@@ -3378,8 +3382,12 @@ class Bot_POS:
                                             By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
                                         self.printtingPage()
                                         self.justPressP()
+
+                                        # * Update Accel file //////////////////////
                                         self.app.update_accel_file(
-                                            self.app.cus_order)
+                                            self.app.cus_order,
+                                            self.used_serials
+                                        )
 
                                     except:
                                         # time.sleep(1)
