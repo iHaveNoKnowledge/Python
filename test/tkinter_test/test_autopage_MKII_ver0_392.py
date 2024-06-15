@@ -887,6 +887,7 @@ class MyApp:
             self.display_order_note.insert(END, self.order_note)
             self.display_order_note.config(state=DISABLED)
 
+    # * widget รายการสินค้า ///////////////////////////////////////////////
     def show_products(self, products_list):
         for i in self.tree.get_children():
             self.tree.delete(i)
@@ -901,7 +902,7 @@ class MyApp:
             self.tree.insert("", "end", values=(
                 product_name, self.f(price_plusrebate), QTY))
 
-        # Shopee + ค่าขนส่ง แต่ Lazada ไม่ต้อง + ค่าขนส่งในบางกรณี
+        # * Shopee + ค่าขนส่ง แต่ Lazada ไม่ต้อง + ค่าขนส่งในบางกรณี
         if self.marketplace_target.get() == 'SHOPEE':
             self.total_price += self.cus_ship_cost.get()
             self.phase1_sum_price = self.total_price
@@ -1248,9 +1249,9 @@ class MyApp:
                         f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {option} {str(row['ชื่อสินค้า'])} ")
 
                     self.update_log(
-                        f"ราคาขาย: {float(row['ราคาขาย'])} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ'])} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee'])}")
+                        f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
-                # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like shopee
+                # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like shopee ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 self.widgets_no_col_lst = []
                 self.widgets_product_col_lst = []
                 self.widgets_prc_unit_lst = []
@@ -1282,7 +1283,7 @@ class MyApp:
                     self.price_unit_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[2]))
                     self.price_unit_col_value_widget.insert(
-                        0, float(row['ราคาขาย']))
+                        0, f"{float(row['ราคาขาย']):,.2f}")
                     self.widgets_prc_unit_lst.append(
                         self.price_unit_col_value_widget)
 
@@ -1294,14 +1295,14 @@ class MyApp:
                     self.total_price_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[4]))
                     self.total_price_col_value_widget.insert(
-                        0, float(row['ราคาขายสุทธิ']))
+                        0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
                     self.widgets_total_prc_lst.append(
                         self.total_price_col_value_widget)
 
                     self.total_rebate_price_col_value_widget = Entry(
                         self.mp_products_list_frame, width=int(self.cols_width[5]))
                     self.total_rebate_price_col_value_widget.insert(
-                        0, float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']))
+                        0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
                     self.widgets_total_rebt_prc_lst.append(
                         self.total_rebate_price_col_value_widget)
 
