@@ -578,6 +578,25 @@ class MyApp:
         # print(self.sn_list)
         print(self.CP_list)
 
+    # * update accel file *********************************
+    #! WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn
+    def update_accel_file(self, order, sku_serials=[]):
+        order = order.get()
+        df = self.accel_df
+        print("update_accel_file df มีมาก่อนเหรอ: ", df)
+        print("update_accel_file order: ", order)
+        print("update_accel_file ref: ",
+              df.loc[df['orders'] == order, 'orders'])
+        has_order = df.loc[df['orders'] == order, 'orders']
+        if not has_order.empty:
+            df.loc[df['orders'] == order, 'orders'] = ''
+
+        if sku_serials:
+            for sn in sku_serials:
+                df.loc[df[sn.sku] == sn.sn, sn.sn] = ''
+
+        df.to_excel(self.accel_location, sheet_name='Sheet1', index=False)
+
     def select_excel(self):
         self.result = "Excel"
         print("Select Excel")
@@ -1739,6 +1758,7 @@ class MyApp:
 
         # * สร้าง recursive function
         def start_next_cycle(count):
+            self.accel_df = pd.read_excel(self.accel_location, dtype=str)
             if count < self.accel_orders_len:
                 if self.is_accel_mode_activated.get():
                     self.search(
@@ -3358,6 +3378,8 @@ class Bot_POS:
                                             By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
                                         self.printtingPage()
                                         self.justPressP()
+                                        self.app.update_accel_file(
+                                            self.app.cus_order)
 
                                     except:
                                         # time.sleep(1)
@@ -4293,6 +4315,7 @@ if __name__ == "__main__":
 # !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
 # !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
+# Todo82 // WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
