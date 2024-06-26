@@ -14,10 +14,10 @@ class MainApp:
         self.root = root
         # * for query
         # self.data_file_dir = ''
-        self.data_file_dir = tk.StringVar(value="")
-        self.file_name = tk.StringVar(value="ไม่มีไฟล์")
-        self.sku = tk.StringVar(value="")
-        self.set_num = tk.StringVar(value="")
+        self.data_file_dir = StringVar(value="")
+        self.file_name = StringVar(value="ไม่มีไฟล์")
+        self.sku = StringVar(value="")
+        self.set_num = StringVar(value="")
         # * เอาไว้เก็บ object ที่รับค่าจาก excel, import file, อะไรก็ตามที่เป็น data table ที่นำเข้ามา
         self.data_table = {}
         self.create_main_window()
@@ -80,89 +80,166 @@ class MainApp:
 
     def update_log(self, update_txt=""):
         self.update_txt = update_txt
-        self.log_display.config(state=tk.NORMAL)
-        self.log_display.insert(tk.END, self.update_txt + "\n")
-        self.log_display.config(state=tk.DISABLED)
+        self.log_display.config(state=NORMAL)
+        self.log_display.insert(END, self.update_txt + "\n")
+        self.log_display.config(state=DISABLED)
 
     def clear_log(self):
         print('เคลีย!!')
-        self.log_display.config(state=tk.NORMAL)
-        self.log_display.delete("1.0", tk.END)
-        self.log_display.config(state=tk.DISABLED)
+        self.log_display.config(state=NORMAL)
+        self.log_display.delete("1.0", END)
+        self.log_display.config(state=DISABLED)
 
     def create_widgets(self):
-        # * Dir locator component
-        # * > Button
-        self.find_dir_btn = tk.Button(
-            self.locator_frame, text=f"ใส่ Import File", command=self.add_file, bg="#969696")
-        self.find_dir_btn.grid(row=0, column=0, padx=(5, 0))
-        # * > Labels
-        self.find_dir_display = tk.Label(
-            self.locator_frame, textvariable=self.file_name)
-        self.find_dir_display.grid(row=0, column=1, padx=(5, 0))
+        # * Variables for setting options
+        self.pady = (0, 16)
 
-        # * Code Display Component
-        # * > Labels
-        self.code_label = tk.Label(self.result_frame, text="Code ", bg="#FFF")
+        # * Frame Top Section ////////////////////////////////////////////////
+        # * > QR Input Component
+        # * >> Labels
+        self.find_dir_display = CTkLabel(
+            self.frame_top, text="QR Input")
+        self.find_dir_display.grid(
+            row=0, column=0, padx=(0, 0),  pady=self.pady)
+        # * >> Inputs
+        self.qr_input = CTkEntry(
+            self.frame_top,
+            width=180,
+        )
+        self.qr_input.grid(row=0, column=1, pady=self.pady, sticky="w")
+        # * >> Button
+        self.find_dir_btn = CTkButton(
+            self.frame_top,
+            width=80,
+            text=f"Start",
+            command=self.add_file,
+        )
+        self.find_dir_btn.grid(row=0, column=2, padx=(
+            0, 0), pady=self.pady, sticky="w")
+
+        # * > Order display Conponent
+        # * >> Label
+        self.order_label = CTkLabel(
+            self.frame_top, text="เลขที่คำสั่งซื้อ")
+        self.order_label.grid(row=0, column=3, padx=(10, 10), pady=self.pady)
+        # * >> Display
+        self.order_display = CTkEntry(
+            self.frame_top,
+            width=180,
+            state="readonly",
+        )
+        self.order_display.grid(row=0, column=4, padx=(
+            1, 1), pady=self.pady)
+
+        # * > Name Display component
+        # * >> Label
+        self.name_label = CTkLabel(
+            self.frame_top, text="ชื่อออกบิล")
+        self.name_label.grid(row=1, column=0, padx=(0, 10))
+        # * >> Display
+        self.name_display = CTkEntry(
+            self.frame_top,
+            width=300,
+            # state="readonly",
+
+        )
+        self.name_display.grid(row=1, column=1, padx=(0, 1))
+
+        # * > TaxNum display Conponent
+        # * >> Label
+        self.tax_num_label = CTkLabel(
+            self.frame_top, text="เลขผู้เสียภาษี")
+        self.tax_num_label.grid(row=1, column=3, padx=(10, 10))
+        # * >> Display
+        self.tax_num_display = CTkEntry(
+            self.frame_top,
+            width=180,
+            state="readonly",
+        )
+        self.tax_num_display.grid(row=1, column=4, padx=(0, 1))
+
+        # * Frame1 Section ////////////////////////////////////////////////
+        # * > Name
+        # * >> Label
+        self.code_label = CTkLabel(self.frame_1,
+                                   text="Code ",
+                                   )
         self.code_label.grid(row=0, column=0, padx=(5, 0),
                              pady=(0, 5), sticky='w')
-        # * > Input
-        self.code_display = tk.Entry(
-            self.result_frame, width=20,  borderwidth=1, textvariable=self.sku, relief="groove")
+        # * >> Display
+        self.code_display = CTkEntry(
+            self.frame_1,
+            width=20,
+            # borderwidth=1,
+            textvariable=self.sku,
+            # relief="groove"
+        )
         self.code_display.grid(row=0, column=1, padx=(1, 0))
 
         # * Set Number Display Component
         # * > Labels
-        self.set_num_label = tk.Label(
-            self.result_frame, text="Set Number ", bg="#FFF",)
+        self.set_num_label = CTkLabel(
+            self.frame_1,
+            text="Set Number ",
+        )
         self.set_num_label.grid(row=1, column=0, padx=(
             5, 0),  pady=(0, 5),  sticky='w')
         # * > Input
-        self.set_num_display = tk.Entry(
-            self.result_frame, width=20,  borderwidth=1, textvariable=self.set_num, relief="groove")
+        self.set_num_display = CTkEntry(
+            self.frame_1,
+            width=20,
+            # borderwidth=1,
+            textvariable=self.set_num,
+            # relief="groove"
+        )
         self.set_num_display.grid(row=1, column=1, padx=(1, 0), sticky='w')
-
-        # * Execution Btn Component
-        # * > BTN
-        self.execute_btn = tk.Button(
-            self.execute_frame, text="Execute!!", command=self.search)
-        self.execute_btn.grid()
 
         # * Log Display Component
         # * > DisplayField
-        self.log_display = tk.Text(self.log_frame, state=tk.DISABLED)
+        self.log_display = CTkTextbox(self.frame_bottom, state=DISABLED)
         self.log_display.grid(row=0, column=0, sticky='w')
 
     def create_main_window(self):
-        self.root.geometry("400x400+400+300")
+        self.root.geometry("1000x400+400+300")
 
-        self.root.title("Auto SN v0.5")
+        self.root.title("Commart Autopage v0.1")
 
         # * use CANVAS as BG #################
-        self.canvas = tk.Canvas(self.root, bg="#bdbdbd")
+        self.canvas = self.scrollable_frame = CTkFrame(
+            master=self.root,
+            width=500,
+            height=400,
+            corner_radius=0,
+            bg_color="gray95")
         # Expand to fill the whole window
-        self.canvas.pack(fill="both", expand=True)
+        self.canvas.pack(fill="both", expand=True, padx=5, pady=7)
 
         # * FRAMES ###########################
-        # *> Frame 1 Dir locator
-        self.locator_frame = tk.Frame(
-            self.canvas, padx=5, pady=5, borderwidth=1, relief="groove", bg="#a1a1a1")
-        self.locator_frame.pack(side='top', padx=5, pady=7, anchor='w')
+        # *> TopFrame
+        self.frame_top = CTkFrame(
+            master=self.canvas,
+            # padx=5, pady=5,
+            # borderwidth=1,
+            # relief="groove",
+            bg_color="#a1a1a1")
+        self.frame_top.pack(side='top', fill='x', padx=5, pady=7, anchor='w')
 
-        # *> Frame 2 Search result Display
-        self.result_frame = tk.Frame(
-            self.canvas, padx=5, pady=5, borderwidth=1, relief="groove", bg="#a1a1a1")
-        self.result_frame.pack(side='top', padx=5, pady=7, anchor='w')
+        # *> ContentsFrame
+        self.frame_1 = CTkFrame(
+            master=self.canvas,
+            # padx=5, pady=5,
+            # borderwidth=1,
+            # relief="groove",
+            bg_color="#a1a1a1")
+        self.frame_1.pack(side='top', padx=5, pady=7, anchor='w')
 
-        # *> Frame 3 Execution frame
-        self.execute_frame = tk.Frame(
-            self.canvas, padx=5, pady=5, borderwidth=1, bg="#bdbdbd")
-        self.execute_frame.pack(side='top', padx=(90, 5), pady=7, anchor='w')
-
-        # *> Frame 4 Log frame
-        self.log_frame = tk.Frame(
-            self.canvas, padx=5, pady=5, borderwidth=1, bg="#bdbdbd")
-        self.log_frame.pack(side='top')
+        # *> BottomFrame
+        self.frame_bottom = CTkFrame(
+            master=self.canvas,
+            # padx=5, pady=5,
+            # borderwidth=1,
+            bg_color="#bdbdbd")
+        self.frame_bottom.pack(side='top')
 
         self.create_widgets()
 
@@ -171,7 +248,7 @@ def main():
     def on_closing():
         print('ui window is closed')
         root.destroy()
-        
+
     def ctrl_saraea_copy(event):
         ctrl_state = event.state & 0x4 != 0  # 0x4 คือ flag สำหรับ Control key
         # 67 คือรหัสสำหรับสระแอในภาษาไทย (อาจแตกต่างบนระบบอื่นๆ)
