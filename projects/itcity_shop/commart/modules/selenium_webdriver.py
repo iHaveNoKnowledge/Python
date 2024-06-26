@@ -41,40 +41,37 @@ class ChromeDriver:
     def __init__(self):
         try:
             self.setup_chrome()
-        except:
+        except Exception as e:
+            tb_str = traceback.print_exc()
             print('Classs ChromeDriver has stopped working')
-            return
+            raise ValueError('Traceback: ', tb_str)
         self.get_tabs()
 
     def setup_chrome(self):
         print("setup_chrome")
         self.opt = Options()
-        # * exepath จะมีค่าเป็น relativepath ลักษณะคือ path มันจะไม่เต็ม มาแค่บางส่วน ตัวอย่างเช่น /home/user/documents/file.txt,  โดยจุดเริ่มต้นจะตรงกับ working directory ปัจจุบัน 
+        # * ใช้เพื่อเก็บที่อยู่ของไฟล์ที่ถูก execute ด้วย Python ผ่าน command line arguments ในตัวแปร exepath ซึ่ง sys.argv[0] คือชื่อของไฟล์ Python script ที่ถูกเรียกใช้งาน
         exepath = sys.argv[0]
-        # * abspath() ใช้เพื่อแปลงที่อยู่ของไฟล์ที่เป็น relative path ให้เป็น absolute path เช่นถ้าไฟล์อยู่ใน "/home/user/documents" และเราใช้ abspath() กับไฟล์นั้น ผลลัพธ์ที่ได้จะเป็น "c:/bla_bla/xxx/home/user/documents/file.txt" โดยที่ไม่ว่า working directory จะอยู่ที่ไหนก็ตาม
-        # * dirname() ใช้สำหรับดึงชื่อ directory จากที่อยู่ของไฟล์หรือ directory path ที่ให้มา และส่งคืนเป็นชื่อ directory เท่านั้นโดยไม่รวมชื่อไฟล์หรือส่วนท้ายของ path ถ้า path ที่ให้มาเป็น directory path จะคืนค่าเป็นชื่อ directory ตรงไปด้วย เช่นถ้า path เป็น "c:/bla_bla/xxx/home/user/documents/file.txt" ซึ่งเป็นที่อยู่ของไฟล์ ฟังก์ชัน dirname() จะคืนค่า "c:/bla_bla/xxx/home/user/documents" โดยที่ไม่รวมชื่อไฟล์ "file.txt" ด้วย
+
         Dir_path = os.path.dirname(os.path.abspath(exepath))
-        self.custom_path = r'C:\\bin\\'
+        self.custom_path = r'D:\\bin\\'
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         # self.opt.add_argument("--disable-popup-blocking")
-        self.opt.add_argument("--user-data-dir=C:/bin/chromeProfile")
         # self.opt.add_experimental_option("prefs",{
         #     "download.default_directory" : Download_dir,
         #     "directory_upgrade": True
         # })
 
-        # * Opening a Chrome in debuggermode port:8989##########################################################
-        #! ยังไม่ใช้ หาวิธี ตรวจสอบ Browser เพื่อห้ามเปิดซ้ำไม่ได้
-        # self.chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-        # print("พบไฟล์ chrome.exe ที่:", self.chrome_path)
-        # self.chrome_command = f'{self.chrome_path} --remote-debugging-port=8989 --user-data-dir="C:/bin/chromeProfile"'
-        # subprocess.Popen(self.chrome_command)
-        #! ตรวจก่อนเปิดซ้ำ WIP
-        # if 'chorme_process'
+        #! อันเก่า
+        # self.driver = webdriver.Chrome(
+        #     service=Service(r'C:\bin\chromedriver.exe'),
+        #     options=self.opt
+        # )
 
+        # ?? อันใหม่ทดลอง
         try:
             print("create driver")
             # * error มันจะเกิดแถวนี้
@@ -84,6 +81,7 @@ class ChromeDriver:
             )
 
             print("driver created")
+
         except:
             traceback_str = traceback.format_exc()
             print("Cannot Create Driver")
@@ -134,8 +132,8 @@ class ChromeDriver:
                     self.value_list.append(self.driver.current_window_handle)
                     # self.title_dict.update(
                     #     {self.driver.title: self.driver.current_window_handle}) #!เหมือนจะไม่ได้ใช้
-                    
-                #* เอาtitle มาทำให้ unique เพราะ title จะสามารถที่จะซ้ำกันได้
+
+                # * เอาtitle มาทำให้ unique เพราะ title จะสามารถที่จะซ้ำกันได้
                 self.unique_titles = []
                 self.counter = {}
                 for item in self.title_list:
