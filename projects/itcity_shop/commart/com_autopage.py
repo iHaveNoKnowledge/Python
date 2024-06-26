@@ -94,7 +94,7 @@ class MainApp:
         # * Variables for setting options
         self.pady = (0, 16)
 
-        # * Frame Top Section ////////////////////////////////////////////////
+        # * Frame Top Section /////////////////////////////////////////////////////////////////////////////
         # * > QR Input Component
         # * >> Labels
         self.find_dir_display = CTkLabel(
@@ -158,12 +158,13 @@ class MainApp:
         )
         self.tax_num_display.grid(row=1, column=4, padx=(0, 1))
 
-        # * Frame1 Section ////////////////////////////////////////////////
-        # * > Name
+        # * Frame1 Section /////////////////////////////////////////////////////////////////////////////
+        # * > address display Conponent
         # * >> Label
-        self.code_label = CTkLabel(self.frame_1,
-                                   text="Code ",
-                                   )
+        self.address_label = CTkLabel(
+            self.frame_1,
+            text="ที่อยู่ ",
+        )
         self.code_label.grid(row=0, column=0, padx=(5, 0),
                              pady=(0, 5), sticky='w')
         # * >> Display
@@ -194,7 +195,7 @@ class MainApp:
         )
         self.set_num_display.grid(row=1, column=1, padx=(1, 0), sticky='w')
 
-        # * Log Display Component
+        # * Frame Bottom Section /////////////////////////////////////////////////////////////////////////////
         # * > DisplayField
         self.log_display = CTkTextbox(self.frame_bottom, state=DISABLED)
         self.log_display.grid(row=0, column=0, sticky='w')
@@ -219,18 +220,16 @@ class MainApp:
         self.frame_top = CTkFrame(
             master=self.canvas,
             # padx=5, pady=5,
-            # borderwidth=1,
-            # relief="groove",
-            bg_color="#a1a1a1")
+            # bg_color="#a1a1a1"
+        )
         self.frame_top.pack(side='top', fill='x', padx=5, pady=7, anchor='w')
 
         # *> ContentsFrame
         self.frame_1 = CTkFrame(
             master=self.canvas,
             # padx=5, pady=5,
-            # borderwidth=1,
-            # relief="groove",
-            bg_color="#a1a1a1")
+            # bg_color="#a1a1a1" มันคือไอขอบๆมันเป็นขอบเพราะว่า style พื้นฐานมันมี borderradius ที่fgซึ่งเปนสีดำ พอ setbg มันจะเห็นสีของ bg เป็นขอบ
+        )
         self.frame_1.pack(side='top', padx=5, pady=7, anchor='w')
 
         # *> BottomFrame
@@ -239,7 +238,7 @@ class MainApp:
             # padx=5, pady=5,
             # borderwidth=1,
             bg_color="#bdbdbd")
-        self.frame_bottom.pack(side='top')
+        self.frame_bottom.pack(side='bottom', padx=5, pady=7, anchor='w')
 
         self.create_widgets()
 
