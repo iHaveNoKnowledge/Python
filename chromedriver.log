@@ -333,3 +333,39 @@ AttributeError: 'ChromeDriver' object has no attribute 'driver'
 
 2024-03-06 15:18:29,781 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000022FBE2FD370>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it')': /session/16c490492823882f4e5abed233e98c51/element/f.35D16093C5618860D23FEEBB7D6A7753.d.94F2E31811D266B980616C532FDC3E92.e.737/click
 2024-03-06 15:18:33,852 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000022FBDACDA90>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it')': /session/16c490492823882f4e5abed233e98c51/element/f.35D16093C5618860D23FEEBB7D6A7753.d.94F2E31811D266B980616C532FDC3E92.e.737/click
+2024-06-27 17:19:04,016 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 132, in get_tabs
+    self.value_list.append(self.driver.current_window_handle)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 490, in current_window_handle
+    return self.execute(Command.W3C_GET_CURRENT_WINDOW_HANDLE)["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchWindowException: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=126.0.6478.127)
+Stacktrace:
+	GetHandleVerifier [0x00007FF6124DEEA2+31554]
+	(No symbol) [0x00007FF612457ED9]
+	(No symbol) [0x00007FF61231872A]
+	(No symbol) [0x00007FF6122ED995]
+	(No symbol) [0x00007FF6123944D7]
+	(No symbol) [0x00007FF61239B47B]
+	(No symbol) [0x00007FF61238CFF0]
+	(No symbol) [0x00007FF61235A33B]
+	(No symbol) [0x00007FF61235AED1]
+	GetHandleVerifier [0x00007FF6127E8B1D+3217341]
+	GetHandleVerifier [0x00007FF612835AE3+3532675]
+	GetHandleVerifier [0x00007FF61282B0E0+3489152]
+	GetHandleVerifier [0x00007FF61258E776+750614]
+	(No symbol) [0x00007FF61246375F]
+	(No symbol) [0x00007FF61245EB14]
+	(No symbol) [0x00007FF61245ECA2]
+	(No symbol) [0x00007FF61244E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+

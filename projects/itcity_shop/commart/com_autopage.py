@@ -97,9 +97,10 @@ class MainApp:
         # * Frame Top Section /////////////////////////////////////////////////////////////////////////////
         # * > QR Input Component
         # * >> Labels
-        self.find_dir_display = CTkLabel(
-            self.frame_top, text="QR Input")
-        self.find_dir_display.grid(
+        self.qr_display = CTkLabel(
+            self.frame_top, text="QR Input"
+        )
+        self.qr_display.grid(
             row=0, column=0, padx=(0, 0),  pady=self.pady)
         # * >> Inputs
         self.qr_input = CTkEntry(
@@ -108,13 +109,13 @@ class MainApp:
         )
         self.qr_input.grid(row=0, column=1, pady=self.pady, sticky="w")
         # * >> Button
-        self.find_dir_btn = CTkButton(
+        self.qr_btn = CTkButton(
             self.frame_top,
             width=80,
             text=f"Start",
             command=self.add_file,
         )
-        self.find_dir_btn.grid(row=0, column=2, padx=(
+        self.qr_btn.grid(row=0, column=2, padx=(
             0, 0), pady=self.pady, sticky="w")
 
         # * > Order display Conponent
@@ -159,33 +160,52 @@ class MainApp:
         self.tax_num_display.grid(row=1, column=4, padx=(0, 1))
 
         # * Frame1 Section /////////////////////////////////////////////////////////////////////////////
-        # * > address display Conponent
+        # * > address display Conponent /////////////////////
         # * >> Label
         self.address_label = CTkLabel(
             self.frame_1,
             text="ที่อยู่ ",
-        )
-        self.code_label.grid(row=0, column=0, padx=(5, 0),
-                             pady=(0, 5), sticky='w')
-        # * >> Display
-        self.code_display = CTkEntry(
-            self.frame_1,
-            width=20,
-            # borderwidth=1,
-            textvariable=self.sku,
-            # relief="groove"
-        )
-        self.code_display.grid(row=0, column=1, padx=(1, 0))
 
-        # * Set Number Display Component
-        # * > Labels
+        )
+        self.address_label.grid(row=0, column=0, rowspan=2, padx=(5, 0),
+                                pady=(0, 5), sticky='nw')
+        # * >> Display
+        self.address_text = CTkTextbox(
+            self.frame_1,
+            width=180,
+            # textvariable=self.sku,
+        )
+        self.address_text.grid(row=0, column=1, padx=(1, 0))
+
+        # * >Set Number Display Component ///////////////////1
+        # * >> Labels
         self.set_num_label = CTkLabel(
             self.frame_1,
             text="Set Number ",
         )
         self.set_num_label.grid(row=1, column=0, padx=(
             5, 0),  pady=(0, 5),  sticky='w')
-        # * > Input
+
+        # * >> Input
+        self.set_num_display = CTkEntry(
+            self.frame_1,
+            width=20,
+            # borderwidth=1,
+            textvariable=self.set_num,
+            # relief="groove"
+        )
+        self.set_num_display.grid(row=1, column=1, padx=(1, 0), sticky='w')
+
+        # * >Set Number Display Component ///////////////////
+        # * >> Labels
+        self.set_num_label = CTkLabel(
+            self.frame_1,
+            text="Set Number ",
+        )
+        self.set_num_label.grid(row=1, column=0, padx=(
+            5, 0),  pady=(0, 5),  sticky='w')
+
+        # * >> Input
         self.set_num_display = CTkEntry(
             self.frame_1,
             width=20,
