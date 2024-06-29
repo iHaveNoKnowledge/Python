@@ -290,26 +290,23 @@ class MainApp:
         self.canvas = CTkFrame(
             master=self.root,
             width=500,
-            # height=500,
+
             corner_radius=0,
-            # bg_color="gray95"
+
         )
-        # Expand to fill the whole window
         self.canvas.pack(fill="both", expand=True, padx=5, pady=7)
 
         # * FRAMES ###########################
         # *> TopFrame
         self.frame_top = CTkFrame(
             master=self.canvas,
-            # padx=5, pady=5,
-            # bg_color="#a1a1a1"
+
         )
         self.frame_top.pack(side='top', fill='x', padx=5, pady=7, anchor='w')
 
         # *> ContentsFrame
         self.frame_1 = CTkFrame(
             master=self.canvas,
-            # padx=5, pady=5,
             # bg_color="#a1a1a1" มันคือไอขอบๆมันเป็นขอบเพราะว่า style พื้นฐานมันมี borderradius ที่fgซึ่งเปนสีดำ พอ setbg มันจะเห็นสีของ bg เป็นขอบ
         )
         self.frame_1.pack(side='top', fill='x', padx=5, pady=7, anchor='w')
@@ -317,9 +314,6 @@ class MainApp:
         # *> BottomFrame
         self.frame_bottom = CTkFrame(
             master=self.canvas,
-            # padx=5, pady=5,
-            # borderwidth=1,
-            # bg_color="#bdbdbd"
         )
         self.frame_bottom.pack(side='bottom', padx=5, pady=7, anchor='w')
 
