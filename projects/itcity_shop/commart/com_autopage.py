@@ -194,15 +194,13 @@ class MainApp:
             width=300,
             height=100,
         )
-        self.address_text.insert("0.0", "Ready" +'\n')
-        self.address_text.insert("0.0", "Ready" +'\n')
-        self.address_text.insert("0.0", "Ready" +'\n')
-        self.address_text.insert("0.0", "Ready" +'\n')
-        self.address_text.insert("0.0", "Ready" +'\n')
-        self.address_text.insert("0.0", "Ready" +'\n')
-        
-       
-       
+        self.address_text.insert("0.0", "Ready" + '\n')
+        self.address_text.insert("0.0", "Ready" + '\n')
+        self.address_text.insert("0.0", "Ready" + '\n')
+        self.address_text.insert("0.0", "Ready" + '\n')
+        self.address_text.insert("0.0", "Ready" + '\n')
+        self.address_text.insert("0.0", "Ready" + '\n')
+
         self.address_text.configure(state="disabled")
         self.address_text.grid(row=0, column=1, padx=(1, 0))
 
@@ -257,7 +255,7 @@ class MainApp:
             {"label": "สินค้า", "position": {"row": 0, "column": 0}},
             {"label": "ของแถม", "position": {"row": 0, "column": 1}},
         ]
-        
+
         for item in bottom_component_settings:
             # * >> Label
             self.address_label = CTkLabel(
@@ -267,32 +265,35 @@ class MainApp:
                 anchor=W
             )
             self.address_label.grid(
-                row=item['position']['row'], 
-                column=item['position']['column'], 
-                padx=(0, 5), pady=(0, 5), 
+                row=item['position']['row'],
+                column=item['position']['column'],
+                padx=(0, 5), pady=(0, 5),
                 sticky='nw'
             )
             # * > DisplayField
-            self.log_display = CTkTextbox(self.frame_bottom, state=DISABLED)
+            self.log_display = CTkTextbox(
+                self.frame_bottom,
+                height=150,
+                state=DISABLED)
             self.log_display.grid(
-                row=item['position']['row']+1, 
-                column=item['position']['column'], 
+                row=item['position']['row']+1,
+                column=item['position']['column'],
                 padx=(0, 5), pady=(0, 5),
                 sticky='w')
 
     def create_main_window(self):
-        self.root.geometry("1000x400+400+300")
+        self.root.geometry("1000x450+400+300")
 
         self.root.title("Commart Autopage v0.1")
 
         # * use CANVAS as BG #################
-        self.canvas = CTkScrollableFrame(
+        self.canvas = CTkFrame(
             master=self.root,
             width=500,
-            height=400,
+            # height=500,
             corner_radius=0,
             # bg_color="gray95"
-            )
+        )
         # Expand to fill the whole window
         self.canvas.pack(fill="both", expand=True, padx=5, pady=7)
 
@@ -319,7 +320,7 @@ class MainApp:
             # padx=5, pady=5,
             # borderwidth=1,
             # bg_color="#bdbdbd"
-            )
+        )
         self.frame_bottom.pack(side='bottom', padx=5, pady=7, anchor='w')
 
         self.create_widgets()
