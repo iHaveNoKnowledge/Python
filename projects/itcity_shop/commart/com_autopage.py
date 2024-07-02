@@ -3,6 +3,10 @@ from tkinter import filedialog
 from customtkinter import *
 import threading
 import time
+import json
+import re
+
+from modules.selenium_webdriver import ChromeDriver
 
 
 class MainApp:
@@ -26,23 +30,10 @@ class MainApp:
         self.sku.set("")
         self.set_num.set("")
 
-    def add_file(self):
-        self.data_file_dir.set('')
-        self.data_file_dir.set(filedialog.askopenfilename(
-            title="Select an import file"))
-        if self.data_file_dir.get():
-            self.file_name.set(f"{self.data_file_dir.get().split('/')[-1]}")
-            print('มีชื่อไฟล์', self.file_name.get())
-            print('dirของ import file', self.data_file_dir.get())
-            target_dir = self.data_file_dir.get()
-            try:
-                self.data_table = UnifyData(target_dir)
-                print(self.data_table.data_state)
-            except:
-                print("ไม่มีไฟล์อัพโหลดเข้ามา")
-        else:
-            self.resetAllValue()
-            print("ไม่มีชื่อไฟล์", self.data_file_dir.get())
+    def data_formatter_json(self, data_input):
+        self.result
+        self.result = re.sub(
+            r'\s{2,}', " ", data_input.strip().replace('\u200b', '')).strip()
 
     def search(self):
         try:
@@ -65,6 +56,7 @@ class MainApp:
             self.update_log("พัง")
             raise ValueError('search พัง: ', traceback.format_exc())
 
+    # * my_function เป็น function ที่มีการรอ ใช้ทดสอบ Thread
     def my_function(self):
         print("Starting function")
         try:
@@ -79,16 +71,34 @@ class MainApp:
             return
         print("Function completed")
 
+    def operation_start(self):
+        self.ChromDriver = ChromeDriver()
+        print('ChromDriver is running.')
+
     def kill_remaining_threads(self):
         if self.current_task and self.current_task.is_alive():
             self.stop_event.set()
             self.current_task.join()
 
     def start_task(self, input={}):
+        self.cus_order_name = tk.StringVar(value="")
+        self.cus_name = tk.StringVar(value="")
+        self.cus_tax_num = tk.StringVar(value="")
+        self.cus_address = ""
+        self.cus_province = tk.StringVar(value="")
+        self.cus_district = tk.StringVar(value="")
+        self.cus_sub_district = tk.StringVar(value="")
+        self.cus_zip_code = tk.StringVar(value="")
+        self.cus_tel = tk.StringVar(value="")
+        self.cus_purchased_products = []
+        self.cus_purchased_premiums = []
+
+        print("input type: ", type(input))
+        self.input_data = ""
         try:
-            self.input_data = dict(input)
-        except:
-            print("แปลงเป็น dict ไม่สําเร็จ")
+            self.input_data = json.loads(input)
+        except Exception as e:
+            print("แปลงเป็น dict ไม่สําเร็จ: ", e)
             pass
 
         if self.current_task and self.current_task.is_alive():
@@ -97,9 +107,9 @@ class MainApp:
             print("ทำการรวม Thread")
             print("รวมThreadแล้ว จำนวนThread: ", threading.active_count())
             print("threads: ", threading.enumerate())
-            
+
         self.stop_event.clear()
-        self.current_task = threading.Thread(target=self.my_function)
+        self.current_task = threading.Thread(target=self.operation_start)
         self.current_task.start()
         print("เริ่มการทำงาน")
 
@@ -119,6 +129,18 @@ class MainApp:
         self.log_display.config(state=tk.NORMAL)
         self.log_display.delete("1.0", tk.END)
         self.log_display.config(state=tk.DISABLED)
+
+    def update_address(self, address_input, address_widget):
+        if address_input != "":
+            input = address_input.strip()
+        else:
+            input = "-"
+
+        self.cus_address_input = input
+        address_widget.config(state=NORMAL)
+        address_widget.delete(1.0, END)
+        address_widget.insert(END, input)
+        address_widget.config(state=DISABLED)
 
     def on_start_button_click(self, input_qr=""):
         print("จำนวนThread: ", threading.active_count())
@@ -151,24 +173,32 @@ class MainApp:
         self.order_label.grid(row=0, column=3, padx=(10, 10), pady=self.pady)
 
         self.order_display = CTkEntry(
-            self.frame_top, width=180, state="readonly")
+            self.frame_top,
+            width=180,
+            state="readonly",
+            textvariable=self.cus_order_name
+        )
         self.order_display.grid(row=0, column=4, padx=(1, 1), pady=self.pady)
 
+        # * ชื่อลูกค้า cus_name component ///////////
         self.name_label = CTkLabel(
             self.frame_top, text="ชื่อออกบิล", width=70, anchor=tk.W)
         self.name_label.grid(row=1, column=0, padx=(0, 0))
 
-        self.name_display = CTkEntry(self.frame_top, width=300)
+        self.name_display = CTkEntry(
+            self.frame_top, width=300, state="readonly", textvariable=self.cus_name)
         self.name_display.grid(row=1, column=1, padx=(0, 1))
 
+        # * เลขผู้เสียภาษี cus_tax_num component ///////////
         self.tax_num_label = CTkLabel(
             self.frame_top, text="เลขผู้เสียภาษี", width=70, anchor=tk.W)
         self.tax_num_label.grid(row=1, column=3, padx=(10, 10))
 
         self.tax_num_display = CTkEntry(
-            self.frame_top, width=180, state="readonly")
+            self.frame_top, width=180, state="readonly", textvariable=self.cus_tax_num)
         self.tax_num_display.grid(row=1, column=4, padx=(0, 1))
 
+        # * เลขผู้เสียภาษี cus_address component ///////////
         self.address_label = CTkLabel(
             self.frame_1, text="ที่อยู่ ", width=70, anchor=tk.W)
         self.address_label.grid(row=0, column=0, padx=(
@@ -179,6 +209,7 @@ class MainApp:
         self.address_text.configure(state="disabled")
         self.address_text.grid(row=0, column=1, padx=(1, 0))
 
+        # * รายละเอียดที่อยู่ ต อ เขต แขวง จ address_details components ///////////
         self.frame_1_1 = CTkFrame(master=self.frame_1)
         self.frame_1_1.grid(row=0, column=2, sticky='nw', padx=5)
 
