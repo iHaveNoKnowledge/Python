@@ -79,6 +79,11 @@ class MainApp:
             return
         print("Function completed")
 
+    def kill_task(self):
+        if self.current_task and self.current_task.is_alive():
+            self.stop_event.set()
+            self.current_task.join()
+
     def start_task(self, input={}):
         if self.current_task and self.current_task.is_alive():
             self.stop_event.set()
@@ -229,6 +234,7 @@ class MainApp:
         self.create_widgets()
 
     def on_start_button_click(self):
+        threading.active_count()
         thread = threading.Thread(target=self.start_task)
         thread.start()
 
@@ -237,6 +243,7 @@ def main():
     def on_closing():
         print('ui window is closed')
         root.destroy()
+        main_gui.kill_task()
 
     def ctrl_saraea_copy(event):
         ctrl_state = event.state & 0x4 != 0
@@ -245,7 +252,7 @@ def main():
 
     root = CTk()
     # * options
-    # * > ทำลาย root tkInter เมื่อguiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
+    # * > ทำลาย root tkInter เมื่อmain_guiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
     root.protocol("WM_DELETE_WINDOW", on_closing)
     # * > ลืมไปละ น่าจะเกี่ยวกับช่องไฟ
     root.columnconfigure(0, weight=1)
@@ -257,7 +264,8 @@ def main():
     root.bind('<Key>', ctrl_saraea_copy)
 
     # * Create Instance
-    gui = MainApp(root)
+    #* เก็บ ตัว object ของ app ไว้ใน main_gui เพื่อเรียกใช้ functions kill_task เมื่อ tkinter ถูกปิด
+    main_gui = MainApp(root)
     root.mainloop()
 
 
