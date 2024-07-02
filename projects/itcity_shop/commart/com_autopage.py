@@ -118,6 +118,7 @@ class MainApp:
 
         if self.input_data:
             print("input: ", self.input_data)
+            self.update_from_qr(self.input_data)
         else:
             print("ไม่ได้ใส่ค่า input", self.input_data)
 
@@ -195,10 +196,10 @@ class MainApp:
         self.address_label.grid(row=0, column=0, padx=(
             0, 0), pady=(0, 5), sticky='nw')
 
-        self.address_text = CTkTextbox(self.frame_1, width=300, height=100)
-        self.address_text.insert("0.0", "Ready" + '\n')
-        self.address_text.configure(state="disabled")
-        self.address_text.grid(row=0, column=1, padx=(1, 0))
+        self.address_display = CTkTextbox(self.frame_1, width=300, height=100)
+        self.address_display.insert("0.0", "Ready" + '\n')
+        self.address_display.configure(state="disabled")
+        self.address_display.grid(row=0, column=1, padx=(1, 0))
 
         # * รายละเอียดที่อยู่ ต อ เขต แขวง จ address_details components ///////////
         self.frame_1_1 = CTkFrame(master=self.frame_1)
@@ -244,7 +245,8 @@ class MainApp:
             {"label": "ของแถม", "position": {"row": 0, "column": 1},  "widgets": {}},
         ]
 
-        for item, index in enumerate(self.bottom_component_settings):
+        for index, item in enumerate(self.bottom_component_settings):
+            print(item, index)
             # * Frame1 Section /////////////////////////////////////////////////////////////////////////////
             # * > address display Conponent /////////////////////
             # * >> Label
@@ -258,48 +260,54 @@ class MainApp:
             self.items_display.grid(
                 row=item['position']['row'] + 1, column=item['position']['column'], padx=(0, 5), pady=(0, 5), sticky='w')
 
-            self.bottom_component_settings.widgets[f'items_label_{
-                index}'] = self.items_label
-            self.bottom_component_settings.widgets[f'items_display_{
-                index}'] = self.items_display
+            self.bottom_component_settings[index]['widgets'][f'items_label'] = self.items_label
+            self.bottom_component_settings[index]['widgets'][f'items_display'] = self.items_display
 
     # * รวม update textfield ////////////////////////////////////
     # * update จาก input QR
     def update_from_qr(self, input_qr=""):
         input = input_qr
-        self.cus_order_name.set(input.order)
-        self.cus_name.set(input.name)
-        self.cus_tax_num.set(input.tax_num)
-        self.cus_address = ""
-        self.cus_province.set(input.province)
-        self.cus_district.set(input.district)
-        self.cus_sub_district.set(input.District)
-        self.cus_zip_code.set(input.zip_Code)
-        self.cus_tel.set(input.tel)
-        self.update_item_display(input.products, "product")
-        self.update_item_display(input.premiums, "premium")
+        attributes = {
+            'cus_order_name': 'order',
+            'cus_name': 'name',
+            'cus_tax_num': 'tax_Num',
+            'cus_province': 'province',
+            'cus_district': 'district',
+            'cus_sub_district': 'sub_District',
+            'cus_zip_code': 'zip_Code',
+            'cus_tel': 'tel'
+        }
+
+        for attr, key in attributes.items():
+            try:
+                getattr(self, attr).set(input[key])
+            except KeyError:
+                getattr(self, attr).set("-")
+
+        try:
+            self.update_address(input['address'], self.address_display)
+        except:
+            print("input ไม่มี prop address ส่งเข้ามา")
+            self.update_address("-", self.address_display)
+
+        self.update_item_display(input['products'], "product")
+        self.update_item_display(input['premiums'], "premium")
 
     # * update รายการของที่ลูกค้าซื้อ
-
     def update_item_display(self, data, widget):
         # widget รับว่าจะอัพเดท ช่องไหน ระหว่าง product หรือ premium
-        widget_target
-
-        if data != "":
-            input = data.strip()
-        else:
-            input = "-"
+        print("เข้ามาเป็นอะไร: ", data)
 
         if "product" in widget:
-            widget_target = self.bottom_component_settings.widgets[f'items_display_0']
+            widget_target = self.bottom_component_settings[0]['widgets'][f'items_display']
         elif "premium" in widget:
-            widget_target = self.bottom_component_settings.widgets[f'items_display_1']
+            widget_target = self.bottom_component_settings[1]['widgets'][f'items_display']
 
-        self.cus_address_input = input
-        widget_target.config(state=NORMAL)
-        widget_target.delete(1.0, END)
-        widget_target.insert(END, input)
-        widget_target.config(state=DISABLED)
+        for input in data:
+            widget_target.configure(state=NORMAL)
+            widget_target.delete(1.0, END)
+            widget_target.insert(END, input['code'])
+            widget_target.configure(state=DISABLED)
 
     # * update ที่อยู่ลูกค้า
     def update_address(self, address_input, address_widget):
@@ -309,10 +317,10 @@ class MainApp:
             input = "-"
 
         self.cus_address_input = input
-        address_widget.config(state=NORMAL)
+        address_widget.configure(state=NORMAL)
         address_widget.delete(1.0, END)
         address_widget.insert(END, input)
-        address_widget.config(state=DISABLED)
+        address_widget.configure(state=DISABLED)
 
     def create_main_window(self):
         self.root.geometry("1000x450+400+300")
