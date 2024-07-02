@@ -79,20 +79,34 @@ class MainApp:
             return
         print("Function completed")
 
-    def kill_task(self):
+    def kill_remaining_threads(self):
         if self.current_task and self.current_task.is_alive():
             self.stop_event.set()
             self.current_task.join()
 
     def start_task(self, input={}):
+        try:
+            self.input_data = dict(input)
+        except:
+            print("แปลงเป็น dict ไม่สําเร็จ")
+            pass
+
         if self.current_task and self.current_task.is_alive():
             self.stop_event.set()
             self.current_task.join()
+            print("ทำการรวม Thread")
+            print("รวมThreadแล้ว จำนวนThread: ", threading.active_count())
+            print("threads: ", threading.enumerate())
+            
         self.stop_event.clear()
         self.current_task = threading.Thread(target=self.my_function)
         self.current_task.start()
         print("เริ่มการทำงาน")
-        print("input: ", input)
+
+        if self.input_data:
+            print("input: ", self.input_data)
+        else:
+            print("ไม่ได้ใส่ค่า input", self.input_data)
 
     def update_log(self, update_txt=""):
         self.update_txt = update_txt
@@ -106,18 +120,29 @@ class MainApp:
         self.log_display.delete("1.0", tk.END)
         self.log_display.config(state=tk.DISABLED)
 
+    def on_start_button_click(self, input_qr=""):
+        print("จำนวนThread: ", threading.active_count())
+        print("threads: ", threading.enumerate())
+        thread = threading.Thread(target=self.start_task, args=(input_qr, ))
+        thread.start()
+
     def create_widgets(self):
+        # * started widgets variables
+        self.input_qr = tk.StringVar()
+
+        # * widgets
         self.pady = (0, 16)
 
         self.qr_display = CTkLabel(
             self.frame_top, text="QR Input", width=70, anchor=tk.W)
         self.qr_display.grid(row=0, column=0, padx=(0, 0), pady=self.pady)
 
-        self.qr_input = CTkEntry(self.frame_top, width=180)
+        self.qr_input = CTkEntry(
+            self.frame_top, width=180, textvariable=self.input_qr)
         self.qr_input.grid(row=0, column=1, pady=self.pady, sticky="w")
 
         self.qr_btn = CTkButton(self.frame_top, width=70, anchor=tk.W,
-                                text="Start", command=self.on_start_button_click)
+                                text="Start", command=lambda: self.on_start_button_click(self.input_qr.get()))
         self.qr_btn.grid(row=0, column=2, padx=(
             0, 0), pady=self.pady, sticky="w")
 
@@ -233,17 +258,12 @@ class MainApp:
 
         self.create_widgets()
 
-    def on_start_button_click(self):
-        threading.active_count()
-        thread = threading.Thread(target=self.start_task)
-        thread.start()
-
 
 def main():
     def on_closing():
         print('ui window is closed')
         root.destroy()
-        main_gui.kill_task()
+        main_gui.kill_remaining_threads()
 
     def ctrl_saraea_copy(event):
         ctrl_state = event.state & 0x4 != 0
@@ -264,7 +284,7 @@ def main():
     root.bind('<Key>', ctrl_saraea_copy)
 
     # * Create Instance
-    #* เก็บ ตัว object ของ app ไว้ใน main_gui เพื่อเรียกใช้ functions kill_task เมื่อ tkinter ถูกปิด
+    # * เก็บ ตัว object ของ app ไว้ใน main_gui เพื่อเรียกใช้ functions kill_remaining_threads เมื่อ tkinter ถูกปิด
     main_gui = MainApp(root)
     root.mainloop()
 
