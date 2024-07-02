@@ -19,6 +19,21 @@ class MainApp:
         self.current_task = None
         self.stop_event = threading.Event()
         self.data_table = {}
+
+        # * ตัวแปรสำหรับ inputs
+        self.cus_order_name = tk.StringVar(value="")
+        self.cus_name = tk.StringVar(value="")
+        self.cus_tax_num = tk.StringVar(value="")
+        self.cus_address = ""
+        self.cus_province = tk.StringVar(value="")
+        self.cus_district = tk.StringVar(value="")
+        self.cus_sub_district = tk.StringVar(value="")
+        self.cus_zip_code = tk.StringVar(value="")
+        self.cus_tel = tk.StringVar(value="")
+        self.cus_purchased_products = []
+        self.cus_purchased_premiums = []
+
+        # * functions start here
         self.create_main_window()
 
     def resetAllValue(self):
@@ -81,25 +96,13 @@ class MainApp:
             self.current_task.join()
 
     def start_task(self, input={}):
-        self.cus_order_name = tk.StringVar(value="")
-        self.cus_name = tk.StringVar(value="")
-        self.cus_tax_num = tk.StringVar(value="")
-        self.cus_address = ""
-        self.cus_province = tk.StringVar(value="")
-        self.cus_district = tk.StringVar(value="")
-        self.cus_sub_district = tk.StringVar(value="")
-        self.cus_zip_code = tk.StringVar(value="")
-        self.cus_tel = tk.StringVar(value="")
-        self.cus_purchased_products = []
-        self.cus_purchased_premiums = []
-
         print("input type: ", type(input))
         self.input_data = ""
         try:
             self.input_data = json.loads(input)
         except Exception as e:
             print("แปลงเป็น dict ไม่สําเร็จ: ", e)
-            pass
+            raise
 
         if self.current_task and self.current_task.is_alive():
             self.stop_event.set()
@@ -129,18 +132,6 @@ class MainApp:
         self.log_display.config(state=tk.NORMAL)
         self.log_display.delete("1.0", tk.END)
         self.log_display.config(state=tk.DISABLED)
-
-    def update_address(self, address_input, address_widget):
-        if address_input != "":
-            input = address_input.strip()
-        else:
-            input = "-"
-
-        self.cus_address_input = input
-        address_widget.config(state=NORMAL)
-        address_widget.delete(1.0, END)
-        address_widget.insert(END, input)
-        address_widget.config(state=DISABLED)
 
     def on_start_button_click(self, input_qr=""):
         print("จำนวนThread: ", threading.active_count())
@@ -214,11 +205,16 @@ class MainApp:
         self.frame_1_1.grid(row=0, column=2, sticky='nw', padx=5)
 
         address_components_settings = [
-            {"label": "จังหวัด", "position": {"row": 0, "column": 1}},
-            {"label": "อําเภอ/เขต", "position": {"row": 0, "column": 3}},
-            {"label": "ตำบล/แขวง", "position": {"row": 0, "column": 5}},
-            {"label": "รหัสไปรษณีย์", "position": {"row": 1, "column": 1}},
-            {"label": "เบอร์โทร.", "position": {"row": 1, "column": 3}},
+            {"label": "จังหวัด", "position": {"row": 0, "column": 1},
+                "variable": self.cus_province},
+            {"label": "อําเภอ/เขต", "position": {"row": 0,
+                                                 "column": 3}, "variable": self.cus_district},
+            {"label": "ตำบล/แขวง", "position": {"row": 0, "column": 5},
+                "variable": self.cus_sub_district},
+            {"label": "รหัสไปรษณีย์", "position": {
+                "row": 1, "column": 1}, "variable": self.cus_zip_code},
+            {"label": "เบอร์โทร.", "position": {
+                "row": 1, "column": 3}, "variable": self.cus_tel},
         ]
         for item in address_components_settings:
             # * >> Labels
@@ -237,29 +233,86 @@ class MainApp:
             self.address_sub_input = CTkEntry(
                 self.frame_1_1,
                 width=90,
+                textvariable=item['variable']
             )
             self.address_sub_input.grid(
                 row=item['position']['row'], column=item['position']['column']+1, padx=(1, 0), sticky='NW')
 
         # * Frame Bottom Section /////////////////////////////////////////////////////////////////////////////
-        bottom_component_settings = [
-            {"label": "สินค้า", "position": {"row": 0, "column": 0}},
-            {"label": "ของแถม", "position": {"row": 0, "column": 1}},
+        self.bottom_component_settings = [
+            {"label": "สินค้า", "position": {"row": 0, "column": 0}, "widgets": {}},
+            {"label": "ของแถม", "position": {"row": 0, "column": 1},  "widgets": {}},
         ]
 
-        for item in bottom_component_settings:
+        for item, index in enumerate(self.bottom_component_settings):
             # * Frame1 Section /////////////////////////////////////////////////////////////////////////////
             # * > address display Conponent /////////////////////
             # * >> Label
-            self.address_label = CTkLabel(
+            self.items_label = CTkLabel(
                 self.frame_bottom, text=item['label'], width=70, anchor=tk.W)
-            self.address_label.grid(row=item['position']['row'], column=item['position']['column'], padx=(
+            self.items_label.grid(row=item['position']['row'], column=item['position']['column'], padx=(
                 0, 5), pady=(0, 5), sticky='nw')
             # * > DisplayField
-            self.log_display = CTkTextbox(
+            self.items_display = CTkTextbox(
                 self.frame_bottom, height=150, state=tk.DISABLED)
-            self.log_display.grid(
+            self.items_display.grid(
                 row=item['position']['row'] + 1, column=item['position']['column'], padx=(0, 5), pady=(0, 5), sticky='w')
+
+            self.bottom_component_settings.widgets[f'items_label_{
+                index}'] = self.items_label
+            self.bottom_component_settings.widgets[f'items_display_{
+                index}'] = self.items_display
+
+    # * รวม update textfield ////////////////////////////////////
+    # * update จาก input QR
+    def update_from_qr(self, input_qr=""):
+        input = input_qr
+        self.cus_order_name.set(input.order)
+        self.cus_name.set(input.name)
+        self.cus_tax_num.set(input.tax_num)
+        self.cus_address = ""
+        self.cus_province.set(input.province)
+        self.cus_district.set(input.district)
+        self.cus_sub_district.set(input.District)
+        self.cus_zip_code.set(input.zip_Code)
+        self.cus_tel.set(input.tel)
+        self.update_item_display(input.products, "product")
+        self.update_item_display(input.premiums, "premium")
+
+    # * update รายการของที่ลูกค้าซื้อ
+
+    def update_item_display(self, data, widget):
+        # widget รับว่าจะอัพเดท ช่องไหน ระหว่าง product หรือ premium
+        widget_target
+
+        if data != "":
+            input = data.strip()
+        else:
+            input = "-"
+
+        if "product" in widget:
+            widget_target = self.bottom_component_settings.widgets[f'items_display_0']
+        elif "premium" in widget:
+            widget_target = self.bottom_component_settings.widgets[f'items_display_1']
+
+        self.cus_address_input = input
+        widget_target.config(state=NORMAL)
+        widget_target.delete(1.0, END)
+        widget_target.insert(END, input)
+        widget_target.config(state=DISABLED)
+
+    # * update ที่อยู่ลูกค้า
+    def update_address(self, address_input, address_widget):
+        if address_input != "":
+            input = address_input.strip()
+        else:
+            input = "-"
+
+        self.cus_address_input = input
+        address_widget.config(state=NORMAL)
+        address_widget.delete(1.0, END)
+        address_widget.insert(END, input)
+        address_widget.config(state=DISABLED)
 
     def create_main_window(self):
         self.root.geometry("1000x450+400+300")
