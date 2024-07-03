@@ -395,6 +395,57 @@ class MainApp:
         self.frame_bottom.pack(side='bottom', padx=5, pady=7, anchor='w')
 
         self.create_widgets()
+        
+class PopUp:
+    """
+    Class PopUp use for create a pop-up for THE BOT GUI
+    Parameters:
+        - title (str): Title name of the pop-up.
+        - message (str): For display a message in the pop-up.
+        - parent (obj): class parent obj.
+        - mode (str): มี 2 ทางเลือก "form" สำหรับ submit, "alert" สำหรับ alert
+    """
+
+    def __init__(self, title, message, parent, mode):
+        self.mode_opt = {"form": "Submit", "alert": "Close"}
+        self.mode = mode
+        self.parent = parent
+        self.title = title
+        self.message = message
+        self.create_subwindow()
+
+    def delete(self):
+        self.subwindow.destroy()
+
+    def create_subwindow(self):
+        self.subwindow = Toplevel(self.parent)
+        self.subwindow.transient(self.parent)
+        self.subwindow.geometry("400x140+650+400")
+        self.subwindow.title(f"{self.title}")
+        self.subwindow.grab_set()
+        self.subwindow.resizable(True, False)
+
+        # * สร้างเฟรม
+        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
+
+        # * สร้าง Texted widget
+        self.id_label = Text(
+            self.subwin_frame, font=("bazooka", 9))
+        self.id_label.insert(END, f'{self.message}')
+        self.id_label.pack(fill=BOTH, expand=True)
+        self.id_label.config(state=DISABLED)
+
+        # * Submit Button
+        self.submit_btn = Button(
+            self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
+        self.submit_btn.pack(fill='x', expand=True)
+
+        # * ยก widget นี้ ขึ้นมาหน้าสุด
+        # > กำหนดตำแหน่งเฉยๆ ยังไม่ขยับ ต้องไปสั่งขยับอีกที
+        self.subwindow.attributes('-topmost', 1)
+        # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
+        self.subwindow.lift()
 
 
 def main():
