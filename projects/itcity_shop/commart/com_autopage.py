@@ -32,6 +32,7 @@ class MainApp:
         self.cus_tel = tk.StringVar(value="")
         self.cus_purchased_products = []
         self.cus_purchased_premiums = []
+        self.cus_remark = ""
 
         # * functions start here
         self.create_main_window()
@@ -50,26 +51,26 @@ class MainApp:
         self.result = re.sub(
             r'\s{2,}', " ", data_input.strip().replace('\u200b', '')).strip()
 
-    def search(self):
+    def kill_remaining_threads(self):
+        if self.current_task and self.current_task.is_alive():
+            self.stop_event.set()
+            self.current_task.join()
+
+    def input_receiver(self, input):
+        self.input_data = input
         try:
-            sku = self.sku.get().strip()
-            set = self.set_num.get().strip()
+            self.input_data = json.loads(input)
+        except Exception as e:
+            print("แปลงเป็น dict ไม่สําเร็จ: ")
+            print("START: ", e, "END")
+            #! อัพเดท status
+            raise
 
-            self.clear_log()
-            data_dict = self.data_table.get_result(sku, set)
-            self.update_log(f"ชื่อชุด: {sku}")
-            self.update_log(f"เลขSet: {set}")
-            self.sku.set("")
-            self.set_num.set("")
-
-            try:
-                self.chromdriver_controller.operation_start(sku, data_dict)
-            except ValueError as e:
-                error_message = str(e)
-                self.update_log(error_message)
-        except:
-            self.update_log("พัง")
-            raise ValueError('search พัง: ', traceback.format_exc())
+        if self.input_data:
+            print("input: ", self.input_data)
+            self.update_from_qr(self.input_data)
+        else:
+            print("ไม่ได้ใส่ค่า input", self.input_data)
 
     # * my_function เป็น function ที่มีการรอ ใช้ทดสอบ Thread
     def my_function(self):
@@ -90,20 +91,12 @@ class MainApp:
         self.ChromDriver = ChromeDriver()
         print('ChromDriver is running.')
 
-    def kill_remaining_threads(self):
-        if self.current_task and self.current_task.is_alive():
-            self.stop_event.set()
-            self.current_task.join()
-
     def start_task(self, input={}):
+        # * รับ input เข้า program
         print("input type: ", type(input))
-        self.input_data = ""
-        try:
-            self.input_data = json.loads(input)
-        except Exception as e:
-            print("แปลงเป็น dict ไม่สําเร็จ: ", e)
-            raise
+        self.input_receiver(input)
 
+        # * จัดการ Thread
         if self.current_task and self.current_task.is_alive():
             self.stop_event.set()
             self.current_task.join()
@@ -115,12 +108,6 @@ class MainApp:
         self.current_task = threading.Thread(target=self.operation_start)
         self.current_task.start()
         print("เริ่มการทำงาน")
-
-        if self.input_data:
-            print("input: ", self.input_data)
-            self.update_from_qr(self.input_data)
-        else:
-            print("ไม่ได้ใส่ค่า input", self.input_data)
 
     def update_log(self, update_txt=""):
         self.update_txt = update_txt
@@ -147,6 +134,7 @@ class MainApp:
         # * widgets
         self.pady = (0, 16)
 
+        #* QR input component ////////////
         self.qr_display = CTkLabel(
             self.frame_top, text="QR Input", width=70, anchor=tk.W)
         self.qr_display.grid(row=0, column=0, padx=(0, 0), pady=self.pady)
@@ -159,7 +147,8 @@ class MainApp:
                                 text="Start", command=lambda: self.on_start_button_click(self.input_qr.get()))
         self.qr_btn.grid(row=0, column=2, padx=(
             0, 0), pady=self.pady, sticky="w")
-
+        
+        #* Order display component ////////////
         self.order_label = CTkLabel(
             self.frame_top, text="เลขที่คำสั่งซื้อ", width=70, anchor=tk.W)
         self.order_label.grid(row=0, column=3, padx=(10, 10), pady=self.pady)
@@ -265,6 +254,7 @@ class MainApp:
 
     # * รวม update textfield ////////////////////////////////////
     # * update จาก input QR
+    # todo interesting code การใช้ getattr(obj, attr) เหมือนเปนการเอา ค่าจากทางขวาไปใส่ทางซ้ายโดย จับคู่ key ของ dict กับ attributes ของ obj
     def update_from_qr(self, input_qr=""):
         input = input_qr
         attributes = {
@@ -285,13 +275,14 @@ class MainApp:
                 getattr(self, attr).set("-")
 
         try:
-            self.update_address(input['address'], self.address_display)
+            self.update_textbox_widgets(input['address'], self.address_display, self.cus_address)
         except:
             print("input ไม่มี prop address ส่งเข้ามา")
-            self.update_address("-", self.address_display)
+            self.update_textbox_widgets("-", self.address_display, self.cus_address)
 
         self.update_item_display(input['products'], "product")
         self.update_item_display(input['premiums'], "premium")
+        self.update_textbox_widgets(input['remark'], )
 
     # * update รายการของที่ลูกค้าซื้อ
     def update_item_display(self, data, widget):
@@ -300,8 +291,10 @@ class MainApp:
 
         if "product" in widget:
             widget_target = self.bottom_component_settings[0]['widgets'][f'items_display']
+            self.cus_purchased_products.append(data)
         elif "premium" in widget:
             widget_target = self.bottom_component_settings[1]['widgets'][f'items_display']
+            self.cus_purchased_premiums.append(data)
 
         for input in data:
             widget_target.configure(state=NORMAL)
@@ -310,13 +303,17 @@ class MainApp:
             widget_target.configure(state=DISABLED)
 
     # * update ที่อยู่ลูกค้า
-    def update_address(self, address_input, address_widget):
+    def update_textbox_widgets(self, address_input, address_widget, to_update_var=""):
+        self.to_update_var = to_update_var
+        
         if address_input != "":
             input = address_input.strip()
         else:
             input = "-"
 
-        self.cus_address_input = input
+        if self.to_update_var:
+            to_update_var = input
+        
         address_widget.configure(state=NORMAL)
         address_widget.delete(1.0, END)
         address_widget.insert(END, input)
@@ -342,9 +339,6 @@ class MainApp:
         self.frame_1.pack(side='top', fill='x', padx=5, pady=7, anchor='w')
 
         # *> BottomFrame
-        self.frame_bottom = CTkFrame(
-            master=self.canvas,
-        )
         self.frame_bottom = CTkFrame(master=self.canvas)
         self.frame_bottom.pack(side='bottom', padx=5, pady=7, anchor='w')
 
