@@ -37,10 +37,19 @@ class MainApp:
         # * functions start here
         self.create_main_window()
 
-    def resetAllValue(self):
-        self.data_file_dir.set("")
-        self.sku.set("")
-        self.set_num.set("")
+    def reset_all_values(self):
+        self.cus_order_name.set("")
+        self.cus_name.set("")
+        self.cus_tax_num.set("")
+        self.update_textbox_widgets("", self.address_display, self.cus_address)
+        self.cus_province.set("")
+        self.cus_district.set("")
+        self.cus_sub_district.set("")
+        self.cus_zip_code.set("")
+        self.cus_tel.set("")
+        self.update_item_display(widget="product")
+        self.update_item_display(widget="premium")
+        # self.update_textbox_widgets("", ยังไม่มี widget, self.cus_remark)
 
     def resetInput(self):
         self.sku.set("")
@@ -92,6 +101,9 @@ class MainApp:
         print('ChromDriver is running.')
 
     def start_task(self, input={}):
+        # * ล้าง inputเก่าก่อน
+        self.reset_all_values()
+
         # * รับ input เข้า program
         print("input type: ", type(input))
         self.input_receiver(input)
@@ -134,7 +146,7 @@ class MainApp:
         # * widgets
         self.pady = (0, 16)
 
-        #* QR input component ////////////
+        # * QR input component ////////////
         self.qr_display = CTkLabel(
             self.frame_top, text="QR Input", width=70, anchor=tk.W)
         self.qr_display.grid(row=0, column=0, padx=(0, 0), pady=self.pady)
@@ -147,8 +159,8 @@ class MainApp:
                                 text="Start", command=lambda: self.on_start_button_click(self.input_qr.get()))
         self.qr_btn.grid(row=0, column=2, padx=(
             0, 0), pady=self.pady, sticky="w")
-        
-        #* Order display component ////////////
+
+        # * Order display component ////////////
         self.order_label = CTkLabel(
             self.frame_top, text="เลขที่คำสั่งซื้อ", width=70, anchor=tk.W)
         self.order_label.grid(row=0, column=3, padx=(10, 10), pady=self.pady)
@@ -275,45 +287,55 @@ class MainApp:
                 getattr(self, attr).set("-")
 
         try:
-            self.update_textbox_widgets(input['address'], self.address_display, self.cus_address)
+            self.update_textbox_widgets(
+                input['address'], self.address_display, self.cus_address)
         except:
             print("input ไม่มี prop address ส่งเข้ามา")
-            self.update_textbox_widgets("-", self.address_display, self.cus_address)
+            self.update_textbox_widgets(
+                "-", self.address_display, self.cus_address)
 
         self.update_item_display(input['products'], "product")
         self.update_item_display(input['premiums'], "premium")
-        self.update_textbox_widgets(input['remark'], )
+        # self.update_textbox_widgets(input['remark'], )
 
     # * update รายการของที่ลูกค้าซื้อ
-    def update_item_display(self, data, widget):
+    def update_item_display(self, data=[], widget=None):
         # widget รับว่าจะอัพเดท ช่องไหน ระหว่าง product หรือ premium
         print("เข้ามาเป็นอะไร: ", data)
 
         if "product" in widget:
             widget_target = self.bottom_component_settings[0]['widgets'][f'items_display']
-            self.cus_purchased_products.append(data)
+            if len(self.cus_purchased_products) != 0:
+                self.cus_purchased_products.append(data)
+            else:
+                self.cus_purchased_products = []
         elif "premium" in widget:
             widget_target = self.bottom_component_settings[1]['widgets'][f'items_display']
-            self.cus_purchased_premiums.append(data)
+            if len(self.cus_purchased_products) != 0:
+                self.cus_purchased_premiums.append(data)
+            else:
+                self.cus_purchased_premiums = []
 
+        widget_target.configure(state=NORMAL)
+        widget_target.delete(1.0, END)
         for input in data:
-            widget_target.configure(state=NORMAL)
-            widget_target.delete(1.0, END)
-            widget_target.insert(END, input['code'])
-            widget_target.configure(state=DISABLED)
+            widget_target.insert(END, input['code']+"\n")
+        widget_target.configure(state=DISABLED)
 
     # * update ที่อยู่ลูกค้า
     def update_textbox_widgets(self, address_input, address_widget, to_update_var=""):
         self.to_update_var = to_update_var
-        
+
         if address_input != "":
             input = address_input.strip()
-        else:
+        elif self.cus_order_name.get() != "":
             input = "-"
+        else:
+            input = ""
 
         if self.to_update_var:
             to_update_var = input
-        
+
         address_widget.configure(state=NORMAL)
         address_widget.delete(1.0, END)
         address_widget.insert(END, input)
