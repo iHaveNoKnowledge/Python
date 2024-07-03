@@ -19,6 +19,8 @@ class MainApp:
         self.current_task = None
         self.stop_event = threading.Event()
         self.data_table = {}
+        self.is_bot_working = tk.BooleanVar(value=False)
+        self.bot_status = tk.StringVar(value="ไม่ได้ทำงาน")
 
         # * ตัวแปรสำหรับ inputs
         self.cus_order_name = tk.StringVar(value="")
@@ -41,7 +43,8 @@ class MainApp:
         self.cus_order_name.set("")
         self.cus_name.set("")
         self.cus_tax_num.set("")
-        self.update_textbox_widgets("", self.address_display, self.cus_address)
+        self.update_textbox_widgets(
+            "", self.address_display, 'cus_address')
         self.cus_province.set("")
         self.cus_district.set("")
         self.cus_sub_district.set("")
@@ -50,6 +53,16 @@ class MainApp:
         self.update_item_display(widget="product")
         self.update_item_display(widget="premium")
         # self.update_textbox_widgets("", ยังไม่มี widget, self.cus_remark)
+
+    def update_bot_status(self, is_bot_working=False):
+        self.is_bot_working.set(False)
+        self.status_display.configure(fg_color="#70ff29")
+        self.bot_status.set("ไม่ได้ทำงาน")
+
+        if is_bot_working:
+            self.is_bot_working.set(True)
+            self.status_display.configure(fg_color="#ff2929")
+            self.bot_status.set("กำลังทำงาน")
 
     def resetInput(self):
         self.sku.set("")
@@ -97,7 +110,10 @@ class MainApp:
         print("Function completed")
 
     def operation_start(self):
-        self.ChromDriver = ChromeDriver()
+        self.update_bot_status(True)
+        self.ChromDriver = ChromeDriver(app=self,
+                                        update_bot_stat_fn=self.update_bot_status
+                                        )
         print('ChromDriver is running.')
 
     def start_task(self, input={}):
@@ -143,9 +159,11 @@ class MainApp:
         # * started widgets variables
         self.input_qr = tk.StringVar()
 
-        # * widgets
+        # *** widgets /////////////////////////////////////////////
+        # ** variables for setting
         self.pady = (0, 16)
 
+        # ** frame_top widgets ************************************
         # * QR input component ////////////
         self.qr_display = CTkLabel(
             self.frame_top, text="QR Input", width=70, anchor=tk.W)
@@ -191,7 +209,17 @@ class MainApp:
             self.frame_top, width=180, state="readonly", textvariable=self.cus_tax_num)
         self.tax_num_display.grid(row=1, column=4, padx=(0, 1))
 
-        # * เลขผู้เสียภาษี cus_address component ///////////
+        # * Bot Status cus_tax_num component ///////////
+        self.status_label = CTkLabel(
+            self.frame_top, text="Status", width=70)
+        self.status_label.grid(row=0, column=5, padx=(10, 0))
+
+        self.status_display = CTkEntry(
+            self.frame_top, width=150, state="readonly", textvariable=self.bot_status, fg_color="#70ff29",  text_color="#000")
+        self.status_display.grid(row=0, column=6, sticky="w")
+
+        # ** frame_1 widgets ************************************
+        # * ที่อยู่ cus_address component ///////////
         self.address_label = CTkLabel(
             self.frame_1, text="ที่อยู่ ", width=70, anchor=tk.W)
         self.address_label.grid(row=0, column=0, padx=(
@@ -288,11 +316,11 @@ class MainApp:
 
         try:
             self.update_textbox_widgets(
-                input['address'], self.address_display, self.cus_address)
+                input['address'], self.address_display,  'cus_address')
         except:
             print("input ไม่มี prop address ส่งเข้ามา")
             self.update_textbox_widgets(
-                "-", self.address_display, self.cus_address)
+                "-", self.address_display, 'cus_address')
 
         self.update_item_display(input['products'], "product")
         self.update_item_display(input['premiums'], "premium")
@@ -323,8 +351,8 @@ class MainApp:
         widget_target.configure(state=DISABLED)
 
     # * update ที่อยู่ลูกค้า
-    def update_textbox_widgets(self, address_input, address_widget, to_update_var=""):
-        self.to_update_var = to_update_var
+    def update_textbox_widgets(self, address_input, address_widget, to_update_var=None):
+
 
         if address_input != "":
             input = address_input.strip()
@@ -333,8 +361,10 @@ class MainApp:
         else:
             input = ""
 
-        if self.to_update_var:
-            to_update_var = input
+        if to_update_var is not None:
+            # todo setattr interesting code น่าสนใจ เป็นการ่เลือก obj แล้ว ส่ง str ของ attribute แล้วตามด้วยค่าที่ต้องการ update
+            setattr(self, to_update_var, input)
+
 
         address_widget.configure(state=NORMAL)
         address_widget.delete(1.0, END)
