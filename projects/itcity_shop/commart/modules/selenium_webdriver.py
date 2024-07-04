@@ -40,7 +40,6 @@ logger.addHandler(handler)
 class ChromeDriver:
     def __init__(self, *args, **kwargs):
         try:
-
             if 'update_bot_stat_fn' in kwargs:
                 self.update_bot_status = kwargs['update_bot_stat_fn']
                 self.app = kwargs['app']
@@ -49,6 +48,8 @@ class ChromeDriver:
             tb_str = traceback.print_exc()
             print('Classs ChromeDriver has stopped working')
             raise ValueError('Traceback: ', tb_str)
+
+        self.wait1 = WebDriverWait(self.driver, 50)
         self.get_tabs()
 
     def setup_chrome(self):
@@ -278,16 +279,6 @@ class ChromeDriver:
             self.driver.find_element(
                 By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
-        # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
-        # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
-
-        # if self.app.marketplace_target.get() == "SHOPEE":
-        #     self.cus_search_input = self.app.cus_email.get() if self.app.tax_bool.get(
-        #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
-        # elif self.app.marketplace_target.get() == "LAZADA":
-        #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-        #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
-
         self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
         ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
@@ -432,17 +423,35 @@ class ChromeDriver:
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, self.app.cusNameInput)))
 
-    def add_customer(self):
+    def add_normal_customer(self):
         print("ชื่อลูกค้าเป็นไง SHOP: ", self.app.cus_name.get())
         name = self.app.cus_name.get()
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย'])
+        
+        # * กดปุ่มแว่นขยาย
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a').click()
         time.sleep(0.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').click()
+        
+        # * กดปุ่มสร้าง//Create
+        while True:
+            try:
+                is_btn_found = self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').is_displayed()
+                if is_btn_found:
+                    self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').click()
+                    break
+                else :
+                    continue
+            except:
+                continue
+        # self.btnElement = self.wait1.until(
+        #     EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]')))
+        # time.sleep(0.65)
+        # self.btnElement.click()  # create
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
         try:
@@ -594,8 +603,9 @@ class ChromeDriver:
         print("chrome started!!")
 
         try:
-            self.add_customer()
+            self.add_normal_customer()
         except Exception as e:
+            # * ถ้าพังให้ข้าม
             traceback_str = traceback.format_exc()
             print("พัง: ", traceback_str)
         print("chrome finished!!")
