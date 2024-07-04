@@ -29,3 +29,7 @@
 "re_mark":"ส่งของวันจันทร์นะครับ เสาร์-อาทิตย์ ไม่สะดวกรับของ"}
 
 
+ตัวอย่าง supabae_client
+{'id': 531673, 'order_Name': 'Q43PHH', 'created_at': '2024-07-03T16:00:34.480646+07:00', 'updated_at': '2024-07-03T16:00:34.480646+07:00', 'order_status': 'รอยืนยัน', 'credit_id': 2, 'is_Installment': True, 'total_price': 65670, 're_mark': 'TEST REMARK', 'is_confirmed': False, 'customer_fname': None, 'customer_lname': None, 'customer_tel': None, 'want_full_tax': None, 'is_headquarter': None, 'full_tax_id': None, 'full_tax_branch_name': None, 'full_tax_type': None}
+
+
