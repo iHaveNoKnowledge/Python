@@ -8,12 +8,24 @@
 "zip_Code":"10160",
 "tel":"08XXXXXXXX",
 "products":[{"id":1,"code":"CO6-000699"}],
-"premiums":[{"id":1,"code":"COA-000001"}, {"id":11,"code":"PM1-000001"}]}
+"premiums":[{"id":1,"code":"COA-000001"}, {"id":11,"code":"PM1-000001"}],
+"remark":"ส่งของวันจันทร์นะครับ เสาร์-อาทิตย์ ไม่สะดวกรับของ"}
 
 แบบย่อ
 {"order":"XS3AS1",
-"name":"Inwza007",
+"name":"jo25085o",
 "tax_Num":"0123456789ABC",
 "tel":"08XXXXXXXX",
 "products":[{"id":1,"code":"CO6-000699"}],
-"premiums":[{"id":1,"code":"COA-000001"}, {"id":11,"code":"PM1-000001"}]}
+"premiums":[{"id":1,"code":"COA-000001"}, {"id":11,"code":"PM1-000001"}],
+"remark":"ส่งของวันจันทร์นะครับ เสาร์-อาทิตย์ ไม่สะดวกรับของ"}
+
+{"order":"XS3AS1",
+"name":"placemonkeyking เ******ม ******99",
+"tax_Num":"",
+"tel":"08XXXXXXXX",
+"products":[{"id":1,"code":"CO6-000699"}],
+"premiums":[{"id":1,"code":"COA-000001"}, {"id":11,"code":"PM1-000001"}],
+"re_mark":"ส่งของวันจันทร์นะครับ เสาร์-อาทิตย์ ไม่สะดวกรับของ"}
+
+
