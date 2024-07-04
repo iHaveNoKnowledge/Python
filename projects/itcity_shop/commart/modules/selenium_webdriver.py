@@ -232,7 +232,7 @@ class ChromeDriver:
                 print("หน้าใหม่พร้อมแล้ว")
             elif self.is_reset == False:
                 print("ไม่ต้องรี")
-        except EXCEPTION as err:
+        except Exception as err:
             print("Error From SMCO phase1 Resetting", err)
             while True:
                 print("รอ")
@@ -264,15 +264,10 @@ class ChromeDriver:
         self.wait1.until(EC.element_to_be_clickable(
             (By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
         if self.app.tax_bool.get() == True:
-            # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
-            if self.app.marketplace_target.get() == "SHOPEE":
-                print("ขอใบกำกับSHOPEE ใช้ T:")
-                self.driver.find_element(
-                    By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
-            elif self.app.marketplace_target.get() == "LAZADA":
-                print("ขอใบกำกับLazada ใช้ T:")
-                self.driver.find_element(
-                    By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+            print("ขำใบกำกับใช้ T:")
+            self.driver.find_element(
+                By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+
         elif self.app.tax_bool.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
@@ -429,12 +424,12 @@ class ChromeDriver:
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย'])
-        
+
         # * กดปุ่มแว่นขยาย
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a').click()
         time.sleep(0.75)
-        
+
         # * กดปุ่มสร้าง//Create
         while True:
             try:
@@ -442,11 +437,14 @@ class ChromeDriver:
                     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').is_displayed()
                 if is_btn_found:
                     self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').click()
+                        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').click()
                     break
-                else :
+                else:
+                    print("element is not displayed")
                     continue
             except:
+                traceback_str = traceback.format_exc()
+                print("พังตอนหาปุ่ม create: ", traceback_str)
                 continue
         # self.btnElement = self.wait1.until(
         #     EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]')))
@@ -610,64 +608,3 @@ class ChromeDriver:
             print("พัง: ", traceback_str)
         print("chrome finished!!")
         self.update_bot_status(is_bot_working=False)
-
-    def create_sn_fill_sequence(self, kit_sku):
-        # test case ที่ดีต้องดูหลายๆค่า เพราะแต่ละ sku มีลำดับไม่เหมือนกันฉะนั้นต้องลองเทสสองเคสนี้ KCU2-000781, KCU2-000777
-        # * Argument ต้องรับ
-        self.target = kit_sku
-        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-        # sku_kit_list = self.driver.find_elements(By.CSS_SELECTOR, "div.col-sm-9.col-xs-8")
-        print("มีเซ็ตไรบ้าง")
-        try:
-            self.kit_name_target = self.driver.find_element(
-                By.XPATH, f"//a[contains(., '{self.target}')]")
-        except:
-            print(f"หา ชุดkit {self.target} ไม่เจอ")
-            return
-        self.kit_items_target_elmt = self.kit_name_target.find_element(
-            By.XPATH, "../div[1]")
-        self.kit_items_list = self.kit_items_target_elmt.find_elements(
-            By.CLASS_NAME, "ng-binding")
-        # print(f"element by kit name: {self.kit_name_target}, kit name: {self.kit_name_target.text}")
-        # print(f"kit_items_target: {self.kit_items_target_elmt}")
-        # print(f"kit_items_list: {self.kit_items_list}")
-
-        # * ดึง text แต่ละ elemtn ย่อย เพื่อเอา sku ภายในชุด kit
-        self.prog = re.compile(r"\w{2}\d\-\d{6}")
-
-        self.sku_type_list = []
-        for i, item in enumerate(self.kit_items_list):
-            try:
-                self.result = f"{self.prog.match(item.text).group()}"
-                self.sku_type_list.append(str(self.result[0:3].lower()))
-                # print(result[0:3])
-
-            except:
-                continue
-
-        #! ส่วนนี้จะใช้ได้หาก smco เรียงของตาม step เท่านั้น หาก เรียง เป็น ts9(psu) ตามด้วย ts8(case)
-        # * ดูว่ามี ts8 ซ้ำหรือไม่
-        self.ts8_count = self.sku_type_list.count('ts8')
-
-        # * หากมีซ้ำจะทำการเปลี่ยน
-        if self.ts8_count > 1:
-            for i in range(len(self.sku_type_list)):
-                if self.sku_type_list[i] == 'ts8':
-                    self.sku_type_list[i] = 'ts9'
-                    break
-
-        print("gotcha: ", self.sku_type_list)
-        return self.sku_type_list
-
-
-# try:
-#     chromeDriver_browser = ChromeDriver()
-# except Exception as e:
-#     traceback_str = traceback.format_exc()
-#     print(f"An error occirred: {e}")
-#     print(traceback_str)
-#     # logger.debug('This is a debug message')
-#     # logger.info('This is an info message')
-#     logger.warning(f"'from class ChromeDriver()', {traceback_str}")
-#     # logger.error('This is an error message')
-#     # logger.critical('This is a critical message')

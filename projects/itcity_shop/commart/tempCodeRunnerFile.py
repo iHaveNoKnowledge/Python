@@ -1,1 +1,1 @@
-cus_tel
+width=70,

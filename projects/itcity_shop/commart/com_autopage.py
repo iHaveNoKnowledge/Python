@@ -7,6 +7,7 @@ import json
 import re
 
 from modules.selenium_webdriver import ChromeDriver
+from modules.supabase_client import Supabase_client
 
 
 class MainApp:
@@ -21,6 +22,7 @@ class MainApp:
         self.data_table = {}
         self.is_bot_working = tk.BooleanVar(value=False)
         self.bot_status = tk.StringVar(value="ไม่ได้ทำงาน")
+        self.Supabase_client = Supabase_client()
 
         # * ตัวแปรสำหรับ inputs
         self.cus_order_name = tk.StringVar(value="")
@@ -52,6 +54,7 @@ class MainApp:
         self.cus_tel.set("")
         self.update_item_display(widget="product")
         self.update_item_display(widget="premium")
+        self.update_item_display(widget="remark")
         # self.update_textbox_widgets("", ยังไม่มี widget, self.cus_remark)
 
     def update_bot_status(self, is_bot_working=False):
@@ -91,6 +94,23 @@ class MainApp:
         if self.input_data:
             print("input: ", self.input_data)
             self.update_from_qr(self.input_data)
+        else:
+            print("ไม่ได้ใส่ค่า input", self.input_data)
+
+    def input_receiver2(self, input):
+        self.input_data = input
+        self.Supabase_client.get_order(input)
+        try:
+            self.input_data = json.loads(input)
+        except Exception as e:
+            print("แปลงเป็น dict ไม่สําเร็จ: ")
+            print("START: ", e, "END")
+            #! อัพเดท status
+            raise
+
+        if self.input_data:
+            print("input: ", self.input_data)
+            self.update_from_qr2(self.input_data)
         else:
             print("ไม่ได้ใส่ค่า input", self.input_data)
 
@@ -270,8 +290,12 @@ class MainApp:
 
         # * Frame Bottom Section /////////////////////////////////////////////////////////////////////////////
         self.bottom_component_settings = [
-            {"label": "สินค้า", "position": {"row": 0, "column": 0}, "widgets": {}},
-            {"label": "ของแถม", "position": {"row": 0, "column": 1},  "widgets": {}},
+            {"label": "สินค้า", "position": {"row": 0, "column": 0},
+                "widgets": {},  "setting": {"width": 200}},
+            {"label": "ของแถม", "position": {"row": 0, "column": 1},
+                "widgets": {},  "setting": {"width": 200}},
+            {"label": "Remark", "position": {"row": 0, "column": 2},
+                "widgets": {}, "setting": {"width": 500}},
         ]
 
         for index, item in enumerate(self.bottom_component_settings):
@@ -280,14 +304,33 @@ class MainApp:
             # * > address display Conponent /////////////////////
             # * >> Label
             self.items_label = CTkLabel(
-                self.frame_bottom, text=item['label'], width=70, anchor=tk.W)
-            self.items_label.grid(row=item['position']['row'], column=item['position']['column'], padx=(
-                0, 5), pady=(0, 5), sticky='nw')
+                self.frame_bottom,
+                text=item['label'],
+                width=70,
+                anchor=tk.W
+            )
+            self.items_label.grid(
+                row=item['position']['row'],
+                column=item['position']['column'],
+                padx=(0, 5),
+                pady=(0, 5),
+                sticky='nw'
+            )
+
             # * > DisplayField
             self.items_display = CTkTextbox(
-                self.frame_bottom, height=150, state=tk.DISABLED)
+                self.frame_bottom,
+                height=150,
+                width=item['setting']['width'],
+                state=tk.DISABLED
+            )
             self.items_display.grid(
-                row=item['position']['row'] + 1, column=item['position']['column'], padx=(0, 5), pady=(0, 5), sticky='w')
+                row=item['position']['row'] + 1,
+                column=item['position']['column'],
+                padx=(0, 5),
+                pady=(0, 5),
+                sticky='w',
+            )
 
             self.bottom_component_settings[index]['widgets'][f'items_label'] = self.items_label
             self.bottom_component_settings[index]['widgets'][f'items_display'] = self.items_display
@@ -324,7 +367,38 @@ class MainApp:
 
         self.update_item_display(input['products'], "product")
         self.update_item_display(input['premiums'], "premium")
-        # self.update_textbox_widgets(input['remark'], )
+        self.update_item_display(input['re_mark'], "remark")
+
+    def update_from_qr2(self, input_qr=""):
+        input = input_qr
+        attributes = {
+            'cus_order_name': 'order_Name',
+            'cus_name': 'name',
+            'cus_tax_num': 'tax_Num',
+            'cus_province': 'province',
+            'cus_district': 'district',
+            'cus_sub_district': 'sub_District',
+            'cus_zip_code': 'zip_Code',
+            'cus_tel': 'tel',
+        }
+
+        for attr, key in attributes.items():
+            try:
+                getattr(self, attr).set(input[key])
+            except KeyError:
+                getattr(self, attr).set("-")
+
+        try:
+            self.update_textbox_widgets(
+                input['address'], self.address_display,  'cus_address')
+        except:
+            print("input ไม่มี prop address ส่งเข้ามา")
+            self.update_textbox_widgets(
+                "-", self.address_display, 'cus_address')
+
+        self.update_item_display(input['products'], "product")
+        self.update_item_display(input['premiums'], "premium")
+        self.update_item_display(input['re_mark'], "remark")
 
     # * update รายการของที่ลูกค้าซื้อ
     def update_item_display(self, data=[], widget=None):
@@ -343,16 +417,25 @@ class MainApp:
                 self.cus_purchased_premiums.append(data)
             else:
                 self.cus_purchased_premiums = []
+        elif "remark" in widget:
+            widget_target = self.bottom_component_settings[2]['widgets'][f'items_display']
+            if len(self.cus_purchased_products) != 0:
+                self.cus_remark = data
+            else:
+                self.cus_remark = []
 
         widget_target.configure(state=NORMAL)
         widget_target.delete(1.0, END)
-        for input in data:
-            widget_target.insert(END, input['code']+"\n")
+        if type(data) == list:
+            for input in data:
+                widget_target.insert(END, input['code']+"\n")
+        elif type(data) == str:
+            widget_target.insert(END, data+"\n")
+
         widget_target.configure(state=DISABLED)
 
     # * update ที่อยู่ลูกค้า
     def update_textbox_widgets(self, address_input, address_widget, to_update_var=None):
-
 
         if address_input != "":
             input = address_input.strip()
@@ -364,7 +447,6 @@ class MainApp:
         if to_update_var is not None:
             # todo setattr interesting code น่าสนใจ เป็นการ่เลือก obj แล้ว ส่ง str ของ attribute แล้วตามด้วยค่าที่ต้องการ update
             setattr(self, to_update_var, input)
-
 
         address_widget.configure(state=NORMAL)
         address_widget.delete(1.0, END)
@@ -392,10 +474,12 @@ class MainApp:
 
         # *> BottomFrame
         self.frame_bottom = CTkFrame(master=self.canvas)
-        self.frame_bottom.pack(side='bottom', padx=5, pady=7, anchor='w')
+        self.frame_bottom.pack(side='bottom', padx=5,
+                               pady=7, anchor='w', fill='x')
 
         self.create_widgets()
-        
+
+
 class PopUp:
     """
     Class PopUp use for create a pop-up for THE BOT GUI
@@ -418,7 +502,7 @@ class PopUp:
         self.subwindow.destroy()
 
     def create_subwindow(self):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = tk.Toplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("400x140+650+400")
         self.subwindow.title(f"{self.title}")
@@ -426,18 +510,18 @@ class PopUp:
         self.subwindow.resizable(True, False)
 
         # * สร้างเฟรม
-        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame = CTk.Frame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง Texted widget
-        self.id_label = Text(
+        self.id_label = CTk.Text(
             self.subwin_frame, font=("bazooka", 9))
         self.id_label.insert(END, f'{self.message}')
         self.id_label.pack(fill=BOTH, expand=True)
-        self.id_label.config(state=DISABLED)
+        self.id_label.configure(state=DISABLED)
 
         # * Submit Button
-        self.submit_btn = Button(
+        self.submit_btn = CTk.Button(
             self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
         self.submit_btn.pack(fill='x', expand=True)
 
