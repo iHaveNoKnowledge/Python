@@ -389,12 +389,12 @@ class MyApp:
         self.display_cus_email.grid(row=2, column=7, padx=(1, 0), sticky='ew')
 
         # * > Customer Name display component
-        # >> Labels
+        # * >> Labels
         self.label_cus_name = Label(
             self.order_details_frame, text="ชื่อ", bg="#FFF", height=1)
         self.label_cus_name.grid(row=2, column=0, padx=(
             5, 0), pady=(2, 2), sticky='ew')
-        # >> Value display
+        # * >> Value display
         self.display_cus_name = Entry(
             self.order_details_frame, width=40,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
         self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
@@ -839,7 +839,7 @@ class MyApp:
                 self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
 
             print("df มี type เป็นไร", type(self.data_frame))
-            print("self.data_frame หน้าตาเปนไง: ", self.data_frame)
+            # print("self.data_frame หน้าตาเปนไง: ", self.data_frame) มันยาว
             if self.data_frame.empty:
                 print("ไม่มี Data Frame")
             else:
@@ -1329,7 +1329,8 @@ class MyApp:
                         r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
                 except:
                     # * ถ้าชื่อมันว่างมันจะ strip()
-                    self.cus_name.set("")
+                    self.cus_name.set(
+                        self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']+" "+self.cus_secret_name+" "+self.cus_secret_tel)
 
                 self.cus_name_simplifyer(self.cus_name.get())
 
@@ -1459,6 +1460,11 @@ class MyApp:
 
                 if self.marketplace_target.get() == 'SHOPEE':
                     self.cleaned_address = ""
+                    # * ถ้าขอใบกำกับค่อยใส่ ถ้าไม่ ก็ "" ไป
+                    if self.tax_bool.get():
+                        self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
+                            self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+
                     if "กรุงเทพ" in self.cleaned_address:
                         self.cleaned_address = self.cleaned_address.replace(
                             "จังหวัด", '')
@@ -1488,8 +1494,8 @@ class MyApp:
                 print("self.cus_account_name: ", self.cus_account_name.get())
 
                 # * update display text ใน gui
-                # เลือกว่าจะใช้ที่อยู่ แบบรายcol หรือ แบบสำเร็จ ไปอัพเดทและแสดงผลที่อยู่ใน gui โดยอัพเดท the gui ด้วย method update_gui_address
-                # การจะเลือกรายcol ได้ต้องชัวร์ว่า col แขวง/ตำบลต้องไม่ใช่ค่าว่าง หรือต้องไม่ Return เป็น "nan"
+                # * เลือกว่าจะใช้ที่อยู่ แบบรายcol หรือ แบบสำเร็จ ไปอัพเดทและแสดงผลที่อยู่ใน gui โดยอัพเดท the gui ด้วย method update_gui_address
+                # * การจะเลือกรายcol ได้ต้องชัวร์ว่า col แขวง/ตำบลต้องไม่ใช่ค่าว่าง หรือต้องไม่ Return เป็น "nan"
                 try:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
                         print("แขวง/ตำบล ไม่เท่ากับ nan: ",
@@ -1503,6 +1509,7 @@ class MyApp:
                                 self.display_cus_address
                             )
                         else:
+                            print("update gui address else")
                             self.update_gui(
                                 re.sub(r'\s{2,}', " ", self.cleaned_address.replace(
                                     '\u200b', '')).strip(),
@@ -1520,6 +1527,7 @@ class MyApp:
                             ),
                             self.display_cus_address
                         )
+
                 except Exception as err:
                     print("Cannot Update Address", err)
                     self.update_gui('-', self.display_cus_address)
@@ -1528,10 +1536,11 @@ class MyApp:
                 self.update_gui_note()
 
                 # * เก็บค่ารายละเอียดที่อยู่
-                self.cus_province.set(
-                    self.nondistortedData['จังหวัด.1'].strip())
-                self.cus_district.set(
-                    self.nondistortedData['เขต/อำเภอ.1'].strip())
+                if self.tax_bool.get():
+                    self.cus_province.set(
+                        self.nondistortedData['จังหวัด.1'].strip())
+                    self.cus_district.set(
+                        self.nondistortedData['เขต/อำเภอ.1'].strip())
                 if self.cus_sub_district != "":
                     self.cus_sub_district.set(
                         self.nondistortedData['แขวง/ตำบล'])
@@ -2225,8 +2234,12 @@ class Bot_POS:
 
         items_list = self.driver.find_elements(
             By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-        cp_list = self.driver.find_elements(
-            By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
+        try:
+            #* ก่อน SMCOver 6.3.3
+            cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
+        except:
+            #* ตั้งแต่ SMCOver 6.3.3
+            cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
 
         # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_ordered_items_list):
@@ -2249,10 +2262,14 @@ class Bot_POS:
                             By.XPATH, cp_btn_xpath).click()
 
                         # * เลือก cp เป้าหมาย
-                        selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
-                            self.cp_no}]/div[1]/button'''
-                        self.driver.find_element(
-                            By.XPATH, selected_btn).click()
+                        try:
+                            #* SMCO ให้ ตั้งแต่ v6.3.3  
+                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]/div[{self.cp_no+1}]/div[1]/button'''
+                            self.driver.find_element(By.XPATH, selected_btn).click()
+                        except:
+                            #* SMCO เก่า 
+                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'''
+                            self.driver.find_element(By.XPATH, selected_btn).click()
 
                         self.driver.find_element(
                             By.XPATH, green_agree_btn_xpath).click()
@@ -4352,7 +4369,7 @@ if __name__ == "__main__":
 # !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
 # Todo82 // WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
-# !83 !!!!!!!!!!!!!!!!!!!!!!!!งานหยาบเหี้ยๆ Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
+# *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
