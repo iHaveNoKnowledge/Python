@@ -1,1 +1,1 @@
-update_gui(
+self.cus_secret_tel

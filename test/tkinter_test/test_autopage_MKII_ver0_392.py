@@ -108,6 +108,8 @@ class MyApp:
         }}
         self.is_gui_busy = BooleanVar(value=False)
         self.bot = Bot_POS(self.root, self)
+        # self.cus_secret_name = StringVar(value="")
+        # self.cus_secret_tel = StringVar(value="")
 
         self.create_main_window()
         self.get_dataframe()
@@ -1210,7 +1212,7 @@ class MyApp:
             'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
                                      'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่', 'ประเภทสาขา',
-                                     'รหัสประจำสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก']
+                                     'รหัสประจำสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก', 'ชื่อผู้รับ', 'หมายเลขโทรศัพท์']
 
         if self.order != "":
             print("self.order err?: ", self.order, type(self.order))
@@ -1222,6 +1224,8 @@ class MyApp:
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
                 # print(
                 #     "err?: ", self.data_frame[self.target_row]['สถานะการสั่งซื้อ'])
+                self.cus_secret_name = self.data_frame[self.target_row]['ชื่อผู้รับ'].iloc[0]
+                self.cus_secret_tel = self.data_frame[self.target_row]['หมายเลขโทรศัพท์'].iloc[0]
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง
@@ -1320,8 +1324,12 @@ class MyApp:
                 # self.row_header_maker(self.items)
 
                 # * ชื่อที่ต้องออกใบกำกับ
-                self.cus_name.set(self.translator(re.sub(
-                    r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
+                try:
+                    self.cus_name.set(self.translator(re.sub(
+                        r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
+                except:
+                    # * ถ้าชื่อมันว่างมันจะ strip()
+                    self.cus_name.set("")
 
                 self.cus_name_simplifyer(self.cus_name.get())
 
@@ -1438,15 +1446,25 @@ class MyApp:
                 # else:
                 #     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))}"""
                 # ? แบบที่2 ไม่แบ่ง Channel
-                self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
-                    self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                if self.marketplace_target.get() == 'LAZADA':
+                    self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
+                        self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
-                if "กรุงเทพ" in self.cleaned_address:
-                    self.cleaned_address = self.cleaned_address.replace(
-                        "จังหวัด", '')
-                # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
-                self.search_result = {"status": self.order_status,
-                                      "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+                    if "กรุงเทพ" in self.cleaned_address:
+                        self.cleaned_address = self.cleaned_address.replace(
+                            "จังหวัด", '')
+                    # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
+                    self.search_result = {"status": self.order_status,
+                                          "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
+
+                if self.marketplace_target.get() == 'SHOPEE':
+                    self.cleaned_address = ""
+                    if "กรุงเทพ" in self.cleaned_address:
+                        self.cleaned_address = self.cleaned_address.replace(
+                            "จังหวัด", '')
+                    # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
+                    self.search_result = {"status": self.order_status,
+                                          "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
 
                 # * สร้างสูตรสำหรับสร้าง input gui
                 print("มีไอเทมไรบ้าง", self.search_result['items'])
@@ -2869,8 +2887,17 @@ class Bot_POS:
             #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
             #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-            ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+            #! WIP
+            # * 05/07/2024 Shopeeนั้นได้ลบ ชื่อลูกค้าแบบ ธรรมดา ออกไปอย่างถาวร จึงต้องปรับวิธีออกบิลให้กับแบบธรรมดาโดยการใช้ "account"+" ชื่อที่เป็นดอกจัน"+" หมายเลขโทรศัพท์"
+            # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+            # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+
+            if self.app.marketplace_target.get() == "SHOPEE":
+                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                ) else self.app.cusNameFixer5(self.app.cus_account_name.get()+" "+self.app.cus_secret_name+" "+self.app.cus_secret_tel)
+            elif self.app.marketplace_target.get() == "LAZADA":
+                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
             # * จับตาดูว่า ul เปิดอยู่ไหม
             self.is_ul_not_open = False if self.driver.find_elements(
@@ -4325,7 +4352,7 @@ if __name__ == "__main__":
 # !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
 # Todo82 // WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
-# !83 !!!!!!!!!!!!!!!!!!!!!!!!งานหยาบเหี้ยๆ Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน 
+# !83 !!!!!!!!!!!!!!!!!!!!!!!!งานหยาบเหี้ยๆ Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
