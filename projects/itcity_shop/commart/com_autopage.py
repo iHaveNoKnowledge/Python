@@ -26,6 +26,10 @@ class MainApp:
 
         # * ตัวแปรสำหรับ inputs
         self.cus_order_name = tk.StringVar(value="")
+        self.cus_fname = tk.StringVar(value="")
+        self.cus_lname = tk.StringVar(value="")
+        self.cus_is_fulltax = tk.BooleanVar(value=False)
+        self.cus_is_hq = tk.BooleanVar(value=False)
         self.cus_name = tk.StringVar(value="")
         self.cus_tax_num = tk.StringVar(value="")
         self.cus_address = ""
@@ -99,20 +103,20 @@ class MainApp:
 
     def input_receiver2(self, input):
         self.input_data = input
-        self.Supabase_client.get_order(input)
-        try:
-            self.input_data = json.loads(input)
-        except Exception as e:
-            print("แปลงเป็น dict ไม่สําเร็จ: ")
-            print("START: ", e, "END")
-            #! อัพเดท status
-            raise
+        self.order_details = self.Supabase_client.get_order(input)
+        # try:
+        #     self.input_data = json.loads(input)
+        # except Exception as e:
+        #     print("แปลงเป็น dict ไม่สําเร็จ: ")
+        #     print("START: ", e, "END")
+        #     #! อัพเดท status
+        #     raise
 
         if self.input_data:
-            print("input: ", self.input_data)
-            self.update_from_qr2(self.input_data)
+            print("input: ", self.order_details)
+            self.update_from_qr2(self.order_details)
         else:
-            print("ไม่ได้ใส่ค่า input", self.input_data)
+            print("ไม่ได้ใส่ค่า order", self.input_data)
 
     # * my_function เป็น function ที่มีการรอ ใช้ทดสอบ Thread
     def my_function(self):
@@ -142,7 +146,7 @@ class MainApp:
 
         # * รับ input เข้า program
         print("input type: ", type(input))
-        self.input_receiver(input)
+        self.input_receiver2(input)
 
         # * จัดการ Thread
         if self.current_task and self.current_task.is_alive():

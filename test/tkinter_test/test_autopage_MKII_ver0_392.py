@@ -37,6 +37,7 @@ from customtkinter import *
 
 import traceback
 from bs4 import BeautifulSoup
+import httpcore
 from googletrans import Translator
 import requests
 session = requests.Session()
@@ -59,6 +60,9 @@ file_path = os.path.join(current_directory, address_file)
 directory_of_file = os.path.dirname(file_path)
 print("file located:", directory_of_file)
 # sys.path.append(os.path.dirname(os.getcwd()))
+
+# * ปรับ https ให้ตัว translate
+setattr(httpcore, 'SyncHTTPTransport', 'AsyncHTTPProxy')
 
 
 class MyApp:
@@ -1330,7 +1334,11 @@ class MyApp:
                 except:
                     # * ถ้าชื่อมันว่างมันจะ strip()
                     self.cus_name.set(
-                        self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']+" "+self.cus_secret_name+" "+self.cus_secret_tel)
+                        re.sub(
+                            r"[\(\)]",
+                            "",
+                            self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']+" "+self.cus_secret_name+" "+self.cus_secret_tel)
+                    )
 
                 self.cus_name_simplifyer(self.cus_name.get())
 
@@ -2235,11 +2243,13 @@ class Bot_POS:
         items_list = self.driver.find_elements(
             By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         try:
-            #* ก่อน SMCOver 6.3.3
-            cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
+            # * ก่อน SMCOver 6.3.3
+            cp_list = self.driver.find_elements(
+                By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
         except:
-            #* ตั้งแต่ SMCOver 6.3.3
-            cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
+            # * ตั้งแต่ SMCOver 6.3.3
+            cp_list = self.driver.find_elements(
+                By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
 
         # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_ordered_items_list):
@@ -2263,13 +2273,17 @@ class Bot_POS:
 
                         # * เลือก cp เป้าหมาย
                         try:
-                            #* SMCO ให้ ตั้งแต่ v6.3.3  
-                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]/div[{self.cp_no+1}]/div[1]/button'''
-                            self.driver.find_element(By.XPATH, selected_btn).click()
+                            # * SMCO ให้ ตั้งแต่ v6.3.3
+                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]/div[{
+                                self.cp_no+1}]/div[1]/button'''
+                            self.driver.find_element(
+                                By.XPATH, selected_btn).click()
                         except:
-                            #* SMCO เก่า 
-                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'''
-                            self.driver.find_element(By.XPATH, selected_btn).click()
+                            # * SMCO เก่า
+                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
+                                self.cp_no}]/div[1]/button'''
+                            self.driver.find_element(
+                                By.XPATH, selected_btn).click()
 
                         self.driver.find_element(
                             By.XPATH, green_agree_btn_xpath).click()
