@@ -138,7 +138,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.392")
+        self.root.title("Autosamatic ver0.392R1")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2925,7 +2925,7 @@ class Bot_POS:
 
             if self.app.marketplace_target.get() == "SHOPEE":
                 self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-                ) else self.app.cusNameFixer5(self.app.cus_account_name.get()+" "+self.app.cus_secret_name+" "+self.app.cus_secret_tel)
+                ) else self.app.cusNameFixer5(self.app.cus_name.get())
             elif self.app.marketplace_target.get() == "LAZADA":
                 self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
                 ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
@@ -4384,6 +4384,7 @@ if __name__ == "__main__":
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
 # Todo82 // WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
+#* 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
