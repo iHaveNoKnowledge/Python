@@ -369,8 +369,8 @@ class MainApp:
             self.update_textbox_widgets(
                 "-", self.address_display, 'cus_address')
 
-        self.update_item_display(input['products'], "product")
-        self.update_item_display(input['premiums'], "premium")
+        self.update_item_display(input['com_Order_Items'], "product")
+        self.update_item_display(input['com_Order_Premiums'], "premium")
         self.update_item_display(input['re_mark'], "remark")
 
     def update_from_qr2(self, input_qr=""):
@@ -378,12 +378,16 @@ class MainApp:
         attributes = {
             'cus_order_name': 'order_Name',
             'cus_name': 'name',
-            'cus_tax_num': 'tax_Num',
+            'cus_fname': 'customer_fname',
+            'cus_lname': 'customer_lname',
+            'cus_is_fulltax': 'want_full_tax',
+            'cus_is_hq': 'is_headquarter',
+            'cus_tax_num': 'full_tax_id',
             'cus_province': 'province',
             'cus_district': 'district',
             'cus_sub_district': 'sub_District',
             'cus_zip_code': 'zip_Code',
-            'cus_tel': 'tel',
+            'cus_tel': 'customer_tel',
         }
 
         for attr, key in attributes.items():
@@ -401,7 +405,7 @@ class MainApp:
                 "-", self.address_display, 'cus_address')
 
         self.update_item_display(input['com_Order_Items'], "product")
-        self.update_item_display(input['premiums'], "premium")
+        self.update_item_display(input['com_Order_Premiums'], "premium")
         self.update_item_display(input['re_mark'], "remark")
 
     # * update รายการของที่ลูกค้าซื้อ
@@ -432,7 +436,12 @@ class MainApp:
         widget_target.delete(1.0, END)
         if type(data) == list:
             for input in data:
-                widget_target.insert(END, input['code']+"\n")
+                if "product" in widget:
+                    widget_target.insert(
+                        END, input['com_Products']['code_Itcity']+"\n")
+                elif "premium" in widget:
+                    widget_target.insert(
+                        END, input['com_Premiums']['code_Itcity']+"\n")
         elif type(data) == str:
             widget_target.insert(END, data+"\n")
 
