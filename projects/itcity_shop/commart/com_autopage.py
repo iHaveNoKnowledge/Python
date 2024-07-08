@@ -400,7 +400,7 @@ class MainApp:
             self.update_textbox_widgets(
                 "-", self.address_display, 'cus_address')
 
-        self.update_item_display(input['products'], "product")
+        self.update_item_display(input['com_Order_Items'], "product")
         self.update_item_display(input['premiums'], "premium")
         self.update_item_display(input['re_mark'], "remark")
 

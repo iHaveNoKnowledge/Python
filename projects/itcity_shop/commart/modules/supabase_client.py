@@ -14,19 +14,22 @@ class Supabase_client:
         self.supabase: Client = create_client(self.url, self.key)
 
     def get_order(self, order_name: str = ""):
-        self.column = ""
+        self.column = """order_Name, customer_fname, customer_lname, want_full_tax, full_tax_id, is_headquarter, full_tax_id, customer_tel, com_Order_Items(com_Products(*)), com_Order_Premiums(com_Premiums(*))
+"""
         self.response = self.supabase.table("orders").select(
-            "*").eq("order_Name", order_name).execute()
+            self.column).eq("order_Name", order_name).execute()
 
         self.result = ""
         if self.response.data:
             self.result = self.response.data[0]
             print(type(self.result))
+            print(self.result)
             # * type ที่ return เป็น dict
             return self.result
         else:
-            print("error fetchData from bot,  no data: ", self.response.data)
-            raise
+            print()
+            raise Exception(
+                "error fetching from bot,  no data: ", self.response.data)
 
 
 # # * example
