@@ -30,7 +30,7 @@ class MainApp:
         self.cus_lname = tk.StringVar(value="")
         self.cus_is_fulltax = tk.BooleanVar(value=False)
         self.cus_is_hq = tk.BooleanVar(value=False)
-        self.cus_name = tk.StringVar(value="")
+        self.cus_display_name = tk.StringVar(value="")
         self.cus_tax_num = tk.StringVar(value="")
         self.cus_address = ""
         self.cus_province = tk.StringVar(value="")
@@ -53,7 +53,7 @@ class MainApp:
         self.cus_lname.set("")
         self.cus_is_fulltax.set(False)
         self.cus_is_hq.set(False)
-        self.cus_name.set("")
+        self.cus_display_name.set("")
         self.cus_tax_num.set("")
         self.update_textbox_widgets(
             "", self.address_display, 'cus_address')
@@ -223,7 +223,7 @@ class MainApp:
         self.name_label.grid(row=1, column=0, padx=(0, 0))
 
         self.name_display = CTkEntry(
-            self.frame_top, width=300, state="readonly", textvariable=self.cus_name)
+            self.frame_top, width=300, state="readonly", textvariable=self.cus_display_name)
         self.name_display.grid(row=1, column=1, padx=(0, 1))
 
         # * เลขผู้เสียภาษี cus_tax_num component ///////////
@@ -379,7 +379,6 @@ class MainApp:
         input = input_qr
         attributes = {
             'cus_order_name': 'order_Name',
-            'cus_name': 'name',
             'cus_fname': 'customer_fname',
             'cus_lname': 'customer_lname',
             'cus_is_fulltax': 'want_full_tax',
@@ -394,12 +393,14 @@ class MainApp:
             'cus_tax_type': 'full_tax_type'
         }
 
+        # *update แบบ loop
         for attr, key in attributes.items():
             try:
                 getattr(self, attr).set(input[key])
             except KeyError:
                 getattr(self, attr).set("-")
 
+        # *update ค่าแบบไม่ loop
         try:
             self.update_textbox_widgets(
                 input['address'], self.address_display,  'cus_address')
@@ -408,11 +409,24 @@ class MainApp:
             self.update_textbox_widgets(
                 "-", self.address_display, 'cus_address')
 
+        self.cus_display_name_selector()
         self.update_item_display(input['com_Order_Items'], "product")
         self.update_item_display(input['com_Order_Premiums'], "premium")
         self.update_item_display(input['re_mark'], "remark")
 
+    # * มันมีเรื่องของใบกำกับว่าจะออกแบบชื่อตัวเองหรือชื่อ บริษัท เลยต้องมีฟังชั่นสำหรับเลือก
+    def cus_display_name_selector(self):
+        self.display_name_result = f"""{
+            self.cus_fname.get()} {self.cus_lname.get()}"""
+        if self.cus_is_fulltax.get():
+            print("แล้วมัน นิติบุคคล หรือ บุคคล")
+            if self.cus_tax_type.get() == "Entity":
+                self.display_name_result = f"""{self.cus_tax_name.get()}"""
+
+        return self.cus_display_name.set(self.display_name_result)
+
     # * update รายการของที่ลูกค้าซื้อ
+
     def update_item_display(self, data=[], widget=None):
         # widget รับว่าจะอัพเดท ช่องไหน ระหว่าง product หรือ premium
         print("เข้ามาเป็นอะไร: ", data)
