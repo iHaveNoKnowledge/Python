@@ -22,9 +22,9 @@ class MainApp:
         self.data_table = {}
         self.is_bot_working = tk.BooleanVar(value=False)
         self.bot_status = tk.StringVar(value="ไม่ได้ทำงาน")
-        self.Supabase_client = Supabase_client()
+        self.Supabase_client = Supabase_client(self, root)
 
-        # * ตัวแปรสำหรับ inputs
+        # * ตัวแปรสำหรับจัดการ inputs
         self.cus_order_name = tk.StringVar(value="")
         self.cus_fname = tk.StringVar(value="")
         self.cus_lname = tk.StringVar(value="")
@@ -41,12 +41,18 @@ class MainApp:
         self.cus_purchased_products = []
         self.cus_purchased_premiums = []
         self.cus_remark = ""
+        self.cus_tax_name = tk.StringVar(value="")
+        self.cus_tax_type = tk.StringVar(value="")
 
         # * functions start here
         self.create_main_window()
 
     def reset_all_values(self):
         self.cus_order_name.set("")
+        self.cus_fname.set("")
+        self.cus_lname.set("")
+        self.cus_is_fulltax.set(False)
+        self.cus_is_hq.set(False)
         self.cus_name.set("")
         self.cus_tax_num.set("")
         self.update_textbox_widgets(
@@ -103,22 +109,17 @@ class MainApp:
 
     def input_receiver2(self, input):
         self.input_data = input
-        self.order_details = self.Supabase_client.get_order(input)
-        # try:
-        #     self.input_data = json.loads(input)
-        # except Exception as e:
-        #     print("แปลงเป็น dict ไม่สําเร็จ: ")
-        #     print("START: ", e, "END")
-        #     #! อัพเดท status
-        #     raise
-
         if self.input_data:
+            self.order_details = self.Supabase_client.get_order(input)
             print("input: ", self.order_details)
             self.update_from_qr2(self.order_details)
+            self.input_qr.set("")
         else:
-            print("ไม่ได้ใส่ค่า order", self.input_data)
+            # PopUp("Warning", "")
+            raise Exception("ไม่ได้ใส่ค่า order", self.input_data)
 
     # * my_function เป็น function ที่มีการรอ ใช้ทดสอบ Thread
+
     def my_function(self):
         print("Starting function")
         try:
@@ -174,6 +175,7 @@ class MainApp:
         self.log_display.config(state=tk.DISABLED)
 
     def on_start_button_click(self, input_qr=""):
+
         print("จำนวนThread: ", threading.active_count())
         print("threads: ", threading.enumerate())
         thread = threading.Thread(target=self.start_task, args=(input_qr, ))
@@ -388,6 +390,8 @@ class MainApp:
             'cus_sub_district': 'sub_District',
             'cus_zip_code': 'zip_Code',
             'cus_tel': 'customer_tel',
+            'cus_tax_name': 'company_name_of_tax',
+            'cus_tax_type': 'full_tax_type'
         }
 
         for attr, key in attributes.items():
@@ -492,57 +496,56 @@ class MainApp:
 
         self.create_widgets()
 
+    class PopUp:
+        """
+        Class PopUp use for create a pop-up for THE BOT GUI
+        Parameters:
+            - title (str): Title name of the pop-up.
+            - message (str): For display a message in the pop-up.
+            - parent (obj): class parent obj.
+            - mode (str): มี 2 ทางเลือก "form" สำหรับ submit, "alert" สำหรับ alert
+        """
 
-class PopUp:
-    """
-    Class PopUp use for create a pop-up for THE BOT GUI
-    Parameters:
-        - title (str): Title name of the pop-up.
-        - message (str): For display a message in the pop-up.
-        - parent (obj): class parent obj.
-        - mode (str): มี 2 ทางเลือก "form" สำหรับ submit, "alert" สำหรับ alert
-    """
+        def __init__(self, title, message, parent, mode):
+            self.mode_opt = {"form": "Submit", "alert": "Close"}
+            self.mode = mode
+            self.parent = parent
+            self.title = title
+            self.message = message
+            self.create_subwindow()
 
-    def __init__(self, title, message, parent, mode):
-        self.mode_opt = {"form": "Submit", "alert": "Close"}
-        self.mode = mode
-        self.parent = parent
-        self.title = title
-        self.message = message
-        self.create_subwindow()
+        def delete(self):
+            self.subwindow.destroy()
 
-    def delete(self):
-        self.subwindow.destroy()
+        def create_subwindow(self):
+            self.subwindow = tk.Toplevel(self.parent)
+            self.subwindow.transient(self.parent)
+            self.subwindow.geometry("400x140+650+400")
+            self.subwindow.title(f"{self.title}")
+            self.subwindow.grab_set()
+            self.subwindow.resizable(True, False)
 
-    def create_subwindow(self):
-        self.subwindow = tk.Toplevel(self.parent)
-        self.subwindow.transient(self.parent)
-        self.subwindow.geometry("400x140+650+400")
-        self.subwindow.title(f"{self.title}")
-        self.subwindow.grab_set()
-        self.subwindow.resizable(True, False)
+            # * สร้างเฟรม
+            self.subwin_frame = CTkFrame(self.subwindow)
+            self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
-        # * สร้างเฟรม
-        self.subwin_frame = CTk.Frame(self.subwindow)
-        self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
+            # * สร้าง Texted widget
+            self.id_label = CTkTextbox(
+                self.subwin_frame, font=("bazooka", 14))
+            self.id_label.insert(END, f'{self.message}')
+            self.id_label.pack(fill=BOTH, expand=True)
+            self.id_label.configure(state=DISABLED)
 
-        # * สร้าง Texted widget
-        self.id_label = CTk.Text(
-            self.subwin_frame, font=("bazooka", 9))
-        self.id_label.insert(END, f'{self.message}')
-        self.id_label.pack(fill=BOTH, expand=True)
-        self.id_label.configure(state=DISABLED)
+            # * Submit Button
+            self.submit_btn = CTkButton(
+                self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
+            self.submit_btn.pack(fill='x', expand=True)
 
-        # * Submit Button
-        self.submit_btn = CTk.Button(
-            self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
-        self.submit_btn.pack(fill='x', expand=True)
-
-        # * ยก widget นี้ ขึ้นมาหน้าสุด
-        # > กำหนดตำแหน่งเฉยๆ ยังไม่ขยับ ต้องไปสั่งขยับอีกที
-        self.subwindow.attributes('-topmost', 1)
-        # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
-        self.subwindow.lift()
+            # * ยก widget นี้ ขึ้นมาหน้าสุด
+            # > กำหนดตำแหน่งเฉยๆ ยังไม่ขยับ ต้องไปสั่งขยับอีกที
+            self.subwindow.attributes('-topmost', 1)
+            # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
+            self.subwindow.lift()
 
 
 def main():

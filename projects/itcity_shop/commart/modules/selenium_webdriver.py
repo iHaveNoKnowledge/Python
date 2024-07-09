@@ -419,8 +419,8 @@ class ChromeDriver:
             (By.XPATH, self.app.cusNameInput)))
 
     def add_normal_customer(self):
-        print("ชื่อลูกค้าเป็นไง SHOP: ", self.app.cus_name.get())
-        name = self.app.cus_name.get()
+        name = f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {
+            self.app.cus_tel.get()}"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย'])
@@ -468,6 +468,121 @@ class ChromeDriver:
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         # # * >nameTH fill input better style ปิดการใช้งาน
         # self.driver.find_element( By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # * >nameTH SMCO style
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name}')
+
+        # * >nameEN clear
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+        # * >nameEN fill input better style ปิดการใช้งาน
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # * >nameEN SMCO style
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name}')
+
+        # * กรอก Address
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+        # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
+        # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
+        address = self.app.cus_address
+        print("ข้างใน addressมีค่าไหม: ", self.app.cus_address)
+        # if self.app.tax_bool.get():
+        #     address = self.app.get_pure_address(self.app.cus_address)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
+
+        # * tel.
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+
+        # * ปุ่มบันทึกเขียวๆ
+        self.save_button_location = "/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]"
+
+        # # * กด Save
+        # self.driver.find_element(
+        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+
+        # * รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
+        # self.wait1.until(EC.invisibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        while True:
+            try:
+                is_add_page_present = self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
+            except:
+                continue
+
+            if is_add_page_present:
+                continue
+            else:
+                break
+
+        # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
+        # self.wait1.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+        # * สำหรับกดปิด pop-up ไอนี่จะเด้งทีหลัง
+        # try:
+        #     self.driver.find_element(
+        #         By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+        # except:
+        #     pass
+
+    def add_tax_customer(self):
+        if self.app.cus_tax_type.get() != "Individual":
+            name = self.app.cus_tax_name.get()
+        else:
+            name = self.app.cus_fname.get() + " " + self.app.cus_lname.get()
+
+        self.driver.switch_to.window(
+            self.merged_dict['SMCO :: เปิดการขาย'])
+
+        # * กดปุ่มแว่นขยาย
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a').click()
+        time.sleep(0.75)
+
+        # * กดปุ่มสร้าง//Create
+        while True:
+            try:
+                is_btn_found = self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').is_displayed()
+                if is_btn_found:
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]').click()
+                    break
+                else:
+                    print("element is not displayed")
+                    continue
+            except:
+                traceback_str = traceback.format_exc()
+                print("พังตอนหาปุ่ม create: ", traceback_str)
+                continue
+        # self.btnElement = self.wait1.until(
+        #     EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]')))
+        # time.sleep(0.65)
+        # self.btnElement.click()  # create
+
+        # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
+        try:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+            time.sleep(0.75)
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+        except:
+            print("No customer category, Pass")
+
+        # * > nameTH clear
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+
         # * >nameTH SMCO style
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name}')
@@ -599,9 +714,15 @@ class ChromeDriver:
 
     def operation_start(self):
         print("chrome started!!")
+        print("self.app.cus_is_hq.get(): ", self.app.cus_is_fulltax.get())
 
         try:
-            self.add_normal_customer()
+            if self.app.cus_is_fulltax.get():
+                print("มีใบกำกับ")
+                self.add_tax_customer()
+            else:
+                print("ไม่มีใบกำกับ")
+                self.add_normal_customer()
         except Exception as e:
             # * ถ้าพังให้ข้าม
             traceback_str = traceback.format_exc()

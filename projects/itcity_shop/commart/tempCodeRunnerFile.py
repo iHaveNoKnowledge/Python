@@ -1,1 +1,1 @@
-width=70,
+cus_is_fulltax
