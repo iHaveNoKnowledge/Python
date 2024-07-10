@@ -377,6 +377,7 @@ class MainApp:
 
     def update_from_qr2(self, input_qr=""):
         input = input_qr
+
         attributes = {
             'cus_order_name': 'order_Name',
             'cus_fname': 'customer_fname',
@@ -393,10 +394,13 @@ class MainApp:
             'cus_tax_type': 'full_tax_type'
         }
 
-        # *update แบบ loop
+        # *update แบบ loop // attr ที่ดึงมาคือฝั่งซ้าย ส่วน ฝั่งขวาคือ key
         for attr, key in attributes.items():
             try:
-                getattr(self, attr).set(input[key])
+                new_nalue = input[key]
+                if input[key] == None:
+                    new_nalue = "-"
+                getattr(self, attr).set(new_nalue)
             except KeyError:
                 getattr(self, attr).set("-")
 
@@ -568,10 +572,21 @@ def main():
         root.destroy()
         main_gui.kill_remaining_threads()
 
-    def ctrl_saraea_copy(event):
-        ctrl_state = event.state & 0x4 != 0
-        if ctrl_state and event.keycode == 67:
+#* เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
+    def _onKeyRelease(event):
+        print("press :", event.keysym)
+        ctrl = (event.state & 0x4) != 0
+        if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
+            event.widget.event_generate("<<Cut>>")
+
+        if event.keycode == 86 and ctrl and event.keysym.lower() != "v":
+            event.widget.event_generate("<<Paste>>")
+
+        if event.keycode == 67 and ctrl and event.keysym.lower() != "c":
             event.widget.event_generate("<<Copy>>")
+
+        if event.keycode == 65 and ctrl and event.keysym.lower() != "a":
+            event.widget.event_generate("<<SelectAll>>")
 
     root = CTk()
     # * options
@@ -583,8 +598,8 @@ def main():
     # * > ปรับขนาดจอ
     # root.resizable(False, False)
 
-    # * > ทำให้กด copy จากภาษาอะไรก็ได้
-    root.bind('<Key>', ctrl_saraea_copy)
+    # * > ทำให้กด copy, paste, cut จากภาษาอะไรก็ได้
+    root.bind('<Key>', _onKeyRelease)
 
     # * Create Instance
     # * เก็บ ตัว object ของ app ไว้ใน main_gui เพื่อเรียกใช้ functions kill_remaining_threads เมื่อ tkinter ถูกปิด
