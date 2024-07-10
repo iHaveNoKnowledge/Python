@@ -369,3 +369,40 @@ Stacktrace:
 	RtlUserThreadStart [0x00007FFBB866AF28+40]
 
 
+2024-07-10 15:11:26,605 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 133, in get_tabs
+    for idx, handle in enumerate(self.driver.window_handles):
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 501, in window_handles
+    return self.execute(Command.W3C_GET_WINDOW_HANDLES)["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: DevTools returned unknown type:shared_storage_worklet
+  (Session info: chrome=126.0.6478.127)
+Stacktrace:
+	GetHandleVerifier [0x00007FF752EFEEA2+31554]
+	(No symbol) [0x00007FF752E77ED9]
+	(No symbol) [0x00007FF752D3872A]
+	(No symbol) [0x00007FF752D4CA5B]
+	(No symbol) [0x00007FF752D4CF71]
+	(No symbol) [0x00007FF752D38E3A]
+	(No symbol) [0x00007FF752D0D47C]
+	(No symbol) [0x00007FF752DBC4F7]
+	(No symbol) [0x00007FF752DACFF0]
+	(No symbol) [0x00007FF752D7A33B]
+	(No symbol) [0x00007FF752D7AED1]
+	GetHandleVerifier [0x00007FF753208B1D+3217341]
+	GetHandleVerifier [0x00007FF753255AE3+3532675]
+	GetHandleVerifier [0x00007FF75324B0E0+3489152]
+	GetHandleVerifier [0x00007FF752FAE776+750614]
+	(No symbol) [0x00007FF752E8375F]
+	(No symbol) [0x00007FF752E7EB14]
+	(No symbol) [0x00007FF752E7ECA2]
+	(No symbol) [0x00007FF752E6E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+

@@ -17,17 +17,21 @@ class Supabase_client:
 
     def get_order(self, order_name: str = ""):
         self.column = """order_Name, customer_fname, customer_lname, company_name_of_tax, full_tax_type, want_full_tax, full_tax_id, is_headquarter, full_tax_id, re_mark, customer_tel, com_Order_Items(com_Products(*)), com_Order_Premiums(com_Premiums(*))"""
+        self.app.update_bot_status(True, "กำลังดึงข้อมูล")
         self.response = self.supabase.table("orders").select(
             self.column).eq("order_Name", order_name).execute()
-
+        self.app.is_fetching.set(False)
         self.result = ""
         if self.response.data:
             self.result = self.response.data[0]
             print(type(self.result))
             print(self.result)
+            self.app.update_bot_status(True)
             # * type ที่ return เป็น dict
+
             return self.result
         else:
+
             self.app.PopUp("Warning", "ไม่มีข้อมูล", self.parent, "form")
             raise Exception(
                 "error fetching from bot,  no data found: ", self.response.data)

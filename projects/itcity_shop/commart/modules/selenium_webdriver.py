@@ -422,7 +422,7 @@ class ChromeDriver:
 
     def add_normal_customer(self):
         name = f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {
-            self.app.cus_tel.get()}"""
+           self.app.cus_tel.get() }"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย'])
@@ -717,7 +717,7 @@ class ChromeDriver:
     def operation_start(self):
         print("chrome started!!")
         print("self.app.cus_is_hq.get(): ", self.app.cus_is_fulltax.get())
-
+        
         try:
             if self.app.cus_is_fulltax.get():
                 print("มีใบกำกับ")

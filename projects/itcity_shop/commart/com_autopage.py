@@ -22,6 +22,7 @@ class MainApp:
         self.data_table = {}
         self.is_bot_working = tk.BooleanVar(value=False)
         self.bot_status = tk.StringVar(value="ไม่ได้ทำงาน")
+        self.is_fetching = tk.BooleanVar(value=False)
         self.Supabase_client = Supabase_client(self, root)
 
         # * ตัวแปรสำหรับจัดการ inputs
@@ -67,7 +68,9 @@ class MainApp:
         self.update_item_display(widget="remark")
         # self.update_textbox_widgets("", ยังไม่มี widget, self.cus_remark)
 
-    def update_bot_status(self, is_bot_working=False):
+    def update_bot_status(self, is_bot_working=False, display_text=""):
+        if is_bot_working and display_text == "":
+            display_text = "กำลังทำงาน"
         self.is_bot_working.set(False)
         self.status_display.configure(fg_color="#70ff29")
         self.bot_status.set("ไม่ได้ทำงาน")
@@ -75,7 +78,7 @@ class MainApp:
         if is_bot_working:
             self.is_bot_working.set(True)
             self.status_display.configure(fg_color="#ff2929")
-            self.bot_status.set("กำลังทำงาน")
+            self.bot_status.set(display_text)
 
     def resetInput(self):
         self.sku.set("")
@@ -110,10 +113,14 @@ class MainApp:
     def input_receiver2(self, input):
         self.input_data = input
         if self.input_data:
-            self.order_details = self.Supabase_client.get_order(input)
-            print("input: ", self.order_details)
-            self.update_from_qr2(self.order_details)
-            self.input_qr.set("")
+            if self.is_fetching.get() == False:
+                self.is_fetching.set(True)
+                self.order_details = self.Supabase_client.get_order(input)
+                print("input: ", self.order_details)
+                self.update_from_qr2(self.order_details)
+                self.input_qr.set("")
+            else:
+                raise Exception("กำลังดึงข้อมูล", self.input_data)
         else:
             # PopUp("Warning", "")
             raise Exception("ไม่ได้ใส่ค่า order", self.input_data)
