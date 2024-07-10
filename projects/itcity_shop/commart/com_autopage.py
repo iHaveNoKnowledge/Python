@@ -183,7 +183,6 @@ class MainApp:
         self.log_display.config(state=tk.DISABLED)
 
     def on_start_button_click(self, input_qr=""):
-
         print("จำนวนThread: ", threading.active_count())
         print("threads: ", threading.enumerate())
         thread = threading.Thread(target=self.start_task, args=(input_qr, ))
@@ -256,13 +255,13 @@ class MainApp:
         # * ที่อยู่ cus_address component ///////////
         self.address_label = CTkLabel(
             self.frame_1, text="ที่อยู่ ", width=70, anchor=tk.W)
-        self.address_label.grid(row=0, column=0, padx=(
-            0, 0), pady=(0, 5), sticky='nw')
+        # self.address_label.grid(row=0, column=0, padx=(
+        #     0, 0), pady=(0, 5), sticky='nw')
 
         self.address_display = CTkTextbox(self.frame_1, width=300, height=100)
         self.address_display.insert("0.0", "Ready" + '\n')
         self.address_display.configure(state="disabled")
-        self.address_display.grid(row=0, column=1, padx=(1, 0))
+        # self.address_display.grid(row=0, column=1, padx=(1, 0))
 
         # * รายละเอียดที่อยู่ ต อ เขต แขวง จ address_details components ///////////
         self.frame_1_1 = CTkFrame(master=self.frame_1)
