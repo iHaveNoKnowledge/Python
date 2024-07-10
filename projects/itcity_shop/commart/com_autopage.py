@@ -140,6 +140,7 @@ class MainApp:
                                         update_bot_stat_fn=self.update_bot_status
                                         )
         print('ChromDriver is running.')
+        self.update_bot_status(False)
 
     def start_task(self, input={}):
         # * ล้าง inputเก่าก่อน
@@ -261,14 +262,14 @@ class MainApp:
         self.frame_1_1.grid(row=0, column=2, sticky='nw', padx=5)
 
         address_components_settings = [
-            {"label": "จังหวัด", "position": {"row": 0, "column": 1},
-                "variable": self.cus_province},
-            {"label": "อําเภอ/เขต", "position": {"row": 0,
-                                                 "column": 3}, "variable": self.cus_district},
-            {"label": "ตำบล/แขวง", "position": {"row": 0, "column": 5},
-                "variable": self.cus_sub_district},
-            {"label": "รหัสไปรษณีย์", "position": {
-                "row": 1, "column": 1}, "variable": self.cus_zip_code},
+            # {"label": "จังหวัด", "position": {"row": 0, "column": 1},
+            #     "variable": self.cus_province},
+            # {"label": "อําเภอ/เขต", "position": {"row": 0,
+            #                                      "column": 3}, "variable": self.cus_district},
+            # {"label": "ตำบล/แขวง", "position": {"row": 0, "column": 5},
+            #     "variable": self.cus_sub_district},
+            # {"label": "รหัสไปรษณีย์", "position": {
+            #     "row": 1, "column": 1}, "variable": self.cus_zip_code},
             {"label": "เบอร์โทร.", "position": {
                 "row": 1, "column": 3}, "variable": self.cus_tel},
         ]
@@ -572,7 +573,7 @@ def main():
         root.destroy()
         main_gui.kill_remaining_threads()
 
-#* เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
+# * เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
     def _onKeyRelease(event):
         print("press :", event.keysym)
         ctrl = (event.state & 0x4) != 0
