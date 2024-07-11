@@ -71,9 +71,13 @@ class MainApp:
     def update_bot_status(self, is_bot_working=False, display_text=""):
         if is_bot_working and display_text == "":
             display_text = "กำลังทำงาน"
+
+        if not is_bot_working and display_text == "":
+            display_text = "ไม่ได้ทำงาน"
+
         self.is_bot_working.set(False)
         self.status_display.configure(fg_color="#70ff29")
-        self.bot_status.set("ไม่ได้ทำงาน")
+        self.bot_status.set(display_text)
 
         if is_bot_working:
             self.is_bot_working.set(True)
@@ -437,6 +441,12 @@ class MainApp:
 
         return self.cus_display_name.set(self.display_name_result)
 
+    def flatten_product(self, product, key_name):
+        self.flat_product = {}
+        for key, value in product[key_name].items():
+            self.flat_product[key] = value
+        return self.flat_product
+
     # * update รายการของที่ลูกค้าซื้อ
 
     def update_item_display(self, data=[], widget=None):
@@ -446,21 +456,24 @@ class MainApp:
         if "product" in widget:
             widget_target = self.bottom_component_settings[0]['widgets'][f'items_display']
             if len(self.cus_purchased_products) != 0:
-                self.cus_purchased_products.append(data)
-            else:
                 self.cus_purchased_products = []
+
+            self.result_data = self.flatten_product(data, "com_Products")
+            self.cus_purchased_products.append(self.result_data)
+
         elif "premium" in widget:
             widget_target = self.bottom_component_settings[1]['widgets'][f'items_display']
             if len(self.cus_purchased_products) != 0:
-                self.cus_purchased_premiums.append(data)
-            else:
                 self.cus_purchased_premiums = []
+
+            self.result_data = self.flatten_product(data, "com_Premiums")
+            self.cus_purchased_premiums.append(data)
+
         elif "remark" in widget:
             widget_target = self.bottom_component_settings[2]['widgets'][f'items_display']
             if len(self.cus_purchased_products) != 0:
-                self.cus_remark = data
-            else:
                 self.cus_remark = []
+            self.cus_remark = data
 
         widget_target.configure(state=NORMAL)
         widget_target.delete(1.0, END)

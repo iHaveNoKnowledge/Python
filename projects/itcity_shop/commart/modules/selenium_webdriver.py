@@ -169,6 +169,16 @@ class ChromeDriver:
             # logger.critical('This is a critical message')
 
     def enter_cus_name(self, cus_search):
+        # * จับตาดูว่า ul เปิดอยู่ไหม
+        self.is_ul_not_open = False if self.driver.find_elements(
+            By.XPATH, '/html/body/span/span/span[2]/ul') else True
+        # * กรณีไม่ได้เปิดไว้ จะเปิดให้
+        if self.is_ul_not_open:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
+
+            self.wait1.until(EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/span/span/span[1]/input')))
         # * เคลียและกรอกชื่อลูกค้า
         self.driver.find_element(
             By.XPATH, '/html/body/span/span/span[1]/input').clear()
@@ -246,12 +256,6 @@ class ChromeDriver:
                     continue
 
         print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
-        # while True:
-        #     if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
-        #         print("เจอแล้วออก")
-        #         break
-        #     else:
-        #         continue
 
         self.wait1.until(EC.element_to_be_clickable(
             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
@@ -293,11 +297,11 @@ class ChromeDriver:
         # * ถ้าเปิดแล้วจะข้ามมานี่
         self.enter_cus_name(self.cus_search_input)
         print("กรอกชื่อเสร็จ")
-        # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
-        self.wait_condition = self.driver.find_element(
+        # * wait_situation มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
+        self.wait_situation = self.driver.find_element(
             By.XPATH, '/html/body/span/span/span[2]/ul/li')
         # * มันจะได้ Searching...
-        print("มันทำไม", self.wait_condition.text)
+        print("มันทำไม", self.wait_situation.text)
 
         # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน => li[1] โดย li[1] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และบอก ผลลัพธ์ที่เจอลำดับแรก
         self.customer_added_times = 0
@@ -309,14 +313,14 @@ class ChromeDriver:
                 #     (By.XPATH, '/html/body/span/span/span[2]/ul/li')))
 
                 # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
-                self.wait_condition = self.driver.find_element(
+                self.wait_situation = self.driver.find_element(
                     By.XPATH, '/html/body/span/span/span[2]/ul/li')
 
                 # * ช่วงรอ ผลลัพของ Searching...
                 try:
-                    if self.wait_condition.text == "Searching...":
+                    if self.wait_situation.text == "Searching...":
                         continue
-                    elif self.wait_condition.text:
+                    elif self.wait_situation.text:
                         print("text element disappeared")
                         pass
                 except:
@@ -325,13 +329,15 @@ class ChromeDriver:
                 # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
                 self.wait1.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/span/span/span[2]/ul/li')))
-                self.wait_condition = self.driver.find_element(
+                self.wait_situation = self.driver.find_element(
                     By.XPATH, '/html/body/span/span/span[2]/ul/li')
 
                 # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
-                if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
+                if self.wait_situation.text == "No results found" and self.customer_added_times == 0:
                     print("No results found and NeverAdd")
-                    self.add_cusname()
+
+                    # * ใช้ function เพิ่มลูกค้าใหม่
+                    self.add_new_cusname()
 
                     # * เพิ่มจำนวนครั้งที่ add
                     self.customer_added_times += 1
@@ -341,19 +347,23 @@ class ChromeDriver:
                     self.enter_cus_name(self.cus_search_input)
                     print(f"Re enter name after add")
                     continue
+
                 # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
-                elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
+                elif self.wait_situation.text == "No results found" and self.customer_name_search_count < 1:
                     self.enter_cus_name(self.cus_search_input)
                     self.customer_name_search_count += 1
                     print(
                         f"Re enter name after add extra times{self.customer_name_search_count}")
                     continue
+
                 # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
-                elif self.wait_condition.text == "No results found" and self.customer_added_times == 1:
+                elif self.wait_situation.text == "No results found" and self.customer_added_times == 1:
                     print(
                         "I've already add it, but the element still shows 'No results found', you have to add by yourself")
                     break
                 else:
+                    print("The cusname has been added already")
+
                     self.driver.switch_to.window(
                         self.merged_dict['SMCO :: เปิดการขาย'])
                     break
@@ -407,9 +417,9 @@ class ChromeDriver:
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/span/span/span[1]/input')))
 
-    def add_cusname(self):
+    def add_new_cusname(self):
         # * ตัวแปรที่เกีย่วข้อง
-        self.is_done = False
+        self.is_cus_name_submitted = False
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_open = True if self.driver.find_elements(
@@ -426,6 +436,7 @@ class ChromeDriver:
             print("ไม่มีใบกำกับ")
             self.add_normal_customer()
 
+        self.update_bot_status(is_bot_working=False)
         print("add_customer แล้ว")
         while True:
             print("ใน while loop")
@@ -441,11 +452,51 @@ class ChromeDriver:
 
             if self.is_add_form_displayed:
                 print("ยังเปิดอยู่")
-                continue
+                try:
+                    self.popup_after_adding = self.driver.find_element(
+                        By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                    self.is_submitted_popup_displayed = self.popup_after_adding.is_displayed()
+                    if self.is_submitted_popup_displayed:
+                        self.is_cus_name_submitted = True
+                    self.popup_after_adding.click()
+                except:
+                    continue
+
             else:
                 print("ปิดแล้ว")
                 break
         print("เลย while มาแล้ว")
+
+    def add_skus(self):
+        self.is_continue_progress = False
+        try:
+            if self.is_cus_name_submitted:
+                print("เติม Products ลงไป")
+                self.is_continue_progress = True
+            else:
+                print("มันเปนการยกเลิกไม่ใช่การเพิ่มลูกค้า")
+                self.is_continue_progress = False
+        except:
+            self.is_continue_progress = True
+            print("ชื่อลูกค้ามีอยู่แล้ว แอดของได้เลย")
+
+        if self.is_continue_progress:
+            self.fill_items(self.app.cus_purchased_products)
+            self.fill_items(self.app.cus_purchased_premiums)
+        else:
+            print("")
+
+    def fill_items(self, array_items=[]):
+        print("array_items: ", array_items)
+        self.sku_input_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input'
+
+        for item in array_items:
+            print("item: ", item)
+            self.driver.find_element(By.XPATH, self.sku_input_xpath).clear()
+            self.driver.find_element(
+                By.XPATH, self.sku_input_xpath).send_keys(item)
+            self.driver.find_element(
+                By.XPATH, self.sku_input_xpath).send_keys(Keys.ENTER)
 
     def add_normal_customer(self):
         name = f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {
@@ -714,7 +765,7 @@ class ChromeDriver:
             # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
             # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
             # self.cus_search_input = self.app.cus_name.get()
-            # self.add_cusname()
+            # self.add_new_cusname()
         except:
             print("cb doesn't works")
 
@@ -733,6 +784,7 @@ class ChromeDriver:
 
         try:
             self.find_and_enter_cus_name()
+            self.add_skus()
         except Exception as e:
             # * ถ้าพังให้ข้าม
             traceback_str = traceback.format_exc()
