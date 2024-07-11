@@ -408,6 +408,9 @@ class ChromeDriver:
             (By.XPATH, '/html/body/span/span/span[1]/input')))
 
     def add_cusname(self):
+        # * ตัวแปรที่เกีย่วข้อง
+        self.is_done = False
+
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_open = True if self.driver.find_elements(
             By.XPATH, '/html/body/span/span/span[2]/ul') else False
@@ -422,6 +425,27 @@ class ChromeDriver:
         else:
             print("ไม่มีใบกำกับ")
             self.add_normal_customer()
+
+        print("add_customer แล้ว")
+        while True:
+            print("ใน while loop")
+            time.sleep(1)
+            try:
+                self.is_add_form_displayed = self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
+                print("self.is_add_form_displayed: ",
+                      self.is_add_form_displayed)
+            except:
+                print("self.is_add_form_displayed error")
+                continue
+
+            if self.is_add_form_displayed:
+                print("ยังเปิดอยู่")
+                continue
+            else:
+                print("ปิดแล้ว")
+                break
+        print("เลย while มาแล้ว")
 
     def add_normal_customer(self):
         name = f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {
@@ -515,17 +539,18 @@ class ChromeDriver:
         # * รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
         # self.wait1.until(EC.invisibility_of_element_located(
         #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
-        while True:
-            try:
-                is_add_page_present = self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
-            except:
-                continue
 
-            if is_add_page_present:
-                continue
-            else:
-                break
+        # while True:
+        #     try:
+        #         is_add_page_present = self.driver.find_element(
+        #             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
+        #     except:
+        #         continue
+
+        #     if is_add_page_present:
+        #         continue
+        #     else:
+        #         break
 
         # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
@@ -625,17 +650,17 @@ class ChromeDriver:
         # * รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
         # self.wait1.until(EC.invisibility_of_element_located(
         #     (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
-        while True:
-            try:
-                is_add_page_present = self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
-            except:
-                continue
+        # while True:
+        #     try:
+        #         is_add_page_present = self.driver.find_element(
+        #             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
+        #     except:
+        #         continue
 
-            if is_add_page_present:
-                continue
-            else:
-                break
+        #     if is_add_page_present:
+        #         continue
+        #     else:
+        #         break
 
         # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
         # self.wait1.until(EC.visibility_of_element_located(
@@ -705,10 +730,9 @@ class ChromeDriver:
     def operation_start(self):
         print("chrome started!!")
         print("self.app.cus_is_hq.get(): ", self.app.cus_is_fulltax.get())
-        self.find_and_enter_cus_name()
 
         try:
-            self.add_cusname()
+            self.find_and_enter_cus_name()
         except Exception as e:
             # * ถ้าพังให้ข้าม
             traceback_str = traceback.format_exc()

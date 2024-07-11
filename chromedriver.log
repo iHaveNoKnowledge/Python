@@ -1095,3 +1095,233 @@ AttributeError: 'MainApp' object has no attribute 'cusNameInput'
                ^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'MainApp' object has no attribute 'cusNameInput'
 
+2024-07-11 15:26:56,974 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 160, in get_tabs
+    self.operation_start()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 714, in operation_start
+    self.find_and_enter_cus_name()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 341, in find_and_enter_cus_name
+    self.enter_cus_name(self.cus_search_input)
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 173, in enter_cus_name
+    self.driver.find_element(
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 748, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/span/span/span[1]/input"}
+  (Session info: chrome=126.0.6478.127); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C38AEEA2+31554]
+	(No symbol) [0x00007FF7C3827ED9]
+	(No symbol) [0x00007FF7C36E872A]
+	(No symbol) [0x00007FF7C3738434]
+	(No symbol) [0x00007FF7C373853C]
+	(No symbol) [0x00007FF7C377F6A7]
+	(No symbol) [0x00007FF7C375D06F]
+	(No symbol) [0x00007FF7C377C977]
+	(No symbol) [0x00007FF7C375CDD3]
+	(No symbol) [0x00007FF7C372A33B]
+	(No symbol) [0x00007FF7C372AED1]
+	GetHandleVerifier [0x00007FF7C3BB8B1D+3217341]
+	GetHandleVerifier [0x00007FF7C3C05AE3+3532675]
+	GetHandleVerifier [0x00007FF7C3BFB0E0+3489152]
+	GetHandleVerifier [0x00007FF7C395E776+750614]
+	(No symbol) [0x00007FF7C383375F]
+	(No symbol) [0x00007FF7C382EB14]
+	(No symbol) [0x00007FF7C382ECA2]
+	(No symbol) [0x00007FF7C381E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+
+2024-07-11 15:27:08,376 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 160, in get_tabs
+    self.operation_start()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 714, in operation_start
+    self.find_and_enter_cus_name()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 334, in find_and_enter_cus_name
+    self.add_cusname()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 425, in add_cusname
+    self.add_tax_customer()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 613, in add_tax_customer
+    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
+                                                                                              ^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 117, in clear
+    self._execute(Command.CLEAR_ELEMENT)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementNotInteractableException: Message: element not interactable
+  (Session info: chrome=126.0.6478.127)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C38AEEA2+31554]
+	(No symbol) [0x00007FF7C3827ED9]
+	(No symbol) [0x00007FF7C36E8559]
+	(No symbol) [0x00007FF7C372DDD9]
+	(No symbol) [0x00007FF7C375D02A]
+	(No symbol) [0x00007FF7C372BA76]
+	(No symbol) [0x00007FF7C375D240]
+	(No symbol) [0x00007FF7C377C977]
+	(No symbol) [0x00007FF7C375CDD3]
+	(No symbol) [0x00007FF7C372A33B]
+	(No symbol) [0x00007FF7C372AED1]
+	GetHandleVerifier [0x00007FF7C3BB8B1D+3217341]
+	GetHandleVerifier [0x00007FF7C3C05AE3+3532675]
+	GetHandleVerifier [0x00007FF7C3BFB0E0+3489152]
+	GetHandleVerifier [0x00007FF7C395E776+750614]
+	(No symbol) [0x00007FF7C383375F]
+	(No symbol) [0x00007FF7C382EB14]
+	(No symbol) [0x00007FF7C382ECA2]
+	(No symbol) [0x00007FF7C381E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+
+2024-07-11 15:41:04,418 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 160, in get_tabs
+    self.operation_start()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 725, in operation_start
+    self.find_and_enter_cus_name()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 334, in find_and_enter_cus_name
+    self.add_cusname()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 413, in add_cusname
+    self.is_add_form_displayed = self.driver.find_element(
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 748, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidArgumentException: Message: invalid argument: invalid locator
+  (Session info: chrome=126.0.6478.127)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C38AEEA2+31554]
+	(No symbol) [0x00007FF7C3827ED9]
+	(No symbol) [0x00007FF7C36E872A]
+	(No symbol) [0x00007FF7C37379D3]
+	(No symbol) [0x00007FF7C373853C]
+	(No symbol) [0x00007FF7C377F6A7]
+	(No symbol) [0x00007FF7C375D06F]
+	(No symbol) [0x00007FF7C377C977]
+	(No symbol) [0x00007FF7C375CDD3]
+	(No symbol) [0x00007FF7C372A33B]
+	(No symbol) [0x00007FF7C372AED1]
+	GetHandleVerifier [0x00007FF7C3BB8B1D+3217341]
+	GetHandleVerifier [0x00007FF7C3C05AE3+3532675]
+	GetHandleVerifier [0x00007FF7C3BFB0E0+3489152]
+	GetHandleVerifier [0x00007FF7C395E776+750614]
+	(No symbol) [0x00007FF7C383375F]
+	(No symbol) [0x00007FF7C382EB14]
+	(No symbol) [0x00007FF7C382ECA2]
+	(No symbol) [0x00007FF7C381E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+
+2024-07-11 15:41:11,645 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 160, in get_tabs
+    self.operation_start()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 725, in operation_start
+    self.find_and_enter_cus_name()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 334, in find_and_enter_cus_name
+    self.add_cusname()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 413, in add_cusname
+    self.is_add_form_displayed = self.driver.find_element(
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 748, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidArgumentException: Message: invalid argument: invalid locator
+  (Session info: chrome=126.0.6478.127)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C38AEEA2+31554]
+	(No symbol) [0x00007FF7C3827ED9]
+	(No symbol) [0x00007FF7C36E872A]
+	(No symbol) [0x00007FF7C37379D3]
+	(No symbol) [0x00007FF7C373853C]
+	(No symbol) [0x00007FF7C377F6A7]
+	(No symbol) [0x00007FF7C375D06F]
+	(No symbol) [0x00007FF7C377C977]
+	(No symbol) [0x00007FF7C375CDD3]
+	(No symbol) [0x00007FF7C372A33B]
+	(No symbol) [0x00007FF7C372AED1]
+	GetHandleVerifier [0x00007FF7C3BB8B1D+3217341]
+	GetHandleVerifier [0x00007FF7C3C05AE3+3532675]
+	GetHandleVerifier [0x00007FF7C3BFB0E0+3489152]
+	GetHandleVerifier [0x00007FF7C395E776+750614]
+	(No symbol) [0x00007FF7C383375F]
+	(No symbol) [0x00007FF7C382EB14]
+	(No symbol) [0x00007FF7C382ECA2]
+	(No symbol) [0x00007FF7C381E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+
+2024-07-11 15:42:06,696 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 160, in get_tabs
+    self.operation_start()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 725, in operation_start
+    self.find_and_enter_cus_name()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 334, in find_and_enter_cus_name
+    self.add_cusname()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 413, in add_cusname
+    self.is_add_form_displayed = self.driver.find_element(
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 748, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidArgumentException: Message: invalid argument: invalid locator
+  (Session info: chrome=126.0.6478.127)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7C38AEEA2+31554]
+	(No symbol) [0x00007FF7C3827ED9]
+	(No symbol) [0x00007FF7C36E872A]
+	(No symbol) [0x00007FF7C37379D3]
+	(No symbol) [0x00007FF7C373853C]
+	(No symbol) [0x00007FF7C377F6A7]
+	(No symbol) [0x00007FF7C375D06F]
+	(No symbol) [0x00007FF7C377C977]
+	(No symbol) [0x00007FF7C375CDD3]
+	(No symbol) [0x00007FF7C372A33B]
+	(No symbol) [0x00007FF7C372AED1]
+	GetHandleVerifier [0x00007FF7C3BB8B1D+3217341]
+	GetHandleVerifier [0x00007FF7C3C05AE3+3532675]
+	GetHandleVerifier [0x00007FF7C3BFB0E0+3489152]
+	GetHandleVerifier [0x00007FF7C395E776+750614]
+	(No symbol) [0x00007FF7C383375F]
+	(No symbol) [0x00007FF7C382EB14]
+	(No symbol) [0x00007FF7C382ECA2]
+	(No symbol) [0x00007FF7C381E16F]
+	BaseThreadInitThunk [0x00007FFBB834257D+29]
+	RtlUserThreadStart [0x00007FFBB866AF28+40]
+
+
+2024-07-11 15:45:49,381 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 160, in get_tabs
+    self.operation_start()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 726, in operation_start
+    self.find_and_enter_cus_name()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 334, in find_and_enter_cus_name
+    self.add_cusname()
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\itcity_shop\commart\modules\selenium_webdriver.py", line 437, in add_cusname
+    if self.is_add_form_displayed:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ChromeDriver' object has no attribute 'is_add_form_displayed'
+
