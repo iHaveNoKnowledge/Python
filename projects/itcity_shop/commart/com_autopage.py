@@ -143,10 +143,11 @@ class MainApp:
 
     def operation_start(self):
         self.update_bot_status(True)
+        print('ChromDriver is running.')
         self.ChromDriver = ChromeDriver(app=self,
                                         update_bot_stat_fn=self.update_bot_status
                                         )
-        print('ChromDriver is running.')
+
         self.update_bot_status(False)
 
     def start_task(self, input={}):

@@ -260,42 +260,42 @@ class ChromeDriver:
         # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
-        print("self.app.tax_bool: ", self.app.tax_bool.get())
+        print("self.app.cus_is_fulltax: ", self.app.cus_is_fulltax.get())
 
         # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ search
         self.wait1.until(EC.element_to_be_clickable(
             (By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
-        if self.app.tax_bool.get() == True:
+        if self.app.cus_is_fulltax.get() == True:
             print("ขำใบกำกับใช้ T:")
             self.driver.find_element(
                 By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
 
-        elif self.app.tax_bool.get() == False:
+        elif self.app.cus_is_fulltax.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
             self.driver.find_element(
                 By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
-        self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-        ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+        self.cus_search_input = self.app.cus_tax_num.get() if self.app.cus_is_fulltax.get(
+        ) else f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {self.app.cus_tel.get()}"""
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_not_open = False if self.driver.find_elements(
-            By.XPATH, self.app.cus_name_dropdown_ul) else True
+            By.XPATH, '/html/body/span/span/span[2]/ul') else True
         # * กรณีไม่ได้เปิดไว้ จะเปิดให้
         if self.is_ul_not_open:
             self.driver.find_element(
-                By.XPATH, self.app.cus_arrow_btn).click()
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
 
             self.wait1.until(EC.visibility_of_element_located(
-                (By.XPATH, self.app.cusNameInput)))
+                (By.XPATH, '/html/body/span/span/span[1]/input')))
 
         # * ถ้าเปิดแล้วจะข้ามมานี่
         self.enter_cus_name(self.cus_search_input)
         print("กรอกชื่อเสร็จ")
         # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
         self.wait_condition = self.driver.find_element(
-            By.XPATH, self.app.cusNameLi1)
+            By.XPATH, '/html/body/span/span/span[2]/ul/li')
         # * มันจะได้ Searching...
         print("มันทำไม", self.wait_condition.text)
 
@@ -303,14 +303,14 @@ class ChromeDriver:
         self.customer_added_times = 0
         self.customer_name_search_count = 0
         while True:
-            if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
+            if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul'):
                 time.sleep(0.7)
                 # self.wait1.until(EC.visibility_of_element_located(
-                #     (By.XPATH, self.app.cusNameLi1)))
+                #     (By.XPATH, '/html/body/span/span/span[2]/ul/li')))
 
                 # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
                 self.wait_condition = self.driver.find_element(
-                    By.XPATH, self.app.cusNameLi1)
+                    By.XPATH, '/html/body/span/span/span[2]/ul/li')
 
                 # * ช่วงรอ ผลลัพของ Searching...
                 try:
@@ -324,27 +324,13 @@ class ChromeDriver:
 
                 # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
                 self.wait1.until(EC.visibility_of_element_located(
-                    (By.XPATH, self.app.cusNameLi1)))
+                    (By.XPATH, '/html/body/span/span/span[2]/ul/li')))
                 self.wait_condition = self.driver.find_element(
-                    By.XPATH, self.app.cusNameLi1)
+                    By.XPATH, '/html/body/span/span/span[2]/ul/li')
 
                 # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
                 if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
                     print("No results found and NeverAdd")
-                    #! ปิดไว้ก่อน จะเทสของใหม่
-                    # # * ขอใบกำกับป่าว
-                    # if self.app.tax_bool.get():
-                    #     print("Tax_needed")
-                    #     if self.app.marketplace_target.get() == 'SHOPEE':
-                    #         self.addTaxInvCustomer()
-
-                    #     # * กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
-                    #     elif self.app.marketplace_target.get() == 'LAZADA':
-                    #         self.addTaxInvCustomerLaz()
-
-                    # else:
-                    #     print("no_Tax_needed")
-                    #     self.addNormalCustomer(self.cus_search_input)
                     self.add_cusname()
 
                     # * เพิ่มจำนวนครั้งที่ add
@@ -378,7 +364,7 @@ class ChromeDriver:
         while True:
             try:
                 customer_name_input_ul = self.driver.find_element(
-                    By.XPATH, self.app.cus_name_dropdown_ul)
+                    By.XPATH, '/html/body/span/span/span[2]/ul')
                 customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                     By.CSS_SELECTOR, '.select2-results__option')
                 print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
@@ -387,7 +373,7 @@ class ChromeDriver:
 
             except:
                 self.driver.find_element(
-                    By.XPATH, self.app.cus_arrow_btn).click()
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
                 continue
 
         if len(customer_name_dropdown_lis) > 1:
@@ -398,7 +384,8 @@ class ChromeDriver:
                 li_names, self.select_cus_name_from_lis)
             print("click แล้ว")
         else:
-            self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+            self.driver.find_element(
+                By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
             print("Click the cusname li result")
 
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
@@ -407,9 +394,9 @@ class ChromeDriver:
                 self.driver.find_element(
                     By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
                 self.driver.find_element(
-                    By.XPATH, self.app.cus_arrow_btn).click()
+                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
                 self.wait1.until(EC.visibility_of_element_located(
-                    (By.XPATH, self.app.cusNameInput)))
+                    (By.XPATH, '/html/body/span/span/span[1]/input')))
             except:
                 print("Skip, Alert Element is appear but can not perform actions.")
         else:
@@ -418,11 +405,27 @@ class ChromeDriver:
 
         print("search หายไปแล้ว")
         self.wait1.until(EC.invisibility_of_element_located(
-            (By.XPATH, self.app.cusNameInput)))
+            (By.XPATH, '/html/body/span/span/span[1]/input')))
+
+    def add_cusname(self):
+        # * จับตาดูว่า ul เปิดอยู่ไหม
+        self.is_ul_open = True if self.driver.find_elements(
+            By.XPATH, '/html/body/span/span/span[2]/ul') else False
+        # * กรณีไม่ได้เปิดไว้ จะเปิดให้
+        if self.is_ul_open:
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
+
+        if self.app.cus_is_fulltax.get():
+            print("มีใบกำกับ")
+            self.add_tax_customer()
+        else:
+            print("ไม่มีใบกำกับ")
+            self.add_normal_customer()
 
     def add_normal_customer(self):
         name = f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {
-           self.app.cus_tel.get() }"""
+            self.app.cus_tel.get()}"""
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย'])
@@ -469,7 +472,7 @@ class ChromeDriver:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
         # # * >nameTH fill input better style ปิดการใช้งาน
-        # self.driver.find_element( By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # self.driver.find_element( By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.cus_tax_num.get()}')
         # * >nameTH SMCO style
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name}')
@@ -478,7 +481,7 @@ class ChromeDriver:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         # * >nameEN fill input better style ปิดการใช้งาน
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.cus_tax_num.get()}')
         # * >nameEN SMCO style
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name}')
@@ -491,7 +494,7 @@ class ChromeDriver:
         # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
         address = self.app.cus_address
         print("ข้างใน addressมีค่าไหม: ", self.app.cus_address)
-        # if self.app.tax_bool.get():
+        # if self.app.cus_is_fulltax.get():
         #     address = self.app.get_pure_address(self.app.cus_address)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
@@ -593,7 +596,7 @@ class ChromeDriver:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
         # * >nameEN fill input better style ปิดการใช้งาน
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.cus_tax_num.get()}')
         # * >nameEN SMCO style
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name}')
@@ -606,81 +609,11 @@ class ChromeDriver:
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.cus_tax_num.get())
 
-        #! ยังไม่พร้อมใช้งาน
-        # # * กรอก Address
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-        # # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
-        # # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
-        # # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
-        # address = self.app.cus_address
-        # print("ข้างใน addressมีค่าไหม: ", self.app.cus_address)
-        # # if self.app.tax_bool.get():
-        # #     address = self.app.get_pure_address(self.app.cus_address)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
-
-        # # * กรอก email
-        # # self.email_input = self.driver.find_element(
-        # #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
-        # # self.email_input.clear()
-        # # self.email_input.send_keys(self.app.cus_email.get())
-
         # * tel.
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
-
-        #! ยังไม่พร้อมใช้งาน
-        # ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
-        # # dropdown Country
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
-        # time.sleep(1)
-        # # select thailand in dropdown
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
-
-        # # province dropdown
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
-        # self.driver.find_element(
-        #     # province input
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-        #     self.app.cus_province.get().replace("จังหวัด", ""))  # province input
-        # time.sleep(1.75)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # self.driver.find_element(
-        #     # District drop
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
-        # self.driver.find_element(
-        #     # District
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-        #     self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
-        # time.sleep(1.75)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # # SubDistrict drop
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
-        # # SubDistrict
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-        #     self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-        # time.sleep(1.75)
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # * ปุ่มบันทึกเขียวๆ
         self.save_button_location = "/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]"
@@ -714,17 +647,68 @@ class ChromeDriver:
         # except:
         #     pass
 
+    def select_cus_name_from_lis(self, names, cb=""):
+        cus_desire_name = self.app.cus_name.get().replace(" ", "")
+
+        # * ทำการคัดเอาเฉพาะชื่อลูกค้า ลง array ไม่เอารหัส
+        names_no_code = names.copy()
+        for i in range(len(names)):
+            prog = re.search(r'[^-]-(.*)', names_no_code[i])
+            names_no_code[i] = prog.group(1).replace(" ", "")
+
+        for i, name in enumerate(names_no_code):
+            print("if ", cus_desire_name, " In ", name)
+            if cus_desire_name in name:
+                print("ชื่อที่ต้องการ อยู่ใน li")
+                while True:
+                    try:
+                        print("เลือกชื่อลูกค้า", names[i])
+                        # * 1st way error
+                        # self.driver.find_element(
+                        #     By.XPATH, f"//*[text()='{names[i]}']").click()
+
+                        # * 2nd way error
+                        # target = self.driver.find_element(By.XPATH, f"//*[text()='{names[i]}']")
+                        # target.click()
+
+                        # * 3rd way trying
+                        self.driver.find_element(
+                            By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+
+                        break
+                    except:
+
+                        continue
+                return
+            # * ถ้ามันเจอก็จะ break ไม่เจอค่อย cb
+        try:
+            if cb:
+                print("use callback")
+                cb(names)
+
+            # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
+            # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
+            # self.cus_search_input = self.app.cus_name.get()
+            # self.add_cusname()
+        except:
+            print("cb doesn't works")
+
+        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+        try:
+            if cb:
+                cb(names)
+        except:
+            print("cb doesn't works")
+
+        # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+
     def operation_start(self):
         print("chrome started!!")
         print("self.app.cus_is_hq.get(): ", self.app.cus_is_fulltax.get())
-        
+        self.find_and_enter_cus_name()
+
         try:
-            if self.app.cus_is_fulltax.get():
-                print("มีใบกำกับ")
-                self.add_tax_customer()
-            else:
-                print("ไม่มีใบกำกับ")
-                self.add_normal_customer()
+            self.add_cusname()
         except Exception as e:
             # * ถ้าพังให้ข้าม
             traceback_str = traceback.format_exc()
