@@ -339,14 +339,31 @@ class ChromeDriver:
                     # * ใช้ function เพิ่มลูกค้าใหม่
                     self.add_new_cusname()
 
+                    # * ตรวจสอบว่ามันเป็นการเพิ่มลูกค้าหรือไม่
+                    self.is_continue_progress = False
+                    try:
+                        if self.is_cus_name_submitted:
+                            print("เติม Products ลงไป")
+                            self.is_continue_progress = True
+                        else:
+                            print("มันเปนการยกเลิกไม่ใช่การเพิ่มลูกค้า")
+                            self.is_continue_progress = False
+                    except:
+                        self.is_continue_progress = True
+                        print("ชื่อลูกค้ามีอยู่แล้ว แอดของได้เลย")
+
+                    # * มีชื่อลูกค้าแล้วลองกรอกใหม่อีกรอบหลัง add_new_cusname
                     # * เพิ่มจำนวนครั้งที่ add
-                    self.customer_added_times += 1
-                    self.driver.switch_to.window(
-                        self.merged_dict['SMCO :: เปิดการขาย'])
-                    print("ก่อนRe Enter ชื่อลูกค้า")
-                    self.enter_cus_name(self.cus_search_input)
-                    print(f"Re enter name after add")
-                    continue
+                    if self.is_continue_progress:
+                        self.customer_added_times += 1
+                        self.driver.switch_to.window(
+                            self.merged_dict['SMCO :: เปิดการขาย'])
+                        print("ก่อนRe Enter ชื่อลูกค้า")
+                        self.enter_cus_name(self.cus_search_input)
+                        print(f"Re enter name after add")
+                        continue
+                    else:
+                        break
 
                 # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
                 elif self.wait_situation.text == "No results found" and self.customer_name_search_count < 1:
@@ -363,62 +380,63 @@ class ChromeDriver:
                     break
                 else:
                     print("The cusname has been added already")
-
+                    self.is_continue_progress = True
                     self.driver.switch_to.window(
                         self.merged_dict['SMCO :: เปิดการขาย'])
                     break
             print("addcustomer and select While end!")
             break
 
-        # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก
-        while True:
-            try:
-                customer_name_input_ul = self.driver.find_element(
-                    By.XPATH, '/html/body/span/span/span[2]/ul')
-                customer_name_dropdown_lis = customer_name_input_ul.find_elements(
-                    By.CSS_SELECTOR, '.select2-results__option')
-                print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
-                      customer_name_dropdown_lis)
-                break
+        if self.is_continue_progress:
+            # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก
+            while True:
+                try:
+                    customer_name_input_ul = self.driver.find_element(
+                        By.XPATH, '/html/body/span/span/span[2]/ul')
+                    customer_name_dropdown_lis = customer_name_input_ul.find_elements(
+                        By.CSS_SELECTOR, '.select2-results__option')
+                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
+                          customer_name_dropdown_lis)
+                    break
 
-            except:
+                except:
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
+                    continue
+
+            if len(customer_name_dropdown_lis) > 1:
+                print("มากกว่า 1")
+                li_names = [
+                    element.text for element in customer_name_dropdown_lis]
+                self.select_cus_name_from_lis(
+                    li_names, self.select_cus_name_from_lis)
+                print("click แล้ว")
+            else:
                 self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
-                continue
+                    By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                print("Click the cusname li result")
 
-        if len(customer_name_dropdown_lis) > 1:
-            print("มากกว่า 1")
-            li_names = [
-                element.text for element in customer_name_dropdown_lis]
-            self.select_cus_name_from_lis(
-                li_names, self.select_cus_name_from_lis)
-            print("click แล้ว")
-        else:
-            self.driver.find_element(
-                By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-            print("Click the cusname li result")
+            # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
+            if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
+                try:
+                    self.driver.find_element(
+                        By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
+                    self.wait1.until(EC.visibility_of_element_located(
+                        (By.XPATH, '/html/body/span/span/span[1]/input')))
+                except:
+                    print("Skip, Alert Element is appear but can not perform actions.")
+            else:
+                print("Skip, Alert Element is Not appear")
+                pass
 
-        # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
-        if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
-            try:
-                self.driver.find_element(
-                    By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
-                self.wait1.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/span/span/span[1]/input')))
-            except:
-                print("Skip, Alert Element is appear but can not perform actions.")
-        else:
-            print("Skip, Alert Element is Not appear")
-            pass
-
-        print("search หายไปแล้ว")
-        self.wait1.until(EC.invisibility_of_element_located(
-            (By.XPATH, '/html/body/span/span/span[1]/input')))
+            print("search หายไปแล้ว")
+            self.wait1.until(EC.invisibility_of_element_located(
+                (By.XPATH, '/html/body/span/span/span[1]/input')))
 
     def add_new_cusname(self):
-        # * ตัวแปรที่เกีย่วข้อง
+        # * ตัวแปรที่เกี่ยวข้อง
         self.is_cus_name_submitted = False
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
@@ -436,11 +454,13 @@ class ChromeDriver:
             print("ไม่มีใบกำกับ")
             self.add_normal_customer()
 
-        self.update_bot_status(is_bot_working=False)
-        print("add_customer แล้ว")
+        # * รอผู้ใช้กดยืนยัน เพิ่มชื่อลูกค้า
+        self.update_bot_status(is_bot_working=False,
+                               display_text="รอผู้ใช้เพิ่มชื่อลูกค้า")
+        print("Now in add_new_cusname form")
         while True:
             print("ใน while loop")
-            time.sleep(1)
+            time.sleep(0.75)
             try:
                 self.is_add_form_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
@@ -451,40 +471,33 @@ class ChromeDriver:
                 continue
 
             if self.is_add_form_displayed:
-                print("ยังเปิดอยู่")
-                try:
-                    self.popup_after_adding = self.driver.find_element(
-                        By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                    self.is_submitted_popup_displayed = self.popup_after_adding.is_displayed()
-                    if self.is_submitted_popup_displayed:
-                        self.is_cus_name_submitted = True
-                    self.popup_after_adding.click()
-                except:
-                    continue
+                print("cus_add_form_display")
+                while True:
+                    try:
+                        self.popup_after_adding = self.driver.find_element(
+                            By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                        self.is_submitted_popup_displayed = self.popup_after_adding.is_displayed()
+                        if self.is_submitted_popup_displayed:
+                            self.update_bot_status(is_bot_working=True)
+                            self.is_cus_name_submitted = True
+                            self.popup_after_adding.click()
+                        else:
+                            break
+                    except:
+                        continue
 
             else:
                 print("ปิดแล้ว")
                 break
+        self.update_bot_status(is_bot_working=True)
         print("เลย while มาแล้ว")
 
     def add_skus(self):
-        self.is_continue_progress = False
-        try:
-            if self.is_cus_name_submitted:
-                print("เติม Products ลงไป")
-                self.is_continue_progress = True
-            else:
-                print("มันเปนการยกเลิกไม่ใช่การเพิ่มลูกค้า")
-                self.is_continue_progress = False
-        except:
-            self.is_continue_progress = True
-            print("ชื่อลูกค้ามีอยู่แล้ว แอดของได้เลย")
-
         if self.is_continue_progress:
             self.fill_items(self.app.cus_purchased_products)
             self.fill_items(self.app.cus_purchased_premiums)
         else:
-            print("")
+            print("add_skus: No progress")
 
     def fill_items(self, array_items=[]):
         print("array_items: ", array_items)
@@ -789,5 +802,6 @@ class ChromeDriver:
             # * ถ้าพังให้ข้าม
             traceback_str = traceback.format_exc()
             print("พัง: ", traceback_str)
+
         print("chrome finished!!")
         self.update_bot_status(is_bot_working=False)
