@@ -447,6 +447,16 @@ class MainApp:
             self.flat_product[key] = value
         return self.flat_product
 
+    def flatten_product2(self, data):
+        try:
+            result = [item['com_Products'] for item in data]
+            print("แกะ compoducts: ", result)
+        except:
+            result = [item['com_Premiums'] for item in data]
+            print("แกะ premiums: ", result)
+
+        return result
+
     # * update รายการของที่ลูกค้าซื้อ
 
     def update_item_display(self, data=[], widget=None):
@@ -458,16 +468,20 @@ class MainApp:
             if len(self.cus_purchased_products) != 0:
                 self.cus_purchased_products = []
 
-            self.result_data = self.flatten_product(data, "com_Products")
-            self.cus_purchased_products.append(self.result_data)
+            if len(data) != 0:
+                self.result_data = self.flatten_product2(data)
+                print("after self.flatten_product2: ", self.result_data)
+                self.cus_purchased_products = self.result_data
 
         elif "premium" in widget:
             widget_target = self.bottom_component_settings[1]['widgets'][f'items_display']
             if len(self.cus_purchased_products) != 0:
                 self.cus_purchased_premiums = []
 
-            self.result_data = self.flatten_product(data, "com_Premiums")
-            self.cus_purchased_premiums.append(data)
+            if len(data) != 0:
+                self.result_data = self.flatten_product2(data)
+                print("after self.flatten_product2: ", self.result_data)
+                self.cus_purchased_premiums = self.result_data
 
         elif "remark" in widget:
             widget_target = self.bottom_component_settings[2]['widgets'][f'items_display']

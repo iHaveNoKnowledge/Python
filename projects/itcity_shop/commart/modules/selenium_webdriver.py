@@ -494,7 +494,7 @@ class ChromeDriver:
             print("item: ", item)
             self.driver.find_element(By.XPATH, self.sku_input_xpath).clear()
             self.driver.find_element(
-                By.XPATH, self.sku_input_xpath).send_keys(item)
+                By.XPATH, self.sku_input_xpath).send_keys(item['code_Itcity'])
             self.driver.find_element(
                 By.XPATH, self.sku_input_xpath).send_keys(Keys.ENTER)
 
