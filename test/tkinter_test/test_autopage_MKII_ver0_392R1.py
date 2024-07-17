@@ -2738,6 +2738,7 @@ class Bot_POS:
                         print("Have only one input")
                 except:
                     print("Input is empty")
+                    
                 try:
                     if self.input_count.is_displayed() and close_btn.is_displayed():
                         clicks = re.sub(r'\W', "", self.input_count.text)
