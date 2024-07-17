@@ -283,16 +283,16 @@ class ChromeDriver:
         self.cus_search_input = self.app.cus_tax_num.get() if self.app.cus_is_fulltax.get(
         ) else f"""{self.app.cus_fname.get()} {self.app.cus_lname.get()} {self.app.cus_tel.get()}"""
 
-        # * จับตาดูว่า ul เปิดอยู่ไหม
-        self.is_ul_not_open = False if self.driver.find_elements(
-            By.XPATH, '/html/body/span/span/span[2]/ul') else True
-        # * กรณีไม่ได้เปิดไว้ จะเปิดให้
-        if self.is_ul_not_open:
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
+        # # * จับตาดูว่า ul เปิดอยู่ไหม
+        # self.is_ul_not_open = False if self.driver.find_elements(
+        #     By.XPATH, '/html/body/span/span/span[2]/ul') else True
+        # # * กรณีไม่ได้เปิดไว้ จะเปิดให้
+        # if self.is_ul_not_open:
+        #     self.driver.find_element(
+        #         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]').click()
 
-            self.wait1.until(EC.visibility_of_element_located(
-                (By.XPATH, '/html/body/span/span/span[1]/input')))
+        #     self.wait1.until(EC.visibility_of_element_located(
+        #         (By.XPATH, '/html/body/span/span/span[1]/input')))
 
         # * ถ้าเปิดแล้วจะข้ามมานี่
         self.enter_cus_name(self.cus_search_input)
