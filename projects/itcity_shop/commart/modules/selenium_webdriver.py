@@ -459,13 +459,13 @@ class ChromeDriver:
                                display_text="รอผู้ใช้เพิ่มชื่อลูกค้า")
         print("Now in add_new_cusname form")
         while True:
-            print("ใน while loop")
+            # print("ใน while loop")
             time.sleep(0.75)
             try:
                 self.is_add_form_displayed = self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').is_displayed()
-                print("self.is_add_form_displayed: ",
-                      self.is_add_form_displayed)
+                # print("self.is_add_form_displayed: ",
+                #       self.is_add_form_displayed)
             except:
                 print("self.is_add_form_displayed error")
                 continue

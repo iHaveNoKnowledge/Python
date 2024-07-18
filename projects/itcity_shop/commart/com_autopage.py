@@ -31,6 +31,7 @@ class MainApp:
         self.cus_lname = tk.StringVar(value="")
         self.cus_is_fulltax = tk.BooleanVar(value=False)
         self.cus_is_hq = tk.BooleanVar(value=False)
+        self.cus_tax_branch = tk.StringVar(value="")
         self.cus_display_name = tk.StringVar(value="")
         self.cus_tax_num = tk.StringVar(value="")
         self.cus_address = ""
@@ -54,6 +55,7 @@ class MainApp:
         self.cus_lname.set("")
         self.cus_is_fulltax.set(False)
         self.cus_is_hq.set(False)
+        self.cus_tax_branch.set("")
         self.cus_display_name.set("")
         self.cus_tax_num.set("")
         self.update_textbox_widgets(
@@ -203,9 +205,9 @@ class MainApp:
 
         # ** frame_top widgets ************************************
         # * QR input component ////////////
-        self.qr_display = CTkLabel(
+        self.qr_input_label = CTkLabel(
             self.frame_top, text="QR Input", width=70, anchor=tk.W)
-        self.qr_display.grid(row=0, column=0, padx=(0, 0), pady=self.pady)
+        self.qr_input_label.grid(row=0, column=0, padx=(0, 0), pady=self.pady)
 
         self.qr_input = CTkEntry(
             self.frame_top, width=180, textvariable=self.input_qr)
@@ -255,6 +257,14 @@ class MainApp:
         self.status_display = CTkEntry(
             self.frame_top, width=150, state="readonly", textvariable=self.bot_status, fg_color="#70ff29",  text_color="#000")
         self.status_display.grid(row=0, column=6, sticky="w")
+        
+        # * แสดงสาขา cus_tax_branch component ///////////
+        self.tax_branch_label = CTkLabel(self.frame_top, text="สาขา", width=70)
+        self.tax_branch_label.grid(row=1, column=5, padx=(10, 0))
+        
+        self.tax_branch_display = CTkEntry(self.frame_top, width=150, state="readonly", textvariable=self.cus_tax_branch)
+        self.tax_branch_display.grid(row=1, column=6, sticky="w")
+        
 
         # ** frame_1 widgets ************************************
         # * ที่อยู่ cus_address component ///////////
