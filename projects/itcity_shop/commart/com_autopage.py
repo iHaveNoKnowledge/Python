@@ -153,8 +153,14 @@ class MainApp:
         self.ChromDriver = ChromeDriver(app=self,
                                         update_bot_stat_fn=self.update_bot_status
                                         )
-
-        self.update_bot_status(False)
+        #! ใช้ไม่ได้ เพราะมันยังอยู่ใน Thread
+        # print(f"""Thread is alive Before join: {threading.enumerate()}""")
+        # self.current_task.is_alive()
+        # self.stop_event.set()
+        # self.current_task.join(timeout=1)
+        # self.stop_event.clear()
+        # print(f"""Thread is alive After join: {threading.enumerate()}""")
+        # self.update_bot_status(False)
 
     def start_task(self, input={}):
         # * ล้าง inputเก่าก่อน
@@ -192,8 +198,9 @@ class MainApp:
     def on_start_button_click(self, input_qr=""):
         print("จำนวนThread: ", threading.active_count())
         print("threads: ", threading.enumerate())
-        thread = threading.Thread(target=self.start_task, args=(input_qr, ))
-        thread.start()
+        # thread = threading.Thread(target=self.start_task, args=(input_qr, ))
+        # thread.start()
+        self.start_task(input_qr)
 
     def create_widgets(self):
         # * started widgets variables
@@ -257,14 +264,14 @@ class MainApp:
         self.status_display = CTkEntry(
             self.frame_top, width=150, state="readonly", textvariable=self.bot_status, fg_color="#70ff29",  text_color="#000")
         self.status_display.grid(row=0, column=6, sticky="w")
-        
+
         # * แสดงสาขา cus_tax_branch component ///////////
         self.tax_branch_label = CTkLabel(self.frame_top, text="สาขา", width=70)
         self.tax_branch_label.grid(row=1, column=5, padx=(10, 0))
-        
-        self.tax_branch_display = CTkEntry(self.frame_top, width=150, state="readonly", textvariable=self.cus_tax_branch)
+
+        self.tax_branch_display = CTkEntry(
+            self.frame_top, width=150, state="readonly", textvariable=self.cus_tax_branch)
         self.tax_branch_display.grid(row=1, column=6, sticky="w")
-        
 
         # ** frame_1 widgets ************************************
         # * ที่อยู่ cus_address component ///////////
@@ -486,7 +493,7 @@ class MainApp:
 
         elif "premium" in widget:
             widget_target = self.bottom_component_settings[1]['widgets'][f'items_display']
-            if len(self.cus_purchased_products) != 0:
+            if len(self.cus_purchased_premiums) != 0:
                 self.cus_purchased_premiums = []
 
             if len(data) != 0:
@@ -496,9 +503,13 @@ class MainApp:
 
         elif "remark" in widget:
             widget_target = self.bottom_component_settings[2]['widgets'][f'items_display']
-            if len(self.cus_purchased_products) != 0:
+            if len(self.cus_remark) != 0:
                 self.cus_remark = []
-            self.cus_remark = data
+            try:
+                if data:
+                    self.cus_remark = data
+            except:
+                self.cus_remark = ""
 
         widget_target.configure(state=NORMAL)
         widget_target.delete(1.0, END)

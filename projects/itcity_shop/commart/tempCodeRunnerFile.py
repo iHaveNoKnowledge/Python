@@ -1,1 +1,1 @@
-start_task
+self.current_task.is_alive()
