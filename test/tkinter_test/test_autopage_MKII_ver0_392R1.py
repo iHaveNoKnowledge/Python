@@ -138,7 +138,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.392R1")
+        self.root.title("Autosamatic ver0.392R2")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -630,7 +630,6 @@ class MyApp:
         self.update_log("แอดไฟล์")
 
     def group_by_order(self, file_input, dtype):
-        print(f"รับ df เข้ามา df หน้าตาเป็นแบบ: {file_input} ")
         df = pd.read_excel(file_input, dtype=dtype)
         #! สำคัญมาก ถ้าอยากให้ nan หาย เอา dfมาใช้ method fillna('', inplace=True) "//การใช้ Inplace ทำให้แก้ ที่ df โดยตรงโดยไม่ต้องเก็บค่าใหม่
         # df.fillna('', inplace=True)
@@ -667,10 +666,6 @@ class MyApp:
         result_count = df.groupby(['orderNumber', 'sellerSku', 'itemName',
                                   'unitPrice', 'variation']).size().reset_index(name='จำนวน')
 
-        # total_variation_df = df.groupby('orderNumber')['variation'].agg().reset_index(name='ชื่อตัวเลือก')
-        # result_count = pd.merge(
-        #     result_count, total_variation_df, on='orderNumber', how='left')
-
         result_with_additional_columns_df = df.groupby('orderNumber').agg({
             'status': 'first',
             'ส่วนลดจาก Shopee': 'first',
@@ -698,13 +693,19 @@ class MyApp:
 
         # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
 
-        # ** ปรับแต่ง Column --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        # * สร้าง sum_column  ขึ้นมาใหม่
+        # ** ปรับแต่ง Column สำหรับ LAZADA--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        # * สร้าง sum_column  ขึ้นมาใหม่ --------------------------------------------------------
         # *> 'ราคาขายสุทธิ'
         # total_per_order_df = df.groupby('orderNumber')[
         #     'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
         result_count['ราคาขายสุทธิ'] = result_count["จำนวน"] * \
             result_count["unitPrice"]
+
+        # *> 'ชื่อผู้รับ'
+        result_count['ชื่อผู้รับ'] = df['billingName']
+
+        # *> 'หมายเลขโทรศัพท์'
+        result_count['หมายเลขโทรศัพท์'] = df['billingPhone']
 
         # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
         total_sellerDiscountTotal_df = df.groupby('orderNumber')[
@@ -2738,7 +2739,7 @@ class Bot_POS:
                         print("Have only one input")
                 except:
                     print("Input is empty")
-                    
+
                 try:
                     if self.input_count.is_displayed() and close_btn.is_displayed():
                         clicks = re.sub(r'\W', "", self.input_count.text)
@@ -4385,7 +4386,8 @@ if __name__ == "__main__":
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
 # Todo82 // WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
-#* 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
+# * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
+# * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
