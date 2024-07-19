@@ -384,8 +384,8 @@ class ChromeDriver:
                         By.XPATH, '/html/body/span/span/span[2]/ul')
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                         By.CSS_SELECTOR, '.select2-results__option')
-                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
-                          customer_name_dropdown_lis)
+                    print(f"""หาจำนวน li ชื่อลูกค้าเท่ากับ: {
+                          len(customer_name_dropdown_lis)} {customer_name_dropdown_lis}""")
                     break
 
                 except:
@@ -726,7 +726,10 @@ class ChromeDriver:
         #     pass
 
     def select_cus_name_from_lis(self, names, cb=""):
-        cus_desire_name = self.app.cus_name.get().replace(" ", "")
+        cus_desire_name = self.app.cus_display_name.get().replace(" ", "")
+        branch = self.app.cus_tax_branch.get().replace(" ", "")
+        if branch == '00000':
+            branch = 'สำนักงานใหญ่'
 
         # * ทำการคัดเอาเฉพาะชื่อลูกค้า ลง array ไม่เอารหัส
         names_no_code = names.copy()
@@ -736,11 +739,11 @@ class ChromeDriver:
 
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
-            if cus_desire_name in name:
+            if cus_desire_name in name and branch in name:
                 print("ชื่อที่ต้องการ อยู่ใน li")
                 while True:
                     try:
-                        print("เลือกชื่อลูกค้า", names[i])
+                        print(f"""เลือกชื่อลูกค้าลำดับที่ {i+1} {names[i]}""")
                         # * 1st way error
                         # self.driver.find_element(
                         #     By.XPATH, f"//*[text()='{names[i]}']").click()
