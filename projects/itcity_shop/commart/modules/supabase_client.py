@@ -16,7 +16,7 @@ class Supabase_client:
         self.supabase: Client = create_client(self.url, self.key)
 
     def get_order(self, order_name: str = ""):
-        self.column = """order_Name, customer_fname, customer_lname, company_name_of_tax, full_tax_type, want_full_tax, full_tax_id, is_headquarter, full_tax_id, re_mark, customer_tel, com_Order_Items(com_Products(*)), com_Order_Premiums(com_Premiums(*))"""
+        self.column = """order_Name, customer_fname, customer_lname, company_name_of_tax, full_tax_type, full_tax_branch_no, want_full_tax, full_tax_id, is_headquarter, full_tax_id, re_mark, customer_tel, com_Order_Items(com_Products(*)), com_Order_Premiums(com_Premiums(*))"""
         try:
             self.app.update_bot_status(True, "กำลังดึงข้อมูล")
         except:

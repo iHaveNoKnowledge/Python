@@ -406,6 +406,7 @@ class MainApp:
             'cus_lname': 'customer_lname',
             'cus_is_fulltax': 'want_full_tax',
             'cus_is_hq': 'is_headquarter',
+            'cus_tax_branch': 'full_tax_branch_no',
             'cus_tax_num': 'full_tax_id',
             'cus_province': 'province',
             'cus_district': 'district',
