@@ -384,8 +384,7 @@ class ChromeDriver:
                         By.XPATH, '/html/body/span/span/span[2]/ul')
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                         By.CSS_SELECTOR, '.select2-results__option')
-                    print(f"""หาจำนวน li ชื่อลูกค้าเท่ากับ: {
-                          len(customer_name_dropdown_lis)} {customer_name_dropdown_lis}""")
+                    # print(f"""หาจำนวน li ชื่อลูกค้าเท่ากับ: {len(customer_name_dropdown_lis)} {customer_name_dropdown_lis}""")
                     break
 
                 except:
