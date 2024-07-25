@@ -42,6 +42,8 @@ from googletrans import Translator
 import requests
 session = requests.Session()
 
+icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
+
 # * user interface
 # * dataframe table
 # from test_auto_cus_name_MKII import *
@@ -4284,6 +4286,8 @@ if __name__ == "__main__":
 
     root = CTk()
     # * options
+    #* change icon
+    root.iconbitmap(icon_path)
 
     # * > ทำลาย root tkInter เมื่อguiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
     root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -4389,6 +4393,7 @@ if __name__ == "__main__":
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 # * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 # * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
+# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่ 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
