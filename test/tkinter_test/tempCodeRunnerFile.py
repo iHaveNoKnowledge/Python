@@ -1,1 +1,1 @@
-self.cus_secret_tel
+ChromeAppUtils
