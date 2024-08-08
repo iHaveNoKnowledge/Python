@@ -71,7 +71,7 @@ class MyApp:
     def __init__(self, root):
 
         self.root = root
-        self.dev_account = ["62078", "61651"]
+        self.accel_account = ["62078", "61651", "62302"]
         # self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
@@ -318,7 +318,7 @@ class MyApp:
             self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
 
         # for method
-        # if self.user_id in self.dev_account and self.is_accel_mode.get():
+        # if self.user_id in self.accel_account and self.is_accel_mode.get():
         #     print("Accel mode Activated")
         # else:
         #     print("Normal mode")
@@ -2121,7 +2121,7 @@ class UserAccount:
                 # self.subwindow.destroy()
                 # return self.display_btn_txt
 
-            if self.app.user_id.get() in self.app.dev_account:
+            if self.app.user_id.get() in self.app.accel_account:
 
                 print("Accel mode approachable")
                 if self.app.accel_mode_checkbox.winfo_ismapped():
@@ -2130,10 +2130,10 @@ class UserAccount:
                     self.app.accel_mode_checkbox.grid(row=0, column=7, padx=5)
             else:
                 print("Normal mode", self.app.user_id.get()
-                      in self.app.dev_account)
+                      in self.app.accel_account)
                 self.app.accel_mode_checkbox.grid_remove()
                 print(self.app.user_id.get())
-                print(self.app.dev_account)
+                print(self.app.accel_account)
 
             return self.display_btn_txt
 

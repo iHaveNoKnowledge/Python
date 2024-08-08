@@ -71,7 +71,7 @@ class MyApp:
     def __init__(self, root):
 
         self.root = root
-        self.dev_account = ["62078", "61651"]
+        self.dev_account = ["62078", "61651", "62302"]
         # self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
