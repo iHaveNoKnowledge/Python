@@ -117,7 +117,9 @@ class MyApp:
         # self.cus_secret_name = StringVar(value="")
         # self.cus_secret_tel = StringVar(value="")
 
+        self.scale_factor = self.adjust_scale(self.root, 1000, 900)
         self.create_main_window()
+        self.scale_widget(self.root, self.scale_factor)
         self.get_dataframe()
         self.mimic_list_item_states = []
 
@@ -137,6 +139,33 @@ class MyApp:
         self.canvas_height = event.height
         self.root_frame.config(width=self.canvas_width,
                                height=self.canvas_height)
+        
+    def adjust_scale(self ,root, base_width, base_height):
+         # Get current screen resolution
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+
+        # Calculate scale factors
+        width_scale = screen_width / base_width
+        height_scale = screen_height / base_height
+
+        # Use the smaller scale factor to maintain aspect ratio
+        scale_factor = min(width_scale, height_scale)
+        
+        return scale_factor
+
+        
+    def scale_widget(self, widget, scale_factor):
+        if isinstance(widget, (CTkLabel, CTkButton, CTkEntry, CTkFrame)):
+                current_width = widget.cget("width")
+                current_height = widget.cget("height")
+                new_width = int(current_width * scale_factor)
+                new_height = int(current_height * scale_factor)
+                widget.configure(width=new_width, height=new_height)
+
+        if isinstance(widget, CTk):
+            for child in widget.winfo_children():
+                self.scale_widget(child, scale_factor)
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
@@ -4286,7 +4315,7 @@ if __name__ == "__main__":
 
     root = CTk()
     # * options
-    #* change icon
+    # * change icon
     root.iconbitmap(icon_path)
 
     # * > ทำลาย root tkInter เมื่อguiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
@@ -4297,6 +4326,10 @@ if __name__ == "__main__":
 
     # * > ปรับขนาดจอ
     # root.resizable(False, False)
+   
+ 
+    
+    
 
     # * > ทำให้กด copy จากภาษาอะไรก็ได้
     root.bind('<Key>', ctrl_saraea_copy)
@@ -4393,7 +4426,7 @@ if __name__ == "__main__":
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 # * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 # * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
-# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่ 
+# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
