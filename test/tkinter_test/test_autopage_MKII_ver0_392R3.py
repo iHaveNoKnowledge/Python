@@ -285,14 +285,17 @@ class MyApp:
             # * เอา gui ของ accel mode มาแปะแทน
             self.accl_dir_label.grid(row=0, column=1, padx=5)
             self.accl_dir_namedisplay_on_btn.grid(row=0, column=3)
-            self.accl_dir_btn.grid(row=0, column=5, padx=5)
+            self.add_trans_to_accel_file_btn.grid(row=0, column=4)
+            self.accl_start_btn.grid(row=0, column=5, padx=5)
 
         # * ถ้า Accel mode ไม่ทำงาน
         else:
             # * ลบ gui ของ accel mode ทิ้งรายตัว
             self.accl_dir_label.grid_remove()
             self.accl_dir_namedisplay_on_btn.grid_remove()
-            self.accl_dir_btn.grid_remove()
+            self.add_trans_to_accel_file_btn.grid_remove()
+            self.accl_start_btn.grid_remove()
+
             # * เอา gui ของ โหมดธรรมดา มาแปะแทน
             self.inp1_label_order.grid(row=0, column=1, padx=5)
             self.inp1_order_input.grid(row=0, column=3)
@@ -322,6 +325,7 @@ class MyApp:
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
         # *  search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # * > Labels
         self.accl_dir_label = Label(
             self.entry_frame, text=f"Accel File Dir ")
@@ -331,18 +335,15 @@ class MyApp:
             self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, bg="#969696")
 
         # *> Buttons
-        self.accl_dir_btn = Button(
+        self.accl_start_btn = Button(
             self.entry_frame, text=f"Start", command=self.accel_search, bg="red")
 
         # todo WIP transfer to accel
         # *  add transfers to accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # *> FileName Display on Button
+        # *พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
+        # *> add transfer Button
         self.add_trans_to_accel_file_btn = Button(
-            self.entry_frame, text=f"เลือกใส่ Transfer", command=self.select_accel_file, )
-
-        # *> Buttons
-        self.accl_dir_btn = Button(
-            self.entry_frame, text=f"Start", command=self.accel_search, bg="red")
+            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir))
 
         # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
@@ -660,7 +661,7 @@ class MyApp:
         else:
             print("You have not selected any transfer file, Extraction ends!!")
 
-    def sn_extractor(output_excel, target_dir):
+    def sn_extractor(self, output_excel, target_dir):
         extracted_txt: str = ""
         # target_dir = r"C:\Users\ONLINE_MIS\Downloads\TRB018324080900002-Tranfer.pdf" //example
         # target_dir = target_dir
