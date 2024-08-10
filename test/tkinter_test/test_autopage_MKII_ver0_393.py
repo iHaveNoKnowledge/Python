@@ -33,6 +33,8 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import *
 from customtkinter import *
+from pypdf import PdfReader
+from openpyxl import load_workbook
 
 
 import traceback
@@ -71,7 +73,7 @@ class MyApp:
     def __init__(self, root):
 
         self.root = root
-        self.accel_account = ["62078", "61651", "62302"]
+        self.dev_account = ["62078", "61651", "62302"]
         # self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
@@ -117,7 +119,9 @@ class MyApp:
         # self.cus_secret_name = StringVar(value="")
         # self.cus_secret_tel = StringVar(value="")
 
+        self.scale_factor = self.adjust_scale(self.root, 1000, 900)
         self.create_main_window()
+        self.scale_widget(self.root, self.scale_factor)
         self.get_dataframe()
         self.mimic_list_item_states = []
 
@@ -138,9 +142,35 @@ class MyApp:
         self.root_frame.config(width=self.canvas_width,
                                height=self.canvas_height)
 
+    def adjust_scale(self, root, base_width, base_height):
+        # Get current screen resolution
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+
+        # Calculate scale factors
+        width_scale = screen_width / base_width
+        height_scale = screen_height / base_height
+
+        # Use the smaller scale factor to maintain aspect ratio
+        scale_factor = min(width_scale, height_scale)
+
+        return scale_factor
+
+    def scale_widget(self, widget, scale_factor):
+        if isinstance(widget, (CTkLabel, CTkButton, CTkEntry, CTkFrame)):
+            current_width = widget.cget("width")
+            current_height = widget.cget("height")
+            new_width = int(current_width * scale_factor)
+            new_height = int(current_height * scale_factor)
+            widget.configure(width=new_width, height=new_height)
+
+        if isinstance(widget, CTk):
+            for child in widget.winfo_children():
+                self.scale_widget(child, scale_factor)
+
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.392R3")
+        self.root.title("Autosamatic ver0.393")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -255,14 +285,17 @@ class MyApp:
             # * เอา gui ของ accel mode มาแปะแทน
             self.accl_dir_label.grid(row=0, column=1, padx=5)
             self.accl_dir_namedisplay_on_btn.grid(row=0, column=3)
-            self.accl_dir_btn.grid(row=0, column=5, padx=5)
+            self.add_trans_to_accel_file_btn.grid(row=0, column=4)
+            self.accl_start_btn.grid(row=0, column=5, padx=5)
 
         # * ถ้า Accel mode ไม่ทำงาน
         else:
             # * ลบ gui ของ accel mode ทิ้งรายตัว
             self.accl_dir_label.grid_remove()
             self.accl_dir_namedisplay_on_btn.grid_remove()
-            self.accl_dir_btn.grid_remove()
+            self.add_trans_to_accel_file_btn.grid_remove()
+            self.accl_start_btn.grid_remove()
+
             # * เอา gui ของ โหมดธรรมดา มาแปะแทน
             self.inp1_label_order.grid(row=0, column=1, padx=5)
             self.inp1_order_input.grid(row=0, column=3)
@@ -292,19 +325,27 @@ class MyApp:
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
         # *  search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # * > Labels
         self.accl_dir_label = Label(
             self.entry_frame, text=f"Accel File Dir ")
 
         # *> FileName Display on Button
         self.accl_dir_namedisplay_on_btn = Button(
-            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, )
+            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, bg="#969696")
 
         # *> Buttons
-        self.accl_dir_btn = Button(
+        self.accl_start_btn = Button(
             self.entry_frame, text=f"Start", command=self.accel_search, bg="red")
 
-        # *  Log in button component
+        # todo WIP transfer to accel
+        # *  add transfers to accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # *พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
+        # *> add transfer Button
+        self.add_trans_to_accel_file_btn = Button(
+            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir))
+
+        # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
         ) and self.user_pw.get() else "Login"
@@ -318,7 +359,7 @@ class MyApp:
             self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
 
         # for method
-        # if self.user_id in self.accel_account and self.is_accel_mode.get():
+        # if self.user_id in self.dev_account and self.is_accel_mode.get():
         #     print("Accel mode Activated")
         # else:
         #     print("Normal mode")
@@ -561,16 +602,16 @@ class MyApp:
 
     def select_accel_file(self):
         # * รับ dir ของไฟล์
-        self.accel_location = filedialog.askopenfilename()
-        if self.accel_location:
+        self.accel_file_dir = filedialog.askopenfilename()
+        if self.accel_file_dir:
             self.accl_dir_namedisplay_on_btn.config(
-                text=f"{self.accel_location.split('/')[-1]}")
+                text=f"{self.accel_file_dir.split('/')[-1]}")
         else:
             self.accl_dir_namedisplay_on_btn.config(
                 text=f"ยังไม่เลือก Accel File")
 
         # * accel data frame เราจะใช้แปลงค่า
-        self.accel_df = pd.read_excel(self.accel_location, dtype=str)
+        self.accel_df = pd.read_excel(self.accel_file_dir, dtype=str)
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
         accel_file_columns = self.accel_df.columns.dropna().tolist()
@@ -588,6 +629,7 @@ class MyApp:
 
     # * update accel file *********************************
     #! WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn
+
     def update_accel_file(self, order, sku_serials=[]):
         order = order.get()
         df = self.accel_df
@@ -604,7 +646,93 @@ class MyApp:
             for sn in sku_serials:
                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
 
-        df.to_excel(self.accel_location, sheet_name='Sheet1', index=False)
+        df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+
+    # todo WIP transfer to accel
+    def extract_sn_btn(self, accel_file_dir):
+        if not accel_file_dir:
+            print("select accel file first!!")
+            return
+
+        target_dirs: tuple = filedialog.askopenfilenames()
+        if len(target_dirs) != 0:
+            for target_dir in target_dirs:
+                self.sn_extractor(accel_file_dir, target_dir)
+        else:
+            print("You have not selected any transfer file, Extraction ends!!")
+
+    def sn_extractor(self, output_excel, target_dir):
+        extracted_txt: str = ""
+        # target_dir = r"C:\Users\ONLINE_MIS\Downloads\TRB018324080900002-Tranfer.pdf" //example
+        # target_dir = target_dir
+        reader = PdfReader(target_dir)
+        # * โหลดไฟล์ Excel ที่มีอยู่แล้ว
+        # output_excel = r"C:\Users\ONLINE_MIS\Downloads\Accel_mode.xlsx" //example
+        # output_excel = output_excel
+
+        # * สกัดเอา ข้อความออกมาจากไฟล์
+        for page in reader.pages:
+            extracted_txt += page.extract_text()
+
+        pattern = r'^.*?(?=No\. Product Code Barcode Product Name Transfer No\. Order Ship Status)'
+        extracted_txt = re.sub(pattern, '', extracted_txt, flags=re.DOTALL)
+        extracted_txt = extracted_txt.lstrip()
+
+        # print(extracted_txt)
+
+        # * สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
+        # * Regular expression สำหรับการจับ SKU
+        sku_pattern = r'([A-Z0-9]{3}-[0-9]{6})'
+
+        # *Regular expression สำหรับการจับ serial numbers
+        serial_pattern = r'Shipped\s+([\w,\s]+)(?=Serial\s*:)'
+
+        # * สกัด SKU
+        sku_matches = re.findall(sku_pattern, extracted_txt)
+
+        # * สกัด serial numbers
+        serial_matches = re.findall(serial_pattern, extracted_txt, re.DOTALL)
+
+        # * จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
+        # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_matches]
+        serial_numbers_grouped = [re.findall(
+            r'\b[\w]+\b', serial) for serial in serial_matches]
+
+        # ตรวจสอบข้อมูลที่ถูกสกัด
+        print("SKU Matches:")
+        print(len(sku_matches), sku_matches)
+        print("Serial Numbers Grouped:")
+        print(len(serial_numbers_grouped), serial_numbers_grouped)
+
+        # * สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
+        data = {sku: serials for sku, serials in zip(
+            sku_matches, serial_numbers_grouped)}
+
+        # ตรวจสอบ DataFrame ก่อนเขียนลงไฟล์
+        print("DataFrame:")
+
+        # * เอาเข้าตาราง
+        try:
+            # โหลด workbook และ sheet ล่าสุด
+            book = load_workbook(output_excel)
+            sheet = book.active
+
+            # หาคอลัมน์ล่าสุดที่มีข้อมูล
+            last_column = sheet.max_column
+
+            # เขียนข้อมูลลงใน Excel
+            for col, (sku, serials) in enumerate(data.items(), start=last_column+1):
+                sheet.cell(row=1, column=col, value=sku)
+                for row, serial in enumerate(serials, start=2):
+                    sheet.cell(row=row, column=col, value=serial)
+
+            # บันทึกไฟล์
+            book.save(output_excel)
+            print(f"ข้อมูลถูกเพิ่มลงใน {output_excel} เรียบร้อยแล้ว")
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาด: {e}")
+            import traceback
+            traceback.print_exc()
 
     def select_excel(self):
         self.result = "Excel"
@@ -1799,7 +1927,7 @@ class MyApp:
 
         # * สร้าง recursive function
         def start_next_cycle(count):
-            self.accel_df = pd.read_excel(self.accel_location, dtype=str)
+            self.accel_df = pd.read_excel(self.accel_file_dir, dtype=str)
             if count < self.accel_orders_len:
                 if self.is_accel_mode_activated.get():
                     self.search(
@@ -2121,7 +2249,7 @@ class UserAccount:
                 # self.subwindow.destroy()
                 # return self.display_btn_txt
 
-            if self.app.user_id.get() in self.app.accel_account:
+            if self.app.user_id.get() in self.app.dev_account:
 
                 print("Accel mode approachable")
                 if self.app.accel_mode_checkbox.winfo_ismapped():
@@ -2130,10 +2258,10 @@ class UserAccount:
                     self.app.accel_mode_checkbox.grid(row=0, column=7, padx=5)
             else:
                 print("Normal mode", self.app.user_id.get()
-                      in self.app.accel_account)
+                      in self.app.dev_account)
                 self.app.accel_mode_checkbox.grid_remove()
                 print(self.app.user_id.get())
-                print(self.app.accel_account)
+                print(self.app.dev_account)
 
             return self.display_btn_txt
 
@@ -2523,10 +2651,11 @@ class Bot_POS:
     def accel_fill_sku(self):
         self.used_serials = []
         # *  ดึง array items เก็บลงตัวแปร items
-        items = self.app.items
-        print('accel_fill_sku() ตรวจสอบ items = ', items)
-        if len(items) > 0:
-            for item in items:
+        ordered_items = self.app.items
+        print('accel_fill_sku() ตรวจสอบ items = ', ordered_items)
+        if len(ordered_items) > 0:
+            for item in ordered_items:
+                print("item ordered by customer", item)
                 current_sku = item['เลขอ้างอิง SKU (SKU Reference No.)']
                 sku_qty = item['จำนวน']
                 if current_sku in self.app.obj_data_from_accel_file:
@@ -2570,38 +2699,6 @@ class Bot_POS:
                             # raise ValueError(
                             #     "There's no SN in Accel File, no functions to handle at this moment.")
 
-            # *เก่า
-                    # if self.app.sn_list:
-                    #     print("มี SN")
-                    #     time.sleep(1)
-                    #     while True:
-                    #         try:
-                    #             # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
-                    #             self.driver.find_element(
-                    #                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                    #             break
-                    #         except:
-                    #             continue
-                    #     sn = self.app.sn_list.pop(0)
-                    #     skuInput = self.driver.find_element(
-                    #         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                    #     skuInput.clear()
-
-                    #     skuInput.send_keys(sn)
-                    #     print("fill sn complete")
-
-                    #     # while True:
-                    #     skuInput.send_keys(Keys().ENTER)
-                    #     print("pressed Enter at SKU-Input")
-                    #     time.sleep(2)
-
-                    # else:
-
-                    #     print("ไม่มี SN, there are no functions available at this moment")
-                    #     pass
-                    #     # self.app.is_accel_mode_activated.set(False)
-                    #     # raise ValueError(
-                    #     #     "There's no SN in Accel File, no functions to handle at this moment.")
         else:
             print("No items, return!!")
             return
@@ -3291,9 +3388,24 @@ class Bot_POS:
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                     self.driver.find_element(
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+
                             except:
                                 print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
                                 break
+
+                            try:
+                                print("ใส่ราคาอตัโนมัติ")
+                                print((self.app.sum_price + self.app.cus_ship_cost.get()
+                                       ) - self.app.cus_seller_voucher.get())
+                                final_price = (
+                                    self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                if self.app.user_id.get() in self.app.dev_account:
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                            except Exception as e:
+                                print("auto_final_price broken", e)
 
                             # * ค้นหา element โดยใช้ XPath
                             self.is_input_on = self.driver.find_element(
@@ -4286,7 +4398,7 @@ if __name__ == "__main__":
 
     root = CTk()
     # * options
-    #* change icon
+    # * change icon
     root.iconbitmap(icon_path)
 
     # * > ทำลาย root tkInter เมื่อguiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
@@ -4393,7 +4505,11 @@ if __name__ == "__main__":
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 # * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 # * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
-# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่ 
+# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่
+# !87 // ปัญหาน่าจะเกิด เมื่อมีการข้าม บิล sn จะถูกข้ามมั้ง มันมีโอกาสที่จะไม่ดึงSN ที่เหลือ
+# !88 // แอดแบบมี * น่าจะไม่เวิร์ค เพราะหลายๆค่าใน db มี* ทำให้้ช้ามั้ง ยังไม่เคยลองทดสอบ
+# * 89 Added 0.393 // เพิ่ม ฟังชั่น Read transfer เพื่อเพิ่มลง accelmode_file
+# ! 90 ช่วงถ้ายังเลือก dropdown ไม่ได้มันจะ error
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
