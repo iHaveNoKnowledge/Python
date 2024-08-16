@@ -170,7 +170,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.393")
+        self.root.title("Autosamatic ver0.394")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -1170,55 +1170,31 @@ class MyApp:
             try:
                 self.name_match = re.search(
                     r'ชื่อ\s*:?\s*(.*)', self.order_note)
-                self.branch_match = re.search(
-                    r'สาขา\s*:?\s*(.*)', self.order_note)
-                self.address_match = re.search(
-                    r'ที่อยู่\s*:?\s*(.*)', self.order_note)
-                self.tax_id_match = re.search(
-                    r'Tax id\s*:?\s*(.*)', self.order_note)
-                self.email_match = re.search(
-                    r'email\s*:?\s*(.*)', self.order_note.lower())
-                self.tel_match = re.search(
-                    r'tel\s*:?\s*,?(.*)', self.order_note.lower())
-                print("regexบันทึก: ", self.name_match)
-                print("ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
-                self.cus_name.set(self.name_match.group(
-                    1)) if self.name_match else self.cus_name.set(self.cus_name.get())
-
-                self.tax_branch_num.set(self.branch_match.group(
-                    1)) if self.branch_match else self.tax_branch_num.set(self.tax_branch_num.get())
-
-                self.note_extracted_address = self.address_match.group(1) if self.address_match else "-"
-                self.cus_address = self.note_extracted_address
-
-                self.tax_num.set(self.tax_id_match.group(1)) if self.tax_id_match else self.tax_num.set(self.tax_num.get())
-
-                self.cus_email.set(self.email_match.group(1)) if self.email_match else self.cus_email.set(self.cus_email.get())
-
-                self.cus_tel.set(self.tel_match.group(1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
-
             except:
                 self.name_match = re.search(r'บริษัท.*', self.order_note)
-                self.branch_match = re.search(
-                    r'สาขา\s*:?\s*(.*)', self.order_note)
-                self.address_match = re.search(
-                    r'ที่อยู่\s*:?\s*(.*)', self.order_note)
-                self.tax_id_match = re.search(r'\d{13}', self.order_note)
-                print("regexบันทึก: ", self.name_match)
-                print("ใช้ group กับ regexบันทึก: ", self.name_match.group())
-                self.note_extracted = {
-                    'name': self.name_match.group(),
-                    'branch': self.branch_match.group(),
-                    'address': self.address_match.group(),
-                    'tax_id': self.tax_id_match.group()
-                }
+                
+            #* ถ้ากลับมาดูไม่ต้องสงสัยว่าแยกทำไม พอเขียนติดกันแล้วมันดูสับสน เลยแยกเฉยๆไม่มีไร (A1/2)
+            if "บริษัท" in self.name_match.group():
+                self.branch_match = re.search(r'สาขา\s*:?\s*(.*)', self.order_note)
+                self.tax_id_match = re.search(r'Tax id\s*:?\s*(.*)', self.order_note)
+                self.email_match = re.search(r'email\s*:?\s*(.*)', self.order_note.lower())
+                self.tel_match = re.search(r'tel\s*:?\s*,?(.*)', self.order_note.lower())
+                
+            self.address_match = re.search(r'ที่อยู่\s*:?\s*(.*)', self.order_note)
+                
+            print("try: regexบันทึก: ", self.name_match)
+            print("try: ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
 
-                self.cus_name.set(self.note_extracted['name'])
-                self.branch_type = self.note_extracted['branch']
-                self.update_gui(
-                    self.note_extracted['address'], self.display_cus_address)
-                self.tax_num.set(self.note_extracted['tax_id'])
-
+            # * เก็บค่าเข้าตัวแปร //#* ถ้ากลับมาดูไม่ต้องสงสัยว่าแยกทำไม พอเขียนติดกันแล้วมันดูสับสน เลยแยกเฉยๆไม่มีไรจะรวมกันก็ได้ (A2/2)
+            if "บริษัท" in self.name_match.group():
+                self.tax_branch_num.set(self.branch_match.group(1)) if self.branch_match else self.tax_branch_num.set(self.tax_branch_num.get())
+                self.tax_num.set(self.tax_id_match.group(1)) if self.tax_id_match else self.tax_num.set(self.tax_num.get())
+                self.cus_email.set(self.email_match.group(1)) if self.email_match else self.cus_email.set(self.cus_email.get())
+                self.cus_tel.set(self.tel_match.group(1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
+                
+            self.cus_name.set(self.name_match.group(1)) if self.name_match else self.cus_name.set(self.cus_name.get())
+            self.note_extracted_address = self.address_match.group(1) if self.address_match else "-"
+            self.cus_address = self.note_extracted_address
         else:
             print("no note to be extracted, note_extractor was not used")
 
@@ -1501,26 +1477,17 @@ class MyApp:
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
-                print("รหัสประจำสาขา= ",
-                      self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
-                branch = self.find_branch(
-                    str(self.nondistortedData['รหัสประจำสาขา']))
+                print("รหัสประจำสาขา= ", self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
+                branch = self.find_branch(str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch_num.set(branch)
 
-                print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ",
-                      self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
-                print(
-                    "self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง")
-                print(bool(pd.isna(
-                    self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])))
-                print(
-                    pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
-                print(
-                    pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
-                print("ค่าจาก DFเพียวๆ: ",
-                      self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])
-                print("ดูtype: ",
-                      type(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ", self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
+                print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง")
+                print(bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])))
+                print(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                print(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
+                print("ค่าจาก DFเพียวๆ: ",self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])
+                print("ดูtype: ",type(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
 
@@ -1749,8 +1716,7 @@ class MyApp:
                 self.show_products(self.items)
                 print("จำนวนเงิน", self.f(
                     self.nondistortedData['จำนวนเงินทั้งหมด']))
-                print('สินค้ารวมค่าส่ง: ',
-                      self.f(self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
+                print('สินค้ารวมค่าส่ง: ',self.f(self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
                 self.update_log(f"เวลาที่สั่ง: {self.cus_purchase_time.get()}")
                 self.update_log(
                     f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
@@ -2800,35 +2766,31 @@ class Bot_POS:
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
 
                 # * จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
                 self.app.display_current_status.config(
                     fg="#000000", bg="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.config(
-                        bg="#00ff11", fg="#000000")
+                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(
-                        bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
-                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
-                    print(self.app.order_status ==
-                          self.app.cus_cur_status.get())
+                    print(self.app.order_status == self.app.cus_cur_status.get())
                     print("Status in the file is reliable")
                 else:
-                    print(self.app.order_status ==
-                          self.app.cus_cur_status.get())
-                    print(
-                        "Status in the file is unreliable, suggest downloading a new Export File from the link below")
-                    print(
-                        "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+                    print(self.app.order_status == self.app.cus_cur_status.get())
+                    print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
+                    print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
             #### IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
@@ -3756,10 +3718,12 @@ class Bot_POS:
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
-            self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
-            name = f"""{name} ({self.app.tax_branch.get()})"""
+            # ! self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา']) ใช้ทำไมวะรอลบ
+            # ! name = f"""{name} ({self.app.tax_branch.get()})""" รอลบ
+            name = f"""{name} ({self.app.branch_type})"""
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
-            name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
+            name = f"""{name} (สาขา{self.app.tax_branch_num.get()})"""
+            
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -4199,7 +4163,7 @@ class Bot_POS:
 
                     # * เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
                     for item in search_result:
-                        if item['branch'] == self.app.tax_branch.get():
+                        if item['branch'] == self.app.branch_type:
                             output = item
                             print("เกบค่าลง dict result ลง output", output)
                             break
@@ -4382,7 +4346,7 @@ class Bot_POS:
 
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
-                'branch': f'{self.app.tax_branch.get()}',
+                'branch': f'{self.app.branch_type}',
                 'name': f'{self.app.cus_name.get()}',
                 'address_shortened': f"{cus_address_from_table['cleaned_address']}",
                 'province': f'{self.app.cus_province.get()}',
@@ -4533,10 +4497,12 @@ if __name__ == "__main__":
 # * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 # * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
 # * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่
-# !87 // ปัญหาน่าจะเกิด เมื่อมีการข้าม บิล sn จะถูกข้ามมั้ง มันมีโอกาสที่จะไม่ดึงSN ที่เหลือ
-# !88 // แอดแบบมี * น่าจะไม่เวิร์ค เพราะหลายๆค่าใน db มี* ทำให้้ช้ามั้ง ยังไม่เคยลองทดสอบ
+# !87 // Accelmode ปัญหาน่าจะเกิด เมื่อมีการข้าม บิล sn จะถูกข้ามมั้ง มันมีโอกาสที่จะไม่ดึงSN ที่เหลือ
+# ?88 // แอดแบบมี * น่าจะไม่เวิร์ค เพราะหลายๆค่าใน db มี* ทำให้้ช้ามั้ง ยังไม่เคยลองทดสอบ
 # * 89 Added 0.393 // เพิ่ม ฟังชั่น Read transfer เพื่อเพิ่มลง accelmode_file
 # ! 90 ช่วงถ้ายังเลือก dropdown ไม่ได้มันจะ error
+# ? 91 Fixed 0.394 // ปรับลูกค้าที่มีบันทึกให้อ่านค่าจากบันทึกได้ แต่อาจจะต้องมีทำต่อ เพราะใช้ได้แค่กรณีไม่ได้ขอใบกำกับ ตรงนี้ไม่มีระบบรองรับ ทำให้ input Dynamic มาก
+# Todo 92 WIP ตัวอ่าน PDF ยังแยก serial ได้ไม่ดี
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
