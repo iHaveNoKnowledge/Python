@@ -1182,17 +1182,21 @@ class MyApp:
                     r'tel\s*:?\s*,?(.*)', self.order_note.lower())
                 print("regexบันทึก: ", self.name_match)
                 print("ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
-                self.name_match = self.name_match.group(
-                    1) if self.name_match else self.cus_name.get()
-                self.branch_match = self.name_match.group(
-                    1) if self.name_match else self.tax_branch_num.get()
-                self.address_match =
-                self.tax_id_match =
-                self.email_match = re.search(
-                    r'email\s*:?\s*(.*)', self.order_note.lower())
-                self.tel_match = re.search(
-                    r'tel\s*:?\s*,?(.*)', self.order_note.lower())
-                self.cus_name.set(self.name_match.group(1))
+                self.cus_name.set(self.name_match.group(
+                    1)) if self.name_match else self.cus_name.set(self.cus_name.get())
+
+                self.tax_branch_num.set(self.branch_match.group(
+                    1)) if self.branch_match else self.tax_branch_num.set(self.tax_branch_num.get())
+
+                self.note_extracted_address = self.address_match.group(1) if self.address_match else "-"
+                self.cus_address = self.note_extracted_address
+
+                self.tax_num.set(self.tax_id_match.group(1)) if self.tax_id_match else self.tax_num.set(self.tax_num.get())
+
+                self.cus_email.set(self.email_match.group(1)) if self.email_match else self.cus_email.set(self.cus_email.get())
+
+                self.cus_tel.set(self.tel_match.group(1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
+
             except:
                 self.name_match = re.search(r'บริษัท.*', self.order_note)
                 self.branch_match = re.search(
