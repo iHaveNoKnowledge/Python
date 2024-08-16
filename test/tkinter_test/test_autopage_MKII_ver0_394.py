@@ -663,13 +663,7 @@ class MyApp:
 
     def sn_extractor(self, output_excel, target_dir):
         extracted_txt: str = ""
-        # target_dir = r"C:\Users\ONLINE_MIS\Downloads\TRB018324080900002-Tranfer.pdf" //example
-        # target_dir = target_dir
         reader = PdfReader(target_dir)
-        # * โหลดไฟล์ Excel ที่มีอยู่แล้ว
-        # output_excel = r"C:\Users\ONLINE_MIS\Downloads\Accel_mode.xlsx" //example
-        # output_excel = output_excel
-
         # * สกัดเอา ข้อความออกมาจากไฟล์
         for page in reader.pages:
             extracted_txt += page.extract_text()
@@ -677,41 +671,68 @@ class MyApp:
         pattern = r'^.*?(?=No\. Product Code Barcode Product Name Transfer No\. Order Ship Status)'
         extracted_txt = re.sub(pattern, '', extracted_txt, flags=re.DOTALL)
         extracted_txt = extracted_txt.lstrip()
+        
+        pattern2 = r'ผู้ส่งสินค้า.*?(?:No\. Product Code Barcode Product Name Transfer No\. Order Ship Status|วันที่ _ _ _ / _ _ _ / _ _ _)'
+        extracted_txt = re.sub(pattern2, '', extracted_txt, flags=re.DOTALL)
 
-        # print(extracted_txt)
+        pattern_serial = r'Serial\s:'
+        extracted_txt = re.sub(pattern_serial, '', extracted_txt, flags=re.DOTALL)
 
-        # * สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
-        # * Regular expression สำหรับการจับ SKU
+        #* สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
+        #* Regular expression สำหรับการจับ SKU
         sku_pattern = r'([A-Z0-9]{3}-[0-9]{6})'
 
         # *Regular expression สำหรับการจับ serial numbers
-        serial_pattern = r'Shipped\s+([\w,\s]+)(?=Serial\s*:)'
+        serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
 
-        # * สกัด SKU
-        sku_matches = re.findall(sku_pattern, extracted_txt)
+        #* สกัด SKU
+        product_codes = re.findall(sku_pattern, extracted_txt)
 
-        # * สกัด serial numbers
-        serial_matches = re.findall(serial_pattern, extracted_txt, re.DOTALL)
+        #* สกัด serial numbers
+        serial_numbers = re.findall(serial_pattern, extracted_txt, re.DOTALL)
 
-        # * จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
-        # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_matches]
-        serial_numbers_grouped = [re.findall(
-            r'\b[\w]+\b', serial) for serial in serial_matches]
+        print(serial_numbers)
+
+        cleaned_serial_numbers = []
+        for serial in serial_numbers:
+            #* ลบช่องว่างและเลขลำดับที่ไม่ต้องการออก
+            cleaned_serial = re.sub(r'\n', '', serial).strip()  #* ลบเลขลำดับที่ท้าย
+            # cleaned_serial = re.sub(r'\s+', '', cleaned_serial)  #* ลบช่องว่างทั้งหมด
+            cleaned_serial_numbers.append(cleaned_serial)
+
+        #* แสดงผล
+        print("Product Codes:")
+        code_count = 0
+        for code in product_codes:
+            code_count+=1
+            print(code_count, " ", code)
+
+        print("\nSerial Numbers:")
+        code_count = 0
+        for serial in cleaned_serial_numbers:
+            code_count+=1
+            #* ลบช่องว่างและเพิ่มวงเล็บ [] รอบ Serial Numbers
+            serial = serial.replace(" ", "")
+            serial_list = serial.split(",")
+            print(f"{code_count} {len(serial_list)} [{serial}]")
+
+        #* จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
+        # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_numbers]
+        serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
 
         # ตรวจสอบข้อมูลที่ถูกสกัด
         print("SKU Matches:")
-        print(len(sku_matches), sku_matches)
+        print(len(product_codes),product_codes)
         print("Serial Numbers Grouped:")
         print(len(serial_numbers_grouped), serial_numbers_grouped)
 
-        # * สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
-        data = {sku: serials for sku, serials in zip(
-            sku_matches, serial_numbers_grouped)}
+        #* สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
+        data = {sku: serials for sku, serials in zip(product_codes, serial_numbers_grouped)}
 
         # ตรวจสอบ DataFrame ก่อนเขียนลงไฟล์
-        print("DataFrame:")
+        # print("DataFrame:")
 
-        # * เอาเข้าตาราง
+        #* เอาเข้าตาราง
         try:
             # โหลด workbook และ sheet ล่าสุด
             book = load_workbook(output_excel)
@@ -719,7 +740,7 @@ class MyApp:
 
             # หาคอลัมน์ล่าสุดที่มีข้อมูล
             last_column = sheet.max_column
-
+            
             # เขียนข้อมูลลงใน Excel
             for col, (sku, serials) in enumerate(data.items(), start=last_column+1):
                 sheet.cell(row=1, column=col, value=sku)
