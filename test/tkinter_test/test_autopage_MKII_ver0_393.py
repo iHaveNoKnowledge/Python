@@ -88,7 +88,7 @@ class MyApp:
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
         self.is_tax = StringVar(value="")
-        self.tax_branch = StringVar(value="")
+        self.tax_branch_num = StringVar(value="")
         self.cus_name = StringVar(value="")
         self.cus_account_name = StringVar(value="")
         self.cus_address = ""
@@ -116,8 +116,8 @@ class MyApp:
         }}
         self.is_gui_busy = BooleanVar(value=False)
         self.bot = Bot_POS(self.root, self)
-        # self.cus_secret_name = StringVar(value="")
-        # self.cus_secret_tel = StringVar(value="")
+        # self.cus_masked_name = StringVar(value="")
+        # self.cus_masked_tel = StringVar(value="")
 
         self.scale_factor = self.adjust_scale(self.root, 1000, 900)
         self.create_main_window()
@@ -1164,21 +1164,41 @@ class MyApp:
 
         return cleaned_address
 
+    # todo WIP
     def note_extractor(self):
         if self.order_note != 'nan':
             try:
-                self.name_match = re.search(r'ชื่อ:(.*?)\n', self.order_note)
-                self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
+                self.name_match = re.search(
+                    r'ชื่อ\s*:?\s*(.*)', self.order_note)
+                self.branch_match = re.search(
+                    r'สาขา\s*:?\s*(.*)', self.order_note)
                 self.address_match = re.search(
-                    r'ที่อยู่:(.*?)\n', self.order_note)
-                self.tax_id_match = re.search(r'Tax id:(.*?)', self.order_note)
+                    r'ที่อยู่\s*:?\s*(.*)', self.order_note)
+                self.tax_id_match = re.search(
+                    r'Tax id\s*:?\s*(.*)', self.order_note)
+                self.email_match = re.search(
+                    r'email\s*:?\s*(.*)', self.order_note.lower())
+                self.tel_match = re.search(
+                    r'tel\s*:?\s*,?(.*)', self.order_note.lower())
                 print("regexบันทึก: ", self.name_match)
                 print("ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
+                self.name_match = self.name_match.group(
+                    1) if self.name_match else self.cus_name.get()
+                self.branch_match = self.name_match.group(
+                    1) if self.name_match else self.tax_branch_num.get()
+                self.address_match =
+                self.tax_id_match =
+                self.email_match = re.search(
+                    r'email\s*:?\s*(.*)', self.order_note.lower())
+                self.tel_match = re.search(
+                    r'tel\s*:?\s*,?(.*)', self.order_note.lower())
+                self.cus_name.set(self.name_match.group(1))
             except:
                 self.name_match = re.search(r'บริษัท.*', self.order_note)
-                self.branch_match = re.search(r'สาขา:(.*?)\n', self.order_note)
+                self.branch_match = re.search(
+                    r'สาขา\s*:?\s*(.*)', self.order_note)
                 self.address_match = re.search(
-                    r'ที่อยู่:(.*?)\n', self.order_note)
+                    r'ที่อยู่\s*:?\s*(.*)', self.order_note)
                 self.tax_id_match = re.search(r'\d{13}', self.order_note)
                 print("regexบันทึก: ", self.name_match)
                 print("ใช้ group กับ regexบันทึก: ", self.name_match.group())
@@ -1196,7 +1216,7 @@ class MyApp:
                 self.tax_num.set(self.note_extracted['tax_id'])
 
         else:
-            print("note_extractor not used")
+            print("no note to be extracted, note_extractor was not used")
 
     def translator(self, text):
         # ตรวจสอบว่าชื่อไม่ใช่ภาษาไทย, อังกฤษ, หรือตัวเลข
@@ -1359,8 +1379,8 @@ class MyApp:
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
                 # print(
                 #     "err?: ", self.data_frame[self.target_row]['สถานะการสั่งซื้อ'])
-                self.cus_secret_name = self.data_frame[self.target_row]['ชื่อผู้รับ'].iloc[0]
-                self.cus_secret_tel = self.data_frame[self.target_row]['หมายเลขโทรศัพท์'].iloc[0]
+                self.cus_masked_name = self.data_frame[self.target_row]['ชื่อผู้รับ'].iloc[0]
+                self.cus_masked_tel = self.data_frame[self.target_row]['หมายเลขโทรศัพท์'].iloc[0]
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง
@@ -1468,7 +1488,7 @@ class MyApp:
                         re.sub(
                             r"[\(\)]",
                             "",
-                            self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']+" "+self.cus_secret_name+" "+self.cus_secret_tel)
+                            self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']+" "+self.cus_masked_name+" "+self.cus_masked_tel)
                     )
 
                 self.cus_name_simplifyer(self.cus_name.get())
@@ -1481,7 +1501,7 @@ class MyApp:
                       self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
                 branch = self.find_branch(
                     str(self.nondistortedData['รหัสประจำสาขา']))
-                self.tax_branch.set(branch)
+                self.tax_branch_num.set(branch)
 
                 print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ",
                       self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
@@ -1572,7 +1592,10 @@ class MyApp:
                 # * ดึงบันทึกลูกค้า SHOPEE
                 if self.marketplace_target.get() == 'SHOPEE':
 
-                    self.note_extractor()
+                    try:
+                        self.note_extractor()
+                    except:
+                        print()
                     # self.cus_name.set()
                     # self.cus_name_simplifyer(self.name_match.group())
                 elif self.marketplace_target.get() == 'LAZADA':
