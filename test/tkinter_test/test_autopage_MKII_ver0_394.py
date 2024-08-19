@@ -600,8 +600,24 @@ class MyApp:
             raise ValueError(
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
             
-    def read_accel_file(self, accel_file_dir):
-        pass
+    # def read_accel_file(self, accel_file_dir):
+    #     # * accel data frame เราจะใช้แปลงค่า
+    #     self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+
+    #     # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
+    #     accel_file_columns = self.accel_df_state.columns.dropna().tolist()
+    #     self.obj_data_from_accel_file = {
+    #         col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
+    #     }
+
+    #     self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
+    #     # self.sn_list = self.accel_df_state['sn'].dropna().tolist()
+    #     self.CP_list = self.accel_df_state['cp'].dropna().tolist()
+    #     print(self.accel_orders_list)
+    #     print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
+    #     # print(self.sn_list)
+    #     print(self.CP_list)
+    #     pass
 
     def select_accel_file(self):
         # * รับ dir ของไฟล์
@@ -631,15 +647,15 @@ class MyApp:
         print(self.CP_list)
 
     # * update accel file *********************************
-    #! WIP deduct_accel_file ยังไม่เสร็จ เหลือจัดการ sn
+    #! WIP deduct_accel_file_data ยังไม่เสร็จ เหลือจัดการ sn
 
     #* เมื่อมีการใช้ SN ภายใน Accel file 
-    def deduct_accel_file(self, order, sku_serials=[]):
+    def deduct_accel_file_data(self, order, sku_serials=[]):
         order = order.get()
         df = self.accel_df_state
-        print("deduct_accel_file df มีมาก่อนเหรอ: ", df)
-        print("deduct_accel_file order: ", order)
-        print("deduct_accel_file ref: ", df.loc[df['orders'] == order, 'orders'])
+        print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
+        print("deduct_accel_file_data order: ", order)
+        print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
         #* ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
@@ -663,6 +679,8 @@ class MyApp:
                 self.sn_extractor(accel_file_dir, target_dir)
         else:
             print("You have not selected any transfer file, Extraction ends!!")
+        self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        
 
     def sn_extractor(self, output_excel, target_dir):
         extracted_txt: str = ""
@@ -3576,7 +3594,7 @@ class Bot_POS:
                                         self.justPressP()
 
                                         # * Update Accel file //////////////////////
-                                        self.app.deduct_accel_file(
+                                        self.app.deduct_accel_file_data(
                                             self.app.cus_order,
                                             self.used_serials
                                         )
@@ -4536,7 +4554,7 @@ if __name__ == "__main__":
 # !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
 # !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
-# Todo82 // WIP deduct_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
+# Todo82 // WIP deduct_accel_file_data ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 # * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 # * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
@@ -4546,8 +4564,9 @@ if __name__ == "__main__":
 # * 89 Added 0.393 // เพิ่ม ฟังชั่น Read transfer เพื่อเพิ่มลง accelmode_file
 # ! 90 ช่วงถ้ายังเลือก dropdown ไม่ได้มันจะ error
 # ? 91 Fixed 0.394 // ปรับลูกค้าที่มีบันทึกให้อ่านค่าจากบันทึกได้ แต่อาจจะต้องมีทำต่อ เพราะใช้ได้แค่กรณีไม่ได้ขอใบกำกับ ตรงนี้ไม่มีระบบรองรับ ทำให้ input Dynamic มาก
-# Todo 92 WIP ตัวอ่าน PDF ยังแยก serial ได้ไม่ดี
+# * 92 Fixed 0.394//  อ่านได้ละ //ตัวอ่าน PDF ยังแยก serial ได้ไม่ดี
 # * 93 Fixed 0.394 // แก้ การดึงค่า สถานะ จาก UI ใหม่ Shopee กรณี ส่งสำเร็จ, ยกเลิก, ส่งแล้ว
+# ? 94 Fixed 0.394 // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเมสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
