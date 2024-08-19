@@ -599,6 +599,9 @@ class MyApp:
         else:
             raise ValueError(
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
+            
+    def read_accel_file(self, accel_file_dir):
+        pass
 
     def select_accel_file(self):
         # * รับ dir ของไฟล์
@@ -611,32 +614,33 @@ class MyApp:
                 text=f"ยังไม่เลือก Accel File")
 
         # * accel data frame เราจะใช้แปลงค่า
-        self.accel_df = pd.read_excel(self.accel_file_dir, dtype=str)
+        self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
-        accel_file_columns = self.accel_df.columns.dropna().tolist()
+        accel_file_columns = self.accel_df_state.columns.dropna().tolist()
         self.obj_data_from_accel_file = {
-            col: self.accel_df[col].replace(" ", '').dropna().tolist() for col in accel_file_columns}
+            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
+        }
 
-        self.accel_orders_list = self.accel_df['orders'].dropna().tolist()
-        # self.sn_list = self.accel_df['sn'].dropna().tolist()
-        self.CP_list = self.accel_df['cp'].dropna().tolist()
+        self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
+        # self.sn_list = self.accel_df_state['sn'].dropna().tolist()
+        self.CP_list = self.accel_df_state['cp'].dropna().tolist()
         print(self.accel_orders_list)
-        print('self.obj_data_from_accel_fileไมไม่ได้วะ: ',
-              self.obj_data_from_accel_file)
+        print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
         # print(self.sn_list)
         print(self.CP_list)
 
     # * update accel file *********************************
-    #! WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn
+    #! WIP deduct_accel_file ยังไม่เสร็จ เหลือจัดการ sn
 
-    def update_accel_file(self, order, sku_serials=[]):
+    #* เมื่อมีการใช้ SN ภายใน Accel file 
+    def deduct_accel_file(self, order, sku_serials=[]):
         order = order.get()
-        df = self.accel_df
-        print("update_accel_file df มีมาก่อนเหรอ: ", df)
-        print("update_accel_file order: ", order)
-        print("update_accel_file ref: ",
-              df.loc[df['orders'] == order, 'orders'])
+        df = self.accel_df_state
+        print("deduct_accel_file df มีมาก่อนเหรอ: ", df)
+        print("deduct_accel_file order: ", order)
+        print("deduct_accel_file ref: ", df.loc[df['orders'] == order, 'orders'])
+        #* ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
             df.loc[df['orders'] == order, 'orders'] = ''
@@ -645,7 +649,6 @@ class MyApp:
         if sku_serials:
             for sn in sku_serials:
                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
-
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
 
     # todo WIP transfer to accel
@@ -667,46 +670,49 @@ class MyApp:
         # * สกัดเอา ข้อความออกมาจากไฟล์
         for page in reader.pages:
             extracted_txt += page.extract_text()
-
+            
         pattern = r'^.*?(?=No\. Product Code Barcode Product Name Transfer No\. Order Ship Status)'
         extracted_txt = re.sub(pattern, '', extracted_txt, flags=re.DOTALL)
         extracted_txt = extracted_txt.lstrip()
         
         pattern2 = r'ผู้ส่งสินค้า.*?(?:No\. Product Code Barcode Product Name Transfer No\. Order Ship Status|วันที่ _ _ _ / _ _ _ / _ _ _)'
         extracted_txt = re.sub(pattern2, '', extracted_txt, flags=re.DOTALL)
-
+        
         pattern_serial = r'Serial\s:'
         extracted_txt = re.sub(pattern_serial, '', extracted_txt, flags=re.DOTALL)
-
+        
+        pattern_sku_no = r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))'
+        extracted_txt = re.sub(pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
+        
         #* สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
         #* Regular expression สำหรับการจับ SKU
         sku_pattern = r'([A-Z0-9]{3}-[0-9]{6})'
-
+        
         # *Regular expression สำหรับการจับ serial numbers
         serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
-
+        
         #* สกัด SKU
         product_codes = re.findall(sku_pattern, extracted_txt)
-
+        
         #* สกัด serial numbers
         serial_numbers = re.findall(serial_pattern, extracted_txt, re.DOTALL)
-
+        
         print(serial_numbers)
-
+        
         cleaned_serial_numbers = []
         for serial in serial_numbers:
             #* ลบช่องว่างและเลขลำดับที่ไม่ต้องการออก
             cleaned_serial = re.sub(r'\n', '', serial).strip()  #* ลบเลขลำดับที่ท้าย
             # cleaned_serial = re.sub(r'\s+', '', cleaned_serial)  #* ลบช่องว่างทั้งหมด
             cleaned_serial_numbers.append(cleaned_serial)
-
+            
         #* แสดงผล
         print("Product Codes:")
         code_count = 0
         for code in product_codes:
             code_count+=1
             print(code_count, " ", code)
-
+            
         print("\nSerial Numbers:")
         code_count = 0
         for serial in cleaned_serial_numbers:
@@ -715,29 +721,29 @@ class MyApp:
             serial = serial.replace(" ", "")
             serial_list = serial.split(",")
             print(f"{code_count} {len(serial_list)} [{serial}]")
-
+            
         #* จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
         # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_numbers]
         serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
-
+        
         # ตรวจสอบข้อมูลที่ถูกสกัด
         print("SKU Matches:")
         print(len(product_codes),product_codes)
         print("Serial Numbers Grouped:")
         print(len(serial_numbers_grouped), serial_numbers_grouped)
-
+        
         #* สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
         data = {sku: serials for sku, serials in zip(product_codes, serial_numbers_grouped)}
-
+        
         # ตรวจสอบ DataFrame ก่อนเขียนลงไฟล์
         # print("DataFrame:")
-
+        
         #* เอาเข้าตาราง
         try:
             # โหลด workbook และ sheet ล่าสุด
             book = load_workbook(output_excel)
             sheet = book.active
-
+            
             # หาคอลัมน์ล่าสุดที่มีข้อมูล
             last_column = sheet.max_column
             
@@ -746,7 +752,7 @@ class MyApp:
                 sheet.cell(row=1, column=col, value=sku)
                 for row, serial in enumerate(serials, start=2):
                     sheet.cell(row=row, column=col, value=serial)
-
+                    
             # บันทึกไฟล์
             book.save(output_excel)
             print(f"ข้อมูลถูกเพิ่มลงใน {output_excel} เรียบร้อยแล้ว")
@@ -762,7 +768,7 @@ class MyApp:
         # * ตัดเอาเฉพาะ ชื่อไฟล์
         self.display_location_result.config(
             text=f"{self.table_location.split('/')[-1]}")
-
+        
         # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
@@ -774,7 +780,7 @@ class MyApp:
             bg=f'{self.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
         #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
-
+        
         # * หลังจากได้ไฟล์เข้ามาแล้ว (self.table_location) เราจะทำการสร้างเป็น dataframe ด้วย function get_data_frame()
         self.get_data_frame()
         print("Table Location:", self.table_location)
@@ -1941,7 +1947,7 @@ class MyApp:
 
         # * สร้าง recursive function
         def start_next_cycle(count):
-            self.accel_df = pd.read_excel(self.accel_file_dir, dtype=str)
+            self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
             if count < self.accel_orders_len:
                 if self.is_accel_mode_activated.get():
                     self.search(
@@ -3570,7 +3576,7 @@ class Bot_POS:
                                         self.justPressP()
 
                                         # * Update Accel file //////////////////////
-                                        self.app.update_accel_file(
+                                        self.app.deduct_accel_file(
                                             self.app.cus_order,
                                             self.used_serials
                                         )
@@ -4530,7 +4536,7 @@ if __name__ == "__main__":
 # !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
 # !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
 # *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
-# Todo82 // WIP update_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
+# Todo82 // WIP deduct_accel_file ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
 # *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
 # * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
 # * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
