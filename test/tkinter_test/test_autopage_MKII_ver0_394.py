@@ -2106,7 +2106,7 @@ class DataSourceSelector:
         self.app.marketplace_target.set("")
         self.subwindow.destroy()
 
-# class สำหรับรับ ID PASS
+
 
 
 class PopUp:
@@ -2160,7 +2160,7 @@ class PopUp:
         # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
         self.subwindow.lift()
 
-
+#* class สำหรับรับ ID PASS
 class UserAccount:
     def __init__(self, parent, app):
         self.parent = parent
