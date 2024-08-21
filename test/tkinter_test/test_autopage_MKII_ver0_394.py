@@ -3085,8 +3085,11 @@ class Bot_POS:
                 By.XPATH, self.app.cusNameLi1)
             # * มันจะได้ Searching...
             print("มันทำไม", self.wait_condition.text)
+            
+            #! WIP pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
+            # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[16]/div[2]/button[1]"
 
-            # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน => li[1] โดย li[1] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และบอก ผลลัพธ์ที่เจอลำดับแรก
+            # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
             self.customer_added_times = 0
             self.customer_name_search_count = 0
             while True:
@@ -3206,8 +3209,11 @@ class Bot_POS:
             print("search หายไปแล้ว")
             self.wait1.until(EC.invisibility_of_element_located(
                 (By.XPATH, self.app.cusNameInput)))
+            
+            #! WIP Add ชื่อลูกค้าแล้วจบ
+            return
 
-            # ใส่ค่าขนส่ง
+            #* ใส่ค่าขนส่ง
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 if int(self.app.cus_ship_cost.get()) != int(0):
