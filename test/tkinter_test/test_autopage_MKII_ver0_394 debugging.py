@@ -3223,9 +3223,9 @@ class Bot_POS:
                         self.skuAddBtn.send_keys(Keys().ENTER)
                         print("กด Enter ที่ช่อง SKU Input สำเร็จ")
                         
-                        # #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
-                        # logger.info(f"Order: {self.app.search_query} 1/2Finished!!")
-                        # return
+                        #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
+                        logger.info(f"Order: {self.app.search_query} 1/2Finished!!")
+                        return
                         time.sleep(2)
 
                         # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
@@ -3286,11 +3286,10 @@ class Bot_POS:
             #         print("ราคาตรงแล้ว")
             #         break
 
-            # #! WIP ทดสอบ 2/2
-            # logger.info(f"Order: {self.app.search_query} 2/2Finished!!")
-            logger.info(f"Order: {self.app.search_query} Checkpoint Phase 1 No error!!")
-            # self.app.search_complete.set()
-            # return
+            #! WIP ทดสอบ 2/2
+            logger.info(f"Order: {self.app.search_query} 2/2Finished!!")
+            self.app.search_complete.set()
+            return
 
             if self.app.is_accel_mode_activated.get():
                 self.accel_fill_sku()
