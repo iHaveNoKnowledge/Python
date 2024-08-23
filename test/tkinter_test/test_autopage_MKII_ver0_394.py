@@ -21,7 +21,6 @@ from selenium import webdriver
 from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
 from webdriver_auto_update.webdriver_manager import WebDriverManager
 
-
 import re
 import win32com.client as comclt
 import time
@@ -36,13 +35,13 @@ from customtkinter import *
 from pypdf import PdfReader
 from openpyxl import load_workbook
 
-
 import traceback
 from bs4 import BeautifulSoup
 import httpcore
 from googletrans import Translator
 import requests
 session = requests.Session()
+from loguru import logger
 
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
 
@@ -1942,19 +1941,16 @@ class MyApp:
 
         # * สร้าง Thread
         self.shorter_thread_cycle = threading.Thread(target=self.bot.get_tabs)
-        self.longer_thread_cycle = threading.Thread(
-            target=lambda: self.order_search(self.search_query, self.search_complete))
+        self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.search_complete))
         print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
         self.shorter_thread_cycle.start()
         self.longer_thread_cycle.start()
-
+        
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
-        self.check_threads(self.shorter_thread_cycle,
-                           self.longer_thread_cycle, callback)
-        self.display_bot_status_label.config(
-            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+        self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
+        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
@@ -1966,8 +1962,7 @@ class MyApp:
             self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
             if count < self.accel_orders_len:
                 if self.is_accel_mode_activated.get():
-                    self.search(
-                        self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                    self.search(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
                     raise ValueError("Accel mode has destroyed")
             else:
@@ -2522,7 +2517,13 @@ class Bot_POS:
                 # * เริ่มการทำงาน Operation Start
 
                 if self.app.order != "":
-                    self.operation_start()
+                    logger.add("autopageMKII_log.log", format="{time} {level} {message}", level="INFO")
+                    logger.info(f"Order: {self.app.search_query} Start!!")
+                    try:
+                        self.operation_start()
+                        logger.info(f"Order: {self.app.search_query} Stop!!")
+                    except:
+                        logger.info(f"Order: {self.app.search_query} Error!!")
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
                     self.app.search_complete.set()
@@ -2774,8 +2775,7 @@ class Bot_POS:
 
                     self.searchBtn.click()
                 except:
-                    raise ValueError(f"method operation_start Error : {
-                                     traceback.format_exc()}")
+                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(0.75)
@@ -3079,9 +3079,9 @@ class Bot_POS:
                 # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[16]/div[2]/button[1]"
                 try:
                     #* มี pop-upไหม
-                    if self.driver.find_element(By.ID, "/html/body/div[16]/div[2]/div[6]").is_displayed():
+                    if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
                         #* ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
-                        self.driver.find_element(By.ID, "/html/body/div[16]/div[2]/button[1]").click()
+                        self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
                         continue
                     #* ไม่มี pop-up ให้ break
                     break
@@ -3207,26 +3207,26 @@ class Bot_POS:
             if self.app.marketplace_target.get() == "SHOPEE":
                 if int(self.app.cus_ship_cost.get()) != int(0):
                     try:
-                        self.skuInput = self.wait1.until(EC.visibility_of_element_located(
+                        self.skuInput_element = self.wait1.until(EC.visibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                         # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                        self.skuInput.clear()
-
-                        self.skuInput.send_keys("SV0-000101")
+                        self.skuInput_element.clear()
+                        
+                        self.skuInput_element.send_keys("SV0-000101")
                         print("กรอก Code ขนส่งสำเร็จ")
-
-                        self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                        
+                        self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                         # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         self.skuAddBtn.send_keys(Keys().ENTER)
                         print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+                        #! WIP ทดสอบ 1/2
+                        return
                         time.sleep(2)
 
                         # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                        self.definePrice = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                        # self.definePrice = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
-                        self.definePrice.click()
+                        self.definePrice_btn_element = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+                        # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+                        self.definePrice_btn_element.click()
                         time.sleep(1)
                         # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
                         print("กดที่ SKU ELEMENT 1 สำเร็จ")
@@ -3282,7 +3282,8 @@ class Bot_POS:
             #         print("ราคาตรงแล้ว")
             #         break
 
-            #! WIP accel_mode[2] ต้องเอา accel_fill_sku() มาใส่ตรงนี้
+            #! WIP ทดสอบ 2/2
+            return
 
             if self.app.is_accel_mode_activated.get():
                 self.accel_fill_sku()
@@ -3700,14 +3701,20 @@ class Bot_POS:
 
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
             try:
+                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+                
                 #* บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
                 while True:
-                    if self.driver.find_element(By.ID, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text == "CM1-Domestic Customer":
-                        break
-                    continue
+                    try:
+                        choice_found = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text
+                        print("choice_found: ", choice_found)
+                        if self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text == "CM1-Domestic Customer":
+                            break
+                    except Exception as err:
+                        time.sleep(1)
+                        print("except: ", err)
+                        continue
                 
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
                 self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
                 time.sleep(0.75)
