@@ -34,6 +34,7 @@ from tkinter import *
 from customtkinter import *
 from pypdf import PdfReader
 from openpyxl import load_workbook
+from PIL import Image, ImageTk
 
 import traceback
 from bs4 import BeautifulSoup
@@ -43,7 +44,10 @@ import requests
 session = requests.Session()
 from loguru import logger
 
+#* images
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
+arrow_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'Arrow.gif')
+stop_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'stop.jpg')
 
 # * user interface
 # * dataframe table
@@ -319,8 +323,16 @@ class MyApp:
             self.entry_frame, textvariable=self.entered_order, width=50)
         self.inp1_order_input.grid(row=0, column=3)
         # *> Buttons
-        self.inp1_search_btn = Button(
-            self.entry_frame, text="Start", bg="#969696", command=self.search_order, width=10)
+        self.font = CTkFont(family='fixedsys', size=10, weight="bold")
+        self.inp1_search_btn = CTkButton(
+            self.entry_frame,
+            font=self.font,
+            text="Start",
+            fg_color="#273245",
+            command=self.search_order,
+            width=10,
+            height=25
+        )
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
         # *  search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -334,15 +346,41 @@ class MyApp:
             self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, bg="#969696")
 
         # *> Buttons
-        self.accl_start_btn = Button(
-            self.entry_frame, text=f"Start", command=self.accel_search, bg="red")
+        self.start_image =  Image.open(arrow_icon)
+        self.start_photo = ImageTk.PhotoImage(self.start_image.resize((30, 20)))
+        #* fonts
+        # self.font = CTkFont(family='fixedsys', size=10, weight="bold")
+        self.accl_start_btn = CTkButton(
+            self.entry_frame,
+            font=self.font,
+            text=f"Start",
+            # image=self.start_photo,
+            command=self.accel_search,
+            fg_color="#273245",
+            text_color="#8ae067",
+            width=30,
+            height=25
+        )
+        
+        # *  search order Stop Button
+        self.accel_stop_btn = CTkButton(
+            self.entry_frame,
+            font=self.font,
+            text=f"Stop",
+            # command=self.accel_stop_search,
+            fg_color="#cad3de",
+            text_color="red",
+            width=28,
+            height=25
+        )
+        self.accel_stop_btn.grid(row=0, column=6, padx=5)
 
         # todo WIP transfer to accel
         # *  add transfers to accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # *พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # *> add transfer Button
         self.add_trans_to_accel_file_btn = Button(
-            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir))
+            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir), bg="#969696")
 
         # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
@@ -350,7 +388,7 @@ class MyApp:
         ) and self.user_pw.get() else "Login"
         self.display_acc_btn = Button(
             self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
-        self.display_acc_btn.grid(row=0, column=6, padx=5)
+        self.display_acc_btn.grid(row=0, column=7, padx=5)
 
         # * Accel mode
         # * > Checkbox for activation toggle
@@ -620,7 +658,7 @@ class MyApp:
 
     def select_accel_file(self):
         # * รับ dir ของไฟล์
-        self.accel_file_dir = filedialog.askopenfilename()
+        self.accel_file_dir = filedialog.askopenfilename(title="Select Accel File")
         if self.accel_file_dir:
             self.accl_dir_namedisplay_on_btn.config(
                 text=f"{self.accel_file_dir.split('/')[-1]}")
@@ -671,7 +709,7 @@ class MyApp:
             print("select accel file first!!")
             return
 
-        target_dirs: tuple = filedialog.askopenfilenames()
+        target_dirs: tuple = filedialog.askopenfilenames(title="Select SN PDF files")
         if len(target_dirs) != 0:
             for target_dir in target_dirs:
                 self.sn_extractor(accel_file_dir, target_dir)
@@ -780,10 +818,9 @@ class MyApp:
     def select_excel(self):
         self.result = "Excel"
         print("Select Excel")
-        self.table_location = filedialog.askopenfilename()
+        self.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
         # * ตัดเอาเฉพาะ ชื่อไฟล์
-        self.display_location_result.config(
-            text=f"{self.table_location.split('/')[-1]}")
+        self.display_location_result.config(text=f"{self.table_location.split('/')[-1]}")
         
         # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
@@ -1799,6 +1836,7 @@ class MyApp:
                 self.update_log(
                     "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
                 self.reset_all_display()
+                logger.info(f"Order: {self.search_query} Not found in the shopee's Export File")
 
         else:
             self.reset_all_display()
@@ -2075,7 +2113,7 @@ class DataSourceSelector:
     def select_excel(self):
         self.app.result = "Excel"
         print("Select Excel")
-        self.app.table_location = filedialog.askopenfilename()
+        self.app.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
         self.app.display_location_result.config(
             text=f"{self.app.table_location.split('/')[-1]}")
         # target should come before get dataframe
@@ -2286,7 +2324,7 @@ class UserAccount:
                 if self.app.accel_mode_checkbox.winfo_ismapped():
                     pass
                 else:
-                    self.app.accel_mode_checkbox.grid(row=0, column=7, padx=5)
+                    self.app.accel_mode_checkbox.grid(row=0, column=8, padx=5)
             else:
                 print("Normal mode", self.app.user_id.get()
                       in self.app.dev_account)
@@ -2521,9 +2559,8 @@ class Bot_POS:
                     logger.info(f"Order: {self.app.search_query} Start!!")
                     try:
                         self.operation_start()
-                        # logger.info(f"Order: {self.app.search_query} Stop!!")
                     except EXCEPTION as err:
-                        logger.info(f"Order: {self.app.search_query} Error!! {err}")
+                        logger.info(f"Order: {self.app.search_query} outer_Exception_Error!! {err}")
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
                     self.app.search_complete.set()
@@ -2532,7 +2569,7 @@ class Bot_POS:
             traceback_str = traceback.format_exc()
             print(f"An error occirred: {e}")
             print(traceback_str)
-            logger.info(f"Order: {self.app.search_query} get_tabs_Exception_Error!! {err}")
+            logger.info(f"Order: {self.app.search_query} get_tabs_outer_Exception_Error!! {err}")
         
         
 
@@ -4578,7 +4615,9 @@ if __name__ == "__main__":
 # ? 91 Fixed 0.394 // ปรับลูกค้าที่มีบันทึกให้อ่านค่าจากบันทึกได้ แต่อาจจะต้องมีทำต่อ เพราะใช้ได้แค่กรณีไม่ได้ขอใบกำกับ ตรงนี้ไม่มีระบบรองรับ ทำให้ input Dynamic มาก
 # * 92 Fixed 0.394 //  อ่านได้ละ //ตัวอ่าน PDF ยังแยก serial ได้ไม่ดี
 # * 93 Fixed 0.394 // แก้ การดึงค่า สถานะ จาก UI ใหม่ Shopee กรณี ส่งสำเร็จ, ยกเลิก, ส่งแล้ว
-# ? 94 Fixed 0.394 // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเมสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
+# * 94 Fixed 0.394 // น่าจะได้มั้งไม่มี FeedBack // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเทสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
+# * 95 Fixed 0.395 // แก้ให้เลือกได้แล้ว // มีโอกาสที่จะเลือกประเภทลูกค้าไม่ได้
+# * 96 Added 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
