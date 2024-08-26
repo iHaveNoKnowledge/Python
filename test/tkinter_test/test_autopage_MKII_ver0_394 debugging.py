@@ -76,6 +76,7 @@ class MyApp:
     def __init__(self, root):
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
+        self.is_bot_running = BooleanVar(value=False)
         # self.validate_input_variable = self.root.register(self.validate_input)
         self.user_id = StringVar(value="")
         self.user_pw = StringVar(value="")
@@ -84,8 +85,7 @@ class MyApp:
         self.is_accel_mode_activated = BooleanVar(value=False)
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
-        self.bg_by_market_place = {
-            'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
+        self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
@@ -328,7 +328,10 @@ class MyApp:
             self.entry_frame,
             font=self.font,
             text="Start",
-            fg_color="#273245",
+            fg_color="#f5a91d",
+            text_color="#1E1E1E",
+            border_width=1.5,
+            border_color="#7d4b19",
             command=self.search_order,
             width=10,
             height=25
@@ -356,8 +359,10 @@ class MyApp:
             text=f"Start",
             # image=self.start_photo,
             command=self.accel_search,
-            fg_color="#273245",
-            text_color="#8ae067",
+            fg_color="#81ed55",
+            text_color="#1E1E1E",
+            border_color="#2d8a37",
+            border_width=1.5,
             width=30,
             height=25
         )
@@ -367,9 +372,11 @@ class MyApp:
             self.entry_frame,
             font=self.font,
             text=f"Stop",
-            # command=self.accel_stop_search,
-            fg_color="#cad3de",
-            text_color="red",
+            command=self.stop_operation,
+            fg_color="#bf2d2a",
+            text_color="#ffffff",
+            border_width=1.5,
+            border_color="#732844",
             width=28,
             height=25
         )
@@ -1207,44 +1214,40 @@ class MyApp:
         return cleaned_address
 
     def clean_address(self, address):
-
-        keywords = ["เขต", "แขวง", "ต.", "ตำบล",
-                    "อ.", "อำเภอ", "จ.", "จังหวัด"]
-
+        keywords = ["เขต", "แขวง", "ต.", "ตำบล", "อ.", "อำเภอ", "จ.", "จังหวัด"]
+        
         # ตรวจสอบว่าสตริงมีคำ "จังหวัด" และ ("เขต" หรือ "แขวง") หรือไม่
         if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
             # ลบคำ "จังหวัด" ออกจากสตริง
             address = address.replace("จังหวัด", "")
-
+            
         if "\n" in address:
             address = address.replace('\n', " ")
-
+            
         # เริ่มต้นโดยการแยกคำด้วยช่องว่าง
         parts = address.split()
-
+        
         # สร้าง list เพื่อเก็บคำที่ไม่ใช่คำย่อ
         cleaned_parts = []
-
+        
         for part in parts:
             # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword)
-                                  for keyword in ["ต.", "อ.", "จ."])
-
+            is_abbreviation = any(part.startswith(keyword) for keyword in ["ต.", "อ.", "จ."])
             if not is_abbreviation:
                 cleaned_parts.append(part)
-
+                
         # นำคำที่ไม่ใช่คำย่อมาเชื่อมกลับเป็นสตริงใหม่
         cleaned_address = ' '.join(cleaned_parts)
-
+        
         # ลบคำที่มีส่วนที่เหมือนกันออก
         cleaned_address = self.clean_duplicate_parts(cleaned_address)
-
+        
         # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
         cleaned_address = cleaned_address.replace("  ", " ")
-
+        
         return cleaned_address
 
-    # todo WIP
+    # ? WIP note_extractor ยังไม่ค่อยสมบูรณ์ เพราะ case ตัวอย่างมันนานๆเจอที
     def note_extractor(self):
         if self.order_note != 'nan':
             try:
@@ -1411,10 +1414,8 @@ class MyApp:
                 re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
 
             # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
-            self.cus_name.set(
-                self.tax_name_standardizer(self.cus_name.get()))
-            print("name.get()หลังจากทำการ standarrdizer",
-                  self.cus_name.get())
+            self.cus_name.set(self.tax_name_standardizer(self.cus_name.get()))
+            print("name.get()หลังจากทำการ standarrdizer", self.cus_name.get())
         else:
             print("Customer Name is empty")
 
@@ -1423,11 +1424,34 @@ class MyApp:
         self.on_complete = on_complete
         self.order = order.strip()
         self.cus_order.set(self.order)
-        differential_col_data = [
-            'เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
-        non_differential_col_data = ['หมายเลขคำสั่งซื้อ', 'สถานะการสั่งซื้อ', 'โค้ดส่วนลดชำระโดยผู้ขาย', 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  'ประเภทใบกำกับภาษี', 'ชื่อ',
-                                     'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'แขวง/ตำบล', 'เขต/อำเภอ.1', 'จังหวัด.1', 'รหัสไปรษณีย์.1', 'หมายเลขประจำตัวผู้เสียภาษี', 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 'อีเมลสำหรับรับใบกำกับภาษี', 'ชื่อผู้ใช้ (ผู้ซื้อ)', 'จำนวนเงินทั้งหมด', 'วันที่ทำการสั่งซื้อ', 'โค้ดส่วนลดชำระโดย Shopee', 'รายละเอียดที่อยู่', 'ประเภทสาขา',
-                                     'รหัสประจำสาขา', 'หมายเหตุจากผู้ซื้อ', 'บันทึก', 'ชื่อผู้รับ', 'หมายเลขโทรศัพท์']
+        differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
+        non_differential_col_data = [
+            'หมายเลขคำสั่งซื้อ', 
+            'สถานะการสั่งซื้อ', 
+            'โค้ดส่วนลดชำระโดยผู้ขาย', 
+            'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  
+            'ประเภทใบกำกับภาษี', 
+            'ชื่อ',
+            'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 
+            'แขวง/ตำบล', 
+            'เขต/อำเภอ.1', 
+            'จังหวัด.1', 
+            'รหัสไปรษณีย์.1', 
+            'หมายเลขประจำตัวผู้เสียภาษี', 
+            'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 
+            'อีเมลสำหรับรับใบกำกับภาษี', 
+            'ชื่อผู้ใช้ (ผู้ซื้อ)', 
+            'จำนวนเงินทั้งหมด', 
+            'วันที่ทำการสั่งซื้อ', 
+            'โค้ดส่วนลดชำระโดย Shopee', 
+            'รายละเอียดที่อยู่', 
+            'ประเภทสาขา',
+            'รหัสประจำสาขา', 
+            'หมายเหตุจากผู้ซื้อ', 
+            'บันทึก', 
+            'ชื่อผู้รับ', 
+            'หมายเลขโทรศัพท์'
+        ]
 
         if self.order != "":
             print("self.order err?: ", self.order, type(self.order))
@@ -1923,11 +1947,12 @@ class MyApp:
             self.display_bot_status_label.config(
                 text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
-    def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
+    def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None): 
+        print(self.is_bot_running.get())
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
-        if shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive():
+        if  (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
-            self.root.after(100, lambda: self.check_threads(
+            self.root.after(1000, lambda: self.check_threads(
                 shorter_thread_cycle, longer_thread_cycle, callback))
             
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
@@ -1950,6 +1975,7 @@ class MyApp:
                 callback()
 
     def search_order(self, accel_order=None, callback=None):
+        self.is_bot_running.set(True)
         self.autofinal = False
         # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
@@ -2002,13 +2028,17 @@ class MyApp:
                 if self.is_accel_mode_activated.get():
                     self.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
-                    raise ValueError("Accel mode has destroyed")
+                    raise ValueError("Accel mode has been destroyed")
             else:
                 pass
 
         # * search รอบแรกใช้ตรงนี้
         self.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
+    def stop_operation(self):
+        # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
+        self.is_bot_running.set(False)
+        
     def convert_text(self, text):
         result = []
         text = text.replace(" ", "")
