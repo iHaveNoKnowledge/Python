@@ -3,8 +3,8 @@ import os
 import glob
 import winreg
 import psutil
-from tenacity import retry, stop_after_attempt, wait_fixed
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 
 class CustomChrome:
@@ -13,6 +13,7 @@ class CustomChrome:
         self.chrome_exe = self.find_chrome_exe_by_winreg()
         if not self.is_chrome_running():
             self.open_custom_browser()
+        # raise RuntimeError("Stop class execution")
 
     def is_chrome_running(self):
         for proc in psutil.process_iter(['pid', 'name']):
@@ -20,16 +21,19 @@ class CustomChrome:
                 if self.is_chrome_debugging():
                     print(f"chrome.exe debugging port {self.port} is running")
                     return True
-        print("chrome.exe debugging port {self.port} is not running")
+        print(f"chrome.exe debugging port {self.port} is not running")
         return False
 
-    @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
     def is_chrome_debugging(self):
+        self.s = requests.Session()
+        self.retries = Retry(total=2, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+
+        self.s.mount(f'http://', HTTPAdapter(max_retries=self.retries))
         try:
-            response = requests.get(f'http://localhost:{self.port}', timeout=2)
-            return response.status_code == 200
-        except requests.ConnectionError:
-            print(requests.ConnectionError)
+            with self.s.get(f'http://localhost:{self.port}', timeout=1) as response:
+                return response.status_code == 200
+        except requests.exceptions.RequestException as err:
+            print("request: ", err)
             return False
 
     def open_custom_browser(self):
