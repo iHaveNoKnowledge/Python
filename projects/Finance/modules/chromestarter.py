@@ -2,12 +2,35 @@ import subprocess
 import os
 import glob
 import winreg
+import psutil
+from tenacity import retry, stop_after_attempt, wait_fixed
+import requests
 
 
 class CustomChrome:
     def __init__(self, port: int = None):
         self.port = port
-        self.chrome_exe = self.find_chrome_exe_winreg()
+        self.chrome_exe = self.find_chrome_exe_by_winreg()
+        if not self.is_chrome_running():
+            self.open_custom_browser()
+
+    def is_chrome_running(self):
+        for proc in psutil.process_iter(['pid', 'name']):
+            if proc.info['name'] == 'chrome.exe':
+                if self.is_chrome_debugging():
+                    print(f"chrome.exe debugging port {self.port} is running")
+                    return True
+        print("chrome.exe debugging port {self.port} is not running")
+        return False
+
+    @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+    def is_chrome_debugging(self):
+        try:
+            response = requests.get(f'http://localhost:{self.port}', timeout=2)
+            return response.status_code == 200
+        except requests.ConnectionError:
+            print(requests.ConnectionError)
+            return False
 
     def open_custom_browser(self):
         try:
@@ -38,7 +61,7 @@ class CustomChrome:
             if "chrome.exe" in files:
                 return os.path.join(root, "chrome.exe")
 
-    def find_chrome_exe_winreg(self):
+    def find_chrome_exe_by_winreg(self):
         try:
             with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe") as key:
                 print("key", key)  # * เก็บ key มา
@@ -58,9 +81,3 @@ class CustomChrome:
 
 
 custom_chrome = CustomChrome(8989)
-chrome_path = custom_chrome.find_chrome_exe_winreg()
-
-if chrome_path:
-    print(f"Found chrome.exe at: {chrome_path}")
-else:
-    print(f"chrome.exe not found.")
