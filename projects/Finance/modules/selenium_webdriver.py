@@ -5,6 +5,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
 from webdriver_auto_update.webdriver_manager import WebDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
 
 import sys
 import os
@@ -29,13 +30,21 @@ logger.addHandler(handler)
 
 
 class ChromeDriver:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         try:
-            self.setup_chrome()
-        except:
+            pass
+            # self.update_bot_status = kwargs['update_bot_stat_fn']
+            # self.app = kwargs['app']
+            
+        except Exception as e:
+            tb_str = traceback.print_exc()
             print('Classs ChromeDriver has stopped working')
-            return
+            raise ValueError('Traceback: ', tb_str)
+        
+        self.setup_chrome()
+        self.wait1 = WebDriverWait(self.driver, 50)
         self.get_tabs()
+
 
     def setup_chrome(self):
         print("setup_chrome")
@@ -48,23 +57,8 @@ class ChromeDriver:
         self.custom_path = r'C:\\bin\\'
 
         os.environ["WDM_LOCAL"] = self.custom_path
-        # print("มีไรบ้างใน obj Options:", dir(self.opt))
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
-        # self.opt.add_argument("--disable-popup-blocking")
         self.opt.add_argument("--user-data-dir=C:/bin/chromeProfile")
-        # self.opt.add_experimental_option("prefs",{
-        #     "download.default_directory" : Download_dir,
-        #     "directory_upgrade": True
-        # })
-
-        # * Opening a Chrome in debuggermode port:8989##########################################################
-        #! ยังไม่ใช้ หาวิธี ตรวจสอบ Browser เพื่อห้ามเปิดซ้ำไม่ได้
-        # self.chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-        # print("พบไฟล์ chrome.exe ที่:", self.chrome_path)
-        # self.chrome_command = f'{self.chrome_path} --remote-debugging-port=8989 --user-data-dir="C:/bin/chromeProfile"'
-        # subprocess.Popen(self.chrome_command)
-        #! ตรวจก่อนเปิดซ้ำ WIP
-        # if 'chorme_process'
 
         try:
             print("create driver")
@@ -73,7 +67,6 @@ class ChromeDriver:
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-
             print("driver created")
         except:
             traceback_str = traceback.format_exc()

@@ -150,9 +150,7 @@ class MainApp:
     def operation_start(self):
         self.update_bot_status(True)
         print('ChromDriver is running.')
-        self.ChromDriver = ChromeDriver(app=self,
-                                        update_bot_stat_fn=self.update_bot_status
-                                        )
+        self.ChromDriver = ChromeDriver(app=self, update_bot_stat_fn=self.update_bot_status)
         #! ใช้ไม่ได้ เพราะมันยังอยู่ใน Thread
         # print(f"""Thread is alive Before join: {threading.enumerate()}""")
         # self.current_task.is_alive()
