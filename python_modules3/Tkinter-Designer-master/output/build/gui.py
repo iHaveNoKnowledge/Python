@@ -11,7 +11,12 @@ from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
 
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\BCP_27\Documents\GitHub\Python\python_modules3\Tkinter-Designer-master\output\build\assets\frame0")
+print("__file__: ", __file__)
+print("Path(__file__): ", Path(__file__))
+print("OUTPUT_PATH: ", OUTPUT_PATH)
+# ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\BCP_27\Documents\GitHub\Python\python_modules3\Tkinter-Designer-master\output\build\assets\frame0")
+ASSETS_PATH = OUTPUT_PATH / Path(r"assets\frame0") #* operator "/" ใช้ในการ เชื่อมต่อ path แค่นั้นแหละ เช่น จาก x / Path(r"assets\frame0") จะได้ "x\assets\frame0"
+print("ASSETS_PATH: ", ASSETS_PATH)
 
 
 def relative_to_assets(path: str) -> Path:
@@ -35,8 +40,7 @@ canvas = Canvas(
 )
 
 canvas.place(x = 0, y = 0)
-entry_image_1 = PhotoImage(
-    file=relative_to_assets("entry_1.png"))
+entry_image_1 = PhotoImage(file=relative_to_assets("entry_1.png"))
 entry_bg_1 = canvas.create_image(
     226.0,
     151.5,

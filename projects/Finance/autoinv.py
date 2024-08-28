@@ -5,9 +5,12 @@ import threading
 import time
 import json
 import re
+import os
 
 from modules.selenium_webdriver import ChromeDriver
 from modules.supabase_client import Supabase_client
+
+
 
 class MainApp:
     def __init__(self, root):

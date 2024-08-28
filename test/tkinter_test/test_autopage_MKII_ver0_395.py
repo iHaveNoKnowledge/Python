@@ -397,7 +397,7 @@ class MyApp:
 
         # * Accel mode
         # * > Checkbox for activation toggle
-        self.accel_mode_checkbox = Checkbutton(self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
+        self.accel_mode_checkbox = Checkbutton(self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)ยพรื
 
         # for method
         # if self.user_id in self.dev_account and self.is_accel_mode.get():
