@@ -173,7 +173,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.394")
+        self.root.title("Autosamatic ver0.395")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -391,16 +391,13 @@ class MyApp:
 
         # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
-        self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
-        ) and self.user_pw.get() else "Login"
-        self.display_acc_btn = Button(
-            self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
+        self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get() and self.user_pw.get() else "Login"
+        self.display_acc_btn = Button(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
         self.display_acc_btn.grid(row=0, column=7, padx=5)
 
         # * Accel mode
         # * > Checkbox for activation toggle
-        self.accel_mode_checkbox = Checkbutton(
-            self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
+        self.accel_mode_checkbox = Checkbutton(self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
 
         # for method
         # if self.user_id in self.dev_account and self.is_accel_mode.get():
@@ -1911,7 +1908,7 @@ class MyApp:
             self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None): 
-        print(self.is_bot_running.get())
+        # print(self.is_bot_running.get())
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if  (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
@@ -2199,8 +2196,8 @@ class UserAccount:
         self.subwindow.resizable(False, False)
 
         # * Event Enter
-        self.subwindow.bind(
-            "<Return>", lambda event=None: self.submit_btn.invoke())
+        self.subwindow.bind("<Return>", lambda event=None: self.submit_btn.invoke())
+        self.subwindow.bind("<Key>", _onKeyRelease)
 
         # * สร้างเฟรม
         self.subwin_frame = Frame(self.subwindow)
@@ -2231,8 +2228,7 @@ class UserAccount:
         self.chk_bx_show_pw.pack()
 
         # * Submit Button
-        self.submit_btn = Button(
-            self.subwin_frame, text="Submit", command=self.update_btn)
+        self.submit_btn = Button(self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
@@ -2795,7 +2791,9 @@ class Bot_POS:
                     self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
-                        (By.XPATH, '  /html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input')))
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input')
+                    ))
 
                     self.search_elmt.clear()
                     self.search_elmt.send_keys(self.app.cus_order.get())
@@ -2803,7 +2801,9 @@ class Bot_POS:
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]')
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00 PM
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]'
+                    )
 
                     self.searchBtn.click()
                 except:
@@ -2813,26 +2813,28 @@ class Bot_POS:
                 time.sleep(0.75)
                 try:
                     print("Found element classed big-text")
-                    self.driver.find_element(
-                        By.CLASS_NAME, 'big-text').is_displayed()
+                    self.driver.find_element(By.CLASS_NAME, 'big-text').is_displayed()
                 except:
                     print(
                         "Not found element classed big-text, try to wait and click element with XPATH")
                     self.wait1.until(EC.element_to_be_clickable(
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div')))
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div') พัง 28/08/2024 12:00 PM
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
+                        
+                    ))
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
                     # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-                    self.app.cus_cur_status.set(self.driver.find_element(
-                        By.CLASS_NAME, 'big-text').text)
+                    self.app.cus_cur_status.set(self.driver.find_element(By.CLASS_NAME, 'big-text').text)
 
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text)
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) พัง 28/08/2024 12:00 PM
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text)
 
                 # * จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
@@ -2857,7 +2859,7 @@ class Bot_POS:
                     print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
                     print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
-            #### IF MARKETPLACE IS LAZADA ###########################################################################################################################
+            ####* IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
                 self.driver.switch_to.window(
                     self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
@@ -3377,8 +3379,7 @@ class Bot_POS:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
                             print("แสดงผล obj err แค่ส่วนเดียว", err.alert_text)
-                            PopUp("SNซ้ำ", f'{err.alert_text}',
-                                  self.parent, "alert")
+                            PopUp("SNซ้ำ", f'{err.alert_text}', self.parent, "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
@@ -3424,12 +3425,10 @@ class Bot_POS:
                                 # เลือกประเภทชำระเงิน
                                 if self.app.marketplace_target.get() == 'SHOPEE':
                                     # เลือก shopee
-                                    self.driver.find_element(
-                                        By.XPATH, "//a[contains(.,'SHOPEE')]").click()
+                                    self.driver.find_element(By.XPATH, "//a[contains(.,'SHOPEE')]").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
-                                    self.driver.find_element(
-                                        By.XPATH, "//a[contains(., 'LAZ')]").click()
+                                    self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
 
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
@@ -3458,19 +3457,19 @@ class Bot_POS:
                                 print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
                                 break
 
-                            try:
-                                print("ใส่ราคาอตัโนมัติ")
-                                print((self.app.sum_price + self.app.cus_ship_cost.get()
-                                       ) - self.app.cus_seller_voucher.get())
-                                final_price = (
-                                    self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
-                                if self.app.user_id.get() in self.app.dev_account:
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
-                            except Exception as e:
-                                print("auto_final_price broken", e)
+                            if self.app.user_id.get() in self.app.dev_account:
+                                try:
+                                    print("ใส่ราคาอตัโนมัติ")
+                                    print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
+                                    final_price = (
+                                        self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                    if self.app.user_id.get() in self.app.dev_account:
+                                        self.driver.find_element(
+                                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
+                                        self.driver.find_element(
+                                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                                except Exception as e:
+                                    print("auto_final_price broken", e)
 
                             # * ค้นหา element โดยใช้ XPath
                             self.is_input_on = self.driver.find_element(
@@ -4393,8 +4392,7 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                PopUp(
-                    "Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
+                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
@@ -4475,7 +4473,7 @@ if __name__ == "__main__":
             
     # * เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
     def _onKeyRelease(event):
-        # print("press :", event.keysym)
+        print("press :", event.keysym)
         ctrl = (event.state & 0x4) != 0
         if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
             event.widget.event_generate("<<Cut>>")
@@ -4610,6 +4608,7 @@ if __name__ == "__main__":
 # * 94 Fixed 0.394 // น่าจะได้มั้งไม่มี FeedBack // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเทสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
 # * 95 Fixed 0.395 // แก้ให้เลือกได้แล้ว // มีโอกาสที่จะเลือกประเภทลูกค้าไม่ได้
 # * 96 Added 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
+# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
