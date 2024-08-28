@@ -26,12 +26,24 @@ class CustomChrome:
 
     def is_chrome_debugging(self):
         self.s = requests.Session()
-        self.retries = Retry(total=2, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+        self.retries = Retry(
+            total=0,
+            backoff_factor=0,
+            status_forcelist=[500, 502, 503, 504],
+            connect=0,
+            read=0,
+            redirect=0,
+            status=0,
+            raise_on_status=False,
+        )
+        self.adapter = HTTPAdapter(max_retries=self.retries)
+        self.s.mount(f'http://', self.adapter)
+        self.s.mount(f'https://', self.adapter)
 
-        self.s.mount(f'http://', HTTPAdapter(max_retries=self.retries))
         try:
-            with self.s.get(f'http://localhost:{self.port}', timeout=1) as response:
-                return response.status_code == 200
+            self.response = self.s.get(f'http://localhost:{self.port}', timeout=0.125, allow_redirects=False )
+            self.response.raise_for_status()
+            return self.response.status_code == 200
         except requests.exceptions.RequestException as err:
             print("request: ", err)
             return False
@@ -40,7 +52,7 @@ class CustomChrome:
         try:
             subprocess.run([
                 f"{self.chrome_exe}",
-                "--user-data-dir=C:/chromeprofile",
+                "--user-data-dir=C:/bin/chromeProfile",
                 f"--remote-debugging-port={self.port}"
             ])
         except ValueError as err:
@@ -80,7 +92,6 @@ class CustomChrome:
             return chrome_path
         else:
             self.find_chrome_exe_all_path()
-
             return None
 
 
