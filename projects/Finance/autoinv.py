@@ -61,7 +61,7 @@ class MainApp:
             image=self.add_file_img,
             borderwidth=0,
             highlightthickness=0,
-            command=lambda: self.add_data(),
+            command=lambda: self.receive_dir(),
             relief="flat",
         )
         self.add_file_btn.place(
@@ -103,7 +103,7 @@ class MainApp:
             highlightthickness=0,
             textvariable=self.import_file_name,
             state='readonly',
-            
+
         )
         self.import_file_name_entry.place(
             x=39.0,
@@ -116,7 +116,7 @@ class MainApp:
             31.0,
             117.0,
             anchor="nw",
-            text="Added File Directory",
+            text="Added File Name",
             fill="#000000",
             font=("RobotoRoman Light", 15 * -1)
         )
@@ -139,13 +139,22 @@ class MainApp:
             font=("RobotoRoman Light", 15 * -1)
         )
 
-    def add_data(self):
+    def receive_dir(self):
         print("askopenfile")
         self.import_dir = filedialog.askopenfilename(title="Select Excel File Data")
         if self.import_dir:
             self.import_file_name.set(self.import_dir.split('/')[-1])
+            self.read_data_from_file_dir(self.import_dir)
         else:
             self.import_file_name.set("ไม่มีการเลือกไฟล์")
+
+    def read_data_from_file_dir(self, dir):
+        self.dir = dir
+        self.target_col = "INVOICE_NO"
+        self.df = pandas.read_excel(self.dir, dtype=str, na_filter=True)
+        self.invs_list: list = self.df[self.target_col].tolist()
+        self.invs_list_state = self.invs_list.copy()
+        print(f"Data imported: {self.invs_list}")
 
     def start_task(self):
         print("start task")
