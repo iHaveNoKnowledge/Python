@@ -97,7 +97,8 @@ class MainApp:
 
         self.import_file_name_entry = tk.Entry(
             bd=0,
-            bg="#D9D9D9",
+            # bg="#D9D9D9",
+            readonlybackground="#D9D9D9",
             fg="#000716",
             highlightthickness=0,
             textvariable=self.import_file_name,
@@ -156,7 +157,7 @@ class MainApp:
             self.current_task.join()
 
 
-# * Initializer
+# * Initializer-----------------------------------------------------------------------------------------------------------
 def main():
     def on_closing():
         print('ui window is closed')
