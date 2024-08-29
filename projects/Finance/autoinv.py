@@ -24,7 +24,10 @@ def relative_to_assets(path: str) -> Path:
 class MainApp:
     def __init__(self, root):
         self.root = root
-        self.data_file_dir = tk.StringVar(value="")
+        # * variables
+        self.import_file_name = tk.StringVar(value="None")
+
+        # * main process
         self.create_main_window()
         CustomChrome(8989)
         self.chrome_driver = ChromeDriver(app=self)
@@ -41,74 +44,71 @@ class MainApp:
             highlightthickness=0,
             relief="ridge"
         )
-
         self.canvas.place(x=0, y=0)
-        self.entry_image_1 = tk.PhotoImage(file=relative_to_assets("entry_1.png"))
-        self.entry_bg_1 = self.canvas.create_image(
-            226.0,
-            151.5,
-            image=self.entry_image_1
-        )
-        self.entry_1 = tk.Entry(
-            bd=0,
-            bg="#D9D9D9",
-            fg="#000716",
-            highlightthickness=0
-        )
-        self.entry_1.place(
-            x=39.0,
-            y=136.0,
-            width=374.0,
-            height=29.0
+
+        # * Add File Component-----------------------------------------------------------------------------------------------------------
+        self.canvas.create_text(
+            31.0,
+            46.0,
+            anchor="nw",
+            text="Target File",
+            fill="#000000",
+            font=("RobotoRoman Light", 15 * -1)
         )
 
-        self.progressbar = ttk.Progressbar(orient=tk.HORIZONTAL, mode='determinate', maximum=100)
-        self.progressbar.place(x=32.0, y=210.0, width=387.0, height=20.0)
-        # self.image_image_1 = tk.PhotoImage(file=relative_to_assets("image_1.png"))
-        # self.image_1 = self.canvas.create_image(
-        #     226.0,
-        #     219.0,
-        #     image=self.image_image_1
-        # )
-
-        self.button_image_1 = tk.PhotoImage(
-            file=relative_to_assets("button_1.png"))
-        self.button_1 = tk.Button(
-            image=self.button_image_1,
+        self.add_file_img = tk.PhotoImage(file=relative_to_assets("add_file_btn.png"))
+        self.add_file_btn = tk.Button(
+            image=self.add_file_img,
             borderwidth=0,
             highlightthickness=0,
-            command=lambda: print("button_1 clicked"),
-            relief="flat"
+            command=lambda: self.add_data(),
+            relief="flat",
         )
-        self.button_1.place(
+        self.add_file_btn.place(
             x=31.0,
             y=65.0,
             width=106.0,
             height=31.0
         )
 
-        self.button_image_2 = tk.PhotoImage(file=relative_to_assets("button_2.png"))
-        self.button_2 = tk.Button(
-            image=self.button_image_2,
+        # * Start Button start component------------------------------------------------------------------------------------------------------
+        self.start_btn_img = tk.PhotoImage(file=relative_to_assets("start_btn.png"))
+        self.start_btn = tk.Button(
+            image=self.start_btn_img,
             borderwidth=0,
             highlightthickness=0,
-            command=lambda: print("button_2 clicked"),
+            command=lambda: print("start_btn clicked"),
             relief="flat"
         )
-        self.button_2.place(
+        self.start_btn.place(
             x=315.0,
             y=64.0,
             width=106.0,
             height=31.0
         )
 
-        self.canvas.create_text(
-            31.0,
-            185.0,
-            anchor="nw",
-            text="Progress",
-            fill="#000000",
-            font=("RobotoRoman Light", 15 * -1)
+        # * import file name component--------------------------------------------------------------------------------------------------
+        self.import_file_name_img = tk.PhotoImage(file=relative_to_assets("import_file_name_entry.png"))
+        self.import_file_name_img_entry_bg = self.canvas.create_image(
+            226.0,
+            151.5,
+            image=self.import_file_name_img
+        )
+
+        self.import_file_name_entry = tk.Entry(
+            bd=0,
+            bg="#D9D9D9",
+            fg="#000716",
+            highlightthickness=0,
+            textvariable=self.import_file_name,
+            state='readonly',
+            
+        )
+        self.import_file_name_entry.place(
+            x=39.0,
+            y=136.0,
+            width=374.0,
+            height=29.0
         )
 
         self.canvas.create_text(
@@ -120,14 +120,34 @@ class MainApp:
             font=("RobotoRoman Light", 15 * -1)
         )
 
+        # * Progress bar component----------------------------------------------------------------------------------------------------------------
+        self.progressbar = ttk.Progressbar(orient=tk.HORIZONTAL, mode='determinate', maximum=100)
+        self.progressbar.place(x=32.0, y=210.0, width=387.0, height=20.0)
+        # self.image_image_1 = tk.PhotoImage(file=relative_to_assets("image_1.png"))
+        # self.image_1 = self.canvas.create_image(
+        #     226.0,
+        #     219.0,
+        #     image=self.image_image_1
+        # )
         self.canvas.create_text(
             31.0,
-            46.0,
+            185.0,
             anchor="nw",
-            text="Target File",
+            text="Progress",
             fill="#000000",
             font=("RobotoRoman Light", 15 * -1)
         )
+
+    def add_data(self):
+        print("askopenfile")
+        self.import_dir = filedialog.askopenfilename(title="Select Excel File Data")
+        if self.import_dir:
+            self.import_file_name.set(self.import_dir.split('/')[-1])
+        else:
+            self.import_file_name.set("ไม่มีการเลือกไฟล์")
+
+    def start_task(self):
+        print("start task")
 
     def kill_remaining_threads(self):
         return
@@ -135,9 +155,8 @@ class MainApp:
             self.stop_event.set()
             self.current_task.join()
 
+
 # * Initializer
-
-
 def main():
     def on_closing():
         print('ui window is closed')

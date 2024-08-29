@@ -47,10 +47,10 @@ class CustomChrome:
         except requests.exceptions.RequestException as err:
             print("request: ", err)
             return False
-
+        
     def open_custom_browser(self):
         try:
-            subprocess.run([
+            subprocess.Popen([
                 f"{self.chrome_exe}",
                 "--user-data-dir=C:/bin/chromeProfile",
                 f"--remote-debugging-port={self.port}"

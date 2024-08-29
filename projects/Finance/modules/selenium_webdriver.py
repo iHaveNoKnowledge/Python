@@ -27,8 +27,6 @@ logger = logging.getLogger()
 logger.addHandler(handler)
 
 # * MainClass
-
-
 class ChromeDriver:
     def __init__(self, *args, **kwargs):
         try:
