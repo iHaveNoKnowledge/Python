@@ -22,7 +22,10 @@ ASSETS_PATH = OUTPUT_PATH / Path(r"assets\frame0")
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
-logger.add("autoinv_log.log", format="{time} {level} {message}", level="INFO")
+
+logger.add("autoinv_log.log", format="{time} {level} {message}", level="INFO", rotation="1 day", retention="7 days")
+
+
 class MainApp:
     def __init__(self, root):
         self.root = root
@@ -144,9 +147,11 @@ class MainApp:
     def receive_dir(self):
         print("askopenfile")
         self.import_dir = filedialog.askopenfilename(title="Select Excel File Data")
+
         if self.import_dir:
             self.import_file_name.set(self.import_dir.split('/')[-1])
             self.read_data_from_file_dir(self.import_dir)
+            logger.info(f"รับไฟล์: {self.import_dir}")
         else:
             self.import_file_name.set("ไม่มีการเลือกไฟล์")
 
