@@ -9,6 +9,8 @@ import json
 import re
 import os
 import pandas
+import time
+import queue
 
 from modules.selenium_webdriver import ChromeDriver
 from modules.chrome_starter import CustomChrome
@@ -38,12 +40,12 @@ class MainApp:
         self.chrome_driver = ChromeDriver(app=self)
 
     def create_main_window(self):
-        self.root.geometry("452x281")
+        self.root.geometry("452x481")
         self.root.configure(bg="#FFFFFF")
         self.canvas = tk.Canvas(
             self.root,
             bg="#FFFFFF",
-            height=281,
+            height=481,
             width=452,
             bd=0,
             highlightthickness=0,
@@ -93,11 +95,13 @@ class MainApp:
         )
 
         # * import file name component--------------------------------------------------------------------------------------------------
-        self.import_file_name_img = tk.PhotoImage(file=relative_to_assets("import_file_name_entry.png"))
-        self.import_file_name_img_entry_bg = self.canvas.create_image(
-            226.0,
-            151.5,
-            image=self.import_file_name_img
+        self.canvas.create_text(
+            31.0,
+            117.0,
+            anchor="nw",
+            text="Added File Name",
+            fill="#000000",
+            font=("RobotoRoman Light", 15 * -1)
         )
 
         self.import_file_name_entry = tk.Entry(
@@ -108,7 +112,6 @@ class MainApp:
             highlightthickness=0,
             textvariable=self.import_file_name,
             state='readonly',
-
         )
         self.import_file_name_entry.place(
             x=39.0,
@@ -117,13 +120,11 @@ class MainApp:
             height=29.0
         )
 
-        self.canvas.create_text(
-            31.0,
-            117.0,
-            anchor="nw",
-            text="Added File Name",
-            fill="#000000",
-            font=("RobotoRoman Light", 15 * -1)
+        self.import_file_name_img = tk.PhotoImage(file=relative_to_assets("import_file_name_entry.png"))
+        self.import_file_name_img_entry_bg = self.canvas.create_image(
+            226.0,
+            151.5,
+            image=self.import_file_name_img
         )
 
         # * Progress bar component----------------------------------------------------------------------------------------------------------------
@@ -135,6 +136,7 @@ class MainApp:
         #     219.0,
         #     image=self.image_image_1
         # )
+
         self.canvas.create_text(
             31.0,
             185.0,
@@ -144,24 +146,66 @@ class MainApp:
             font=("RobotoRoman Light", 15 * -1)
         )
 
-    def receive_dir(self):
-        print("askopenfile")
-        self.import_dir = filedialog.askopenfilename(title="Select Excel File Data")
+        # * log widget ----------------------------------------------------------------------------------------------------------------------------------
+        self.log_textbox = CTkTextbox(
+            self.canvas,
+            width=387,
+            # bg="#D9D9D9",
+            state='disabled',
+        )
+        self.log_textbox.place(x=32.0, y=260.0)
 
+    def update_log(self, text, log_widget=None):
+        self.text = text
+        self.widget = log_widget
+        self.widget.delete("1.0", "end")
+        if log_widget:
+            self.widget.configure(state="normal")
+            self.widget.insert("end", f"{self.text}\n")
+            self.widget.yview_moveto(1.0)
+            self.widget.configure(state="disabled")
+        else:
+            self.widget.insert("end", f"None\n")
+
+    def receive_dir(self):
+        self.import_dir = filedialog.askopenfilename(title="Select Excel File Data")
         if self.import_dir:
             self.import_file_name.set(self.import_dir.split('/')[-1])
-            self.read_data_from_file_dir(self.import_dir)
-            logger.info(f"รับไฟล์: {self.import_dir}")
+            self.log_queue = queue.Queue()
+            self.read_data_thread = threading.Thread(
+                target=lambda: self.read_data_from_file_dir(self.import_dir, self.log_queue), daemon=True)
+            self.read_data_thread.start()
+
+            self.root.after(100, self.process_log_queue)  # Schedule UI updates
         else:
             self.import_file_name.set("ไม่มีการเลือกไฟล์")
 
-    def read_data_from_file_dir(self, dir):
-        self.dir = dir
-        self.target_col = "INVOICE_NO"
-        self.df = pandas.read_excel(self.dir, dtype=str, na_filter=True)
-        self.invs_list: list = self.df[self.target_col].tolist()
-        self.invs_list_state = self.invs_list.copy()
-        print(f"Data imported: {self.invs_list}")
+    def process_log_queue(self):
+        try:
+            while True:
+                log_message = self.log_queue.get_nowait()
+                self.update_log(log_message, self.log_textbox)
+        except queue.Empty:
+            pass
+
+        if self.read_data_thread.is_alive():
+            self.root.after(100, self.process_log_queue)  # Continue checking the queue
+
+    def read_data_from_file_dir(self, dir, log_queue):
+        self.target_col = "invoice_no"
+        try:
+            self.df = pandas.read_excel(dir, dtype=str, na_filter=True)
+            self.df.columns = self.df.columns.str.lower()
+            self.invs_list = self.df[self.target_col].tolist()
+            self.invs_list_state = self.invs_list.copy()
+            log_queue.put(f"Data Imported: ")
+            for inv in self.invs_list_state:
+                log_queue.put(f"{inv}")
+        except Exception as err:
+            print(Exception)
+            print(err)
+            logger.error(err)
+            log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
 
     def start_task(self):
         print("start task")
