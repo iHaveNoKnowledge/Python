@@ -13,6 +13,8 @@ import pandas
 from modules.selenium_webdriver import ChromeDriver
 from modules.chrome_starter import CustomChrome
 
+from loguru import logger
+
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"assets\frame0")
 
@@ -20,7 +22,7 @@ ASSETS_PATH = OUTPUT_PATH / Path(r"assets\frame0")
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
-
+logger.add("autoinv_log.log", format="{time} {level} {message}", level="INFO")
 class MainApp:
     def __init__(self, root):
         self.root = root
