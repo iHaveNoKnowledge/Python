@@ -648,7 +648,7 @@ class MyApp:
 
     # * update accel file ******************************************************************
     #* เมื่อมีการใช้ SN ภายใน Accel file 
-    def deduct_accel_file_data(self, order, sku_serials=[]):
+    def deduct_accel_file_data(self, order, sku_serials_used=[]):
         order = order.get()
         df = self.accel_df_state
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
@@ -659,9 +659,9 @@ class MyApp:
         if not has_order.empty:
             df.loc[df['orders'] == order, 'orders'] = ''
 
-        print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
-        if sku_serials:
-            for sn in sku_serials:
+        print("sku_serials_used ไม่ได้ได้ไง: ", sku_serials_used)
+        if sku_serials_used:
+            for sn in sku_serials_used:
                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
 

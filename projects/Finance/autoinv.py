@@ -220,12 +220,32 @@ class MainApp:
             logger.error(err)
             log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
 
+    #! wip กำลังทำตัวตัด เลข bil เนื่องจาก ถ้าหากเกิดข้อผิดพลาด มันจะได้รันต่อได้ อาจจะต้องทำ ไฟล์สำหรับเก็บ state แยกออกมา เมื่อรับไฟล์เข้ามาให้เอา data ไปลง อีกไฟล์ แล้วเอาไฟล์ใหม่เป็น state
+    def deduct_accel_file_data(self, order, to_deduct_inv=[]):
+        order = order.get()
+        df = self.invs_list_state
+        print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
+        print("deduct_accel_file_data order: ", order)
+        print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
+        # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
+        has_order = df.loc[df['orders'] == order, 'orders']
+        if not has_order.empty:
+            df.loc[df['orders'] == order, 'orders'] = ''
+
+        print("to_deduct_inv ไม่ได้ได้ไง: ", to_deduct_inv)
+        if to_deduct_inv:
+            for sn in to_deduct_inv:
+                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
+        df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+
     def start_task(self):
-        # self.stop_event.set()
+
+        # self.stop_event.clear()
         if not self.stop_event.is_set():
+            self.stop_event.set()
             print("start task")
             self.reprint_thread = threading.Thread(
-                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state),
+                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state, self.stop_event),
                 daemon=True
             )
             self.reprint_thread.start()
