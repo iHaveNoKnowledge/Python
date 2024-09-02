@@ -27,22 +27,23 @@ logger = logging.getLogger()
 logger.addHandler(handler)
 
 # * MainClass
+
+
 class ChromeDriver:
     def __init__(self, *args, **kwargs):
         try:
             pass
             # self.update_bot_status = kwargs['update_bot_stat_fn']
             # self.app = kwargs['app']
-            
+
         except Exception as e:
             tb_str = traceback.print_exc()
             print('Classs ChromeDriver has stopped working')
             raise ValueError('Traceback: ', tb_str)
-        
+
         self.setup_chrome()
         self.wait1 = WebDriverWait(self.driver, 50)
         self.get_tabs()
-
 
     def setup_chrome(self):
         print("setup_chrome")
@@ -236,6 +237,71 @@ class ChromeDriver:
             print(error_message)
             return error_message
 
+    def inv_reprint(self, inv_numbers):
+        try:
+            # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
+            prev_window = self.driver.current_window_handle
+            # * สลับหน้าไป reprint
+            self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
+            print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
+            
+        except:
+            # * สลับไม่ได้เปิด reprint ใหม่
+            print("ไม่มีหน้าให้สลับ เปิดใหม่")
+            self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
+            all_window_handles = self.driver.window_handles
+            latest_window_handle = all_window_handles[-1]
+            self.driver.switch_to.window(latest_window_handle)
+            print("ไม่มีเปิดใหม่")
+            
+        # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
+        for idx, inv_number  in enumerate(inv_numbers):
+            try:
+                print("Start reprint")
+                time.sleep(0.75)
+                try:
+                    print("find outer span")
+                    self.driver.find_element(By.XPATH, "/html/body/span/span")
+                    print("found outer span")
+                except:
+                    print("no outer span, click to call li")
+                    # * > เปิด dropdownก่อน ไม่งั้นใช้ input ไม่ได้
+                    self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').click()
+                    print("li span displayed")
+                print("inv input operating")
+                self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
+                self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
+                print("inv input operation done")
+                print("reason input operating")
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Re")
+                print("reason input operation done")
+                while True:
+                    if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
+                        print("li display 'Searching...' ")
+                        time.sleep(1)
+                        continue
+                    time.sleep(0.75)
+                    print("li found display some inv")
+                    if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
+                        print(f"{self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
+                        print("found correct inv")
+                        self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+                        break
+                    else:
+                        print(f"{self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
+                        print("found incorrect inv")
+                        continue
+                    
+            except Exception as err:
+                print("reprint พัง: ", err)
+                
+        # # * กลับหน้าเดิม
+        # self.driver.switch_to.window(prev_window)
+
     def create_sn_fill_sequence(self, kit_sku):
         # test case ที่ดีต้องดูหลายๆค่า เพราะแต่ละ sku มีลำดับไม่เหมือนกันฉะนั้นต้องลองเทสสองเคสนี้ KCU2-000781, KCU2-000777
         # * Argument ต้องรับ
@@ -283,5 +349,3 @@ class ChromeDriver:
 
         print("gotcha: ", self.sku_type_list)
         return self.sku_type_list
-
-

@@ -1325,3 +1325,12 @@ Stacktrace:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'ChromeDriver' object has no attribute 'is_add_form_displayed'
 
+2024-09-02 22:06:53,090 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:06:57,517 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:06:58,498 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:07:00,306 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:07:01,401 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:07:02,319 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:07:03,241 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:07:07,774 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-02 22:30:19,266 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1

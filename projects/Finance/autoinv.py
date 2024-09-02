@@ -33,6 +33,7 @@ class MainApp:
         self.root = root
         # * variables
         self.import_file_name = tk.StringVar(value="None")
+        self.stop_event = threading.Event()
 
         # * main process
         self.create_main_window()
@@ -84,7 +85,7 @@ class MainApp:
             image=self.start_btn_img,
             borderwidth=0,
             highlightthickness=0,
-            command=lambda: print("start_btn clicked"),
+            command=lambda: self.start_task(),
             relief="flat"
         )
         self.start_btn.place(
@@ -158,7 +159,7 @@ class MainApp:
     def update_log(self, text, log_widget=None):
         self.text = text
         self.widget = log_widget
-        self.widget.delete("1.0", "end")
+
         if log_widget:
             self.widget.configure(state="normal")
             self.widget.insert("end", f"{self.text}\n")
@@ -167,8 +168,18 @@ class MainApp:
         else:
             self.widget.insert("end", f"None\n")
 
+    def clear_log(self, log_widget=None):
+        self.widget = log_widget
+        if log_widget:
+            self.widget.configure(state="normal")
+            self.widget.delete("1.0", "end")
+            self.widget.configure(state="disabled")
+        else:
+            self.widget.insert("end", f"None\n")
+
     def receive_dir(self):
         self.import_dir = filedialog.askopenfilename(title="Select Excel File Data")
+        self.clear_log(self.log_textbox)
         if self.import_dir:
             self.import_file_name.set(self.import_dir.split('/')[-1])
             self.log_queue = queue.Queue()
@@ -192,15 +203,17 @@ class MainApp:
             self.root.after(100, self.process_log_queue)  # Continue checking the queue
 
     def read_data_from_file_dir(self, dir, log_queue):
+        self.log_textbox.delete(0.0, 'end')
         self.target_col = "invoice_no"
         try:
-            self.df = pandas.read_excel(dir, dtype=str, na_filter=True)
+            self.df = pandas.read_excel(dir, dtype=str, na_filter=True).drop_duplicates()
             self.df.columns = self.df.columns.str.lower()
             self.invs_list = self.df[self.target_col].tolist()
             self.invs_list_state = self.invs_list.copy()
-            log_queue.put(f"Data Imported: ")
+            self.data_range = self.invs_list_state.__len__()
             for inv in self.invs_list_state:
                 log_queue.put(f"{inv}")
+            log_queue.put(f"Data Imported : {self.data_range} records")
         except Exception as err:
             print(Exception)
             print(err)
@@ -208,7 +221,17 @@ class MainApp:
             log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
 
     def start_task(self):
-        print("start task")
+        # self.stop_event.set()
+        if not self.stop_event.is_set():
+            print("start task")
+            self.reprint_thread = threading.Thread(
+                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state),
+                daemon=True
+            )
+            self.reprint_thread.start()
+        else:
+            print("stop task")
+            self.stop_event.clear()
 
     def kill_remaining_threads(self):
         return

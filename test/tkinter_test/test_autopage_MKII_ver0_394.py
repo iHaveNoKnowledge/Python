@@ -2640,8 +2640,7 @@ class Bot_POS:
         except:
             # * สลับไม่ได้เปิด reprint ใหม่
             print("ไม่มีหน้าให้สลับ เปิดใหม่")
-            self.driver.get(
-                "http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
+            self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
             all_window_handles = self.driver.window_handles
             latest_window_handle = all_window_handles[-1]
             self.driver.switch_to.window(latest_window_handle)
@@ -3073,8 +3072,7 @@ class Bot_POS:
                 self.enter_cus_name(self.cus_search_input)
                 print("กรอกชื่อเสร็จ")
                 # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
-                self.wait_condition = self.driver.find_element(
-                    By.XPATH, self.app.cusNameLi1)
+                self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
                 # * มันจะได้ Searching...
                 print("มันทำไม", self.wait_condition.text)
                 
