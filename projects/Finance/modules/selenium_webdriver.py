@@ -257,6 +257,7 @@ class ChromeDriver:
 
         # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
         for idx, inv_number in enumerate(inv_numbers):
+            print(f"Start reprint: {idx+1} {inv_number}")
             if self.stop_event.is_set():
                 try:
                     print("Start reprint")
@@ -309,29 +310,71 @@ class ChromeDriver:
 
                 except Exception as err:
                     print("reprint พัง: ", err)
+                    print(f"Reprinting: {idx+1} {inv_number} Ended")
             else:
+                print("operation ended")
                 break
+
+        self.stop_event.set()
+        print("จบการทำงาน")
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
 
     def submit_and_reprint(self):
-        # * กดปุ่มบันทึกเขียวๆ
-        while True:
-            try:
-                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
-                break
-            except Exception as err:
-                print(f"cannot click that top right corner green btn: {err}")
-                continue
-        print("click that top right corner green btn")
-        # *กดปุ่ม ok  pop up
-        while True:
-            try:
-                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
-                break
-            except Exception as err:
-                print(f"cannot click 'OK' btn: {err}")
-        print("'OK' btn clicked!!")
+        self.is_reprint_working = True
+        if self.is_reprint_working:
+            # * กดปุ่มบันทึกเขียวๆ
+            while True:
+                try:
+                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+                    break
+                except Exception as err:
+                    print(f"cannot click that top right corner green btn: {err}")
+                    continue
+            print("click that top right corner green btn")
+            # *กดปุ่ม ok  pop up
+            while True:
+                try:
+                    self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                    break
+                except Exception as err:
+                    print(f"cannot click 'OK' btn: {err}")
+            print("'OK' btn clicked!!")
+            while True:
+                try:
+                    if self.driver.find_element(
+                            By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div").is_displayed():
+                        print("Last page")
+                        break
+                    elif self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").is_displayed():
+                        print("Reprint page continue")
+                        continue
+                    # self.is_popup_txt = self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]")
+                    # if self.is_popup_txt.is_displayed():
+                    #     if "savecomplete" in self.is_popup_txt.replace(" ", ""):
+                    #         print(f"if: found pop-up with text: {self.is_popup_txt}")
+                    #         break
+                    #     else:
+                    #         print(f"else: found pop-up with text: {self.is_popup_txt}")
+                    #         self.driver.refresh()
+                    #         while True:
+                    #             if self.driver.find_element(
+                    #                     By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').is_displayed():
+                    #                 print("inv input display")
+                    #                 time.sleep(0.75)
+                    #                 self.is_reprint_working = False
+                    #                 break
+                    #             else:
+                    #                 print("inv input not display")
+                    #                 time.sleep(0.75)
+                    #                 continue
+                    #         self.submit_and_reprint()
+                    #         return
+                except Exception as err:
+                    print(f"going lastpage{err}")
+                    continue
+        else:
+            return
 
     def create_sn_fill_sequence(self, kit_sku):
         # test case ที่ดีต้องดูหลายๆค่า เพราะแต่ละ sku มีลำดับไม่เหมือนกันฉะนั้นต้องลองเทสสองเคสนี้ KCU2-000781, KCU2-000777
