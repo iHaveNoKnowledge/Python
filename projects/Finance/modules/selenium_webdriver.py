@@ -286,7 +286,7 @@ class ChromeDriver:
                             pass
                         else:
                             break
-                        
+
                         if self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
                             print("li display 'Searching...' ")
@@ -306,15 +306,16 @@ class ChromeDriver:
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found incorrect inv")
                             continue
-                        
+
                 except Exception as err:
                     print("reprint พัง: ", err)
             else:
                 break
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
-        
+
     def submit_and_reprint(self):
+        # * กดปุ่มบันทึกเขียวๆ
         while True:
             try:
                 self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
@@ -323,7 +324,7 @@ class ChromeDriver:
                 print(f"cannot click that top right corner green btn: {err}")
                 continue
         print("click that top right corner green btn")
-        
+        # *กดปุ่ม ok  pop up
         while True:
             try:
                 self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
