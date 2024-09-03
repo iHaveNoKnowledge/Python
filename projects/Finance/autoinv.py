@@ -203,6 +203,7 @@ class MainApp:
             self.root.after(100, self.process_log_queue)  # Continue checking the queue
 
     def read_data_from_file_dir(self, dir, log_queue):
+        global invs_list_state
         self.log_textbox.delete(0.0, 'end')
         self.target_col = "invoice_no"
         try:
@@ -239,7 +240,6 @@ class MainApp:
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
 
     def start_task(self):
-
         # self.stop_event.clear()
         if not self.stop_event.is_set():
             self.stop_event.set()

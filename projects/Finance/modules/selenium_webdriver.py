@@ -286,7 +286,7 @@ class ChromeDriver:
                             pass
                         else:
                             break
-
+                        
                         if self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
                             print("li display 'Searching...' ")
@@ -299,20 +299,38 @@ class ChromeDriver:
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found correct inv")
                             self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                            # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+                            self.submit_and_reprint()
                             break
                         else:
                             print(f"{self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found incorrect inv")
                             continue
-
+                        
                 except Exception as err:
                     print("reprint พัง: ", err)
             else:
                 break
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
+        
+    def submit_and_reprint(self):
+        while True:
+            try:
+                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+                break
+            except Exception as err:
+                print(f"cannot click that top right corner green btn: {err}")
+                continue
+        print("click that top right corner green btn")
+        
+        while True:
+            try:
+                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                break
+            except Exception as err:
+                print(f"cannot click 'OK' btn: {err}")
+        print("'OK' btn clicked!!")
 
     def create_sn_fill_sequence(self, kit_sku):
         # test case ที่ดีต้องดูหลายๆค่า เพราะแต่ละ sku มีลำดับไม่เหมือนกันฉะนั้นต้องลองเทสสองเคสนี้ KCU2-000781, KCU2-000777
