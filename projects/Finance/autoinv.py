@@ -249,6 +249,7 @@ class MainApp:
                 daemon=True
             )
             self.reprint_thread.start()
+            self.stop_event.clear()
         else:
             print("stop task")
             self.stop_event.clear()

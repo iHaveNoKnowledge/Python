@@ -237,7 +237,7 @@ class ChromeDriver:
             print(error_message)
             return error_message
 
-    def inv_reprint(self, inv_numbers, stop_event=None):
+    def inv_reprint(self, inv_numbers, stop_event):
         self.stop_event = stop_event
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
@@ -261,6 +261,17 @@ class ChromeDriver:
             if self.stop_event.is_set():
                 try:
                     print("Start reprint")
+                    while True:
+                        try:
+                            self.save_btn = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]")
+                            self.create_btn = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[1]")
+                            break
+                        except:
+                            time.sleep(0.75)
+                            continue
+                        
+                    if not self.save_btn.is_enabled():
+                        self.create_btn.click()
                     time.sleep(0.75)
                     try:
                         print("find outer span")
@@ -287,9 +298,8 @@ class ChromeDriver:
                             pass
                         else:
                             break
-
-                        if self.driver.find_element(
-                                By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
+                        
+                        if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
                             print("li display 'Searching...' ")
                             time.sleep(1)
                             continue
@@ -314,7 +324,7 @@ class ChromeDriver:
             else:
                 print("operation ended")
                 break
-
+            
         self.stop_event.set()
         print("จบการทำงาน")
         # # * กลับหน้าเดิม
@@ -340,6 +350,8 @@ class ChromeDriver:
                 except Exception as err:
                     print(f"cannot click 'OK' btn: {err}")
             print("'OK' btn clicked!!")
+            
+            #* รอหน้าแสดงบิล
             while True:
                 try:
                     if self.driver.find_element(
@@ -347,6 +359,7 @@ class ChromeDriver:
                         print("Last page")
                         break
                     elif self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").is_displayed():
+                        time.sleep(1)
                         print("Reprint page continue")
                         continue
                     # self.is_popup_txt = self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]")
@@ -373,6 +386,8 @@ class ChromeDriver:
                 except Exception as err:
                     print(f"going lastpage{err}")
                     continue
+            print("print inv")
+            self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
         else:
             return
 
