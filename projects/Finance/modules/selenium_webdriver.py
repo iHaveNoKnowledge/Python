@@ -16,6 +16,8 @@ import traceback
 import logging
 from logging.handlers import RotatingFileHandler
 
+import base64
+
 # * Configure logging to write to a rotating log file
 handler = RotatingFileHandler(
     filename='chromedriver.log', maxBytes=1000000, backupCount=5)
@@ -405,11 +407,10 @@ class ChromeDriver:
                                 By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div").is_displayed():
                             print("Last page")
                             # * print here
-                            print("print inv")
+                            self.get_pdf_src_and_print()
                             time.sleep(2)
                             self.is_process = True
-                            self.app.update_log(f"Task {self.task_idx} inv {
-                                                self.inv_number} printed", self.app.log_textbox)
+                            self.app.update_log(f"Task {self.task_idx} inv {self.inv_number} printed", self.app.log_textbox)
                             break
 
                         elif "Save Completed" in self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text:
@@ -430,8 +431,7 @@ class ChromeDriver:
                                 break
                             except:
                                 print("Reprint page continue")
-                                pass
-                            continue
+                                continue
 
                     except Exception as err:
                         print(f"going lastpage{err}")
@@ -444,6 +444,26 @@ class ChromeDriver:
                     continue
         else:
             return
+
+    def get_pdf_src_and_print(self):
+        embed_element = self.driver.find_element(
+            By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed")
+        pdf_src = self.driver.find_element(
+            By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src')
+        proc = re.search("(?<=,).*", pdf_src)
+        base64_pdf_data = proc.group(0)
+        bin_pdf_data = base64.b64decode(base64_pdf_data)  # * แปลง base64 to binary data
+
+        # print(pdf_src)
+        # print(f"base64 pdf extracted: {base64_pdf_data}")
+        try:
+            #todo printing command is the code below
+            with open("output.pdf", "wb") as pdf_file:
+                pdf_file.write(bin_pdf_data)
+                # os.startfile("output.pdf", "print")
+            print("printing")
+        except OSError as err:
+            print(f"No PDF Reader found. {err}")
 
     def create_sn_fill_sequence(self, kit_sku):
         # test case ที่ดีต้องดูหลายๆค่า เพราะแต่ละ sku มีลำดับไม่เหมือนกันฉะนั้นต้องลองเทสสองเคสนี้ KCU2-000781, KCU2-000777

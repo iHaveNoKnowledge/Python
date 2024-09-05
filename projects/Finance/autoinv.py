@@ -241,22 +241,20 @@ class MainApp:
 
     def start_task(self):
         self.stop_event.set()
-        
+
         self.stop_event.clear()
         if not self.stop_event.is_set():
             print("start task")
-            self.reprint_thread = threading.Thread(
-                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state, self.stop_event, self.progressbar, self.root, self),
-                daemon=True
-            )
+            self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
+                self.invs_list_state, self.stop_event, self.progressbar, self.root, self), daemon=True)
             self.reprint_thread.start()
-            self.root.after(100, self.process_log_queue)
+            self.check_threads(self.reprint_thread)
             self.stop_event.clear()
         else:
             print("stop task")
             self.stop_event.clear()
             self.reprint_thread.join()
-        
+
         # while True:
         #     if self.stop_event.is_set():
         #         self.reprint_thread.join()
@@ -264,11 +262,13 @@ class MainApp:
         #     else:
         #         continue
 
-    def kill_remaining_threads(self):
-        return
-        if self.current_task and self.current_task.is_alive():
+    def check_threads(self, callback=None):
+        if not self.reprint_thread.is_alive():
+            print(f"self.reprint_thread.is_alive(): {self.reprint_thread.is_alive()}")
+            self.reprint_thread.join()
             self.stop_event.set()
-            self.current_task.join()
+            return
+        self.root.after(100, lambda: self.check_threads(callback))  # * ถ้าไม่เขียน lambda มันไม่รอ
 
 
 # * Initializer-----------------------------------------------------------------------------------------------------------
@@ -276,7 +276,7 @@ def main():
     def on_closing():
         print('ui window is closed')
         root.destroy()
-        main_gui.kill_remaining_threads()
+        main_gui.check_threads()
 
     def _onKeyRelease(event):
         # print("press :", event.keysym)
