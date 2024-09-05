@@ -1338,3 +1338,71 @@ AttributeError: 'ChromeDriver' object has no attribute 'is_add_form_displayed'
 2024-09-03 02:44:20,945 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
 2024-09-03 02:44:42,310 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
 2024-09-03 02:44:43,137 - WARNING - Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2024-09-05 10:34:04,554 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:04,599 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:07,830 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:19,698 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:20,841 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:21,867 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:22,888 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:23,907 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:25,875 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:30,339 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:44,891 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:44,913 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:44,985 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:44,985 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:45,046 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:46,132 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:47,069 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 10:34:48,138 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:17:13,994 - WARNING - 'method get_tabs()', Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\Finance\modules\selenium_webdriver.py", line 116, in get_tabs
+    self.value_list.append(self.driver.current_window_handle)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 490, in current_window_handle
+    return self.execute(Command.W3C_GET_CURRENT_WINDOW_HANDLE)["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchWindowException: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=128.0.6613.119)
+Stacktrace:
+	GetHandleVerifier [0x00007FF7B2A29642+30946]
+	(No symbol) [0x00007FF7B29DE3D9]
+	(No symbol) [0x00007FF7B28D6FDA]
+	(No symbol) [0x00007FF7B28ACB85]
+	(No symbol) [0x00007FF7B29537A7]
+	(No symbol) [0x00007FF7B295A62B]
+	(No symbol) [0x00007FF7B294CA30]
+	(No symbol) [0x00007FF7B291A6E5]
+	(No symbol) [0x00007FF7B291B021]
+	GetHandleVerifier [0x00007FF7B2B5F84D+1301229]
+	GetHandleVerifier [0x00007FF7B2B6BDC7+1351783]
+	GetHandleVerifier [0x00007FF7B2B62A13+1313971]
+	GetHandleVerifier [0x00007FF7B2A5DD16+245686]
+	(No symbol) [0x00007FF7B29E759F]
+	(No symbol) [0x00007FF7B29E3814]
+	(No symbol) [0x00007FF7B29E39A2]
+	(No symbol) [0x00007FF7B29DA3FF]
+	BaseThreadInitThunk [0x00007FFDA311257D+29]
+	RtlUserThreadStart [0x00007FFDA422AF28+40]
+
+
+2024-09-05 11:47:29,351 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:30,450 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:31,478 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:31,861 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:31,992 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:35,187 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:41,174 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:45,661 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:47,973 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 11:47:48,131 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 12:08:09,894 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 12:08:10,738 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 12:08:15,417 - WARNING - Connection pool is full, discarding connection: localhost
+2024-09-05 12:08:16,525 - WARNING - Connection pool is full, discarding connection: localhost

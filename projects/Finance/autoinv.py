@@ -240,12 +240,13 @@ class MainApp:
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
 
     def start_task(self):
-        # self.stop_event.clear()
+        self.stop_event.set()
+        
+        self.stop_event.clear()
         if not self.stop_event.is_set():
-            self.stop_event.set()
             print("start task")
             self.reprint_thread = threading.Thread(
-                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state, self.stop_event),
+                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state, self.stop_event, self.progressbar, self.root, self.log_queue),
                 daemon=True
             )
             self.reprint_thread.start()
@@ -253,6 +254,14 @@ class MainApp:
         else:
             print("stop task")
             self.stop_event.clear()
+            self.reprint_thread.join()
+        
+        # while True:
+        #     if self.stop_event.is_set():
+        #         self.reprint_thread.join()
+        #         break
+        #     else:
+        #         continue
 
     def kill_remaining_threads(self):
         return

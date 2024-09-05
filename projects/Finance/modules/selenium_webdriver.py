@@ -237,11 +237,32 @@ class ChromeDriver:
             print(error_message)
             return error_message
 
-    def inv_reprint(self, inv_numbers, stop_event):
+    def refresh_reprint_page_verify(self):
+        while True:
+            try:
+                self.save_btn = self.driver.find_element(
+                    By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]")
+                self.create_btn = self.driver.find_element(
+                    By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[1]")
+                break
+            except:
+                time.sleep(0.75)
+                continue
+
+        if not self.save_btn.is_enabled():
+            self.create_btn.click()
+        time.sleep(0.75)
+
+    def inv_reprint(self, inv_numbers, stop_event, progress_bar, root_ui, log_queue):
         self.stop_event = stop_event
+        self.inv_numbers_len:int = inv_numbers.__len__()
+        self.progress_bar = progress_bar
+        self.root_ui = root_ui
+        self.log_queue = log_queue
+        self.setup_chrome()
+        self.get_tabs()
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
-            prev_window = self.driver.current_window_handle
             # * สลับหน้าไป reprint
             self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
             print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
@@ -255,24 +276,15 @@ class ChromeDriver:
             self.driver.switch_to.window(latest_window_handle)
             print("ไม่มีเปิดใหม่")
 
+        self.progress_bar['value'] = 0
+
         # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
         for idx, inv_number in enumerate(inv_numbers):
             print(f"Start reprint: {idx+1} {inv_number}")
-            if self.stop_event.is_set():
+            if not self.stop_event.is_set():
                 try:
                     print("Start reprint")
-                    while True:
-                        try:
-                            self.save_btn = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]")
-                            self.create_btn = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[1]")
-                            break
-                        except:
-                            time.sleep(0.75)
-                            continue
-                        
-                    if not self.save_btn.is_enabled():
-                        self.create_btn.click()
-                    time.sleep(0.75)
+                    self.refresh_reprint_page_verify()
                     try:
                         print("find outer span")
                         self.driver.find_element(By.XPATH, "/html/body/span/span")
@@ -286,6 +298,7 @@ class ChromeDriver:
                     print("inv input operating")
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
+                    
                     print("inv input operation done")
                     print("reason input operating")
                     self.driver.find_element(
@@ -294,12 +307,13 @@ class ChromeDriver:
                         By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Re")
                     print("reason input operation done")
                     while True:
-                        if self.stop_event.is_set():
+                        if not self.stop_event.is_set():
                             pass
                         else:
                             break
-                        
-                        if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
+
+                        if self.driver.find_element(
+                                By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
                             print("li display 'Searching...' ")
                             time.sleep(1)
                             continue
@@ -310,7 +324,7 @@ class ChromeDriver:
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found correct inv")
                             self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                            self.submit_and_reprint()
+                            self.reprint_inv(inv_number)
                             break
                         else:
                             print(f"{self.driver.find_element(
@@ -320,74 +334,95 @@ class ChromeDriver:
 
                 except Exception as err:
                     print("reprint พัง: ", err)
+                    self.log_queue.put(f"inv {inv_number} not printed")
                     print(f"Reprinting: {idx+1} {inv_number} Ended")
             else:
-                print("operation ended")
-                break
-            
+                print(f"operation ended : {self.stop_event.is_set()}")
+                raise ValueError(f"Is stop event set: {self.stop_event.is_set()}")
+
+            self.progress_bar['value'] += (1/self.inv_numbers_len)*100
+            if self.inv_numbers_len == idx+1:
+                round(self.progress_bar['value'])
+                self.progress_bar['value'] = round(self.progress_bar['value'])
+            self.root_ui.update_idletasks()
+            print(f"progress: {self.progress_bar['value']}%")
+
         self.stop_event.set()
+        self.stop_event.clear()
         print("จบการทำงาน")
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
+        
+    def reprint_page_press_submit(self):
+        # * กดปุ่มบันทึกเขียวๆ
+        while True:
+            try:
+                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+                break
+            except Exception as err:
+                print(f"cannot click that top right corner green btn: {err} bot will try to click the green btn again")
+                continue
+        print("click that top right corner green btn")
+        time.sleep(0.75)
+        # *กดปุ่ม ok  pop up
+        while True:
+            try:
+                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                break
+            except Exception as err:
+                print(f"cannot click 'OK' btn: {err}")
+        print("'OK' btn clicked!!")
 
-    def submit_and_reprint(self):
+    def reprint_inv(self, inv_number):
+        self.inv_number = inv_number
         self.is_reprint_working = True
+        self.is_process = False
         if self.is_reprint_working:
-            # * กดปุ่มบันทึกเขียวๆ
             while True:
-                try:
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
-                    break
-                except Exception as err:
-                    print(f"cannot click that top right corner green btn: {err}")
-                    continue
-            print("click that top right corner green btn")
-            # *กดปุ่ม ok  pop up
-            while True:
-                try:
-                    self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
-                    break
-                except Exception as err:
-                    print(f"cannot click 'OK' btn: {err}")
-            print("'OK' btn clicked!!")
-            
-            #* รอหน้าแสดงบิล
-            while True:
-                try:
-                    if self.driver.find_element(
-                            By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div").is_displayed():
-                        print("Last page")
-                        break
-                    elif self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").is_displayed():
-                        time.sleep(1)
-                        print("Reprint page continue")
+                time.sleep(0.75)
+                self.reprint_page_press_submit()
+                
+                # * รอหน้าแสดงบิล
+                while True:
+                    try:
+                        if self.driver.find_element(
+                                By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div").is_displayed():
+                            print("Last page")
+                            # * print here
+                            print("print inv")
+                            time.sleep(2)
+                            self.is_process = True
+                            self.log_queue.put(f"inv {self.inv_number} printed")
+                            break
+                        
+                        elif "Save Completed" in self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text:
+                            self.is_process = True
+                            print("process goes smoothly")
+                            continue
+                        elif self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").is_displayed():
+                            time.sleep(1)
+                            try:
+                                print("some error poped up")
+                                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                                self.refresh_reprint_page_verify()
+                                self.is_process = False
+                                print(f"message from pop up: {self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text}")
+                                break
+                            except:
+                                print("Reprint page continue")
+                                pass
+                            continue
+
+                    except Exception as err:
+                        print(f"going lastpage{err}")
                         continue
-                    # self.is_popup_txt = self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]")
-                    # if self.is_popup_txt.is_displayed():
-                    #     if "savecomplete" in self.is_popup_txt.replace(" ", ""):
-                    #         print(f"if: found pop-up with text: {self.is_popup_txt}")
-                    #         break
-                    #     else:
-                    #         print(f"else: found pop-up with text: {self.is_popup_txt}")
-                    #         self.driver.refresh()
-                    #         while True:
-                    #             if self.driver.find_element(
-                    #                     By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').is_displayed():
-                    #                 print("inv input display")
-                    #                 time.sleep(0.75)
-                    #                 self.is_reprint_working = False
-                    #                 break
-                    #             else:
-                    #                 print("inv input not display")
-                    #                 time.sleep(0.75)
-                    #                 continue
-                    #         self.submit_and_reprint()
-                    #         return
-                except Exception as err:
-                    print(f"going lastpage{err}")
+
+                
+                if self.is_process:
+                    break
+                else:
+                    self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
                     continue
-            print("print inv")
-            self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
         else:
             return
 
