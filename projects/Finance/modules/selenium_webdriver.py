@@ -253,12 +253,12 @@ class ChromeDriver:
             self.create_btn.click()
         time.sleep(0.75)
 
-    def inv_reprint(self, inv_numbers, stop_event, progress_bar, root_ui, log_queue):
+    def inv_reprint(self, inv_numbers, stop_event, progress_bar, root_ui, app):
         self.stop_event = stop_event
-        self.inv_numbers_len:int = inv_numbers.__len__()
+        self.inv_numbers_len: int = inv_numbers.__len__()
         self.progress_bar = progress_bar
         self.root_ui = root_ui
-        self.log_queue = log_queue
+        self.app = app
         self.setup_chrome()
         self.get_tabs()
         try:
@@ -282,8 +282,10 @@ class ChromeDriver:
         for idx, inv_number in enumerate(inv_numbers):
             print(f"Start reprint: {idx+1} {inv_number}")
             if not self.stop_event.is_set():
+                self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} start", self.app.log_textbox)
                 try:
                     print("Start reprint")
+
                     self.refresh_reprint_page_verify()
                     try:
                         print("find outer span")
@@ -298,7 +300,7 @@ class ChromeDriver:
                     print("inv input operating")
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
-                    
+
                     print("inv input operation done")
                     print("reason input operating")
                     self.driver.find_element(
@@ -314,17 +316,25 @@ class ChromeDriver:
 
                         if self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
-                            print("li display 'Searching...' ")
-                            time.sleep(1)
+                            # print("li display 'Searching...' ")
+                            time.sleep(0.75)
                             continue
-                        time.sleep(0.75)
+
                         print("li found display some inv")
                         if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
                             print(f"{self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found correct inv")
                             self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                            self.reprint_inv(inv_number)
+                            time.sleep(1)
+                            while True:
+                                try:
+                                    if self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[2]/label[2]").text != "":
+                                        break
+                                    continue
+                                except:
+                                    continue
+                            self.reprint_selected_inv(inv_number, idx+1)
                             break
                         else:
                             print(f"{self.driver.find_element(
@@ -334,12 +344,16 @@ class ChromeDriver:
 
                 except Exception as err:
                     print("reprint พัง: ", err)
-                    self.log_queue.put(f"inv {inv_number} not printed")
+                    self.app.update_log(f"Task: {idx+1} inv {inv_number} not printed", self.app.log_textbox)
                     print(f"Reprinting: {idx+1} {inv_number} Ended")
+                    self.app.update_log(f" ", self.app.log_textbox)
             else:
                 print(f"operation ended : {self.stop_event.is_set()}")
                 raise ValueError(f"Is stop event set: {self.stop_event.is_set()}")
 
+            # *update interface log
+            self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} ended", self.app.log_textbox)
+            # *update percentage
             self.progress_bar['value'] += (1/self.inv_numbers_len)*100
             if self.inv_numbers_len == idx+1:
                 round(self.progress_bar['value'])
@@ -350,9 +364,10 @@ class ChromeDriver:
         self.stop_event.set()
         self.stop_event.clear()
         print("จบการทำงาน")
+        self.app.update_log(f"จบการทำงาน", self.app.log_textbox)
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
-        
+
     def reprint_page_press_submit(self):
         # * กดปุ่มบันทึกเขียวๆ
         while True:
@@ -373,15 +388,16 @@ class ChromeDriver:
                 print(f"cannot click 'OK' btn: {err}")
         print("'OK' btn clicked!!")
 
-    def reprint_inv(self, inv_number):
+    def reprint_selected_inv(self, inv_number, task_idx):
         self.inv_number = inv_number
+        self.task_idx = task_idx
         self.is_reprint_working = True
         self.is_process = False
         if self.is_reprint_working:
             while True:
                 time.sleep(0.75)
                 self.reprint_page_press_submit()
-                
+
                 # * รอหน้าแสดงบิล
                 while True:
                     try:
@@ -392,21 +408,25 @@ class ChromeDriver:
                             print("print inv")
                             time.sleep(2)
                             self.is_process = True
-                            self.log_queue.put(f"inv {self.inv_number} printed")
+                            self.app.update_log(f"Task {self.task_idx} inv {
+                                                self.inv_number} printed", self.app.log_textbox)
                             break
-                        
+
                         elif "Save Completed" in self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text:
                             self.is_process = True
-                            print("process goes smoothly")
+                            # print("process goes smoothly")
                             continue
                         elif self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").is_displayed():
+                            print(f"Error Section:{self.driver.find_element(
+                                By.XPATH, "/html/body/div[8]/div[2]/div[6]").text}")
                             time.sleep(1)
                             try:
                                 print("some error poped up")
                                 self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
                                 self.refresh_reprint_page_verify()
                                 self.is_process = False
-                                print(f"message from pop up: {self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text}")
+                                print(f"message from pop up: {self.driver.find_element(
+                                    By.XPATH, "/html/body/div[8]/div[2]/div[6]").text}")
                                 break
                             except:
                                 print("Reprint page continue")
@@ -417,11 +437,10 @@ class ChromeDriver:
                         print(f"going lastpage{err}")
                         continue
 
-                
+                self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
                 if self.is_process:
                     break
                 else:
-                    self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
                     continue
         else:
             return

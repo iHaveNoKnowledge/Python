@@ -246,10 +246,11 @@ class MainApp:
         if not self.stop_event.is_set():
             print("start task")
             self.reprint_thread = threading.Thread(
-                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state, self.stop_event, self.progressbar, self.root, self.log_queue),
+                target=lambda: self.chrome_driver.inv_reprint(self.invs_list_state, self.stop_event, self.progressbar, self.root, self),
                 daemon=True
             )
             self.reprint_thread.start()
+            self.root.after(100, self.process_log_queue)
             self.stop_event.clear()
         else:
             print("stop task")
