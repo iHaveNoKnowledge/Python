@@ -207,13 +207,23 @@ class MainApp:
         self.log_textbox.delete(0.0, 'end')
         self.target_col = "invoice_no"
         try:
-            self.df = pandas.read_excel(dir, dtype=str, na_filter=True).drop_duplicates()
-            self.df.columns = self.df.columns.str.lower()
-            self.invs_list = self.df[self.target_col].tolist()
-            self.invs_list_state = self.invs_list.copy()
-            self.data_range = self.invs_list_state.__len__()
-            for inv in self.invs_list_state:
+            self.incoming_file_df = pandas.read_excel(dir, dtype=str, na_filter=True).drop_duplicates()
+            self.incoming_file_df.columns = self.incoming_file_df.columns.str.lower()
+            #*สร้างไฟล์ state
+            if os.path.exists('inv_state.xlsx'):
+                df_existing = pandas.read_excel('inv_state.xlsx')
+                df_combined = pandas.concat([df_existing[self.target_col], self.incoming_file_df[self.target_col]])
+                df_combined = df_combined.drop_duplicates()
+                df_combined.to_excel('inv_state.xlsx', index=False)
+            else:
+                self.incoming_file_df[self.target_col].to_excel('inv_state.xlsx', index=False)
+                
+            self.inv_state_df = pandas.read_excel('inv_state.xlsx', dtype=str, na_filter=True).drop_duplicates()
+            self.invs_list_state = self.inv_state_df
+            self.data_range = self.invs_list_state[self.target_col].__len__()
+            for inv in self.invs_list_state[self.target_col]:
                 log_queue.put(f"{inv}")
+            
             log_queue.put(f"Data Imported : {self.data_range} records")
         except Exception as err:
             print(Exception)
