@@ -39,7 +39,7 @@ class CustomChrome:
         self.adapter = HTTPAdapter(max_retries=self.retries)
         self.s.mount(f'http://', self.adapter)
         self.s.mount(f'https://', self.adapter)
-
+        
         try:
             self.response = self.s.get(f'http://localhost:{self.port}', timeout=0.125, allow_redirects=False )
             self.response.raise_for_status()
@@ -47,7 +47,7 @@ class CustomChrome:
         except requests.exceptions.RequestException as err:
             print("request: ", err)
             return False
-        
+
     def open_custom_browser(self):
         try:
             subprocess.Popen([

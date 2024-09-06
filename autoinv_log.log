@@ -1,2 +1,3 @@
 2024-09-05T17:59:41.421413+0700 ERROR [Errno 13] Permission denied: 'inv_state.xlsx'
 2024-09-05T18:00:13.175276+0700 ERROR 'DataFrame' object has no attribute 'tolist'
+2024-09-06T11:53:16.327664+0700 ERROR [Errno 13] Permission denied: 'inv_state.xlsx'

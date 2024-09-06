@@ -226,7 +226,6 @@ class MainApp:
             
             log_queue.put(f"Data Imported : {self.data_range} records")
         except Exception as err:
-            print(Exception)
             print(err)
             logger.error(err)
             log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
@@ -256,7 +255,7 @@ class MainApp:
         if not self.stop_event.is_set():
             print("start task")
             self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
-                self.invs_list_state, self.stop_event, self.progressbar, self.root, self), daemon=True)
+                self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
             self.reprint_thread.start()
             self.check_threads(self.reprint_thread)
             self.stop_event.clear()

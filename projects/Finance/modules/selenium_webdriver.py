@@ -16,6 +16,9 @@ import traceback
 import logging
 from logging.handlers import RotatingFileHandler
 
+import json
+from pathlib import Path
+
 import base64
 
 # * Configure logging to write to a rotating log file
@@ -27,6 +30,12 @@ handler.setFormatter(formatter)
 # * Create a logger and attach the handler
 logger = logging.getLogger()
 logger.addHandler(handler)
+
+cache_file_path = Path(__file__).parent.parent / 'cache' / 'cache.json'
+if cache_file_path.exists():
+    with cache_file_path.open('r', encoding='utf-8') as file:
+        cache_data = json.load(file)
+    # print(cache_data)
 
 # * MainClass
 
@@ -267,12 +276,29 @@ class ChromeDriver:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
             self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
+            self.reprint_page_url = self.driver.current_url
             print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
 
         except:
             # * สลับไม่ได้เปิด reprint ใหม่
             print("ไม่มีหน้าให้สลับ เปิดใหม่")
-            self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
+            self.preprint_page_url_cache = cache_data['selenium_setting']['reprint']['url']
+            try:
+                print(f"open: {self.preprint_page_url_cache}")
+                self.driver.get(self.preprint_page_url_cache)
+            except:
+                if self.preprint_page_url_cache == "http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050":
+                    self.reprint_page_url = "http://192.168.0.11:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050"
+                    self.driver.get(self.reprint_page_url)
+                elif self.preprint_page_url_cache == "http://192.168.0.11:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050":
+                    self.reprint_page_url = "http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050"
+                    self.driver.get(self.reprint_page_url)
+
+        if not self.reprint_page_url == cache_data['selenium_setting']['reprint']['url']:
+            cache_data['selenium_setting']['reprint']['url'] = self.reprint_page_url
+            with cache_file_path.open('w', encoding='utf-8') as file:
+                json.dump(cache_data, file, ensure_ascii=False, indent=4)
+
             all_window_handles = self.driver.window_handles
             latest_window_handle = all_window_handles[-1]
             self.driver.switch_to.window(latest_window_handle)
@@ -410,7 +436,8 @@ class ChromeDriver:
                             self.get_pdf_src_and_print()
                             time.sleep(2)
                             self.is_process = True
-                            self.app.update_log(f"Task {self.task_idx} inv {self.inv_number} printed", self.app.log_textbox)
+                            self.app.update_log(f"Task {self.task_idx} inv {
+                                                self.inv_number} printed", self.app.log_textbox)
                             break
 
                         elif "Save Completed" in self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text:
@@ -457,7 +484,7 @@ class ChromeDriver:
         # print(pdf_src)
         # print(f"base64 pdf extracted: {base64_pdf_data}")
         try:
-            #todo printing command is the code below
+            # todo printing command is the code below
             with open("output.pdf", "wb") as pdf_file:
                 pdf_file.write(bin_pdf_data)
                 # os.startfile("output.pdf", "print")
