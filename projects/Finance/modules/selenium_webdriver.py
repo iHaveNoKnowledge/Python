@@ -188,7 +188,7 @@ class ChromeDriver:
 
             # * Make sure if an sn btn element appear
 
-            while True:
+            while not self.stop_event.is_set():
                 # * ต้องรอ ถ้าไม่รอ แล้ว เปิด element ทันที หน้า sn มันจะหด แล้วก็ error เพราะหา element ไม่เจอ
                 time.sleep(2)
                 try:
@@ -219,7 +219,7 @@ class ChromeDriver:
 
                 # * SN input in the pop-up
 
-                while True:
+                while not self.stop_event.is_set():
                     try:
                         self.driver.find_element(
                             By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[2]/form/div/div[1]/div/input').is_displayed()
@@ -237,7 +237,7 @@ class ChromeDriver:
                     By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[2]/div[2]/a[1]')
                 # * ปุ่มมันกระพริบมันมีช่วงที่ click ได้และไม่ได้ ต้องใช้ while มารัวให้มัน
                 for i in range(2):
-                    while True:
+                    while not self.stop_event.is_set():
                         try:
                             self.submit_btn.click()
                             break
@@ -249,7 +249,7 @@ class ChromeDriver:
             return error_message
 
     def refresh_reprint_page_verify(self):
-        while True:
+        while not self.stop_event.is_set():
             try:
                 self.save_btn = self.driver.find_element(
                     By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]")
@@ -336,7 +336,7 @@ class ChromeDriver:
                     self.driver.find_element(
                         By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Re")
                     print("reason input operation done")
-                    while True:
+                    while not self.stop_event.is_set():
                         if not self.stop_event.is_set():
                             pass
                         else:
@@ -355,7 +355,7 @@ class ChromeDriver:
                             print("found correct inv")
                             self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
                             time.sleep(1)
-                            while True:
+                            while not self.stop_event.is_set():
                                 try:
                                     if self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[2]/label[2]").text != "":
                                         break
@@ -377,7 +377,9 @@ class ChromeDriver:
                     self.app.update_log(f" ", self.app.log_textbox)
             else:
                 print(f"operation ended : {self.stop_event.is_set()}")
-                raise ValueError(f"Is stop event set: {self.stop_event.is_set()}")
+                break
+                
+                
 
             # *update interface log
             self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} ended", self.app.log_textbox)
@@ -398,7 +400,7 @@ class ChromeDriver:
 
     def reprint_page_press_submit(self):
         # * กดปุ่มบันทึกเขียวๆ
-        while True:
+        while not self.stop_event.is_set():
             try:
                 self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
                 break
@@ -408,7 +410,7 @@ class ChromeDriver:
         print("click that top right corner green btn")
         time.sleep(0.75)
         # *กดปุ่ม ok  pop up
-        while True:
+        while not self.stop_event.is_set():
             try:
                 self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
                 break
@@ -422,12 +424,12 @@ class ChromeDriver:
         self.is_reprint_working = True
         self.is_process = False
         if self.is_reprint_working:
-            while True:
+            while not self.stop_event.is_set():
                 time.sleep(0.75)
                 self.reprint_page_press_submit()
 
                 # * รอหน้าแสดงบิล
-                while True:
+                while not self.stop_event.is_set():
                     try:
                         if self.driver.find_element(
                                 By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div").is_displayed():

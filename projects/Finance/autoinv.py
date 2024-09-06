@@ -34,6 +34,7 @@ class MainApp:
         # * variables
         self.import_file_name = tk.StringVar(value="None")
         self.stop_event = threading.Event()
+        self.reprint_thread = None
 
         # * main process
         self.create_main_window()
@@ -209,7 +210,7 @@ class MainApp:
         try:
             self.incoming_file_df = pandas.read_excel(dir, dtype=str, na_filter=True).drop_duplicates()
             self.incoming_file_df.columns = self.incoming_file_df.columns.str.lower()
-            #*สร้างไฟล์ state
+            # *สร้างไฟล์ state
             if os.path.exists('inv_state.xlsx'):
                 df_existing = pandas.read_excel('inv_state.xlsx')
                 df_combined = pandas.concat([df_existing[self.target_col], self.incoming_file_df[self.target_col]])
@@ -217,13 +218,13 @@ class MainApp:
                 df_combined.to_excel('inv_state.xlsx', index=False)
             else:
                 self.incoming_file_df[self.target_col].to_excel('inv_state.xlsx', index=False)
-                
+
             self.inv_state_df = pandas.read_excel('inv_state.xlsx', dtype=str, na_filter=True).drop_duplicates()
             self.invs_list_state = self.inv_state_df
             self.data_range = self.invs_list_state[self.target_col].__len__()
             for inv in self.invs_list_state[self.target_col]:
                 log_queue.put(f"{inv}")
-            
+
             log_queue.put(f"Data Imported : {self.data_range} records")
         except Exception as err:
             print(err)
@@ -249,20 +250,36 @@ class MainApp:
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
 
     def start_task(self):
-        self.stop_event.set()
-
-        self.stop_event.clear()
-        if not self.stop_event.is_set():
-            print("start task")
+        if self.reprint_thread and self.reprint_thread.is_alive():
+            self.stop_event.set()
+            self.wait_for_stop()
+        else:
+            self.stop_event.clear()
             self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
                 self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
             self.reprint_thread.start()
-            self.check_threads(self.reprint_thread)
-            self.stop_event.clear()
+
+    def wait_for_stop(self):
+        if self.reprint_thread.is_alive():
+            self.root.after(100, self.wait_for_stop)
         else:
-            print("stop task")
             self.stop_event.clear()
-            self.reprint_thread.join()
+            self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
+                self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
+            self.reprint_thread.start()
+# * เก่า
+        # self.stop_event.clear()
+        # if not self.stop_event.is_set():
+        #     print("start task")
+        #     self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
+        #         self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
+        #     self.reprint_thread.start()
+        #     self.check_threads(self.reprint_thread)
+        #     self.stop_event.clear()
+        # else:
+        #     print("stop task")
+        #     self.stop_event.clear()
+        #     self.reprint_thread.join()
 
         # while True:
         #     if self.stop_event.is_set():
