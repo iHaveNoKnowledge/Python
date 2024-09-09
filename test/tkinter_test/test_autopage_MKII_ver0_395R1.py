@@ -3761,9 +3761,9 @@ class Bot_POS:
 
                                         # * Update Accel file //////////////////////
                                         self.app.deduct_accel_file_data(
-                                                self.app.cus_order,
-                                                self.used_serials
-                                            )
+                                            self.app.cus_order,
+                                            self.used_serials
+                                        )
 
                                     except:
                                         # time.sleep(1)
@@ -4750,6 +4750,7 @@ if __name__ == "__main__":
 # * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface
 # * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
 # ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order // เรียกหาชื่อปกติก็เปน ช่วงก่อนกรอก ค่าส่ง หลังเจอชื่อ
+# ? 100 Fixed 0.395R2 try to see the result after fixed if there still bug or not// duplicated orders will be remove, but removing duplicated order will affect sn columns  to be disappered
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
