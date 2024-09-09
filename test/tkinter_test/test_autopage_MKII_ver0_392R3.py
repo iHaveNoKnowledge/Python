@@ -167,6 +167,7 @@ class MyApp:
         if isinstance(widget, CTk):
             for child in widget.winfo_children():
                 self.scale_widget(child, scale_factor)
+                
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")

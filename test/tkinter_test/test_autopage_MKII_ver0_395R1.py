@@ -1,4 +1,5 @@
 
+from loguru import logger
 from decimal import Decimal
 import locale
 from concurrent.futures import ThreadPoolExecutor
@@ -42,9 +43,8 @@ import httpcore
 from googletrans import Translator
 import requests
 session = requests.Session()
-from loguru import logger
 
-#* images
+# * images
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
 arrow_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'Arrow.gif')
 stop_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'stop.jpg')
@@ -85,7 +85,8 @@ class MyApp:
         self.is_accel_mode_activated = BooleanVar(value=False)
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
-        self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
+        self.bg_by_market_place = {
+            'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
@@ -126,7 +127,8 @@ class MyApp:
         self.scale_widget(self.root, self.scale_factor)
         self.get_dataframe()
         self.mimic_list_item_states = []
-        logger.add("autopageMKII_log.log", format="{time} {level} {message}", level="INFO")
+        logger.add("autopageMKII_log.log",
+                   format="{time} {level} {message}", level="INFO")
 
     def demonic_cp_selection(self):
         self.bot.demonic_cp_bot(
@@ -173,7 +175,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.395")
+        self.root.title("Autosamatic ver0.395R1")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -349,9 +351,10 @@ class MyApp:
             self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, bg="#969696")
 
         # *> Buttons
-        self.start_image =  Image.open(arrow_icon)
-        self.start_photo = ImageTk.PhotoImage(self.start_image.resize((30, 20)))
-        #* fonts
+        self.start_image = Image.open(arrow_icon)
+        self.start_photo = ImageTk.PhotoImage(
+            self.start_image.resize((30, 20)))
+        # * fonts
         # self.font = CTkFont(family='fixedsys', size=10, weight="bold")
         self.accl_start_btn = CTkButton(
             self.entry_frame,
@@ -366,7 +369,7 @@ class MyApp:
             width=30,
             height=25
         )
-        
+
         # *  search order Stop Button
         self.accel_stop_btn = CTkButton(
             self.entry_frame,
@@ -391,13 +394,16 @@ class MyApp:
 
         # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
-        self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get() and self.user_pw.get() else "Login"
-        self.display_acc_btn = Button(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
+        self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
+        ) and self.user_pw.get() else "Login"
+        self.display_acc_btn = Button(
+            self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
         self.display_acc_btn.grid(row=0, column=7, padx=5)
 
         # * Accel mode
         # * > Checkbox for activation toggle
-        self.accel_mode_checkbox = Checkbutton(self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)ยพรื
+        self.accel_mode_checkbox = Checkbutton(
+            self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
 
         # for method
         # if self.user_id in self.dev_account and self.is_accel_mode.get():
@@ -640,7 +646,7 @@ class MyApp:
         else:
             raise ValueError(
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
-            
+
     # def read_accel_file(self, accel_file_dir):
     #     # * accel data frame เราจะใช้แปลงค่า
     #     self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
@@ -662,7 +668,8 @@ class MyApp:
 
     def select_accel_file(self):
         # * รับ dir ของไฟล์
-        self.accel_file_dir = filedialog.askopenfilename(title="Select Accel File")
+        self.accel_file_dir = filedialog.askopenfilename(
+            title="Select Accel File")
         if self.accel_file_dir:
             self.accl_dir_namedisplay_on_btn.config(
                 text=f"{self.accel_file_dir.split('/')[-1]}")
@@ -680,7 +687,8 @@ class MyApp:
             col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
         }
 
-        self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
+        self.accel_orders_list = self.accel_df_state['orders'].dropna(
+        ).tolist()
         # self.sn_list = self.accel_df_state['sn'].dropna().tolist()
         self.CP_list = self.accel_df_state['cp'].dropna().tolist()
         print(self.accel_orders_list)
@@ -689,14 +697,15 @@ class MyApp:
         print(self.CP_list)
 
     # * update accel file ******************************************************************
-    #* เมื่อมีการใช้ SN ภายใน Accel file 
+    # * เมื่อมีการใช้ SN ภายใน Accel file
     def deduct_accel_file_data(self, order, sku_serials=[]):
         order = order.get()
         df = self.accel_df_state
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
-        print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
-        #* ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
+        print("deduct_accel_file_data ref: ",
+              df.loc[df['orders'] == order, 'orders'])
+        # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
             df.loc[df['orders'] == order, 'orders'] = ''
@@ -713,14 +722,14 @@ class MyApp:
             print("select accel file first!!")
             return
 
-        target_dirs: tuple = filedialog.askopenfilenames(title="Select SN PDF files")
+        target_dirs: tuple = filedialog.askopenfilenames(
+            title="Select SN PDF files")
         if len(target_dirs) != 0:
             for target_dir in target_dirs:
                 self.sn_extractor(accel_file_dir, target_dir)
         else:
             print("You have not selected any transfer file, Extraction ends!!")
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
-        
 
     def sn_extractor(self, output_excel, target_dir):
         extracted_txt: str = ""
@@ -728,89 +737,95 @@ class MyApp:
         # * สกัดเอา ข้อความออกมาจากไฟล์
         for page in reader.pages:
             extracted_txt += page.extract_text()
-            
+
         pattern = r'^.*?(?=No\. Product Code Barcode Product Name Transfer No\. Order Ship Status)'
         extracted_txt = re.sub(pattern, '', extracted_txt, flags=re.DOTALL)
         extracted_txt = extracted_txt.lstrip()
-        
+
         pattern2 = r'ผู้ส่งสินค้า.*?(?:No\. Product Code Barcode Product Name Transfer No\. Order Ship Status|วันที่ _ _ _ / _ _ _ / _ _ _)'
         extracted_txt = re.sub(pattern2, '', extracted_txt, flags=re.DOTALL)
-        
+
         pattern_serial = r'Serial\s:'
-        extracted_txt = re.sub(pattern_serial, '', extracted_txt, flags=re.DOTALL)
-        
+        extracted_txt = re.sub(
+            pattern_serial, '', extracted_txt, flags=re.DOTALL)
+
         pattern_sku_no = r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))'
-        extracted_txt = re.sub(pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
-        
-        #* สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
-        #* Regular expression สำหรับการจับ SKU
+        extracted_txt = re.sub(
+            pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
+
+        # * สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
+        # * Regular expression สำหรับการจับ SKU
         sku_pattern = r'([A-Z0-9]{3}-[0-9]{6})'
-        
+
         # *Regular expression สำหรับการจับ serial numbers
-        serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
-        
-        #* สกัด SKU
+        # serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+        serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+
+        # * สกัด SKU
         product_codes = re.findall(sku_pattern, extracted_txt)
-        
-        #* สกัด serial numbers
+
+        # * สกัด serial numbers
         serial_numbers = re.findall(serial_pattern, extracted_txt, re.DOTALL)
-        
+
         print(serial_numbers)
-        
+
         cleaned_serial_numbers = []
         for serial in serial_numbers:
-            #* ลบช่องว่างและเลขลำดับที่ไม่ต้องการออก
-            cleaned_serial = re.sub(r'\n', '', serial).strip()  #* ลบเลขลำดับที่ท้าย
+            # * ลบช่องว่างและเลขลำดับที่ไม่ต้องการออก
+            # * ลบเลขลำดับที่ท้าย
+            cleaned_serial = re.sub(r'\n', '', serial).strip()
             # cleaned_serial = re.sub(r'\s+', '', cleaned_serial)  #* ลบช่องว่างทั้งหมด
             cleaned_serial_numbers.append(cleaned_serial)
-            
-        #* แสดงผล
+
+        # * แสดงผล
         print("Product Codes:")
         code_count = 0
         for code in product_codes:
-            code_count+=1
+            code_count += 1
             print(code_count, " ", code)
-            
+
         print("\nSerial Numbers:")
         code_count = 0
         for serial in cleaned_serial_numbers:
-            code_count+=1
-            #* ลบช่องว่างและเพิ่มวงเล็บ [] รอบ Serial Numbers
+            code_count += 1
+            # * ลบช่องว่างและเพิ่มวงเล็บ [] รอบ Serial Numbers
             serial = serial.replace(" ", "")
             serial_list = serial.split(",")
             print(f"{code_count} {len(serial_list)} [{serial}]")
-            
-        #* จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
+
+        # * จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
         # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_numbers]
-        serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
-        
+        serial_numbers_grouped = [re.findall(
+            r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
+
         # ตรวจสอบข้อมูลที่ถูกสกัด
         print("SKU Matches:")
-        print(len(product_codes),product_codes)
+        print(len(product_codes), product_codes)
         print("Serial Numbers Grouped:")
         print(len(serial_numbers_grouped), serial_numbers_grouped)
-        
-        #* สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
-        data = {sku: serials for sku, serials in zip(product_codes, serial_numbers_grouped)}
-        
+
+        # * สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
+        data = {sku: serials for sku, serials in zip(
+            product_codes, serial_numbers_grouped)}
+
         # ตรวจสอบ DataFrame ก่อนเขียนลงไฟล์
         # print("DataFrame:")
-        
-        #* เอาเข้าตาราง
+
+        # * เอาเข้าตาราง
         try:
             # โหลด workbook และ sheet ล่าสุด
             book = load_workbook(output_excel)
             sheet = book.active
-            
+
             # หาคอลัมน์ล่าสุดที่มีข้อมูล
             last_column = sheet.max_column
-            
+
             # เขียนข้อมูลลงใน Excel
             for col, (sku, serials) in enumerate(data.items(), start=last_column+1):
                 sheet.cell(row=1, column=col, value=sku)
                 for row, serial in enumerate(serials, start=2):
                     sheet.cell(row=row, column=col, value=serial)
-                    
+
             # บันทึกไฟล์
             book.save(output_excel)
             print(f"ข้อมูลถูกเพิ่มลงใน {output_excel} เรียบร้อยแล้ว")
@@ -822,10 +837,12 @@ class MyApp:
     def select_excel(self):
         self.result = "Excel"
         print("Select Excel")
-        self.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
+        self.table_location = filedialog.askopenfilename(
+            title="Select Shopee order toship file")
         # * ตัดเอาเฉพาะ ชื่อไฟล์
-        self.display_location_result.config(text=f"{self.table_location.split('/')[-1]}")
-        
+        self.display_location_result.config(
+            text=f"{self.table_location.split('/')[-1]}")
+
         # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
@@ -837,7 +854,7 @@ class MyApp:
             bg=f'{self.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
         #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
-        
+
         # * หลังจากได้ไฟล์เข้ามาแล้ว (self.table_location) เราจะทำการสร้างเป็น dataframe ด้วย function get_data_frame()
         self.get_data_frame()
         print("Table Location:", self.table_location)
@@ -1211,37 +1228,39 @@ class MyApp:
         return cleaned_address
 
     def clean_address(self, address):
-        keywords = ["เขต", "แขวง", "ต.", "ตำบล", "อ.", "อำเภอ", "จ.", "จังหวัด"]
-        
+        keywords = ["เขต", "แขวง", "ต.", "ตำบล",
+                    "อ.", "อำเภอ", "จ.", "จังหวัด"]
+
         # ตรวจสอบว่าสตริงมีคำ "จังหวัด" และ ("เขต" หรือ "แขวง") หรือไม่
         if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
             # ลบคำ "จังหวัด" ออกจากสตริง
             address = address.replace("จังหวัด", "")
-            
+
         if "\n" in address:
             address = address.replace('\n', " ")
-            
+
         # เริ่มต้นโดยการแยกคำด้วยช่องว่าง
         parts = address.split()
-        
+
         # สร้าง list เพื่อเก็บคำที่ไม่ใช่คำย่อ
         cleaned_parts = []
-        
+
         for part in parts:
             # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword) for keyword in ["ต.", "อ.", "จ."])
+            is_abbreviation = any(part.startswith(keyword)
+                                  for keyword in ["ต.", "อ.", "จ."])
             if not is_abbreviation:
                 cleaned_parts.append(part)
-                
+
         # นำคำที่ไม่ใช่คำย่อมาเชื่อมกลับเป็นสตริงใหม่
         cleaned_address = ' '.join(cleaned_parts)
-        
+
         # ลบคำที่มีส่วนที่เหมือนกันออก
         cleaned_address = self.clean_duplicate_parts(cleaned_address)
-        
+
         # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
         cleaned_address = cleaned_address.replace("  ", " ")
-        
+
         return cleaned_address
 
     # ? WIP note_extractor ยังไม่ค่อยสมบูรณ์ เพราะ case ตัวอย่างมันนานๆเจอที
@@ -1252,28 +1271,39 @@ class MyApp:
                     r'ชื่อ\s*:?\s*(.*)', self.order_note)
             except:
                 self.name_match = re.search(r'บริษัท.*', self.order_note)
-                
-            #* ถ้ากลับมาดูไม่ต้องสงสัยว่าแยกทำไม พอเขียนติดกันแล้วมันดูสับสน เลยแยกเฉยๆไม่มีไร (A1/2)
+
+            # * ถ้ากลับมาดูไม่ต้องสงสัยว่าแยกทำไม พอเขียนติดกันแล้วมันดูสับสน เลยแยกเฉยๆไม่มีไร (A1/2)
             if "บริษัท" in self.name_match.group():
-                self.branch_match = re.search(r'สาขา\s*:?\s*(.*)', self.order_note)
-                self.tax_id_match = re.search(r'Tax id\s*:?\s*(.*)', self.order_note)
-                self.email_match = re.search(r'email\s*:?\s*(.*)', self.order_note.lower())
-                self.tel_match = re.search(r'tel\s*:?\s*,?(.*)', self.order_note.lower())
-                
-            self.address_match = re.search(r'ที่อยู่\s*:?\s*(.*)', self.order_note)
-                
+                self.branch_match = re.search(
+                    r'สาขา\s*:?\s*(.*)', self.order_note)
+                self.tax_id_match = re.search(
+                    r'Tax id\s*:?\s*(.*)', self.order_note)
+                self.email_match = re.search(
+                    r'email\s*:?\s*(.*)', self.order_note.lower())
+                self.tel_match = re.search(
+                    r'tel\s*:?\s*,?(.*)', self.order_note.lower())
+
+            self.address_match = re.search(
+                r'ที่อยู่\s*:?\s*(.*)', self.order_note)
+
             print("try: regexบันทึก: ", self.name_match)
             print("try: ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
 
             # * เก็บค่าเข้าตัวแปร //#* ถ้ากลับมาดูไม่ต้องสงสัยว่าแยกทำไม พอเขียนติดกันแล้วมันดูสับสน เลยแยกเฉยๆไม่มีไรจะรวมกันก็ได้ (A2/2)
             if "บริษัท" in self.name_match.group():
-                self.tax_branch_num.set(self.branch_match.group(1)) if self.branch_match else self.tax_branch_num.set(self.tax_branch_num.get())
-                self.tax_num.set(self.tax_id_match.group(1)) if self.tax_id_match else self.tax_num.set(self.tax_num.get())
-                self.cus_email.set(self.email_match.group(1)) if self.email_match else self.cus_email.set(self.cus_email.get())
-                self.cus_tel.set(self.tel_match.group(1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
-                
-            self.cus_name.set(self.name_match.group(1)) if self.name_match else self.cus_name.set(self.cus_name.get())
-            self.note_extracted_address = self.address_match.group(1) if self.address_match else "-"
+                self.tax_branch_num.set(self.branch_match.group(
+                    1)) if self.branch_match else self.tax_branch_num.set(self.tax_branch_num.get())
+                self.tax_num.set(self.tax_id_match.group(
+                    1)) if self.tax_id_match else self.tax_num.set(self.tax_num.get())
+                self.cus_email.set(self.email_match.group(
+                    1)) if self.email_match else self.cus_email.set(self.cus_email.get())
+                self.cus_tel.set(self.tel_match.group(
+                    1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
+
+            self.cus_name.set(self.name_match.group(
+                1)) if self.name_match else self.cus_name.set(self.cus_name.get())
+            self.note_extracted_address = self.address_match.group(
+                1) if self.address_match else "-"
             self.cus_address = self.note_extracted_address
         else:
             print("no note to be extracted, note_extractor was not used")
@@ -1423,32 +1453,33 @@ class MyApp:
         if len(self.order) < 14:
             raise ValueError("Order num is weird")
         self.cus_order.set(self.order)
-        differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า', 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
+        differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า',
+                                 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = [
-            'หมายเลขคำสั่งซื้อ', 
-            'สถานะการสั่งซื้อ', 
-            'โค้ดส่วนลดชำระโดยผู้ขาย', 
-            'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',  
-            'ประเภทใบกำกับภาษี', 
+            'หมายเลขคำสั่งซื้อ',
+            'สถานะการสั่งซื้อ',
+            'โค้ดส่วนลดชำระโดยผู้ขาย',
+            'ค่าจัดส่งที่ชำระโดยผู้ซื้อ',
+            'ประเภทใบกำกับภาษี',
             'ชื่อ',
-            'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 
-            'แขวง/ตำบล', 
-            'เขต/อำเภอ.1', 
-            'จังหวัด.1', 
-            'รหัสไปรษณีย์.1', 
-            'หมายเลขประจำตัวผู้เสียภาษี', 
-            'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี', 
-            'อีเมลสำหรับรับใบกำกับภาษี', 
-            'ชื่อผู้ใช้ (ผู้ซื้อ)', 
-            'จำนวนเงินทั้งหมด', 
-            'วันที่ทำการสั่งซื้อ', 
-            'โค้ดส่วนลดชำระโดย Shopee', 
-            'รายละเอียดที่อยู่', 
+            'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป',
+            'แขวง/ตำบล',
+            'เขต/อำเภอ.1',
+            'จังหวัด.1',
+            'รหัสไปรษณีย์.1',
+            'หมายเลขประจำตัวผู้เสียภาษี',
+            'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี',
+            'อีเมลสำหรับรับใบกำกับภาษี',
+            'ชื่อผู้ใช้ (ผู้ซื้อ)',
+            'จำนวนเงินทั้งหมด',
+            'วันที่ทำการสั่งซื้อ',
+            'โค้ดส่วนลดชำระโดย Shopee',
+            'รายละเอียดที่อยู่',
             'ประเภทสาขา',
-            'รหัสประจำสาขา', 
-            'หมายเหตุจากผู้ซื้อ', 
-            'บันทึก', 
-            'ชื่อผู้รับ', 
+            'รหัสประจำสาขา',
+            'หมายเหตุจากผู้ซื้อ',
+            'บันทึก',
+            'ชื่อผู้รับ',
             'หมายเลขโทรศัพท์'
         ]
 
@@ -1487,8 +1518,10 @@ class MyApp:
                     option = ""
                     if str(row['ชื่อตัวเลือก']) != "nan":
                         option = str(row['ชื่อตัวเลือก'])
-                    self.update_log(f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {option} {str(row['ชื่อสินค้า'])} ")
-                    self.update_log(f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
+                    self.update_log(f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {
+                                    option} {str(row['ชื่อสินค้า'])} ")
+                    self.update_log(f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {
+                                    float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like shopee ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 self.widgets_no_col_lst = []
@@ -1503,36 +1536,51 @@ class MyApp:
                 self.idx = 0
                 self.mimic_list_item_states = []
                 for row in self.items:
-                    self.no_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[0]))
+                    self.no_col_value_widget = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[0]))
                     self.no_col_value_widget.insert(0, self.idx+1)
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
-                    
-                    self.product_col_name_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[1]))
-                    self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
-                    self.widgets_product_col_lst.append(self.product_col_name_value_widget)
-                    self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
-                    
-                    self.price_unit_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[2]))
-                    self.price_unit_col_value_widget.insert(0, f"{float(row['ราคาขาย']):,.2f}")
-                    self.widgets_prc_unit_lst.append(self.price_unit_col_value_widget)
-                    
-                    self.qty_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[3]))
+
+                    self.product_col_name_value_widget = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[1]))
+                    self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{
+                                                              ' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
+                    self.widgets_product_col_lst.append(
+                        self.product_col_name_value_widget)
+                    self.mimic_list_item_states.append(
+                        f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
+
+                    self.price_unit_col_value_widget = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[2]))
+                    self.price_unit_col_value_widget.insert(
+                        0, f"{float(row['ราคาขาย']):,.2f}")
+                    self.widgets_prc_unit_lst.append(
+                        self.price_unit_col_value_widget)
+
+                    self.qty_col_value_widget = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[3]))
                     self.qty_col_value_widget.insert(0, int(row['จำนวน']))
                     self.widgets_qty_lst.append(self.qty_col_value_widget)
-                    
-                    self.total_price_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[4]))
-                    self.total_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
-                    self.widgets_total_prc_lst.append(self.total_price_col_value_widget)
-                    
-                    self.total_rebate_price_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[5]))
-                    self.total_rebate_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
-                    self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_col_value_widget)
-                    
+
+                    self.total_price_col_value_widget = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[4]))
+                    self.total_price_col_value_widget.insert(
+                        0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
+                    self.widgets_total_prc_lst.append(
+                        self.total_price_col_value_widget)
+
+                    self.total_rebate_price_col_value_widget = Entry(
+                        self.mp_products_list_frame, width=int(self.cols_width[5]))
+                    self.total_rebate_price_col_value_widget.insert(
+                        0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
+                    self.widgets_total_rebt_prc_lst.append(
+                        self.total_rebate_price_col_value_widget)
+
                     # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
                     # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search_order, width=10)
                     # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
-                
+
                 # print("none ได้ไง:", self.widgets_no_col_lst)
                 # print("ไม่สามารถ grid: ", self.all_cols)
 
@@ -1563,17 +1611,26 @@ class MyApp:
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
-                print("รหัสประจำสาขา= ", self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
-                branch = self.find_branch(str(self.nondistortedData['รหัสประจำสาขา']))
+                print("รหัสประจำสาขา= ",
+                      self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
+                branch = self.find_branch(
+                    str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch_num.set(branch)
 
-                print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ", self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
-                print("self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง")
-                print(bool(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])))
-                print(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
-                print(pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
-                print("ค่าจาก DFเพียวๆ: ",self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])
-                print("ดูtype: ",type(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                print("self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ",
+                      self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'])
+                print(
+                    "self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง")
+                print(bool(pd.isna(
+                    self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])))
+                print(
+                    pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
+                print(
+                    pd.isna(self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี']))
+                print("ค่าจาก DFเพียวๆ: ",
+                      self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0])
+                print("ดูtype: ", type(
+                    self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'].iloc[0]))
 
                 # * ถ้า col ['หมายเลขประจำตัวผู้เสียภาษี'] ไม่ใช่ nan จะเก็บค่าลงใน tax_num_only
 
@@ -1640,12 +1697,15 @@ class MyApp:
                 # * ส่วนสำหรับการแสดงผล UI ------------------------------------------------------
                 # self.address = self.filter_data.iat[0, 59]
                 self.address = self.nondistortedData['รายละเอียดที่อยู่']
-                self.cus_remark: str = str(self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
+                self.cus_remark: str = str(
+                    self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
                 self.order_note: str = str(self.nondistortedData['บันทึก'])
-                self.cus_email.set(str(self.nondistortedData['อีเมลสำหรับรับใบกำกับภาษี']))
+                self.cus_email.set(
+                    str(self.nondistortedData['อีเมลสำหรับรับใบกำกับภาษี']))
 
                 print("ตรวจหมายเหตุ: ", self.cus_remark)
-                print("ตรวจบันทึก: ", self.order_note, "type: ", type(self.order_note))
+                print("ตรวจบันทึก: ", self.order_note,
+                      "type: ", type(self.order_note))
 
                 # * ดึงบันทึกลูกค้า SHOPEE
                 if self.marketplace_target.get() == 'SHOPEE':
@@ -1671,12 +1731,13 @@ class MyApp:
                         self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                     if "กรุงเทพ" in self.cleaned_address:
-                        self.cleaned_address = self.cleaned_address.replace("จังหวัด", '')
+                        self.cleaned_address = self.cleaned_address.replace(
+                            "จังหวัด", '')
                     self.search_result = {
                         "status": self.order_status,
-                        "is_tax": self.tax_bool.get(), 
-                        "address": self.cleaned_address, 
-                        "details": self.nondistortedData, 
+                        "is_tax": self.tax_bool.get(),
+                        "address": self.cleaned_address,
+                        "details": self.nondistortedData,
                         "items": self.items
                     }
 
@@ -1688,7 +1749,8 @@ class MyApp:
                             self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                     if "กรุงเทพ" in self.cleaned_address:
-                        self.cleaned_address = self.cleaned_address.replace("จังหวัด", '')
+                        self.cleaned_address = self.cleaned_address.replace(
+                            "จังหวัด", '')
                     # print("Addressที่คลีนแล้ว: ", self.cleaned_address)
                     self.search_result = {"status": self.order_status,
                                           "is_tax": self.tax_bool.get(), "address": self.cleaned_address, "details": self.nondistortedData, "items": self.items}
@@ -1701,14 +1763,16 @@ class MyApp:
                     sku = str(item['เลขอ้างอิง SKU (SKU Reference No.)'])
                     result = {'sku': sku, 'qty': amount}
                     self.input_formula.append(result)
-                    print("จำนวน", int(item['จำนวน']), type(int(item['จำนวน'])))
+                    print("จำนวน", int(item['จำนวน']),
+                          type(int(item['จำนวน'])))
                 print("สูตรสร้าง input", self.input_formula)
                 for idx, item in enumerate(self.input_formula):
                     print("รายการที่ ", idx+1, item['sku'])
                     for idx in range(item['qty']):
                         print("สร้างinputอันที่ ", idx+1)
 
-                self.cus_account_name.set(re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
+                self.cus_account_name.set(re.sub(
+                    r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
                 self.cus_account_name.set(self.cus_account_name.get().strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
 
@@ -1717,7 +1781,8 @@ class MyApp:
                 # * การจะเลือกรายcol ได้ต้องชัวร์ว่า col แขวง/ตำบลต้องไม่ใช่ค่าว่าง หรือต้องไม่ Return เป็น "nan"
                 try:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
-                        print("แขวง/ตำบล ไม่เท่ากับ nan: ", self.nondistortedData['แขวง/ตำบล'])
+                        print("แขวง/ตำบล ไม่เท่ากับ nan: ",
+                              self.nondistortedData['แขวง/ตำบล'])
                         # * Lazada กับ shopee มันแสดงผล address ไม่เหมือนกันเพราะ ตาราง Excel ที่มันให้มา
                         if self.marketplace_target.get() == "LAZADA":
                             self.update_gui(
@@ -1799,45 +1864,61 @@ class MyApp:
 
                 self.sum_price = sum(self.net_prices_list)
                 self.show_products(self.items)
-                print("จำนวนเงิน", self.f(self.nondistortedData['จำนวนเงินทั้งหมด']))
-                print('สินค้ารวมค่าส่ง: ',self.f(self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
+                print("จำนวนเงิน", self.f(
+                    self.nondistortedData['จำนวนเงินทั้งหมด']))
+                print('สินค้ารวมค่าส่ง: ', self.f(
+                    self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
                 self.update_log(f"เวลาที่สั่ง: {self.cus_purchase_time.get()}")
-                self.update_log(f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
-                self.update_log(f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price) + float(self.cus_ship_cost.get()))}")
+                self.update_log(
+                    f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
+                self.update_log(f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(
+                    float(self.sum_price) + float(self.cus_ship_cost.get()))}")
 
                 self.update_log(f" ")
                 self.update_log(f"-↓↓↓↓↓↓-หน้าสุดท้าย-↓↓↓↓↓↓-")
-                self.update_log(f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
+                self.update_log(
+                    f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
 
                 # * จากปัญหาข้อที่ 37 // การอัพเดท LOG เนื่องจาก LAZ กับ Shopee มีเงื่อนไข การใส่ค่าขนส่งในการออกบิลไม่เหมือนกัน SHOPEE ใส่หมด แต่ LAZ ใส่เป็นบาง ORDER ขึ้นอยู่กับว่า ลูกค้า จะ inbox มาขอให้ใส่หรือไม่
                 if self.marketplace_target.get() == "SHOPEE":
-                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f(
+                        (self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
                 elif self.marketplace_target.get() == "LAZADA":
-                    self.update_log(f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
+                    self.update_log(f"สินค้าเฉยๆ หักseller: {self.f(
+                        (self.sum_price)-self.cus_seller_voucher.get())}")
                     self.update_log(f"---------------------------------")
-                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f(
+                        (self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
             else:
-                print(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
-                print("อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
+                print(f"Order ที่ยิงมา {
+                      self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
+                print(
+                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
                 print("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
-                self.update_log(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
-                self.update_log("อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
-                self.update_log("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
-                self.update_log("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+                self.update_log(f"Order ที่ยิงมา {
+                                self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
+                self.update_log(
+                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
+                self.update_log(
+                    "ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+                self.update_log(
+                    "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
                 self.reset_all_display()
-                logger.info(f"Order: {self.search_query} Not found in the shopee's Export File")
+                logger.info(
+                    f"Order: {self.search_query} Not found in the shopee's Export File")
 
         else:
             self.reset_all_display()
-            
+
         self.on_complete.set()
 
     def cusNameFixer5(self, name, account_name=":"):
         is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
-        name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '', name).strip() if is_found else name.strip()
+        name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '',
+                      name).strip() if is_found else name.strip()
         # เช็คว่าถ้ามองชื่อเป็น list มันจะแบ่งได้กี่ส่วน
         name += " "+account_name if len(name.split()) == 1 else ""
         print("name:", name)
@@ -1852,12 +1933,14 @@ class MyApp:
 
         if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
             print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
-            name_edited = name_edited.replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
+            name_edited = name_edited.replace("หจก.", "").replace(
+                "ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
             name_edited = f"""ห้างหุ้นส่วนจำกัด {name_edited}"""
 
         elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
             print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
-            name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
+            name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace(
+                "จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
             name_edited = f"""บริษัท {name_edited} จำกัด"""
 
         # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ (ส่วนท้ายของ code)
@@ -1872,7 +1955,8 @@ class MyApp:
         if any(pattern in name_edited for pattern in head_office_patterns):
             # * re.sub(pattern, คำที่เอามาแทน, ข้อความที่เป็นกรรม(ถูกกระทำ))
             # * r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
-            name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
+            name_edited = re.sub(
+                r'|'.join(head_office_patterns), '', name_edited).strip()
         elif '(สาขา' in name_edited or 'สาขา' in name_edited:
             name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
             name_edited = re.sub(r'สาขา\d*', '', name_edited)
@@ -1900,20 +1984,23 @@ class MyApp:
 
         print("Thread is done")
         if self.get_tabs_stat == False and self.search_thread_stat == False:
-            self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            self.display_bot_status_label.config(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวบน)")
 
         if self.get_tabs_thread.is_alive():
             print("มีthreadใหม่มาต่อ")
-            self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+            self.display_bot_status_label.config(
+                text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
-    def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None): 
+    def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
         # print(self.is_bot_running.get())
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
-        if  (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
+        if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
-            self.root.after(1000, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
-            
+            self.root.after(1000, lambda: self.check_threads(
+                shorter_thread_cycle, longer_thread_cycle, callback))
+
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_gui_busy.get() == True:
                 self.display_bot_status_label.config(
@@ -1925,9 +2012,12 @@ class MyApp:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
-            print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
-            print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
-            self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            print("shorter_thread_cycle is alive?: ",
+                  shorter_thread_cycle.is_alive())
+            print("longer_thread_cycle is alive?: ",
+                  longer_thread_cycle.is_alive())
+            self.display_bot_status_label.config(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
 
             if callback:
@@ -1962,7 +2052,8 @@ class MyApp:
 
         # * สร้าง Thread
         self.shorter_thread_cycle = threading.Thread(target=self.bot.get_tabs)
-        self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.search_complete))
+        self.longer_thread_cycle = threading.Thread(
+            target=lambda: self.order_search(self.search_query, self.search_complete))
         print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
@@ -1970,10 +2061,12 @@ class MyApp:
         self.longer_thread_cycle.start()
         # self.shorter_thread_cycle.join()
         # self.longer_thread_cycle.join()
-        
+
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
-        self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
-        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+        self.check_threads(self.shorter_thread_cycle,
+                           self.longer_thread_cycle, callback)
+        self.display_bot_status_label.config(
+            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
@@ -1985,19 +2078,21 @@ class MyApp:
             self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
             if count < self.accel_orders_len:
                 if self.is_accel_mode_activated.get():
-                    self.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                    self.search_order(
+                        self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
                     raise ValueError("Accel mode has been destroyed")
             else:
                 pass
 
         # * search รอบแรกใช้ตรงนี้
-        self.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
+        self.search_order(
+            self.accel_orders_list[0], lambda: start_next_cycle(1))
 
     def stop_operation(self):
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
         self.is_bot_running.set(False)
-        
+
     def convert_text(self, text):
         result = []
         text = text.replace(" ", "")
@@ -2102,7 +2197,8 @@ class DataSourceSelector:
     def select_excel(self):
         self.app.result = "Excel"
         print("Select Excel")
-        self.app.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
+        self.app.table_location = filedialog.askopenfilename(
+            title="Select Shopee order toship file")
         self.app.display_location_result.config(
             text=f"{self.app.table_location.split('/')[-1]}")
         # target should come before get dataframe
@@ -2125,8 +2221,6 @@ class DataSourceSelector:
     def on_close(self):
         self.app.marketplace_target.set("")
         self.subwindow.destroy()
-
-
 
 
 class PopUp:
@@ -2180,7 +2274,9 @@ class PopUp:
         # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
         self.subwindow.lift()
 
-#* class สำหรับรับ ID PASS
+# * class สำหรับรับ ID PASS
+
+
 class UserAccount:
     def __init__(self, parent, app):
         self.parent = parent
@@ -2196,7 +2292,8 @@ class UserAccount:
         self.subwindow.resizable(False, False)
 
         # * Event Enter
-        self.subwindow.bind("<Return>", lambda event=None: self.submit_btn.invoke())
+        self.subwindow.bind(
+            "<Return>", lambda event=None: self.submit_btn.invoke())
         self.subwindow.bind("<Key>", _onKeyRelease)
 
         # * สร้างเฟรม
@@ -2228,7 +2325,8 @@ class UserAccount:
         self.chk_bx_show_pw.pack()
 
         # * Submit Button
-        self.submit_btn = Button(self.subwin_frame, text="Submit", command=self.update_btn)
+        self.submit_btn = Button(
+            self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
@@ -2543,12 +2641,13 @@ class Bot_POS:
                 # * เริ่มการทำงาน Operation Start
 
                 if self.app.order != "":
-                    
+
                     logger.info(f"Order: {self.app.order} Start!!")
                     try:
                         self.operation_start()
                     except EXCEPTION as err:
-                        logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
+                        logger.info(
+                            f"Order: {self.app.order} outer_Exception_Error!! {err}")
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
                     self.app.search_complete.set()
@@ -2557,9 +2656,8 @@ class Bot_POS:
             traceback_str = traceback.format_exc()
             print(f"An error occirred: {err}")
             print(traceback_str)
-            logger.info(f"Order: {self.app.order} get_tabs_outer_Exception_Error!! {err}")
-        
-        
+            logger.info(
+                f"Order: {self.app.order} get_tabs_outer_Exception_Error!! {err}")
 
     def enter_cus_name(self, cus_search):
         # * เคลียและกรอกชื่อลูกค้า
@@ -2585,13 +2683,13 @@ class Bot_POS:
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, names, cb=""):
         cus_desire_name = self.app.cus_name.get().replace(" ", "")
-        
-        # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array 
+
+        # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array
         names_no_code = names.copy()
         for i in range(len(names)):
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
-            
+
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
             if cus_desire_name in name:
@@ -2599,9 +2697,10 @@ class Bot_POS:
                 while True:
                     try:
                         print("เลือกชื่อลูกค้า", names[i])
-                        self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+                        self.driver.find_element(
+                            By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
                         break
-                    
+
                     except:
                         print("No customer found")
                         continue
@@ -2807,27 +2906,31 @@ class Bot_POS:
 
                     self.searchBtn.click()
                 except:
-                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
+                    raise ValueError(f"method operation_start Error : {
+                                     traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(0.75)
                 try:
                     print("Found element classed big-text")
-                    self.driver.find_element(By.CLASS_NAME, 'big-text').is_displayed()
+                    self.driver.find_element(
+                        By.CLASS_NAME, 'big-text').is_displayed()
                 except:
                     print(
                         "Not found element classed big-text, try to wait and click element with XPATH")
                     self.wait1.until(EC.element_to_be_clickable(
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div') พัง 28/08/2024 12:00 PM
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
-                        
+                        (By.XPATH,
+                         '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
+
                     ))
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
                     # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-                    self.app.cus_cur_status.set(self.driver.find_element(By.CLASS_NAME, 'big-text').text)
+                    self.app.cus_cur_status.set(
+                        self.driver.find_element(By.CLASS_NAME, 'big-text').text)
 
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
@@ -2841,25 +2944,33 @@ class Bot_POS:
                 self.app.display_current_status.config(
                     fg="#000000", bg="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
-                    
+                    self.app.display_current_status.config(
+                        bg="#00ff11", fg="#000000")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
+                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(
+                        bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
+                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
-                    print(self.app.order_status == self.app.cus_cur_status.get())
+                    print(self.app.order_status ==
+                          self.app.cus_cur_status.get())
                     print("Status in the file is reliable")
                 else:
-                    print(self.app.order_status == self.app.cus_cur_status.get())
-                    print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
-                    print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+                    print(self.app.order_status ==
+                          self.app.cus_cur_status.get())
+                    print(
+                        "Status in the file is unreliable, suggest downloading a new Export File from the link below")
+                    print(
+                        "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
-            ####* IF MARKETPLACE IS LAZADA ###########################################################################################################################
+            #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
                 self.driver.switch_to.window(
                     self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
@@ -3108,16 +3219,17 @@ class Bot_POS:
                     By.XPATH, self.app.cusNameLi1)
                 # * มันจะได้ Searching...
                 print("มันทำไม", self.wait_condition.text)
-                
-                #? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
+
+                # ? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
                 # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[16]/div[2]/button[1]"
                 try:
-                    #* มี pop-upไหม
+                    # * มี pop-upไหม
                     if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
-                        #* ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
-                        self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
+                        # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
+                        self.driver.find_element(
+                            By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
                         continue
-                    #* ไม่มี pop-up ให้ break
+                    # * ไม่มี pop-up ให้ break
                     break
                 except:
                     break
@@ -3132,7 +3244,8 @@ class Bot_POS:
                     #     (By.XPATH, self.app.cusNameLi1)))
 
                     # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
-                    self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+                    self.wait_condition = self.driver.find_element(
+                        By.XPATH, self.app.cusNameLi1)
 
                     # * ช่วงรอ ผลลัพของ Searching...
                     try:
@@ -3145,8 +3258,10 @@ class Bot_POS:
                         pass
 
                     # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
-                    self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
-                    self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+                    self.wait1.until(EC.visibility_of_element_located(
+                        (By.XPATH, self.app.cusNameLi1)))
+                    self.wait_condition = self.driver.find_element(
+                        By.XPATH, self.app.cusNameLi1)
 
                     # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
                     if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
@@ -3169,7 +3284,8 @@ class Bot_POS:
 
                         # * เพิ่มจำนวนครั้งที่ add
                         self.customer_added_times += 1
-                        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                        self.driver.switch_to.window(
+                            self.merged_dict['SMCO :: เปิดการขาย'])
                         print("ก่อนRe Enter ชื่อลูกค้า")
                         self.enter_cus_name(self.cus_search_input)
                         print(f"Re enter name after add")
@@ -3200,17 +3316,21 @@ class Bot_POS:
                         By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                         By.CSS_SELECTOR, '.select2-results__option')
-                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
+                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:",
+                          customer_name_dropdown_lis)
                     break
-                
+
                 except:
-                    self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+                    self.driver.find_element(
+                        By.XPATH, self.app.cus_arrow_btn).click()
                     continue
 
             if len(customer_name_dropdown_lis) > 1:
                 print("มากกว่า 1")
-                li_names = [element.text for element in customer_name_dropdown_lis]
-                self.select_cus_name_from_lis(li_names, self.select_cus_name_from_lis)
+                li_names = [
+                    element.text for element in customer_name_dropdown_lis]
+                self.select_cus_name_from_lis(
+                    li_names, self.select_cus_name_from_lis)
                 print("click แล้ว")
             else:
                 self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
@@ -3234,9 +3354,8 @@ class Bot_POS:
             print("search หายไปแล้ว")
             self.wait1.until(EC.invisibility_of_element_located(
                 (By.XPATH, self.app.cusNameInput)))
-            
-            
-            #* ใส่ค่าขนส่ง
+
+            # * ใส่ค่าขนส่ง
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 if int(self.app.cus_ship_cost.get()) != int(0):
@@ -3245,22 +3364,24 @@ class Bot_POS:
                             (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                         # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         self.skuInput_element.clear()
-                        
+
                         self.skuInput_element.send_keys("SV0-000101")
                         print("กรอก Code ขนส่งสำเร็จ")
-                        
-                        self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+
+                        self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                         # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         self.skuAddBtn.send_keys(Keys().ENTER)
                         print("กด Enter ที่ช่อง SKU Input สำเร็จ")
-                        
+
                         #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
                         # logger.info(f"Order: {self.app.order} 1/2Finished!!")
                         # return
                         time.sleep(2)
 
                         # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                        self.definePrice_btn_element = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+                        self.definePrice_btn_element = self.wait1.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
                         # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
                         self.definePrice_btn_element.click()
                         time.sleep(1)
@@ -3291,7 +3412,8 @@ class Bot_POS:
                             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
                         try:
                             print("รอหาย")
-                            self.wait1(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
+                            self.wait1(EC.invisibility_of_element_located(
+                                (By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
                         except:
                             print("ไม่มีให้รอ")
                     except Exception as err:
@@ -3379,7 +3501,8 @@ class Bot_POS:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
                             print("แสดงผล obj err แค่ส่วนเดียว", err.alert_text)
-                            PopUp("SNซ้ำ", f'{err.alert_text}', self.parent, "alert")
+                            PopUp("SNซ้ำ", f'{err.alert_text}',
+                                  self.parent, "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
@@ -3425,10 +3548,12 @@ class Bot_POS:
                                 # เลือกประเภทชำระเงิน
                                 if self.app.marketplace_target.get() == 'SHOPEE':
                                     # เลือก shopee
-                                    self.driver.find_element(By.XPATH, "//a[contains(.,'SHOPEE')]").click()
+                                    self.driver.find_element(
+                                        By.XPATH, "//a[contains(.,'SHOPEE')]").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
-                                    self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
+                                    self.driver.find_element(
+                                        By.XPATH, "//a[contains(., 'LAZ')]").click()
 
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
@@ -3460,7 +3585,8 @@ class Bot_POS:
                             if self.app.user_id.get() in self.app.dev_account:
                                 try:
                                     print("ใส่ราคาอตัโนมัติ")
-                                    print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
+                                    print(
+                                        (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
                                     final_price = (
                                         self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                                     if self.app.user_id.get() in self.app.dev_account:
@@ -3727,20 +3853,24 @@ class Bot_POS:
             self.driver.switch_to.window(
                 self.merged_dict['SMCO :: เปิดการขาย1'])
 
-            self.element = self.driver.find_element(By.XPATH, self.app.cusSearchSMCO)
-            self.element.click()  #* กดแว่นขยาย
-            self.btnElement = self.wait1.until(EC.element_to_be_clickable((By.XPATH, self.app.cusCreateBtn)))
+            self.element = self.driver.find_element(
+                By.XPATH, self.app.cusSearchSMCO)
+            self.element.click()  # * กดแว่นขยาย
+            self.btnElement = self.wait1.until(
+                EC.element_to_be_clickable((By.XPATH, self.app.cusCreateBtn)))
             time.sleep(0.65)
-            self.btnElement.click()  #* create
+            self.btnElement.click()  # * create
 
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
             try:
-                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-                
-                #* บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+
+                # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
                 while True:
                     try:
-                        choice_found = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text
+                        choice_found = self.driver.find_element(
+                            By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text
                         print("choice_found: ", choice_found)
                         if self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text == "CM1-Domestic Customer":
                             break
@@ -3748,7 +3878,7 @@ class Bot_POS:
                         time.sleep(1)
                         print("except: ", err)
                         continue
-                
+
                 self.driver.find_element(
                     By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
                 time.sleep(0.75)
@@ -3808,7 +3938,6 @@ class Bot_POS:
             name = f"""{name} ({self.app.branch_type})"""
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch_num.get()})"""
-            
 
         self.driver.switch_to.window(
             self.merged_dict['SMCO :: เปิดการขาย1'])
@@ -4392,7 +4521,8 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
+                PopUp(
+                    "Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
@@ -4470,10 +4600,10 @@ if __name__ == "__main__":
     #     # 67 คือรหัสสำหรับสระแอในภาษาไทย (อาจแตกต่างบนระบบอื่นๆ)
     #     if ctrl_state and event.keycode == 67:
     #         event.widget.event_generate("<<Copy>>")
-            
+
     # * เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
     def _onKeyRelease(event):
-        print("press :", event.keysym)
+        # print("press :", event.keysym)
         ctrl = (event.state & 0x4) != 0
         if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
             event.widget.event_generate("<<Cut>>")
@@ -4503,7 +4633,6 @@ if __name__ == "__main__":
 
     # * > ทำให้กด copy, paste, cut จากภาษาอะไรก็ได้
     root.bind('<Key>', _onKeyRelease)
-    
 
     # * Create Instance
     app = MyApp(root)
@@ -4608,7 +4737,9 @@ if __name__ == "__main__":
 # * 94 Fixed 0.394 // น่าจะได้มั้งไม่มี FeedBack // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเทสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
 # * 95 Fixed 0.395 // แก้ให้เลือกได้แล้ว // มีโอกาสที่จะเลือกประเภทลูกค้าไม่ได้
 # * 96 Added 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
-# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface 
+# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface
+# * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
+# ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
