@@ -679,7 +679,10 @@ class MyApp:
 
         # * accel data frame เราจะใช้แปลงค่า
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
-        self.accel_df_state.drop_duplicates(subset=['orders'], inplace=True)
+        print("before self.accel_df_state: ", self.accel_df_state)
+        self.accel_df_state['orders'].dropna(inplace=True)
+        # self.accel_df_state.loc[self.accel_df_state.duplicated(subset=['orders']), 'orders'] = pd.NA
+        print("after self.accel_df_state: ", self.accel_df_state)
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
         accel_file_columns = self.accel_df_state.columns.dropna().tolist()
@@ -2808,12 +2811,15 @@ class Bot_POS:
         ordered_items = self.app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_items)
         if len(ordered_items) > 0:
-            for item in ordered_items:
-                print("item ordered by customer", item)
-                current_sku = item['เลขอ้างอิง SKU (SKU Reference No.)']
-                sku_qty = item['จำนวน']
+            for ordered_item in ordered_items:
+                print("item ordered by customer", ordered_item)
+                current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
+                print("current_sku: ", current_sku)
+                sku_qtys = ordered_item['จำนวน']
                 if current_sku in self.app.obj_data_from_accel_file:
-                    for item in range(sku_qty):
+                    for item in range(sku_qtys):
+                        print(
+                            "self.app.obj_data_from_accel_file[current_sku]: ", self.app.obj_data_from_accel_file[current_sku])
                         self.app.obj_data_from_accel_file[current_sku]
 
                         if self.app.obj_data_from_accel_file[current_sku]:
@@ -2840,6 +2846,8 @@ class Bot_POS:
                             skuInput.send_keys(Keys().ENTER)
                             #! wip ต้องมีตรวจสอบผลลัพธ์การกรอก sn ตรงนี้
                             print("pressed Enter at SKU-Input")
+                            print(f'to_sent_dict = sku: {
+                                  current_sku}, sn: {sn} ')
                             to_sent_dict = {'sku': current_sku, 'sn': sn}
                             self.used_serials.append(to_sent_dict)
                             time.sleep(2)
@@ -2852,7 +2860,9 @@ class Bot_POS:
                             # self.app.is_accel_mode_activated.set(False)
                             # raise ValueError(
                             #     "There's no SN in Accel File, no functions to handle at this moment.")
-
+                else:
+                    print("ไม่ได้เลือก sn:",
+                          current_sku in self.app.obj_data_from_accel_file)
         else:
             print("No items, return!!")
             return
@@ -3751,9 +3761,9 @@ class Bot_POS:
 
                                         # * Update Accel file //////////////////////
                                         self.app.deduct_accel_file_data(
-                                            self.app.cus_order,
-                                            self.used_serials
-                                        )
+                                                self.app.cus_order,
+                                                self.used_serials
+                                            )
 
                                     except:
                                         # time.sleep(1)
@@ -4739,7 +4749,7 @@ if __name__ == "__main__":
 # * 96 Added 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
 # * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface
 # * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
-# ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order
+# ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order // เรียกหาชื่อปกติก็เปน ช่วงก่อนกรอก ค่าส่ง หลังเจอชื่อ
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
