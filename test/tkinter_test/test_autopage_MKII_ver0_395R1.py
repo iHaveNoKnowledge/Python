@@ -680,8 +680,9 @@ class MyApp:
         # * accel data frame เราจะใช้แปลงค่า
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         print("before self.accel_df_state: ", self.accel_df_state)
+        self.accel_df_state.loc[self.accel_df_state.duplicated(
+            subset=['orders']), 'orders'] = pd.NA
         self.accel_df_state['orders'].dropna(inplace=True)
-        # self.accel_df_state.loc[self.accel_df_state.duplicated(subset=['orders']), 'orders'] = pd.NA
         print("after self.accel_df_state: ", self.accel_df_state)
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
@@ -696,7 +697,6 @@ class MyApp:
         self.CP_list = self.accel_df_state['cp'].dropna().tolist()
         print(self.accel_orders_list)
         print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
-        # print(self.sn_list)
         print(self.CP_list)
 
     # * update accel file ******************************************************************
@@ -2861,8 +2861,9 @@ class Bot_POS:
                             # raise ValueError(
                             #     "There's no SN in Accel File, no functions to handle at this moment.")
                 else:
-                    print("ไม่ได้เลือก sn:",
-                          current_sku in self.app.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:",current_sku in self.app.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:",current_sku , self.app.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:",type(current_sku) , type(self.app.obj_data_from_accel_file))
         else:
             print("No items, return!!")
             return
@@ -3304,8 +3305,8 @@ class Bot_POS:
                     elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
                         self.enter_cus_name(self.cus_search_input)
                         self.customer_name_search_count += 1
-                        print(
-                            f"Re enter name after add extra times{self.customer_name_search_count}")
+                        print(f"Re enter name after add extra times{
+                              self.customer_name_search_count}")
                         continue
                     # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
                     elif self.wait_condition.text == "No results found" and self.customer_added_times == 1:
