@@ -23,7 +23,7 @@ import base64
 
 # * Configure logging to write to a rotating log file
 handler = RotatingFileHandler(
-    filename='chromedriver.log', maxBytes=1000000, backupCount=5)
+    filename='autoinv_selenium_log.log', maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 
@@ -218,7 +218,6 @@ class ChromeDriver:
                     continue
 
                 # * SN input in the pop-up
-
                 while not self.stop_event.is_set():
                     try:
                         self.driver.find_element(
@@ -378,8 +377,6 @@ class ChromeDriver:
             else:
                 print(f"operation ended : {self.stop_event.is_set()}")
                 break
-                
-                
 
             # *update interface log
             self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} ended", self.app.log_textbox)
