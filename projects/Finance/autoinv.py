@@ -48,7 +48,7 @@ class MainApp:
         self.root.configure(bg="#FFFFFF")
         self.canvas = tk.Canvas(
             self.root,
-            bg="#FFFFFF",
+            bg="#63666e",
             height=481,
             width=452,
             bd=0,
@@ -70,6 +70,7 @@ class MainApp:
         self.add_file_img = tk.PhotoImage(file=relative_to_assets("add_file_btn.png"))
         self.add_file_btn = tk.Button(
             image=self.add_file_img,
+            bg= "#63666e",
             borderwidth=0,
             highlightthickness=0,
             command=lambda: self.receive_dir(),
@@ -85,15 +86,17 @@ class MainApp:
         # * Status display component----------------------------------------------------------------------------------------------------------
         self.status_display = CTkLabel(
             self.canvas,
-            text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁",
+            text=f"Bot Status: ไม่มีการทำงาน",
             fg_color="#1f242e",
             text_color="#ffec1f",
+            padx=10,
             justify="right",
-            anchor="e"
+            anchor="center",
+            width=200
         )
         self.status_display.place(
-            x=200,
-            y=46,
+            x=220,
+            y=35,
 
         )
 
@@ -101,6 +104,7 @@ class MainApp:
         self.start_btn_img = tk.PhotoImage(file=relative_to_assets("start_btn.png"))
         self.start_btn = tk.Button(
             image=self.start_btn_img,
+            bg= "#63666e",
             borderwidth=0,
             highlightthickness=0,
             command=lambda: self.start_task(),
@@ -364,7 +368,7 @@ def main():
     root = CTk()
     # * options
     # * > Set Theme
-    set_appearance_mode("dark")
+    set_default_color_theme("dark-blue")
 
     # * > ทำลาย root tkInter เมื่อmain_guiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
     root.protocol("WM_DELETE_WINDOW", on_closing)

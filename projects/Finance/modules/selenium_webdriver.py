@@ -274,7 +274,7 @@ class ChromeDriver:
         self.get_tabs()
 
         self.app.status_display.configure(
-            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน",
+            text=f"Bot Status: กำลังทำงาน",
             fg_color="#cf1313",
             text_color="#ffffff"
         )
@@ -322,7 +322,7 @@ class ChromeDriver:
         self.stop_event.set()
         self.stop_event.clear()
         print("จบการทำงาน")
-        self.app.status_display.configure(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+        self.app.status_display.configure(text=f"Bot Status: จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
         self.app.update_log(f"จบการทำงาน", self.app.log_textbox)
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
