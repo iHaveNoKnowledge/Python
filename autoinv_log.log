@@ -1,3 +1,6 @@
-2024-09-05T17:59:41.421413+0700 ERROR [Errno 13] Permission denied: 'inv_state.xlsx'
-2024-09-05T18:00:13.175276+0700 ERROR 'DataFrame' object has no attribute 'tolist'
-2024-09-06T11:53:16.327664+0700 ERROR [Errno 13] Permission denied: 'inv_state.xlsx'
+2024-09-16T09:48:32.981988+0700 INFO Start Reprint Thread
+2024-09-16T10:12:10.562768+0700 ERROR [Errno 13] Permission denied: 'inv_state.xlsx'
+2024-09-16T10:20:48.163806+0700 INFO Start Reprint Thread
+2024-09-16T10:25:25.407022+0700 INFO Start Reprint Thread
+2024-09-16T10:31:34.989289+0700 ERROR DataFrame.dropna() got an unexpected keyword argument 'inplcae'
+2024-09-16T10:34:49.271497+0700 INFO Start Reprint Thread

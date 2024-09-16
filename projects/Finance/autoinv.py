@@ -35,6 +35,7 @@ class MainApp:
         self.import_file_name = tk.StringVar(value="None")
         self.stop_event = threading.Event()
         self.reprint_thread = None
+        self.loading_progress = tk.StringVar(value="0 %")
 
         # * main process
         self.create_main_window()
@@ -147,6 +148,15 @@ class MainApp:
             fill="#000000",
             font=("RobotoRoman Light", 15 * -1)
         )
+        # * Progress bar display value of the progress bar
+        self.progress_text_display = CTkLabel(
+            self.canvas,
+            fg_color="transparent", #transparent ปลอม
+            text_color="#000000",
+            textvariable=self.loading_progress
+        )
+
+        self.progress_text_display.place(x=395.0, y=180.0)
 
         # * log widget ----------------------------------------------------------------------------------------------------------------------------------
         self.log_textbox = CTkTextbox(
@@ -215,12 +225,14 @@ class MainApp:
                 df_existing = pandas.read_excel('inv_state.xlsx')
                 df_combined = pandas.concat([df_existing[self.target_col], self.incoming_file_df[self.target_col]])
                 df_combined = df_combined.drop_duplicates()
+                df_combined.dropna(inplace=True)
                 df_combined.to_excel('inv_state.xlsx', index=False)
             else:
                 self.incoming_file_df[self.target_col].to_excel('inv_state.xlsx', index=False)
 
             self.inv_state_df = pandas.read_excel('inv_state.xlsx', dtype=str, na_filter=True).drop_duplicates()
-            self.invs_list_state = self.inv_state_df
+            self.inv_state_df.dropna(inplace=True)
+            self.invs_list_state = self.inv_state_df.copy()
             self.data_range = self.invs_list_state[self.target_col].__len__()
             for inv in self.invs_list_state[self.target_col]:
                 log_queue.put(f"{inv}")
@@ -255,9 +267,18 @@ class MainApp:
             self.wait_for_stop()
         else:
             self.stop_event.clear()
-            self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
-                self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
+            self.reprint_thread = threading.Thread(
+                target=lambda: self.chrome_driver.inv_reprint(
+                    self.invs_list_state['invoice_no'],
+                    self.stop_event,
+                    self.progressbar,
+                    self.root,
+                    self
+                ),
+                daemon=True
+            )
             self.reprint_thread.start()
+            logger.info("Start Reprint Thread")
 
     def wait_for_stop(self):
         if self.reprint_thread.is_alive():

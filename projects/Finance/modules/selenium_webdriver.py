@@ -271,6 +271,7 @@ class ChromeDriver:
         self.app = app
         self.setup_chrome()
         self.get_tabs()
+
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
@@ -303,7 +304,11 @@ class ChromeDriver:
             self.driver.switch_to.window(latest_window_handle)
             print("ไม่มีเปิดใหม่")
 
+        self.cookies = self.driver.get_cookies()
+        logger.info('logger, cookies from printing page: ', self.cookies)
+        print("print, cookies from printing page: ", self.cookies)
         self.progress_bar['value'] = 0
+        self.app.loading_progress.set("0 %")
 
         # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
         for idx, inv_number in enumerate(inv_numbers):
@@ -312,7 +317,6 @@ class ChromeDriver:
                 self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} start", self.app.log_textbox)
                 try:
                     print("Start reprint")
-
                     self.refresh_reprint_page_verify()
                     try:
                         print("find outer span")
@@ -327,7 +331,6 @@ class ChromeDriver:
                     print("inv input operating")
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
                     self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
-
                     print("inv input operation done")
                     print("reason input operating")
                     self.driver.find_element(
@@ -385,6 +388,7 @@ class ChromeDriver:
             if self.inv_numbers_len == idx+1:
                 round(self.progress_bar['value'])
                 self.progress_bar['value'] = round(self.progress_bar['value'])
+            self.app.loading_progress.set(f"{self.progress_bar['value']} %")
             self.root_ui.update_idletasks()
             print(f"progress: {self.progress_bar['value']}%")
 
