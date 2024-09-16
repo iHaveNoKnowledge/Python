@@ -264,14 +264,20 @@ class ChromeDriver:
         time.sleep(0.75)
 
     def inv_reprint(self, inv_numbers, stop_event, progress_bar, root_ui, app):
+
         self.stop_event = stop_event
-        self.inv_numbers_len: int = inv_numbers.__len__()
+        self.inv_numbers = inv_numbers
         self.progress_bar = progress_bar
         self.root_ui = root_ui
         self.app = app
         self.setup_chrome()
         self.get_tabs()
 
+        self.app.status_display.configure(
+            text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน",
+            fg_color="#cf1313",
+            text_color="#ffffff"
+        )
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
@@ -304,6 +310,27 @@ class ChromeDriver:
             self.driver.switch_to.window(latest_window_handle)
             print("ไม่มีเปิดใหม่")
 
+        self.inv_state = self.inv_numbers
+        while len(self.inv_state) != 0:
+            self.inv_numbers = self.app.invs_list_state['invoice_no'].copy()
+            self.iterative_reprint2(self.inv_numbers)
+            if len(self.app.invs_list_state) == 0:
+                print("Printing Finished")
+                break
+            print("Printing continue")
+
+        self.stop_event.set()
+        self.stop_event.clear()
+        print("จบการทำงาน")
+        self.app.status_display.configure(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+        self.app.update_log(f"จบการทำงาน", self.app.log_textbox)
+        # # * กลับหน้าเดิม
+        # self.driver.switch_to.window(prev_window)
+
+    # * แบบ while ตัดค่าไปเริ่อย
+    def iterative_reprint2(self, inv_numbers_state):
+        self.inv_numbers_state = inv_numbers_state
+        self.inv_numbers_len: int = inv_numbers_state.__len__()
         self.cookies = self.driver.get_cookies()
         logger.info('logger, cookies from printing page: ', self.cookies)
         print("print, cookies from printing page: ", self.cookies)
@@ -311,10 +338,10 @@ class ChromeDriver:
         self.app.loading_progress.set("0 %")
 
         # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
-        for idx, inv_number in enumerate(inv_numbers):
+        for idx, inv_number in enumerate(self.inv_numbers_state):
             print(f"Start reprint: {idx+1} {inv_number}")
             if not self.stop_event.is_set():
-                self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} start", self.app.log_textbox)
+                self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} started", self.app.log_textbox)
                 try:
                     print("Start reprint")
                     self.refresh_reprint_page_verify()
@@ -376,28 +403,23 @@ class ChromeDriver:
                     print("reprint พัง: ", err)
                     self.app.update_log(f"Task: {idx+1} inv {inv_number} not printed", self.app.log_textbox)
                     print(f"Reprinting: {idx+1} {inv_number} Ended")
-                    self.app.update_log(f" ", self.app.log_textbox)
+
             else:
                 print(f"operation ended : {self.stop_event.is_set()}")
                 break
 
             # *update interface log
             self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} ended", self.app.log_textbox)
+            self.app.update_log(f" ", self.app.log_textbox)
             # *update percentage
             self.progress_bar['value'] += (1/self.inv_numbers_len)*100
             if self.inv_numbers_len == idx+1:
                 round(self.progress_bar['value'])
                 self.progress_bar['value'] = round(self.progress_bar['value'])
-            self.app.loading_progress.set(f"{self.progress_bar['value']} %")
+            self.formatter_progress = "{:.0f}".format(self.progress_bar['value'])
+            self.app.loading_progress.set(f"{self.formatter_progress} %")
             self.root_ui.update_idletasks()
             print(f"progress: {self.progress_bar['value']}%")
-
-        self.stop_event.set()
-        self.stop_event.clear()
-        print("จบการทำงาน")
-        self.app.update_log(f"จบการทำงาน", self.app.log_textbox)
-        # # * กลับหน้าเดิม
-        # self.driver.switch_to.window(prev_window)
 
     def reprint_page_press_submit(self):
         # * กดปุ่มบันทึกเขียวๆ
@@ -439,8 +461,9 @@ class ChromeDriver:
                             self.get_pdf_src_and_print()
                             time.sleep(2)
                             self.is_process = True
-                            self.app.update_log(f"Task {self.task_idx} inv {
+                            self.app.update_log(f"Task: {self.task_idx} inv {
                                                 self.inv_number} printed", self.app.log_textbox)
+                            self.app.deduct_accel_file_data(self.inv_number)
                             break
 
                         elif "Save Completed" in self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/div[6]").text:

@@ -25,7 +25,8 @@ def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
 
-logger.add("autoinv_log.log", format="{time} {level} {message}", level="INFO", rotation="1 day", retention="7 days")
+logger.add("autoinv_main_log.log", format="{time} {level} {message}",
+           level="INFO", rotation="1 day", retention="7 days")
 
 
 class MainApp:
@@ -79,6 +80,21 @@ class MainApp:
             y=65.0,
             width=106.0,
             height=31.0
+        )
+
+        # * Status display component----------------------------------------------------------------------------------------------------------
+        self.status_display = CTkLabel(
+            self.canvas,
+            text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁",
+            fg_color="#1f242e",
+            text_color="#ffec1f",
+            justify="right",
+            anchor="e"
+        )
+        self.status_display.place(
+            x=200,
+            y=46,
+
         )
 
         # * Start Button start component------------------------------------------------------------------------------------------------------
@@ -151,9 +167,10 @@ class MainApp:
         # * Progress bar display value of the progress bar
         self.progress_text_display = CTkLabel(
             self.canvas,
-            fg_color="transparent", #transparent ปลอม
+            fg_color="transparent",  # transparent ปลอม
             text_color="#000000",
-            textvariable=self.loading_progress
+            textvariable=self.loading_progress,
+            justify="right"
         )
 
         self.progress_text_display.place(x=395.0, y=180.0)
@@ -166,6 +183,7 @@ class MainApp:
             state='disabled',
         )
         self.log_textbox.place(x=32.0, y=260.0)
+ # * functions ----------------------------------------------------------------------------------------------------------------
 
     def update_log(self, text, log_widget=None):
         self.text = text
@@ -244,22 +262,23 @@ class MainApp:
             log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
 
     #! wip กำลังทำตัวตัด เลข bil เนื่องจาก ถ้าหากเกิดข้อผิดพลาด มันจะได้รันต่อได้ อาจจะต้องทำ ไฟล์สำหรับเก็บ state แยกออกมา เมื่อรับไฟล์เข้ามาให้เอา data ไปลง อีกไฟล์ แล้วเอาไฟล์ใหม่เป็น state
-    def deduct_accel_file_data(self, order, to_deduct_inv=[]):
-        order = order.get()
+    def deduct_accel_file_data(self, to_decuct_inv):
+        self.deduct_inv = to_decuct_inv
         df = self.invs_list_state
-        print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
-        print("deduct_accel_file_data order: ", order)
-        print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
-        # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
-        has_order = df.loc[df['orders'] == order, 'orders']
-        if not has_order.empty:
-            df.loc[df['orders'] == order, 'orders'] = ''
+        logger.info("invs before deduction: ", df)
+        try:
+            has_inv = df.loc[df['invoice_no'] == self.deduct_inv, 'invoice_no']
+            if not has_inv.empty:
+                df.loc[df['invoice_no'] == self.deduct_inv, 'invoice_no'] = ''
 
-        print("to_deduct_inv ไม่ได้ได้ไง: ", to_deduct_inv)
-        if to_deduct_inv:
-            for sn in to_deduct_inv:
-                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
-        df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+            df.to_excel('inv_state.xlsx', index=False)
+            self.inv_state_df = pandas.read_excel('inv_state.xlsx', dtype=str, na_filter=True).drop_duplicates()
+            self.inv_state_df.dropna(inplace=True)
+            self.invs_list_state = self.inv_state_df.copy()
+        except Exception as err:
+            print("deduct error: ", err)
+
+        logger.info("invs after deduction: ", df)
 
     def start_task(self):
         if self.reprint_thread and self.reprint_thread.is_alive():
@@ -278,6 +297,7 @@ class MainApp:
                 daemon=True
             )
             self.reprint_thread.start()
+
             logger.info("Start Reprint Thread")
 
     def wait_for_stop(self):
@@ -320,6 +340,7 @@ class MainApp:
 
 # * Initializer-----------------------------------------------------------------------------------------------------------
 def main():
+
     def on_closing():
         print('ui window is closed')
         root.destroy()
@@ -342,6 +363,9 @@ def main():
 
     root = CTk()
     # * options
+    # * > Set Theme
+    set_appearance_mode("dark")
+
     # * > ทำลาย root tkInter เมื่อmain_guiถูกปิด เพื่อไม่ให้มีการทำงานตกค้าง
     root.protocol("WM_DELETE_WINDOW", on_closing)
     # * > ลืมไปละ น่าจะเกี่ยวกับช่องไฟ
