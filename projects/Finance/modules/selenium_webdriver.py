@@ -377,8 +377,8 @@ class ChromeDriver:
                             # print("li display 'Searching...' ")
                             time.sleep(0.75)
                             continue
-
                         print("li found display some inv")
+
                         if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == inv_number:
                             print(f"{self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")

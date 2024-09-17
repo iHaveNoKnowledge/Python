@@ -367,26 +367,6 @@ class MainApp:
                 daemon=True
             )
             self.reprint_thread.start()
-# * เก่า
-        # self.stop_event.clear()
-        # if not self.stop_event.is_set():
-        #     print("start task")
-        #     self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
-        #         self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
-        #     self.reprint_thread.start()
-        #     self.check_threads(self.reprint_thread)
-        #     self.stop_event.clear()
-        # else:
-        #     print("stop task")
-        #     self.stop_event.clear()
-        #     self.reprint_thread.join()
-
-        # while True:
-        #     if self.stop_event.is_set():
-        #         self.reprint_thread.join()
-        #         break
-        #     else:
-        #         continue
 
     def check_threads(self, callback=None):
         if not self.reprint_thread.is_alive():
