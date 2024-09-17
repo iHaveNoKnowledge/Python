@@ -113,20 +113,12 @@ class ChromeDriver:
             # if self.parent.winfo_exists():
             if True:
                 print("รายงานจำนวนtabs")
-
                 self.title_list = []
-                # self.title_list_Idx = [] #!เหมือนจะไม่ได้ใช้
                 self.value_list = []
-                # self.title_dict = {} #!เหมือนจะไม่ได้ใช้
                 for idx, handle in enumerate(self.driver.window_handles):
                     self.driver.switch_to.window(handle)
-                    # self.title_list_Idx.append(
-                    #     self.driver.title + "["+str(idx)+"]") #!เหมือนจะไม่ได้ใช้
                     self.title_list.append(self.driver.title)
-
                     self.value_list.append(self.driver.current_window_handle)
-                    # self.title_dict.update(
-                    #     {self.driver.title: self.driver.current_window_handle}) #!เหมือนจะไม่ได้ใช้
 
                 self.unique_titles = []
                 self.counter = {}
@@ -264,7 +256,6 @@ class ChromeDriver:
         time.sleep(0.75)
 
     def inv_reprint(self, inv_numbers, stop_event, progress_bar, root_ui, app):
-
         self.stop_event = stop_event
         self.inv_numbers = inv_numbers
         self.progress_bar = progress_bar
@@ -278,6 +269,8 @@ class ChromeDriver:
             fg_color="#cf1313",
             text_color="#ffffff"
         )
+
+        self.reprint_page_url = self.driver.current_url
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
@@ -514,7 +507,7 @@ class ChromeDriver:
             # todo printing command is the code below
             with open("output.pdf", "wb") as pdf_file:
                 pdf_file.write(bin_pdf_data)
-                # os.startfile("output.pdf", "print")
+                os.startfile("output.pdf", "print")
             print("printing")
         except OSError as err:
             print(f"No PDF Reader found. {err}")

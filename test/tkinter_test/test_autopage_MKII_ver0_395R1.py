@@ -4589,14 +4589,12 @@ class Bot_POS:
 
             if x:
                 # * มีช่องว่าง แปลว่าดี
-                print("เจอช่องว่าง response ไม่ต้องทำอะไร return ได้เลย",
-                      result['name'])
+                print("เจอช่องว่าง response ไม่ต้องทำอะไร return ได้เลย", result['name'])
             else:
                 #! ไม่มีช่องว่าง แปลว่าอับปรีย์
                 result['name'] = result['name'].replace("บริษัท", "บริษัท ").replace(
                     "ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนจำกัด ")
-                print("ไม่เจอช่องว่างจาก response แต่เพิ่มให้แล้ว",
-                      result['name'])
+                print("ไม่เจอช่องว่างจาก response แต่เพิ่มให้แล้ว", result['name'])
 
         return result
 

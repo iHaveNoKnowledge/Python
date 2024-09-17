@@ -93,7 +93,7 @@ class MainApp:
             # relief="flat",
             width=106.0,
             height=31.0,
-            text="Add File",
+            text="Add Data",
             font=self.btn_font
         )
         self.add_file_btn.place(
@@ -402,6 +402,9 @@ def main():
 
     root = CTk()
     # * options
+    # * > Set Name
+    root.title("Inv iterator v1")
+
     # * > Set Theme
     set_default_color_theme("dark-blue")
 
