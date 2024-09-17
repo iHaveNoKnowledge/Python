@@ -313,7 +313,7 @@ class MainApp:
                 log_queue.put(f"{inv}")
 
             log_queue.put(f"Data State : {self.data_range} records To print")
-            logger.info("get_state_from_file: called")
+            logger.info("get_state_from_file, try: finished")
         except Exception as err:
             print(err)
             logger.error("get_state_from_file:", err)

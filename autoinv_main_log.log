@@ -309,3 +309,5 @@
 2024-09-17T16:24:24.510923+0700 INFO invs after deduction: 
 2024-09-17T16:24:38.768165+0700 INFO invs before deduction: 
 2024-09-17T16:24:38.790319+0700 INFO invs after deduction: 
+2024-09-17T16:28:02.420391+0700 INFO get_state_from_file: called
+2024-09-17T16:28:02.450981+0700 INFO get_state_from_file: called
