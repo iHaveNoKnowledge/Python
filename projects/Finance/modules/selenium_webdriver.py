@@ -311,9 +311,9 @@ class ChromeDriver:
             print("ไม่มีเปิดใหม่")
 
         self.inv_state = self.inv_numbers
-        while len(self.inv_state) != 0:
+        while len(self.inv_state) != 0 and (self.app.reprint_thread and self.app.reprint_thread.is_alive()):
             self.inv_numbers = self.app.invs_list_state['invoice_no'].copy()
-            self.iterative_reprint2(self.inv_numbers)
+            self.iterative_reprint(self.inv_numbers)
             if len(self.app.invs_list_state) == 0:
                 print("Printing Finished")
                 break
@@ -328,7 +328,7 @@ class ChromeDriver:
         # self.driver.switch_to.window(prev_window)
 
     # * แบบ while ตัดค่าไปเริ่อย
-    def iterative_reprint2(self, inv_numbers_state):
+    def iterative_reprint(self, inv_numbers_state):
         self.inv_numbers_state = inv_numbers_state
         self.inv_numbers_len: int = inv_numbers_state.__len__()
         self.cookies = self.driver.get_cookies()
@@ -340,7 +340,8 @@ class ChromeDriver:
         # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
         for idx, inv_number in enumerate(self.inv_numbers_state):
             print(f"Start reprint: {idx+1} {inv_number}")
-            if not self.stop_event.is_set():
+            # if not self.stop_event.is_set():
+            if self.app.reprint_thread and self.app.reprint_thread.is_alive():
                 self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} started", self.app.log_textbox)
                 try:
                     print("Start reprint")
@@ -363,7 +364,7 @@ class ChromeDriver:
                     self.driver.find_element(
                         By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
                     self.driver.find_element(
-                        By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Re")
+                        By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Reprint")
                     print("reason input operation done")
                     while not self.stop_event.is_set():
                         if not self.stop_event.is_set():

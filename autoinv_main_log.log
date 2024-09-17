@@ -95,3 +95,75 @@
 2024-09-16T18:27:26.825942+0700 INFO Start Reprint Thread
 2024-09-16T18:27:42.419159+0700 INFO invs before deduction: 
 2024-09-16T18:27:42.464031+0700 INFO invs after deduction: 
+2024-09-17T10:06:39.708974+0700 INFO Start Reprint Thread
+2024-09-17T10:06:44.750830+0700 INFO Start Reprint Thread
+2024-09-17T10:08:39.415334+0700 INFO Start Reprint Thread
+2024-09-17T10:08:47.582460+0700 INFO Start Reprint Thread
+2024-09-17T11:21:22.360096+0700 ERROR 'MainApp' object has no attribute 'target_col'
+2024-09-17T11:29:53.995035+0700 INFO get_state_from_file: called
+2024-09-17T11:29:54.218506+0700 INFO get_state_from_file: called
+2024-09-17T11:38:59.227045+0700 INFO get_state_from_file: called
+2024-09-17T11:38:59.551728+0700 INFO get_state_from_file: called
+2024-09-17T11:41:35.990205+0700 INFO get_state_from_file: called
+2024-09-17T11:46:17.562750+0700 INFO get_state_from_file: called
+2024-09-17T11:46:17.869112+0700 INFO get_state_from_file: called
+2024-09-17T11:46:26.780220+0700 INFO get_state_from_file: called
+2024-09-17T11:46:26.803347+0700 INFO get_state_from_file: called
+2024-09-17T11:48:32.889675+0700 INFO get_state_from_file: called
+2024-09-17T11:48:32.907461+0700 INFO get_state_from_file: called
+2024-09-17T11:48:35.967348+0700 INFO Start Reprint Thread
+2024-09-17T11:48:54.750637+0700 INFO invs before deduction: 
+2024-09-17T11:48:54.794324+0700 INFO invs after deduction: 
+2024-09-17T11:49:12.302655+0700 INFO invs before deduction: 
+2024-09-17T11:49:12.332477+0700 INFO invs after deduction: 
+2024-09-17T11:49:29.958501+0700 INFO invs before deduction: 
+2024-09-17T11:49:29.979416+0700 INFO invs after deduction: 
+2024-09-17T11:49:51.267285+0700 INFO invs before deduction: 
+2024-09-17T11:49:51.293244+0700 INFO invs after deduction: 
+2024-09-17T11:50:08.165186+0700 INFO invs before deduction: 
+2024-09-17T11:50:08.194333+0700 INFO invs after deduction: 
+2024-09-17T11:50:30.400416+0700 INFO invs before deduction: 
+2024-09-17T11:50:30.437283+0700 INFO invs after deduction: 
+2024-09-17T11:50:47.980052+0700 INFO invs before deduction: 
+2024-09-17T11:50:48.028518+0700 INFO invs after deduction: 
+2024-09-17T11:51:05.196779+0700 INFO invs before deduction: 
+2024-09-17T11:51:05.229647+0700 INFO invs after deduction: 
+2024-09-17T11:51:23.903117+0700 INFO invs before deduction: 
+2024-09-17T11:51:23.929935+0700 INFO invs after deduction: 
+2024-09-17T11:51:42.388735+0700 INFO invs before deduction: 
+2024-09-17T11:51:42.429562+0700 INFO invs after deduction: 
+2024-09-17T11:51:59.255046+0700 INFO invs before deduction: 
+2024-09-17T11:51:59.284285+0700 INFO invs after deduction: 
+2024-09-17T11:52:38.915769+0700 INFO invs before deduction: 
+2024-09-17T11:52:38.966741+0700 INFO invs after deduction: 
+2024-09-17T11:52:55.362391+0700 INFO invs before deduction: 
+2024-09-17T11:52:55.385251+0700 INFO invs after deduction: 
+2024-09-17T11:53:11.528119+0700 INFO invs before deduction: 
+2024-09-17T11:53:11.567448+0700 INFO invs after deduction: 
+2024-09-17T12:02:55.493351+0700 INFO get_state_from_file: called
+2024-09-17T12:02:55.541649+0700 INFO get_state_from_file: called
+2024-09-17T12:03:41.840323+0700 INFO get_state_from_file: called
+2024-09-17T12:03:41.840323+0700 INFO get_state_from_file: called
+2024-09-17T12:03:43.998896+0700 INFO Start Reprint Thread
+2024-09-17T12:04:20.058705+0700 INFO invs before deduction: 
+2024-09-17T12:04:20.100440+0700 INFO invs after deduction: 
+2024-09-17T12:05:01.629979+0700 INFO get_state_from_file: called
+2024-09-17T12:05:01.645984+0700 INFO get_state_from_file: called
+2024-09-17T12:05:07.307424+0700 INFO Start Reprint Thread
+2024-09-17T12:05:25.417949+0700 INFO invs before deduction: 
+2024-09-17T12:05:25.460049+0700 INFO invs after deduction: 
+2024-09-17T12:05:51.277522+0700 INFO invs before deduction: 
+2024-09-17T12:05:51.315598+0700 INFO invs after deduction: 
+2024-09-17T12:06:06.911954+0700 INFO invs before deduction: 
+2024-09-17T12:06:06.996494+0700 INFO invs after deduction: 
+2024-09-17T12:06:21.107563+0700 INFO invs before deduction: 
+2024-09-17T12:06:21.148110+0700 INFO invs after deduction: 
+2024-09-17T12:06:53.508585+0700 INFO get_state_from_file: called
+2024-09-17T12:06:53.522587+0700 INFO get_state_from_file: called
+2024-09-17T12:07:06.025198+0700 INFO Start Reprint Thread
+2024-09-17T12:07:22.354398+0700 INFO invs before deduction: 
+2024-09-17T12:07:22.406919+0700 INFO invs after deduction: 
+2024-09-17T12:07:37.502051+0700 INFO invs before deduction: 
+2024-09-17T12:07:37.544318+0700 INFO invs after deduction: 
+2024-09-17T12:07:53.583003+0700 INFO invs before deduction: 
+2024-09-17T12:07:53.605468+0700 INFO invs after deduction: 

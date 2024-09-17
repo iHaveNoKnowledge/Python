@@ -9,6 +9,7 @@ import json
 import re
 import os
 import pandas
+from openpyxl import Workbook
 import time
 import queue
 
@@ -25,8 +26,13 @@ def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
 
-logger.add("autoinv_main_log.log", format="{time} {level} {message}",
-           level="INFO", rotation="1 day", retention="7 days")
+logger.add(
+    "autoinv_main_log.log",
+    format="{time} {level} {message}",
+    level="INFO",
+    rotation="1 day",
+    retention="7 days"
+)
 
 
 class MainApp:
@@ -37,15 +43,22 @@ class MainApp:
         self.stop_event = threading.Event()
         self.reprint_thread = None
         self.loading_progress = tk.StringVar(value="0 %")
+        self.log_queue = queue.Queue()
+        self.target_col = "invoice_no"
 
         # * main process
         self.create_main_window()
+        self.create_state_excel()
         CustomChrome(8989)
         self.chrome_driver = ChromeDriver(app=self)
+        self.get_state_thread = threading.Thread(target=lambda: self.get_state_from_file(self.log_queue), daemon=True)
+        self.get_state_thread.start()
+        self.root.after(100, self.process_log_queue, self.get_state_thread)
 
     def create_main_window(self):
         self.root.geometry("452x481")
         self.root.configure(bg="#FFFFFF")
+        self.btn_font = CTkFont(family="Arial", size=16, weight="bold")
         self.canvas = tk.Canvas(
             self.root,
             bg="#63666e",
@@ -68,19 +81,24 @@ class MainApp:
         )
 
         self.add_file_img = tk.PhotoImage(file=relative_to_assets("add_file_btn.png"))
-        self.add_file_btn = tk.Button(
-            image=self.add_file_img,
-            bg= "#63666e",
-            borderwidth=0,
-            highlightthickness=0,
+        self.add_file_btn = CTkButton(
+            self.canvas,
+            # image=self.add_file_img,
+            fg_color="#7CC283",
+            text_color="#000000",
+            border_width=0,
+            border_spacing=0,
+            # highlightthickness=0,
             command=lambda: self.receive_dir(),
-            relief="flat",
+            # relief="flat",
+            width=106.0,
+            height=31.0,
+            text="Add File",
+            font=self.btn_font
         )
         self.add_file_btn.place(
             x=31.0,
             y=65.0,
-            width=106.0,
-            height=31.0
         )
 
         # * Status display component----------------------------------------------------------------------------------------------------------
@@ -102,19 +120,24 @@ class MainApp:
 
         # * Start Button start component------------------------------------------------------------------------------------------------------
         self.start_btn_img = tk.PhotoImage(file=relative_to_assets("start_btn.png"))
-        self.start_btn = tk.Button(
-            image=self.start_btn_img,
-            bg= "#63666e",
-            borderwidth=0,
-            highlightthickness=0,
+        self.start_btn = CTkButton(
+            self.canvas,
+            # image=self.start_btn_img,
+            fg_color="#F2E67A",
+            text_color="#000000",
+            font=self.btn_font,
+            border_width=0,
+            border_spacing=0,
+            # highlightthickness=0,
             command=lambda: self.start_task(),
-            relief="flat"
+            # relief="flat"
+            width=106.0,
+            height=31.0,
+            text="Start"
         )
         self.start_btn.place(
             x=315.0,
             y=64.0,
-            width=106.0,
-            height=31.0
         )
 
         # * import file name component--------------------------------------------------------------------------------------------------
@@ -189,6 +212,18 @@ class MainApp:
         self.log_textbox.place(x=32.0, y=260.0)
  # * functions ----------------------------------------------------------------------------------------------------------------
 
+    def create_state_excel(self):
+        if not os.path.exists('inv_state.xlsx'):
+            # * create workbook and new sheet
+            self.wb = Workbook()
+            self.ws = self.wb.active
+
+            # * add data into cel A1
+            self.ws['A1'] = 'invoice_no'
+
+            # * save as .xlsx
+            self.wb.save('inv_state.xlsx')
+
     def update_log(self, text, log_widget=None):
         self.text = text
         self.widget = log_widget
@@ -215,16 +250,15 @@ class MainApp:
         self.clear_log(self.log_textbox)
         if self.import_dir:
             self.import_file_name.set(self.import_dir.split('/')[-1])
-            self.log_queue = queue.Queue()
             self.read_data_thread = threading.Thread(
                 target=lambda: self.read_data_from_file_dir(self.import_dir, self.log_queue), daemon=True)
             self.read_data_thread.start()
 
-            self.root.after(100, self.process_log_queue)  # Schedule UI updates
+            self.root.after(100, self.process_log_queue, self.read_data_thread)  # Schedule UI updates
         else:
             self.import_file_name.set("ไม่มีการเลือกไฟล์")
 
-    def process_log_queue(self):
+    def process_log_queue(self, thread):
         try:
             while True:
                 log_message = self.log_queue.get_nowait()
@@ -232,13 +266,11 @@ class MainApp:
         except queue.Empty:
             pass
 
-        if self.read_data_thread.is_alive():
-            self.root.after(100, self.process_log_queue)  # Continue checking the queue
+        if thread.is_alive():
+            self.root.after(100, self.process_log_queue, thread)  # Continue checking the queue
 
     def read_data_from_file_dir(self, dir, log_queue):
-        global invs_list_state
         self.log_textbox.delete(0.0, 'end')
-        self.target_col = "invoice_no"
         try:
             self.incoming_file_df = pandas.read_excel(dir, dtype=str, na_filter=True).drop_duplicates()
             self.incoming_file_df.columns = self.incoming_file_df.columns.str.lower()
@@ -252,6 +284,16 @@ class MainApp:
             else:
                 self.incoming_file_df[self.target_col].to_excel('inv_state.xlsx', index=False)
 
+            self.get_state_from_file(log_queue)
+
+        except Exception as err:
+            print(err)
+            logger.error(err)
+
+    def get_state_from_file(self, log_queue):
+        logger.info("get_state_from_file: called")
+        global invs_list_state
+        try:
             self.inv_state_df = pandas.read_excel('inv_state.xlsx', dtype=str, na_filter=True).drop_duplicates()
             self.inv_state_df.dropna(inplace=True)
             self.invs_list_state = self.inv_state_df.copy()
@@ -259,10 +301,11 @@ class MainApp:
             for inv in self.invs_list_state[self.target_col]:
                 log_queue.put(f"{inv}")
 
-            log_queue.put(f"Data Imported : {self.data_range} records")
+            log_queue.put(f"Data State : {self.data_range} records To print")
+            logger.info("get_state_from_file: called")
         except Exception as err:
             print(err)
-            logger.error(err)
+            logger.error("get_state_from_file:", err)
             log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
 
     #! wip กำลังทำตัวตัด เลข bil เนื่องจาก ถ้าหากเกิดข้อผิดพลาด มันจะได้รันต่อได้ อาจจะต้องทำ ไฟล์สำหรับเก็บ state แยกออกมา เมื่อรับไฟล์เข้ามาให้เอา data ไปลง อีกไฟล์ แล้วเอาไฟล์ใหม่เป็น state
@@ -286,9 +329,11 @@ class MainApp:
 
     def start_task(self):
         if self.reprint_thread and self.reprint_thread.is_alive():
+            print("start task: Previous Thread is alive")
             self.stop_event.set()
             self.wait_for_stop()
         else:
+            print("start task: Reprint Thread is not alive")
             self.stop_event.clear()
             self.reprint_thread = threading.Thread(
                 target=lambda: self.chrome_driver.inv_reprint(
@@ -305,12 +350,22 @@ class MainApp:
             logger.info("Start Reprint Thread")
 
     def wait_for_stop(self):
+        print("wait_for_stop() executed")
         if self.reprint_thread.is_alive():
+            print("wait_for_stop() : Reprint Thread is still alive")
             self.root.after(100, self.wait_for_stop)
         else:
+            print("wait_for_stop() : Reprint Thread is not alive anymore")
             self.stop_event.clear()
             self.reprint_thread = threading.Thread(target=lambda: self.chrome_driver.inv_reprint(
-                self.invs_list_state['invoice_no'], self.stop_event, self.progressbar, self.root, self), daemon=True)
+                self.invs_list_state['invoice_no'],
+                self.stop_event,
+                self.progressbar,
+                self.root,
+                self
+            ),
+                daemon=True
+            )
             self.reprint_thread.start()
 # * เก่า
         # self.stop_event.clear()
