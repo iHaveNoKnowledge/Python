@@ -507,7 +507,7 @@ class ChromeDriver:
             # todo printing command is the code below
             with open("output.pdf", "wb") as pdf_file:
                 pdf_file.write(bin_pdf_data)
-                os.startfile("output.pdf", "print")
+                # os.startfile("output.pdf", "print")
             print("printing")
         except OSError as err:
             print(f"No PDF Reader found. {err}")

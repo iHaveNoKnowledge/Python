@@ -215,3 +215,97 @@
 2024-09-17T14:19:43.961868+0700 INFO invs after deduction: 
 2024-09-17T14:19:59.188415+0700 INFO invs before deduction: 
 2024-09-17T14:19:59.219807+0700 INFO invs after deduction: 
+2024-09-17T14:59:32.585228+0700 INFO get_state_from_file: called
+2024-09-17T14:59:32.623566+0700 INFO get_state_from_file: called
+2024-09-17T15:05:42.323356+0700 INFO get_state_from_file: called
+2024-09-17T15:05:42.350618+0700 INFO get_state_from_file: called
+2024-09-17T15:12:55.917691+0700 INFO get_state_from_file: called
+2024-09-17T15:12:55.955638+0700 INFO get_state_from_file: called
+2024-09-17T15:13:57.095004+0700 INFO get_state_from_file: called
+2024-09-17T15:13:57.106030+0700 INFO get_state_from_file: called
+2024-09-17T15:18:18.262991+0700 INFO get_state_from_file: called
+2024-09-17T15:18:18.308525+0700 INFO get_state_from_file: called
+2024-09-17T15:33:40.269129+0700 INFO get_state_from_file: called
+2024-09-17T15:33:40.306883+0700 INFO get_state_from_file: called
+2024-09-17T15:34:02.599701+0700 INFO get_state_from_file: called
+2024-09-17T15:34:02.614837+0700 INFO get_state_from_file: called
+2024-09-17T15:34:40.382459+0700 INFO get_state_from_file: called
+2024-09-17T15:34:40.396749+0700 INFO get_state_from_file: called
+2024-09-17T15:35:55.666261+0700 INFO get_state_from_file: called
+2024-09-17T15:35:55.666261+0700 INFO get_state_from_file: called
+2024-09-17T15:36:35.314445+0700 INFO get_state_from_file: called
+2024-09-17T15:36:35.334476+0700 INFO get_state_from_file: called
+2024-09-17T15:47:22.731557+0700 INFO get_state_from_file: called
+2024-09-17T15:47:22.754850+0700 INFO get_state_from_file: called
+2024-09-17T15:47:53.896012+0700 INFO get_state_from_file: called
+2024-09-17T15:47:53.912977+0700 INFO get_state_from_file: called
+2024-09-17T15:49:41.909595+0700 INFO get_state_from_file: called
+2024-09-17T15:49:41.936641+0700 INFO get_state_from_file: called
+2024-09-17T15:50:36.153154+0700 INFO get_state_from_file: called
+2024-09-17T15:50:36.176024+0700 INFO get_state_from_file: called
+2024-09-17T15:51:53.813564+0700 INFO get_state_from_file: called
+2024-09-17T15:51:53.826677+0700 INFO get_state_from_file: called
+2024-09-17T15:52:09.277042+0700 INFO get_state_from_file: called
+2024-09-17T15:52:09.292986+0700 INFO get_state_from_file: called
+2024-09-17T15:53:29.497687+0700 INFO get_state_from_file: called
+2024-09-17T15:53:29.498629+0700 INFO get_state_from_file: called
+2024-09-17T15:58:37.397774+0700 INFO get_state_from_file: called
+2024-09-17T15:58:37.432136+0700 INFO get_state_from_file: called
+2024-09-17T15:59:12.105831+0700 INFO get_state_from_file: called
+2024-09-17T15:59:12.118661+0700 INFO get_state_from_file: called
+2024-09-17T15:59:46.569150+0700 INFO get_state_from_file: called
+2024-09-17T15:59:46.590518+0700 INFO get_state_from_file: called
+2024-09-17T16:06:55.423435+0700 INFO get_state_from_file: called
+2024-09-17T16:06:55.441277+0700 INFO get_state_from_file: called
+2024-09-17T16:07:28.439873+0700 INFO get_state_from_file: called
+2024-09-17T16:07:28.449772+0700 INFO get_state_from_file: called
+2024-09-17T16:09:31.391479+0700 INFO get_state_from_file: called
+2024-09-17T16:09:31.393058+0700 INFO get_state_from_file: called
+2024-09-17T16:09:52.600249+0700 INFO get_state_from_file: called
+2024-09-17T16:09:52.614250+0700 INFO get_state_from_file: called
+2024-09-17T16:10:22.955088+0700 INFO get_state_from_file: called
+2024-09-17T16:10:22.968142+0700 INFO get_state_from_file: called
+2024-09-17T16:10:52.099054+0700 INFO get_state_from_file: called
+2024-09-17T16:10:52.117314+0700 INFO get_state_from_file: called
+2024-09-17T16:11:09.232924+0700 INFO get_state_from_file: called
+2024-09-17T16:11:09.244106+0700 INFO get_state_from_file: called
+2024-09-17T16:11:43.640904+0700 INFO get_state_from_file: called
+2024-09-17T16:11:43.648132+0700 INFO get_state_from_file: called
+2024-09-17T16:12:06.039523+0700 INFO get_state_from_file: called
+2024-09-17T16:12:06.055159+0700 INFO get_state_from_file: called
+2024-09-17T16:12:27.066929+0700 INFO get_state_from_file: called
+2024-09-17T16:12:27.066929+0700 INFO get_state_from_file: called
+2024-09-17T16:13:28.760401+0700 INFO get_state_from_file: called
+2024-09-17T16:13:28.760401+0700 INFO get_state_from_file: called
+2024-09-17T16:15:30.444369+0700 INFO get_state_from_file: called
+2024-09-17T16:15:30.458444+0700 INFO get_state_from_file: called
+2024-09-17T16:16:02.627808+0700 INFO get_state_from_file: called
+2024-09-17T16:16:02.651046+0700 INFO get_state_from_file: called
+2024-09-17T16:17:58.895912+0700 INFO get_state_from_file: called
+2024-09-17T16:17:58.917248+0700 INFO get_state_from_file: called
+2024-09-17T16:21:03.815886+0700 INFO get_state_from_file: called
+2024-09-17T16:21:03.831307+0700 INFO get_state_from_file: called
+2024-09-17T16:21:16.111863+0700 INFO get_state_from_file: called
+2024-09-17T16:21:16.128318+0700 INFO get_state_from_file: called
+2024-09-17T16:21:52.122662+0700 INFO get_state_from_file: called
+2024-09-17T16:21:52.154268+0700 INFO get_state_from_file: called
+2024-09-17T16:21:58.445911+0700 INFO get_state_from_file: called
+2024-09-17T16:21:58.464215+0700 INFO get_state_from_file: called
+2024-09-17T16:22:02.095936+0700 INFO Start Reprint Thread
+2024-09-17T16:22:22.884457+0700 INFO invs before deduction: 
+2024-09-17T16:22:22.940361+0700 INFO invs after deduction: 
+2024-09-17T16:22:37.600239+0700 INFO invs before deduction: 
+2024-09-17T16:22:37.630134+0700 INFO invs after deduction: 
+2024-09-17T16:22:51.757221+0700 INFO invs before deduction: 
+2024-09-17T16:22:51.793461+0700 INFO invs after deduction: 
+2024-09-17T16:23:34.432455+0700 INFO get_state_from_file: called
+2024-09-17T16:23:34.457611+0700 INFO get_state_from_file: called
+2024-09-17T16:23:52.314825+0700 INFO get_state_from_file: called
+2024-09-17T16:23:52.331772+0700 INFO get_state_from_file: called
+2024-09-17T16:23:53.811722+0700 INFO Start Reprint Thread
+2024-09-17T16:24:10.158719+0700 INFO invs before deduction: 
+2024-09-17T16:24:10.205335+0700 INFO invs after deduction: 
+2024-09-17T16:24:24.477238+0700 INFO invs before deduction: 
+2024-09-17T16:24:24.510923+0700 INFO invs after deduction: 
+2024-09-17T16:24:38.768165+0700 INFO invs before deduction: 
+2024-09-17T16:24:38.790319+0700 INFO invs after deduction: 

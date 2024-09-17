@@ -71,13 +71,16 @@ class MainApp:
         self.canvas.place(x=0, y=0)
 
         # * Add File Component-----------------------------------------------------------------------------------------------------------
-        self.canvas.create_text(
-            31.0,
-            46.0,
+        self.create_text = CTkLabel(
+            self.canvas,
             anchor="nw",
             text="Target File",
-            fill="#000000",
+            text_color="#000000",
             font=("RobotoRoman Light", 15 * -1)
+        )
+        self.create_text.place(
+            x=31.0,
+            y=46.0,
         )
 
         self.add_file_img = tk.PhotoImage(file=relative_to_assets("add_file_btn.png"))
@@ -141,41 +144,49 @@ class MainApp:
         )
 
         # * import file name component--------------------------------------------------------------------------------------------------
-        self.canvas.create_text(
-            31.0,
-            117.0,
+        self.add_file_name_text = CTkLabel(
+            self.canvas,
             anchor="nw",
             text="Added File Name",
-            fill="#000000",
-            font=("RobotoRoman Light", 15 * -1)
+            text_color="#000000",
+            font=("RobotoRoman Light", 15 * -1),
+            fg_color="transparent",
+            pady=0
+        )
+        self.add_file_name_text.place(
+            x=31.0,
+            y=117.0,
         )
 
-        self.import_file_name_entry = tk.Entry(
-            bd=0,
+        self.import_file_name_entry = CTkEntry(
+            self.canvas,
+            # bd=0,
             # bg="#D9D9D9",
-            readonlybackground="#D9D9D9",
-            fg="#000716",
-            highlightthickness=0,
+            # readonlybackground="#D9D9D9",
+            # highlightthickness=0,
+            text_color="#000716",
+            fg_color="#D9D9D9",
             textvariable=self.import_file_name,
             state='readonly',
-        )
-        self.import_file_name_entry.place(
-            x=39.0,
-            y=136.0,
-            width=374.0,
+            width=392.0,
             height=29.0
         )
-
-        self.import_file_name_img = tk.PhotoImage(file=relative_to_assets("import_file_name_entry.png"))
-        self.import_file_name_img_entry_bg = self.canvas.create_image(
-            226.0,
-            151.5,
-            image=self.import_file_name_img
+        self.import_file_name_entry.place(
+            x=30.0,
+            y=136.0
         )
 
+        # self.import_file_name_img = tk.PhotoImage(file=relative_to_assets("import_file_name_entry.png"))
+        # self.import_file_name_img_entry_bg = self.canvas.create_image(
+        #     226.0,
+        #     151.5,
+        #     image=self.import_file_name_img
+        # )
+
         # * Progress bar component----------------------------------------------------------------------------------------------------------------
-        self.progressbar = ttk.Progressbar(orient=tk.HORIZONTAL, mode='determinate', maximum=100)
-        self.progressbar.place(x=32.0, y=210.0, width=387.0, height=20.0)
+        self.progressbar = ttk.Progressbar(self.root, orient=tk.HORIZONTAL, mode='determinate', maximum=100)
+        # self.progressbar.place(x=32.0, y=210.0, width=387.0, height=20.0)
+        self.progressbar.place(relx=0.0708, rely=0.4366, relwidth=0.86, relheight=0.040)
         # self.image_image_1 = tk.PhotoImage(file=relative_to_assets("image_1.png"))
         # self.image_1 = self.canvas.create_image(
         #     226.0,
@@ -400,6 +411,17 @@ def main():
         if event.keycode == 65 and ctrl and event.keysym.lower() != "a":
             event.widget.event_generate("<<SelectAll>>")
 
+    def dynamic_scaling(base_width=1920, base_height=1080):
+
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+
+        # * calculate scale
+        scaling_factor = min(screen_width / base_width, screen_height / base_height)
+
+        set_window_scaling(scaling_factor)
+        set_widget_scaling(scaling_factor)
+
     root = CTk()
     # * options
     # * > Set Name
@@ -415,6 +437,11 @@ def main():
 
     # * > ปรับขนาดจอ
     root.resizable(False, False)
+
+    # * > UI Scaling
+    # scaling_factor = min(1360 / 1920, 768/1080)
+    # set_window_scaling(scaling_factor)
+    dynamic_scaling()
 
     # * > ทำให้กด copy, paste, cut จากภาษาอะไรก็ได้
     root.bind('<Key>', _onKeyRelease)
