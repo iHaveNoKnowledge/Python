@@ -85,8 +85,7 @@ class MyApp:
         self.is_accel_mode_activated = BooleanVar(value=False)
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
-        self.bg_by_market_place = {
-            'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
+        self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
