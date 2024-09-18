@@ -590,3 +590,27 @@
 2024-09-13T12:02:13.650151+0700 INFO Order: 240911M0B0CDPE Start!!
 2024-09-13T12:02:13.950374+0700 INFO Order: 240911M0B0CDPE get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2024-09-13T12:02:28.921065+0700 INFO Order: 240911M0B0CDPE get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T19:11:43.078502+0700 INFO Order: 2409189SC46NTY Start!!
+2024-09-18T19:45:31.867716+0700 INFO Order: 2409189SC46NTY Start!!
+2024-09-18T19:46:02.643300+0700 INFO Order: 2409189SC46NTY get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T19:46:07.753805+0700 INFO Order: 2409189SC46NTY Start!!
+2024-09-18T19:46:22.743374+0700 INFO Order: 2409189SC46NTY Start!!
+2024-09-18T19:46:57.775248+0700 INFO Order: 2409189SC46NTY get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T19:47:13.012531+0700 INFO Order: 2409189SC46NTY get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T19:48:35.368002+0700 INFO Order: 2409189SC46NTY Start!!
+2024-09-18T19:48:35.707600+0700 INFO Order: 2409189SC46NTY get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T19:51:03.688099+0700 INFO Order: 2409189SC46NTY Start!!
+2024-09-18T20:04:31.224233+0700 INFO Order: 240918AFM6BYQX Start!!
+2024-09-18T20:06:56.413839+0700 INFO Order: 2409189JTVF1Y0 Not found in the shopee's Export File
+2024-09-18T20:06:56.552157+0700 INFO Order: 2409189JTVF1Y0 Start!!
+2024-09-18T20:07:17.082252+0700 INFO Order: 2409189JTVF1Y0 Not found in the shopee's Export File
+2024-09-18T20:07:17.127401+0700 INFO Order: 2409189JTVF1Y0 Start!!
+2024-09-18T20:07:17.317511+0700 INFO Order: 2409189JTVF1Y0 get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T20:07:56.026012+0700 INFO Order: 2409189JTVF1Y0 Not found in the shopee's Export File
+2024-09-18T20:07:56.081917+0700 INFO Order: 2409189JTVF1Y0 Start!!
+2024-09-18T20:08:05.887427+0700 INFO Order: 2409189JTVF1Y0 Not found in the shopee's Export File
+2024-09-18T20:08:06.013921+0700 INFO Order: 2409189JTVF1Y0 Start!!
+2024-09-18T20:09:08.306804+0700 INFO Order: 2409189JTVF1Y0 Start!!
+2024-09-18T20:38:12.050619+0700 INFO Order: 240918ADE395QW Start!!
+2024-09-18T20:40:26.423139+0700 INFO Order: 240918ADE395QW get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-18T20:43:52.873892+0700 INFO Order: 240918ADG6XUP5 Start!!

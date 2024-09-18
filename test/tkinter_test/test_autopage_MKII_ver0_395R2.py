@@ -175,7 +175,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.395R1")
+        self.root.title("Autosamatic ver0.395R2")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2902,7 +2902,7 @@ class Bot_POS:
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input')
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input')
                     ))
 
                     self.search_elmt.clear()
@@ -2911,62 +2911,54 @@ class Bot_POS:
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00 PM
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]'
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00 
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 18/09/2024 14:00 
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[2]/button[1]'
                     )
-
                     self.searchBtn.click()
                 except:
-                    raise ValueError(f"method operation_start Error : {
-                                     traceback.format_exc()}")
+                    print("cannot search order")
+                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(0.75)
                 try:
+                    self.driver.find_element(By.CLASS_NAME, 'status-wrapper').is_displayed()
                     print("Found element classed big-text")
-                    self.driver.find_element(
-                        By.CLASS_NAME, 'big-text').is_displayed()
                 except:
-                    print(
-                        "Not found element classed big-text, try to wait and click element with XPATH")
+                    print("Not found element classed big-text, try to wait and click element with XPATH")
                     self.wait1.until(EC.element_to_be_clickable(
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div') พัง 28/08/2024 12:00 PM
-                        (By.XPATH,
-                         '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
-
+                        (By.XPATH,'/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
                     ))
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
                     # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-                    self.app.cus_cur_status.set(
-                        self.driver.find_element(By.CLASS_NAME, 'big-text').text)
+                    self.app.cus_cur_status.set(self.driver.find_element(By.CLASS_NAME, 'status-wrapper').text)
 
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) พัง 28/08/2024 12:00 PM
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text)
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text) พัง 18/09/2024 
+                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div[3]/div/div[1]/span').text)
 
                 # * จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
                 self.app.display_current_status.config(
                     fg="#000000", bg="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.config(
-                        bg="#00ff11", fg="#000000")
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
-                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(
-                        bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
-                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -3061,15 +3053,12 @@ class Bot_POS:
 
                 # จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
-                self.app.display_current_status.config(
-                    fg="#000000", bg="#8fd4ff")
+                self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
                 if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(
-                        bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
-                    self.app.display_current_status.config(
-                        bg="#00ff11", fg="#000000")
+                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
 
             #### * IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
             else:
@@ -3887,7 +3876,7 @@ class Bot_POS:
                             break
                     except Exception as err:
                         time.sleep(1)
-                        print("except: ", err)
+                        # print("except: ", err) # for develop inspection
                         continue
 
                 self.driver.find_element(
@@ -4750,6 +4739,7 @@ if __name__ == "__main__":
 # * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
 # ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order // เรียกหาชื่อปกติก็เปน ช่วงก่อนกรอก ค่าส่ง หลังเจอชื่อ
 # ? 100 Fixed 0.395R2 try to see the result after fixed if there still bug or not// duplicated orders will be remove, but removing duplicated order will affect sn columns  to be disappered
+# * 101 Fixed 0.395R2 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 18/09/2024
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------

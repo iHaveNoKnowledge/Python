@@ -505,10 +505,11 @@ class ChromeDriver:
         # print(f"base64 pdf extracted: {base64_pdf_data}")
         try:
             # todo printing command is the code below
+            print("printing the selected inv")
             with open("output.pdf", "wb") as pdf_file:
                 pdf_file.write(bin_pdf_data)
-                # os.startfile("output.pdf", "print")
-            print("printing")
+                os.startfile("output.pdf", "print")
+                print("printing complete")
         except OSError as err:
             print(f"No PDF Reader found. {err}")
 
