@@ -614,3 +614,15 @@
 2024-09-18T20:38:12.050619+0700 INFO Order: 240918ADE395QW Start!!
 2024-09-18T20:40:26.423139+0700 INFO Order: 240918ADE395QW get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2024-09-18T20:43:52.873892+0700 INFO Order: 240918ADG6XUP5 Start!!
+2024-09-19T16:59:16.887732+0700 INFO Order: 240918AE4T1699 Start!!
+2024-09-19T16:59:47.452099+0700 INFO Order: 240918AE4T1699 get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-19T17:00:26.660553+0700 INFO Order: 240918AE4T1699 Start!!
+2024-09-19T17:01:17.054536+0700 INFO Order: 240918AE4T1699 get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-19T17:12:26.626637+0700 INFO Order: 240918AE4T1699 Start!!
+2024-09-19T17:26:49.486545+0700 INFO Order: 240919C0MKAP9M get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-19T17:26:49.617672+0700 INFO Order: 240919C0MKAP9M Start!!
+2024-09-19T17:27:06.366065+0700 INFO Order: 240919C0MKAP9M get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-19T17:32:36.370152+0700 INFO Order: 2409188W2E01XK Start!!
+2024-09-19T17:32:39.169526+0700 INFO Order: 2409188W2E01XK get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-09-19T17:33:39.490637+0700 INFO Order: 2409189JD8JPHX Start!!
+2024-09-19T17:34:51.746885+0700 INFO Order: 2409189JD8JPHX get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
