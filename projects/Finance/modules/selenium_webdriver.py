@@ -338,7 +338,7 @@ class ChromeDriver:
             print(f"Current Event set?: {self.stop_event.is_set()}")
             # if not self.stop_event.is_set():
             if not self.stop_event.is_set():
-                self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} started", self.app.log_textbox)
+                self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} started", self.app.log_textbox)
                 try:
                     print("Start reprint")
                     self.refresh_reprint_page_verify()
@@ -406,7 +406,7 @@ class ChromeDriver:
                 break
 
             # *update interface log
-            self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} ended", self.app.log_textbox)
+            self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} ended", self.app.log_textbox)
             self.app.update_log(f" ", self.app.log_textbox)
             # *update percentage
             self.progress_bar['value'] += (1/self.inv_numbers_len)*100
