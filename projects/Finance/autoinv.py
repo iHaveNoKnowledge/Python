@@ -309,15 +309,19 @@ class MainApp:
             self.inv_state_df.dropna(inplace=True)
             self.invs_list_state = self.inv_state_df.copy()
             self.data_range = self.invs_list_state[self.target_col].__len__()
-            for inv in self.invs_list_state[self.target_col]:
-                log_queue.put(f"{inv}")
-
-            log_queue.put(f"Data State : {self.data_range} records To print")
+            self.state_series = self.invs_list_state[self.target_col]
+            self.show_state_log_ui(self.state_series, log_queue)
             logger.info("get_state_from_file, try: finished")
         except Exception as err:
             print(err)
             logger.error("get_state_from_file:", err)
             log_queue.put(f"ดึงข้อมูลจากไฟล์ไม่ได้: {err}")
+
+    def show_state_log_ui(self, state_series, log_queue):
+        self.state_series_inv = state_series
+        for inv in self.state_series_inv:
+            log_queue.put(f"{inv}")
+        log_queue.put(f"Data State : {self.state_series_inv.__len__()} records To print")
 
     #! wip กำลังทำตัวตัด เลข bil เนื่องจาก ถ้าหากเกิดข้อผิดพลาด มันจะได้รันต่อได้ อาจจะต้องทำ ไฟล์สำหรับเก็บ state แยกออกมา เมื่อรับไฟล์เข้ามาให้เอา data ไปลง อีกไฟล์ แล้วเอาไฟล์ใหม่เป็น state
     def deduct_accel_file_data(self, to_decuct_inv):
@@ -342,9 +346,10 @@ class MainApp:
         if self.reprint_thread and self.reprint_thread.is_alive():
             print("start task: Previous Thread is alive")
             self.stop_event.set()
-            self.wait_for_stop()
-        else:
+            # self.wait_for_stop()
+        elif not self.reprint_thread or not self.reprint_thread.is_alive():
             print("start task: Reprint Thread is not alive")
+            self.start_btn.configure(text="Stop")
             self.stop_event.clear()
             self.reprint_thread = threading.Thread(
                 target=lambda: self.chrome_driver.inv_reprint(
@@ -359,6 +364,8 @@ class MainApp:
             self.reprint_thread.start()
 
             logger.info("Start Reprint Thread")
+        else:
+            print("start task: Reprint Thread is still alive")
 
     def wait_for_stop(self):
         print("wait_for_stop() executed")

@@ -270,7 +270,6 @@ class ChromeDriver:
             text_color="#ffffff"
         )
 
-        self.reprint_page_url = self.driver.current_url
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
@@ -285,7 +284,8 @@ class ChromeDriver:
             try:
                 print(f"open: {self.preprint_page_url_cache}")
                 self.driver.get(self.preprint_page_url_cache)
-            except:
+            except Exception as err:
+                logger.info("unreachable cache url: ", err)
                 if self.preprint_page_url_cache == "http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050":
                     self.reprint_page_url = "http://192.168.0.11:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050"
                     self.driver.get(self.reprint_page_url)
@@ -304,7 +304,7 @@ class ChromeDriver:
             print("ไม่มีเปิดใหม่")
 
         self.inv_state = self.inv_numbers
-        while len(self.inv_state) != 0 and (self.app.reprint_thread and self.app.reprint_thread.is_alive()):
+        while len(self.inv_state) != 0 and not self.stop_event.is_set():
             self.inv_numbers = self.app.invs_list_state['invoice_no'].copy()
             self.iterative_reprint(self.inv_numbers)
             if len(self.app.invs_list_state) == 0:
@@ -312,10 +312,12 @@ class ChromeDriver:
                 break
             print("Printing continue")
 
-        self.stop_event.set()
+        if self.stop_event.is_set():
+            self.stop_event.set()
         self.stop_event.clear()
         print("จบการทำงาน")
         self.app.status_display.configure(text=f"Bot Status: จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+        self.app.start_btn.configure(text="Start")
         self.app.update_log(f"จบการทำงาน", self.app.log_textbox)
         # # * กลับหน้าเดิม
         # self.driver.switch_to.window(prev_window)
@@ -333,8 +335,9 @@ class ChromeDriver:
         # * เริ่มทำการกรอกบิลล่าสุดในหน้า reprint หน้า พิมพ์ใบเสร็จซ้ำ
         for idx, inv_number in enumerate(self.inv_numbers_state):
             print(f"Start reprint: {idx+1} {inv_number}")
+            print(f"Current Event set?: {self.stop_event.is_set()}")
             # if not self.stop_event.is_set():
-            if self.app.reprint_thread and self.app.reprint_thread.is_alive():
+            if not self.stop_event.is_set():
                 self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} started", self.app.log_textbox)
                 try:
                     print("Start reprint")
