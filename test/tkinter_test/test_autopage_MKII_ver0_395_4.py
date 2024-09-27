@@ -174,7 +174,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.395R3")
+        self.root.title("Autosamatic ver0.395.4")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2976,8 +2976,11 @@ class Bot_POS:
 
             #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
-                self.driver.switch_to.window(
-                    self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+                try:
+                    self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Lazada Seller Center'])
+                except:
+                    self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+                    
                 cur_url = self.driver.current_url
 
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
@@ -4742,6 +4745,7 @@ if __name__ == "__main__":
 # ? 100 Fixed 0.395R2 try to see the result after fixed if there still bug or not// duplicated orders will be remove, but removing duplicated order will affect sn columns  to be disappered
 # * 101 Fixed 0.395R2 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 18/09/2024
 # * 102 Fixed 0.395R3 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 19/09/2024 รู้สึกแปลกๆตั้งแต่ของ 0.395R2 แล้วละ เมื่อน element มันไม่ครบ
+# * 103 Fixed 0.395.4  // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
