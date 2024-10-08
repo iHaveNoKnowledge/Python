@@ -273,7 +273,8 @@ class ChromeDriver:
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
-            self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
+            self.driver.switch_to.window(
+                self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
             self.reprint_page_url = self.driver.current_url
             print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
 
@@ -316,7 +317,8 @@ class ChromeDriver:
             self.stop_event.set()
         self.stop_event.clear()
         print("จบการทำงาน")
-        self.app.status_display.configure(text=f"Bot Status: จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+        self.app.status_display.configure(
+            text=f"Bot Status: จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
         self.app.start_btn.configure(text="Start")
         self.app.update_log(f"จบการทำงาน", self.app.log_textbox)
         # # * กลับหน้าเดิม
@@ -338,13 +340,15 @@ class ChromeDriver:
             print(f"Current Event set?: {self.stop_event.is_set()}")
             # if not self.stop_event.is_set():
             if not self.stop_event.is_set():
-                self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} started", self.app.log_textbox)
+                self.app.update_log(
+                    f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} started", self.app.log_textbox)
                 try:
                     print("Start reprint")
                     self.refresh_reprint_page_verify()
                     try:
                         print("find outer span")
-                        self.driver.find_element(By.XPATH, "/html/body/span/span")
+                        self.driver.find_element(
+                            By.XPATH, "/html/body/span/span")
                         print("found outer span")
                     except:
                         print("no outer span, click to call li")
@@ -353,8 +357,10 @@ class ChromeDriver:
                             By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div/span/span[1]/span/span[1]').click()
                         print("li span displayed")
                     print("inv input operating")
-                    self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').clear()
-                    self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
+                    self.driver.find_element(
+                        By().XPATH, '/html/body/span/span/span[1]/input').clear()
+                    self.driver.find_element(
+                        By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
                     print("inv input operation done")
                     print("reason input operating")
                     self.driver.find_element(
@@ -379,7 +385,8 @@ class ChromeDriver:
                             print(f"{self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found correct inv")
-                            self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                            self.driver.find_element(
+                                By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
                             time.sleep(1)
                             while not self.stop_event.is_set():
                                 try:
@@ -398,7 +405,8 @@ class ChromeDriver:
 
                 except Exception as err:
                     print("reprint พัง: ", err)
-                    self.app.update_log(f"Task: {idx+1} inv {inv_number} not printed", self.app.log_textbox)
+                    self.app.update_log(
+                        f"Task: {idx+1} inv {inv_number} not printed", self.app.log_textbox)
                     print(f"Reprinting: {idx+1} {inv_number} Ended")
 
             else:
@@ -406,14 +414,16 @@ class ChromeDriver:
                 break
 
             # *update interface log
-            self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} ended", self.app.log_textbox)
+            self.app.update_log(
+                f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} ended", self.app.log_textbox)
             self.app.update_log(f" ", self.app.log_textbox)
             # *update percentage
             self.progress_bar['value'] += (1/self.inv_numbers_len)*100
             if self.inv_numbers_len == idx+1:
                 round(self.progress_bar['value'])
                 self.progress_bar['value'] = round(self.progress_bar['value'])
-            self.formatter_progress = "{:.0f}".format(self.progress_bar['value'])
+            self.formatter_progress = "{:.0f}".format(
+                self.progress_bar['value'])
             self.app.loading_progress.set(f"{self.formatter_progress} %")
             self.root_ui.update_idletasks()
             print(f"progress: {self.progress_bar['value']}%")
@@ -422,17 +432,20 @@ class ChromeDriver:
         # * กดปุ่มบันทึกเขียวๆ
         while not self.stop_event.is_set():
             try:
-                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
                 break
             except Exception as err:
-                print(f"cannot click that top right corner green btn: {err} bot will try to click the green btn again")
+                print(f"cannot click that top right corner green btn: {
+                      err} bot will try to click the green btn again")
                 continue
         print("click that top right corner green btn")
         time.sleep(0.75)
         # *กดปุ่ม ok  pop up
         while not self.stop_event.is_set():
             try:
-                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                self.driver.find_element(
+                    By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
                 break
             except Exception as err:
                 print(f"cannot click 'OK' btn: {err}")
@@ -473,7 +486,8 @@ class ChromeDriver:
                             time.sleep(1)
                             try:
                                 print("some error poped up")
-                                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                                self.driver.find_element(
+                                    By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
                                 self.refresh_reprint_page_verify()
                                 self.is_process = False
                                 print(f"message from pop up: {self.driver.find_element(
@@ -487,7 +501,8 @@ class ChromeDriver:
                         print(f"going lastpage{err}")
                         continue
 
-                self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
+                self.driver.find_element(
+                    By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[1]/div/a").click()
                 if self.is_process:
                     break
                 else:
@@ -502,7 +517,8 @@ class ChromeDriver:
             By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src')
         proc = re.search("(?<=,).*", pdf_src)
         base64_pdf_data = proc.group(0)
-        bin_pdf_data = base64.b64decode(base64_pdf_data)  # * แปลง base64 to binary data
+        # * แปลง base64 to binary data
+        bin_pdf_data = base64.b64decode(base64_pdf_data)
 
         # print(pdf_src)
         # print(f"base64 pdf extracted: {base64_pdf_data}")
