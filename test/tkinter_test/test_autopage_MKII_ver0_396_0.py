@@ -36,6 +36,7 @@ from customtkinter import *
 from pypdf import PdfReader
 from openpyxl import load_workbook
 from PIL import Image, ImageTk
+import base64
 
 import traceback
 from bs4 import BeautifulSoup
@@ -43,6 +44,9 @@ import httpcore
 from googletrans import Translator
 import requests
 session = requests.Session()
+
+import datetime
+import pytz
 
 # * images
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
@@ -174,7 +178,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.395.4")
+        self.root.title("Autosamatic ver0.396.0")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2748,10 +2752,9 @@ class Bot_POS:
         # self.wsh.SendKeys("{ESC}")
 
         # * ใช้ selenium กดปุ่มแดงโดยตรง ปุ่มแดงหน้า print ไม่เหมือน ปุ่มแดงหน้าแรก เพราะห้นปริ้นจะเป็น tag a ส่วนหน้าปกติมันเป็น button ใช้คนละ element แต่อยู๋ตำแหน่งเดียวกัน โคตรปั่น
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
 
-        print("กด esc แล้ว")
+        print("กด ปุ่มแดง ออก แล้ว")
         # ถ้าเขียนเป็น cb แล้วมันจะพัง
 
     def etax_reprint(self, inv_number):
@@ -2802,6 +2805,31 @@ class Bot_POS:
 
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
+
+    def get_pdf_src_and_print(self):
+        self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src')
+        self.proc = re.search("(?<=,).*", self.pdf_src)
+        self.base64_pdf_data = self.proc.group(0)
+        #* แปลง base64 to binary data
+        self.bin_pdf_data = base64.b64decode(self.base64_pdf_data)
+        
+        #* Get the current time in UTC
+        self.utc_time = datetime.datetime.now()
+        #* Specify the timezone
+        self.tz = pytz.timezone('Asia/Bangkok')
+        #* Convert the current time to Bangkok time and format it
+        self.th_time = self.utc_time.astimezone(self.tz).strftime("%d_%m_%Y-%I_%M_%S_%p")
+        
+        try:
+            with open(f"online_inv_output_{self.th_time}.pdf", "wb") as pdf_file:
+                pdf_file.write(self.bin_pdf_data)
+                os.startfile("online_inv_output_{self.th_time}.pdf", "print")
+                print("Printing complete.")
+        except OSError as err:
+            print(f"No PDF Reader found: {err}")
+            
+        #* กดปุ่มแดงปิดหน้า print
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
@@ -2860,9 +2888,12 @@ class Bot_POS:
                             # raise ValueError(
                             #     "There's no SN in Accel File, no functions to handle at this moment.")
                 else:
-                    print("ไม่ได้เลือก sn:",current_sku in self.app.obj_data_from_accel_file)
-                    print("ไม่ได้เลือก sn:",current_sku , self.app.obj_data_from_accel_file)
-                    print("ไม่ได้เลือก sn:",type(current_sku) , type(self.app.obj_data_from_accel_file))
+                    print("ไม่ได้เลือก sn:",
+                          current_sku in self.app.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:", current_sku,
+                          self.app.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:", type(current_sku),
+                          type(self.app.obj_data_from_accel_file))
         else:
             print("No items, return!!")
             return
@@ -2902,7 +2933,7 @@ class Bot_POS:
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 19/09/2024 17:00
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') 
+                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input')
                     ))
 
                     self.search_elmt.clear()
@@ -2911,40 +2942,45 @@ class Bot_POS:
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00 
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 18/09/2024 14:00 
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 18/09/2024 14:00
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 19/09/2024 17:00
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[2]/button[1]'
                     )
                     self.searchBtn.click()
                 except:
                     print("cannot search order")
-                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
+                    raise ValueError(f"method operation_start Error : {
+                                     traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(0.75)
                 try:
-                    self.driver.find_element(By.CLASS_NAME, 'status-wrapper').is_displayed()
+                    self.driver.find_element(
+                        By.CLASS_NAME, 'status-wrapper').is_displayed()
                     print("Found element classed big-text")
                 except:
-                    print("Not found element classed big-text, try to wait and click element with XPATH")
+                    print(
+                        "Not found element classed big-text, try to wait and click element with XPATH")
                     self.wait1.until(EC.element_to_be_clickable(
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div') พัง 28/08/2024 12:00 PM
-                        (By.XPATH,'/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
+                        (By.XPATH,
+                         '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
                     ))
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
                     # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-                    self.app.cus_cur_status.set(self.driver.find_element(By.CLASS_NAME, 'status-wrapper').text)
+                    self.app.cus_cur_status.set(self.driver.find_element(
+                        By.CLASS_NAME, 'status-wrapper').text)
 
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) เก่า ไม่น่าจะกลับมาใช้แล้ว
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) พัง 28/08/2024 12:00 PM
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text) พัง 18/09/2024 
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text) พัง 18/09/2024
                         By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div[3]/div/div[1]/span').text)
 
                 # * จะได้ element มา
@@ -2952,14 +2988,18 @@ class Bot_POS:
                 self.app.display_current_status.config(
                     fg="#000000", bg="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    self.app.display_current_status.config(
+                        bg="#00ff11", fg="#000000")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
+                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(
+                        bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
+                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -2977,10 +3017,12 @@ class Bot_POS:
             #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
                 try:
-                    self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Lazada Seller Center'])
+                    self.driver.switch_to.window(
+                        self.merged_dict['การจัดการคำสั่งซื้อ - Lazada Seller Center'])
                 except:
-                    self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
-                    
+                    self.driver.switch_to.window(
+                        self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+
                 cur_url = self.driver.current_url
 
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
@@ -3057,12 +3099,15 @@ class Bot_POS:
 
                 # จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
-                self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
+                self.app.display_current_status.config(
+                    fg="#000000", bg="#8fd4ff")
                 if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(
+                        bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
-                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
+                    self.app.display_current_status.config(
+                        bg="#00ff11", fg="#000000")
 
             #### * IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
             else:
@@ -3745,14 +3790,15 @@ class Bot_POS:
                                             self.etax_reprint(inv_number)
 
                                         self.final_popup_btn.click()
-                                        self.wait1.until(EC.visibility_of_element_located(
-                                            (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                        self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
                                         time.sleep(1)
-                                        self.driver.find_element(
-                                            By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
-                                        self.printtingPage()
-                                        self.justPressP()
-
+                                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                        #* วิธี print แบบเก่า
+                                        # self.printtingPage()
+                                        # self.justPressP()
+                                        #* วิธี print แบบใหม่
+                                        self.get_pdf_src_and_print()
+                                        
                                         # * Update Accel file //////////////////////
                                         self.app.deduct_accel_file_data(
                                             self.app.cus_order,
@@ -4582,12 +4628,14 @@ class Bot_POS:
 
             if x:
                 # * มีช่องว่าง แปลว่าดี
-                print("เจอช่องว่าง response ไม่ต้องทำอะไร return ได้เลย", result['name'])
+                print("เจอช่องว่าง response ไม่ต้องทำอะไร return ได้เลย",
+                      result['name'])
             else:
                 #! ไม่มีช่องว่าง แปลว่าอับปรีย์
                 result['name'] = result['name'].replace("บริษัท", "บริษัท ").replace(
                     "ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนจำกัด ")
-                print("ไม่เจอช่องว่างจาก response แต่เพิ่มให้แล้ว", result['name'])
+                print("ไม่เจอช่องว่างจาก response แต่เพิ่มให้แล้ว",
+                      result['name'])
 
         return result
 
@@ -4639,3 +4687,140 @@ if __name__ == "__main__":
     # * Create Instance
     app = MyApp(root)
     root.mainloop()
+
+# ปัญหาที่ต้องแก้
+# *1แก้แล้ว** บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
+# *2 fixed 0.394 // เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
+# *3 แอดใบกำกับ บัค ตรงที่ เราเหลือ ปุ่มสุดท้ายยังไม่กด แต่พอยังไม่กด มันไม่รอ มัน error ไปเลย
+# *4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
+# *5 แก้แล้ว**ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
+# *6แก้แล้ว** ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
+# *7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
+# *8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้ แก้ด้วยข้อ 22 แทน
+# *9แก้แล้ว** Total LastPage in SMCO -> ราคาที่ต้องออก
+# *10แก้แล้ว** "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
+# * /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
+# *11 มีบัคตรงที่ลูกค้าบางคนใส่ (สำนักงานใหญ่) บางคนไม่ใส่ (สำนักงานใหญ่)//เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
+# *12 ทำแล้ว //ทำ input ID PASS
+# *13 แก้แล้วแต่จะใส่ให้สองครั้ง//ยังแก้ไม่ได้ลูกสึก bigM ยังมีปัญหากับตรงนี้อยู่ อาจจะลองแก้ด้วย while True // searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
+# *14 ทำแล้ว // ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
+# ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
+# *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
+# *17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
+# *18 มีเลขลำดับบอกใน productslist
+# ?19 แก้แล้ว!!!ยากมาก!!!เลยไม่ชัวว่าแก้ได้จริงป่าว ///order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
+# *20 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
+# *21 ใช้ได้แล้ว //ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
+# *22 แก้แล้ว//พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
+# *23  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
+# *24 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
+# ?25 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
+# *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
+# *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
+# *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
+# *29 เพิ่มแล้ว //เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
+# *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
+# *31 แก้แล้ว//เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
+# *32 แก้แล้วมั้ง ปัจจุบันไม่มีปัญหา จำไม่ได้ว่าแก้ตอนไหน // ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
+# !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
+# *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
+# *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
+# !36 ใช้หาใบกำกับได้ดีกว่า vatinfo สะอีก https://www.dataforthai.com/company/{เลข13หลัก}/
+# *37 แก้แล้ว //ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
+# ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
+# ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
+# *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
+# ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข
+# ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
+# *43 แก้แล้ว 0.382 // File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
+# *44 0.383 แก้แล้ว // pop-up ของ contextwindow browser มันยังคงทำให้บอทดับอยู่ดีน่าจะเกิดจากการที่เราใช้ time.sleep แต่เราแก้ด้วยการใช้ while + try,except
+# *45 0.384 แก้แล้ว // ปรับความเร็วกรอกบิล ในขั้นตอน reprint
+# *46 0.384 แสดงlogเลขบิล
+# *47 0.385 เอาเลขบิลมาโชว์ที่ GUI
+# Todo 48 กรอกก่อนที่ element จะ display ได้ ดูเหมือนจะเป็นเช่นนั้น
+# * 8/2/2024
+# *49 fixed 0.387 // lazada ราคารวม bug
+# *50 fixed 0.387 // Ultimate CP prototype for หมึก
+# *51 fixed 0.387 // lazada ลูกค้า ภาษาสเปน googletrans ช่วยไม่ได้ กรณีถ้าแปลแล้วไม่ได้จริงๆ return ค่าinput ไปแหละ
+# *52 fixed 0.387 // Order ยกเลิกแสดงผลไม่ชัดเจน
+# *53 fixed 0.387 // shopee ปรับเปลี่ยนวิธีหาชื่อลูกค้าจาก Email เป็น ใช้ เลขผู้เสียภาษี
+# *54 fixed 0.387 // shopee ลดความเร็วในการกรอก แขวง/ตำบล ใน dropdown ตอน เพิ่มชื่อลูกค้าใหม่
+# !55 เอาเป็นว่าใช้เขตบางบอนดีกว่า มีแขวง บางบอนอยู่ 5 อัน แนวทางการแก้ไขอาจจะต้องใช้ req/res เพื่อดึงค่าจาก SMCO มาใช้แล้วแหละไม่งั้นทำไม่ได้ //วัฒนา ทวีวัฒนา dropdown จะมีสองค่า แล้วมันจะเอาค่าที่ยาวกว่าขึ้นก่อน การเลือกอันที่ 1 มันจะ ผิด
+# ?56 สังเกตุมาเป็นปีละไม่เคยเจอกับตัวแต่คนอื่นเจอตลอด // จาก กรุงเทพ กลายเป็น ภูเก็ตได้ order นี้ 2401309DCMAYCS มันคนละแบบกับที่เจอตอนแรกที่ผิดแค่ ตำบล แต่อันนี้ผิดที่จังหวัด ต้องไป recheck ที่จุดเริ่มต้น
+# *57 หายแล้ว จำไม่ได้แก้แพทช์ไหน // ประเทศไม่เลือกไทยในบางกรณี บางกรณีเลือกเป็น china เป็นเพราะเลือกจาก index แต่ไม่ได้เลือกจากข้อความด้านใน
+# !!58 สำคัญมาก ใบกำกับที่ print ออกมาจะ !!!แสดงผลด้วยภาษาไทย!!! แต่จะ !!!เสิชจากภาษาอังกิด!!! ถ้าจะใช้เพื่อ เสิช ต้องใช้ภาษาอังกิด อังกิดจะใส่ไรก็ใส่
+# !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
+# *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
+# *61 fixed 0.388 // Sonic blow บัค
+# *62 fixed 0.389 // Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
+# *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
+# *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
+# *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
+# !66 ยังพังอยู่มันยัง Add ลูกค้าใหม่ได้ยังไม่ดีพอ // fixed 0.390  // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
+# *67 fixed 0.390 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
+# *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
+# *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
+# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
+# ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
+# *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
+# *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
+# Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
+# *75 Fixed 0.391 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่ อีกแล้วเรอะ
+# *76 Fixed 0.391 // จาก ข้อ 66 ปรับวิธีเลือก li ใบกำกับ เนื่องจากอันเดิม เป็นการเลือกจาก "ชื่อเต็ม"จาก li  แต่มันมีปัญหาคือ หา element ไม่เจอ เปลี่ยนไปใช้หาโดย idx แทนทดสอบแล้ว แม่นอยู่ (แต่เดี๋ยว พอใช้จริงพัง 55555)
+# *77 Fixed 0.392 // ปรับช่วงรับ Data ขาเข้าของ Sonicblow ให้ตัด space ออกก่อนแล้ว
+# *78 Done but bug 0.392 // สรุปว่าพัง // ปรับ accel mode แบบ อัดทุก SKU รอทดลองว่าพังไหม
+# !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
+# !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
+# *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
+# Todo82 // WIP deduct_accel_file_data ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
+# *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
+# * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
+# * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
+# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่
+# !87 // Accelmode ปัญหาน่าจะเกิด เมื่อมีการข้าม บิล sn จะถูกข้ามมั้ง มันมีโอกาสที่จะไม่ดึงSN ที่เหลือ
+# ?88 // แอดแบบมี * น่าจะไม่เวิร์ค เพราะหลายๆค่าใน db มี* ทำให้้ช้ามั้ง ยังไม่เคยลองทดสอบ
+# * 89 Added 0.393 // เพิ่ม ฟังชั่น Read transfer เพื่อเพิ่มลง accelmode_file
+# ! 90 ช่วงถ้ายังเลือก dropdown ไม่ได้มันจะ error
+# ? 91 Fixed 0.394 // ปรับลูกค้าที่มีบันทึกให้อ่านค่าจากบันทึกได้ แต่อาจจะต้องมีทำต่อ เพราะใช้ได้แค่กรณีไม่ได้ขอใบกำกับ ตรงนี้ไม่มีระบบรองรับ ทำให้ input Dynamic มาก
+# * 92 Fixed 0.394 //  อ่านได้ละ //ตัวอ่าน PDF ยังแยก serial ได้ไม่ดี
+# * 93 Fixed 0.394 // แก้ การดึงค่า สถานะ จาก UI ใหม่ Shopee กรณี ส่งสำเร็จ, ยกเลิก, ส่งแล้ว
+# * 94 Fixed 0.394 // น่าจะได้มั้งไม่มี FeedBack // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเทสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
+# * 95 Fixed 0.395 // แก้ให้เลือกได้แล้ว // มีโอกาสที่จะเลือกประเภทลูกค้าไม่ได้
+# * 96 Added 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
+# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface
+# * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
+# ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order // เรียกหาชื่อปกติก็เปน ช่วงก่อนกรอก ค่าส่ง หลังเจอชื่อ
+# ? 100 Fixed 0.395R2 try to see the result after fixed if there still bug or not// duplicated orders will be remove, but removing duplicated order will affect sn columns  to be disappered
+# * 101 Fixed 0.395R2 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 18/09/2024
+# * 102 Fixed 0.395R3 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 19/09/2024 รู้สึกแปลกๆตั้งแต่ของ 0.395R2 แล้วละ เมื่อน element มันไม่ครบ
+# * 103 Fixed 0.395.4  // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
+# * 104 Added 0.396.0  // update new version Printing 08/10/2024 15:41
+
+# Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
+#!--------------------- ETAX SAGA ------------------------------------
+# *E1 อยากให้ display Email ใน gui ปัญหาจริงๆมาจาก Shopee ไม่รู้ว่ามีลูกค้าขอใบกำกับ เขาไม่ได้ขอมาโดยตรง แล้วมันขัดกับ วิธีการทำใบกำกับของ SHOPEE สูตร BigM ด้วย
+# *E1.5 ในบิลมันมีคำว่า tax ID : ขึ้นรอไว้เลย แบบมันมัดมือชกเลยว่ามึงต้องแอดใบกำกับเท่านั้น 555+ ต้องกลับมาทำเวย์เดิมแล้ว
+# *E2 The POS does not lead to the printing page. ทำให้ต้องไปเปิดหน้า print แยก ซึ่งอาจจะถูกแก้สักวันละมั้ง
+# *E3 canvas มันไม่โผล่ ทำให้ bot status มันไม่จบ มันจะค้างที่ Your turn
+# Todo ETAX ได้ข่าวมาว่าจะไม่ได้ใช้ตลอดไป แต่อาจจะเลิกใช้ที่เดือนกุมภา วันที่ 15 แปลว่า etax อาจจะเป็นโหมดชั่วคราว
+
+# Todo Future Features
+#!--------------------- Auto CP SAGA ------------------------------------
+# * ACP1 CPs บางอันมันจะมีวันที่ทับกัน
+# * ACP2 CPs แต่ละอันมันอาจจะมีราคาที่ต้องออก เท่ากัน บางอัน
+# * ACP3 แต่ CPs แต่ละอันมันจะมีมูลค่า CP ไม่เท่ากัน ถึงแม้ปลายทางมันจะเหมือนกัน ผลรวมลด เท่ากัน
+
+# เก็บข้อมูล
+# รอให้ final pop-up poped up /html/body/div[16]/div[2]/div[6]
+# หรือ
+# กดปุ่ม รอจนกว่าปุ่มนี้จะกดได้ /html/body/div[16]/div[2]/button[1] then click
+
+
+# note
+# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2] parent
+
+# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[1]/div[2]/a sv0
+# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div/div[1]/div[2]/a MNL
+
+# you should try this to find child 2 <div>
+# div_elements = x.find_elements_by_xpath("./div")
