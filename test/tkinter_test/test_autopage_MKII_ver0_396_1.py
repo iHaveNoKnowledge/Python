@@ -178,7 +178,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.0")
+        self.root.title("Autosamatic ver0.396.1")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2807,7 +2807,8 @@ class Bot_POS:
         self.driver.switch_to.window(prev_window)
 
     def get_pdf_src_and_print(self):
-        self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src')
+        # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
+        self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[8]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
         self.proc = re.search("(?<=,).*", self.pdf_src)
         self.base64_pdf_data = self.proc.group(0)
         #* แปลง base64 to binary data
@@ -4795,6 +4796,7 @@ if __name__ == "__main__":
 # * 102 Fixed 0.395R3 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 19/09/2024 รู้สึกแปลกๆตั้งแต่ของ 0.395R2 แล้วละ เมื่อน element มันไม่ครบ
 # * 103 Fixed 0.395.4  // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
 # * 104 Added 0.396.0  // update new version Printing 08/10/2024 15:41
+# * 105 Added 0.396.1  // patch new version Printing 08/10/2024 16:46
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
