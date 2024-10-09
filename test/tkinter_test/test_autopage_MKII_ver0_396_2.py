@@ -178,7 +178,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.1")
+        self.root.title("Autosamatic ver0.396.2")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2824,7 +2824,7 @@ class Bot_POS:
         try:
             with open(f"online_inv_output_{self.th_time}.pdf", "wb") as pdf_file:
                 pdf_file.write(self.bin_pdf_data)
-                os.startfile("online_inv_output_{self.th_time}.pdf", "print")
+                os.startfile(f"online_inv_output_{self.th_time}.pdf", "print")
                 print("Printing complete.")
         except OSError as err:
             print(f"No PDF Reader found: {err}")
@@ -2882,8 +2882,7 @@ class Bot_POS:
 
                         else:
 
-                            print(
-                                "ไม่มี SN, there are no functions available at this moment")
+                            print("ไม่มี SN, there are no functions available at this moment")
                             pass
                             # self.app.is_accel_mode_activated.set(False)
                             # raise ValueError(
@@ -4110,7 +4109,7 @@ class Bot_POS:
         # # * กด Save
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-
+        
         # รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
         self.wait1.until(EC.invisibility_of_element_located(
             (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
@@ -4280,8 +4279,7 @@ class Bot_POS:
                 '', result['address']).strip()
 
             # Define the regular expression pattern
-            pattern = re.compile(
-                r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
+            pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
 
             # Use the pattern to find matches in the address
             matches = pattern.search(result['address'])
@@ -4797,6 +4795,7 @@ if __name__ == "__main__":
 # * 103 Fixed 0.395.4  // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
 # * 104 Added 0.396.0  // update new version Printing 08/10/2024 15:41
 # * 105 Added 0.396.1  // patch new version Printing 08/10/2024 16:46
+# * 106 Added 0.396.2  // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
