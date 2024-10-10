@@ -679,12 +679,15 @@ class MyApp:
         else:
             self.accl_dir_namedisplay_on_btn.config(
                 text=f"ยังไม่เลือก Accel File")
-
+            
+        self.read_accel_file_to_state(self.accel_file_dir)
+            
+    def read_accel_file_to_state(self, accel_file_dir):
+        self.accel_file_dir = accel_file_dir
         # * accel data frame เราจะใช้แปลงค่า
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         print("before self.accel_df_state: ", self.accel_df_state)
-        self.accel_df_state.loc[self.accel_df_state.duplicated(
-            subset=['orders']), 'orders'] = pd.NA
+        self.accel_df_state.loc[self.accel_df_state.duplicated(subset=['orders']), 'orders'] = pd.NA
         self.accel_df_state['orders'].dropna(inplace=True)
         print("after self.accel_df_state: ", self.accel_df_state)
 
@@ -694,8 +697,7 @@ class MyApp:
             col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
         }
 
-        self.accel_orders_list = self.accel_df_state['orders'].dropna(
-        ).tolist()
+        self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
         # self.sn_list = self.accel_df_state['sn'].dropna().tolist()
         self.CP_list = self.accel_df_state['cp'].dropna().tolist()
         print(self.accel_orders_list)
@@ -728,14 +730,15 @@ class MyApp:
             print("select accel file first!!")
             return
 
-        target_dirs: tuple = filedialog.askopenfilenames(
-            title="Select SN PDF files")
+        target_dirs: tuple = filedialog.askopenfilenames(title="Select SN PDF files")
         if len(target_dirs) != 0:
             for target_dir in target_dirs:
                 self.sn_extractor(accel_file_dir, target_dir)
         else:
             print("You have not selected any transfer file, Extraction ends!!")
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        
+        self.read_accel_file_to_state(self.accel_file_dir)
 
     def sn_extractor(self, output_excel, target_dir):
         extracted_txt: str = ""
@@ -3800,7 +3803,7 @@ class Bot_POS:
                                         # self.printtingPage()
                                         # self.justPressP()
                                         #* วิธี print แบบใหม่
-                                        self.get_pdf_src_and_print()
+                                        self.get_pdf_src_and_print(inv_number)
                                         
                                         # * Update Accel file //////////////////////
                                         self.app.deduct_accel_file_data(
