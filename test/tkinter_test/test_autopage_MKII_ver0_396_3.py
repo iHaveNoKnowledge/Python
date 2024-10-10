@@ -178,7 +178,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.2")
+        self.root.title("Autosamatic ver0.396.3")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2806,7 +2806,7 @@ class Bot_POS:
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
 
-    def get_pdf_src_and_print(self):
+    def get_pdf_src_and_print(self, inv_number):
         # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
         self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[8]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
         self.proc = re.search("(?<=,).*", self.pdf_src)
@@ -2822,9 +2822,9 @@ class Bot_POS:
         self.th_time = self.utc_time.astimezone(self.tz).strftime("%d_%m_%Y-%I_%M_%S_%p")
         
         try:
-            with open(f"online_inv_output_{self.th_time}.pdf", "wb") as pdf_file:
+            with open(f"{inv_number}_{self.th_time}.pdf", "wb") as pdf_file:
                 pdf_file.write(self.bin_pdf_data)
-                os.startfile(f"online_inv_output_{self.th_time}.pdf", "print")
+                os.startfile(f"{inv_number}_{self.th_time}.pdf", "print")
                 print("Printing complete.")
         except OSError as err:
             print(f"No PDF Reader found: {err}")
@@ -2918,8 +2918,7 @@ class Bot_POS:
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click()
+                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click()
                     #! ตรงนี้มันไม่ใช้แล้ว
                     # self.wait1.until(EC.text_to_be_present_in_element(
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
@@ -2950,11 +2949,18 @@ class Bot_POS:
                     self.searchBtn.click()
                 except:
                     print("cannot search order")
-                    raise ValueError(f"method operation_start Error : {
-                                     traceback.format_exc()}")
+                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
 
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
-                time.sleep(0.75)
+                time.sleep(1)
+                
+                while True:
+                    #* ใช้ while loop รอดู interface ว่า มันโผล่มายัง
+                    try:
+                        self.driver.find_element(By.CLASS_NAME, 'status-wrapper').is_displayed()
+                        break
+                    except:
+                        continue
                 try:
                     self.driver.find_element(
                         By.CLASS_NAME, 'status-wrapper').is_displayed()
@@ -3773,16 +3779,13 @@ class Bot_POS:
                                         # *> ให้เวลาดูเลขบิล 1 วิ
                                         time.sleep(1)
 
-                                        alert_text = self.driver.find_element(
-                                            By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
-                                        match = re.search(
-                                            r'B\d+-W\d+-\d+', alert_text)
+                                        alert_text = self.driver.find_element(By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
+                                        match = re.search(r'B\d+-W\d+-\d+', alert_text)
                                         print("match: ", match)
                                         # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
                                         inv_number = match.group()
                                         print("inv_number: ", inv_number)
-                                        self.app.update_log(
-                                            f'เลขบิล: {inv_number}')
+                                        self.app.update_log(f'เลขบิล: {inv_number}')
 
                                         # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                                         # * ไปหน้า Reprint ##########################################################################################
@@ -4796,6 +4799,7 @@ if __name__ == "__main__":
 # * 104 Added 0.396.0  // update new version Printing 08/10/2024 15:41
 # * 105 Added 0.396.1  // patch new version Printing 08/10/2024 16:46
 # * 106 Added 0.396.2  // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
+# * 107 Added 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
