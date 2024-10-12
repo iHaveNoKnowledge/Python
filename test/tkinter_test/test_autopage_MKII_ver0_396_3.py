@@ -3502,7 +3502,8 @@ class Bot_POS:
             # self.app.search_complete.set()
             # return
 
-            if self.app.is_accel_mode_activated.get():
+            # if self.app.is_accel_mode_activated.get():
+            if len(self.app.accel_df_state) > 0:
                 self.accel_fill_sku()
 
             self.autofinal = True
