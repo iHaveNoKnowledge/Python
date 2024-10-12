@@ -711,8 +711,7 @@ class MyApp:
         df = self.accel_df_state
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
-        print("deduct_accel_file_data ref: ",
-              df.loc[df['orders'] == order, 'orders'])
+        print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
         # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
@@ -804,10 +803,9 @@ class MyApp:
 
         # * จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
         # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_numbers]
-        serial_numbers_grouped = [re.findall(
-            r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
+        serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
 
-        # ตรวจสอบข้อมูลที่ถูกสกัด
+        #* ตรวจสอบข้อมูลที่ถูกสกัด
         print("SKU Matches:")
         print(len(product_codes), product_codes)
         print("Serial Numbers Grouped:")
@@ -2847,7 +2845,7 @@ class Bot_POS:
                 current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
                 print("current_sku: ", current_sku)
                 sku_qtys = ordered_item['จำนวน']
-                if current_sku in self.app.obj_data_from_accel_file:
+                if self.app.obj_data_from_accel_file in current_sku:
                     for item in range(sku_qtys):
                         print(
                             "self.app.obj_data_from_accel_file[current_sku]: ", self.app.obj_data_from_accel_file[current_sku])
