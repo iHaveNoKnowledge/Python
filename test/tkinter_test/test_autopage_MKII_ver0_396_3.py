@@ -2821,11 +2821,15 @@ class Bot_POS:
         self.tz = pytz.timezone('Asia/Bangkok')
         #* Convert the current time to Bangkok time and format it
         self.th_time = self.utc_time.astimezone(self.tz).strftime("%d_%m_%Y-%I_%M_%S_%p")
+        self.pdf_name = f"{inv_number}_{self.th_time}"
         
         try:
-            with open(f"{inv_number}_{self.th_time}.pdf", "wb") as pdf_file:
+            with open(f"{self.pdf_name}.pdf", "wb") as pdf_file:
                 pdf_file.write(self.bin_pdf_data)
-                os.startfile(f"{inv_number}_{self.th_time}.pdf", "print")
+                
+                #! wip "Check inv here"
+                
+                os.startfile(f"{self.pdf_name}.pdf", "print")
                 print("Printing complete.")
         except OSError as err:
             print(f"No PDF Reader found: {err}")
