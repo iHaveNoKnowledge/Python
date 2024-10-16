@@ -37,6 +37,7 @@ from pypdf import PdfReader
 from openpyxl import load_workbook
 from PIL import Image, ImageTk
 import base64
+import pdfplumber
 
 import traceback
 from bs4 import BeautifulSoup
@@ -2808,34 +2809,62 @@ class Bot_POS:
         self.driver.switch_to.window(prev_window)
 
     def get_pdf_src_and_print(self, inv_number):
-        # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
-        self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[8]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
-        self.proc = re.search("(?<=,).*", self.pdf_src)
-        self.base64_pdf_data = self.proc.group(0)
-        #* แปลง base64 to binary data
-        self.bin_pdf_data = base64.b64decode(self.base64_pdf_data)
-        
         #* Get the current time in UTC
         self.utc_time = datetime.datetime.now()
         #* Specify the timezone
         self.tz = pytz.timezone('Asia/Bangkok')
         #* Convert the current time to Bangkok time and format it
         self.th_time = self.utc_time.astimezone(self.tz).strftime("%d_%m_%Y-%I_%M_%S_%p")
-        self.pdf_name = f"{inv_number}_{self.th_time}"
+        #* use inv_number from pop-up and time to create file name 
+        self.pdf_path = f"{inv_number}_{self.th_time}.pdf"
         
-        try:
-            with open(f"{self.pdf_name}.pdf", "wb") as pdf_file:
-                pdf_file.write(self.bin_pdf_data)
-                
-                #! wip "Check inv here"
-                
-                os.startfile(f"{self.pdf_name}.pdf", "print")
-                print("Printing complete.")
-        except OSError as err:
-            print(f"No PDF Reader found: {err}")
-            
+        #* get base64_str
+        self.base64_pdf_data = self.get_base64_from_ui()
+        
+        #* แปลง base64 to binary data and write down to pdf
+        self.base64_to_pdf(self.base64_pdf_data, self.pdf_path)
+        self.bin_pdf_data = base64.b64decode(self.base64_pdf_data)
+        
+        #* collect txt from pdf
+        self.extracted_txt = self.pdf_to_txt(self.pdf_path)
+        
+        #* is inv correct?
+        if inv_number in self.extracted_txt:
+            print(f"""inv_number:\ncorrect inv!!\n{inv_number}""")
+            #* print
+            self.print_pdf(self.pdf_path)
+        else:
+            print(f"""inv_number:\nwrong inv!!\nget src again""")
+            self.get_pdf_src_and_print(inv_number)
+        
         #* กดปุ่มแดงปิดหน้า print
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
+        
+    def get_base64_from_ui(self):
+        # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
+        pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[8]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
+        proc = re.search("(?<=,).*", pdf_src)
+        base64_str = proc.group(0)
+        return base64_str
+    
+    def base64_to_pdf(self, base64_string, pdf_path):
+        pdf_bytes = base64.b64decode(base64_string)
+        with open(f"{pdf_path}", "wb") as pdf_file:
+            pdf_file.write(pdf_bytes)
+    
+    def pdf_to_txt(pdf_path):
+        result = ""
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                result += page.extract_text()
+        return result
+    
+    def print_pdf(pdf_path):
+        try:
+            os.startfile(f"{pdf_path}", "print")
+            print("Printing complete.")
+        except OSError as err:
+            print(f"No PDF Reader found: {err}")
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
