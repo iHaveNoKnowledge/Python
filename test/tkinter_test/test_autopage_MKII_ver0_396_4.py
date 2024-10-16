@@ -179,7 +179,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.3")
+        self.root.title("Autosamatic ver0.396.4")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2808,7 +2808,7 @@ class Bot_POS:
         # * กลับหน้าเดิม
         self.driver.switch_to.window(prev_window)
 
-    def get_pdf_src_and_print(self, inv_number):
+    def get_pdf_src_and_print(self, inv_number, retry_count=0, max_retries=3):
         #* Get the current time in UTC
         self.utc_time = datetime.datetime.now()
         #* Specify the timezone
@@ -2835,7 +2835,9 @@ class Bot_POS:
             self.print_pdf(self.pdf_path)
         else:
             print(f"""inv_number:\nwrong inv!!\nget src again""")
-            self.get_pdf_src_and_print(inv_number)
+            if retry_count < max_retries:
+                print("retry count:", retry_count+1)
+                self.get_pdf_src_and_print(inv_number, retry_count+1)
         
         #* กดปุ่มแดงปิดหน้า print
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
@@ -4835,6 +4837,7 @@ if __name__ == "__main__":
 # * 105 Added 0.396.1  // patch new version Printing 08/10/2024 16:46
 # * 106 Added 0.396.2  // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
 # * 107 Added 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
+# * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
