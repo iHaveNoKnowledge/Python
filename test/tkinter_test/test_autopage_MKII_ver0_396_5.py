@@ -88,6 +88,7 @@ class MyApp:
         self.result = ""
         self.is_accel_mode = BooleanVar()
         self.is_accel_mode_activated = BooleanVar(value=False)
+        self.accel_df_state = {}
         self.table_location = ""
         self.marketplace_target = StringVar(value="MarketPlace")
         self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
@@ -179,7 +180,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.4")
+        self.root.title("Autosamatic ver0.396.5")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -4838,6 +4839,7 @@ if __name__ == "__main__":
 # * 106 Added 0.396.2  // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
 # * 107 Added 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
 # * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
+# * 109 patch 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
