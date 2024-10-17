@@ -180,7 +180,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.5")
+        self.root.title("Autosamatic ver0.396.6")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2855,14 +2855,14 @@ class Bot_POS:
         with open(f"{pdf_path}", "wb") as pdf_file:
             pdf_file.write(pdf_bytes)
     
-    def pdf_to_txt(pdf_path):
+    def pdf_to_txt(self, pdf_path):
         result = ""
         with pdfplumber.open(pdf_path) as pdf:
             for page in pdf.pages:
                 result += page.extract_text()
         return result
     
-    def print_pdf(pdf_path):
+    def print_pdf(self,pdf_path):
         try:
             os.startfile(f"{pdf_path}", "print")
             print("Printing complete.")
@@ -4840,6 +4840,7 @@ if __name__ == "__main__":
 # * 107 Added 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
 # * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
 # * 109 patch 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
+# * 110 patch 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
