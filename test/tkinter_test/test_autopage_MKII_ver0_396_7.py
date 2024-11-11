@@ -180,7 +180,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.6")
+        self.root.title("Autosamatic ver0.396.7")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2871,6 +2871,7 @@ class Bot_POS:
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
+        self.available_sn_skus_lsit = list(self.app.obj_data_from_accel_file.keys())
         self.used_serials = []
         # *  ดึง array items เก็บลงตัวแปร items
         ordered_items = self.app.items
@@ -2881,7 +2882,8 @@ class Bot_POS:
                 current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
                 print("current_sku: ", current_sku)
                 sku_qtys = ordered_item['จำนวน']
-                if self.app.obj_data_from_accel_file in current_sku:
+                self.is_sku_ready_to_pick = [key for key in self.available_sn_skus_lsit if key in current_sku]
+                if len(self.is_sku_ready_to_pick) > 0:
                     for item in range(sku_qtys):
                         print(
                             "self.app.obj_data_from_accel_file[current_sku]: ", self.app.obj_data_from_accel_file[current_sku])
@@ -4841,6 +4843,7 @@ if __name__ == "__main__":
 # * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
 # * 109 patch 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
 # * 110 patch 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
+# * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้   
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
