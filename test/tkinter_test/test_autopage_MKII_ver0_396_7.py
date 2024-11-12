@@ -2905,16 +2905,25 @@ class Bot_POS:
                             skuInput = self.driver.find_element(
                                 By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                             skuInput.clear()
-
-                            skuInput.send_keys(sn)
+                            attempts = 10
+                            while attempts > 0:
+                                try:
+                                    skuInput.send_keys(sn)
+                                    break
+                                except:
+                                    time.sleep(0.5)
+                                    attempts -= 1
+                            else:
+                                logger.error('sku input in smco cannot be interact from order: ', self.app.cus_order.get())
+                                raise ValueError('sku input in smco cannot be interact')
+                            
                             print("fill sn complete")
 
                             # while True:
                             skuInput.send_keys(Keys().ENTER)
                             #! wip ต้องมีตรวจสอบผลลัพธ์การกรอก sn ตรงนี้
                             print("pressed Enter at SKU-Input")
-                            print(f'to_sent_dict = sku: {
-                                  current_sku}, sn: {sn} ')
+                            print(f'to_sent_dict = sku: {current_sku}, sn: {sn} ')
                             to_sent_dict = {'sku': current_sku, 'sn': sn}
                             self.used_serials.append(to_sent_dict)
                             time.sleep(2)

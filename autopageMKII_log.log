@@ -714,3 +714,86 @@
 2024-11-11T17:46:51.243768+0700 INFO Order: 241111UUFXFXBK get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2024-11-11T17:46:52.493209+0700 INFO Order: 241111UUHH20CQ Start!!
 2024-11-11T17:48:32.837505+0700 INFO Order: 241111UUFXFXBK Start!!
+2024-11-12T16:54:05.701542+0700 INFO Order: 24111108W3298E get_tabs_outer_Exception_Error!! Message: no such window
+  (Session info: chrome=130.0.6723.117)
+Stacktrace:
+	GetHandleVerifier [0x00007FF67BBBB095+29557]
+	(No symbol) [0x00007FF67BB2FA50]
+	(No symbol) [0x00007FF67B9EB399]
+	(No symbol) [0x00007FF67BA77986]
+	(No symbol) [0x00007FF67BA67150]
+	(No symbol) [0x00007FF67BA3116F]
+	(No symbol) [0x00007FF67BA322D1]
+	GetHandleVerifier [0x00007FF67BEEC96D+3378253]
+	GetHandleVerifier [0x00007FF67BF38497+3688311]
+	GetHandleVerifier [0x00007FF67BF2D1CB+3642539]
+	GetHandleVerifier [0x00007FF67BC7A6B6+813462]
+	(No symbol) [0x00007FF67BB3AB5F]
+	(No symbol) [0x00007FF67BB36B74]
+	(No symbol) [0x00007FF67BB36D10]
+	(No symbol) [0x00007FF67BB25C1F]
+	BaseThreadInitThunk [0x00007FFAFFF9257D+29]
+	RtlUserThreadStart [0x00007FFB0084AF08+40]
+
+2024-11-12T16:54:07.313341+0700 INFO Order: 2411110JBTGUJD Start!!
+2024-11-12T16:55:35.130336+0700 INFO Order: 2411121V57KV5C Start!!
+2024-11-12T16:57:13.575604+0700 INFO Order: 24111222W14MHN Start!!
+2024-11-12T16:58:08.642828+0700 INFO Order: 24111223JRCFWD Start!!
+2024-11-12T17:00:26.320818+0700 INFO Order: 24111229WM1NNV Start!!
+2024-11-12T17:00:28.926464+0700 INFO Order: 24111229WM1NNV get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:00:29.989546+0700 INFO Order: 2411122AEPEKET Not found in the shopee's Export File
+2024-11-12T17:00:30.286914+0700 INFO Order: 2411122AEPEKET Start!!
+2024-11-12T17:00:32.819520+0700 INFO Order: 2411122AEPEKET get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:00:33.030323+0700 INFO Order: 2411122BVXJHB3 Not found in the shopee's Export File
+2024-11-12T17:00:33.361534+0700 INFO Order: 2411122BVXJHB3 Start!!
+2024-11-12T17:00:36.328602+0700 INFO Order: 2411122BVXJHB3 get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:00:37.026176+0700 INFO Order: 2411122CUNVAET Not found in the shopee's Export File
+2024-11-12T17:00:37.298950+0700 INFO Order: 2411122CUNVAET Start!!
+2024-11-12T17:00:39.792660+0700 INFO Order: 2411122CUNVAET get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:00:40.101196+0700 INFO Order: 2411122D5HFJEF Not found in the shopee's Export File
+2024-11-12T17:00:49.144870+0700 INFO Order: 2411122D5HFJEF Start!!
+2024-11-12T17:00:54.184587+0700 INFO Order: 2411122D5HFJEF get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:06:12.268663+0700 INFO Order: 24111108W3298E Start!!
+2024-11-12T17:07:17.554016+0700 INFO Order: 24111223JRCFWD Start!!
+2024-11-12T17:10:44.866979+0700 INFO Order: 24111223JRCFWD get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:12:38.832583+0700 INFO Order: 24111229WM1NNV Start!!
+2024-11-12T17:13:27.139269+0700 INFO Order: 2411122AEPEKET Start!!
+2024-11-12T17:15:49.037251+0700 INFO Order: 2411122BVXJHB3 Start!!
+2024-11-12T17:18:04.709501+0700 INFO Order: 2411122CUNVAET Start!!
+2024-11-12T17:19:26.298493+0700 INFO Order: 2411122D5HFJEF Start!!
+2024-11-12T17:20:12.778848+0700 INFO Order: 2411122FD4689K Start!!
+2024-11-12T17:21:24.786008+0700 INFO Order: 2411122FD4689K get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:21:26.115155+0700 INFO Order: 2411122KM0JYJV Start!!
+2024-11-12T17:23:06.319311+0700 INFO Order: 2411122KX2W9UY Start!!
+2024-11-12T17:25:10.294958+0700 INFO Order: 2411122P52HC8U Start!!
+2024-11-12T17:26:56.139156+0700 INFO Order: 241111UV976WA7 Start!!
+2024-11-12T17:28:24.570651+0700 INFO Order: 241111VNA394T8 Start!!
+2024-11-12T17:29:30.179741+0700 INFO Order: 24111109N8HRRT Start!!
+2024-11-12T17:30:30.625459+0700 INFO Order: 24111109N8HRRT get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:30:31.725546+0700 INFO Order: 2411110D0FT8MR Start!!
+2024-11-12T17:32:22.110560+0700 INFO Order: 2411110D0FT8MR get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:32:23.764991+0700 INFO Order: 2411110FX66APN Start!!
+2024-11-12T17:32:34.857858+0700 INFO Order: 2411110FX66APN get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:32:35.641701+0700 INFO Order: 2411110N6V06B4 Start!!
+2024-11-12T17:34:25.962009+0700 INFO Order: 2411110N6V06B4 get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:34:27.520670+0700 INFO Order: 2411110PS4UT8A Start!!
+2024-11-12T17:36:17.751583+0700 INFO Order: 2411110PS4UT8A get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:36:19.220602+0700 INFO Order: 241111UV48VPP7 Start!!
+2024-11-12T17:49:15.437174+0700 INFO Order: 241111UWJTHC4G Start!!
+2024-11-12T17:49:18.234930+0700 INFO Order: 241111UWJTHC4G get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:49:19.192609+0700 INFO Order: 2411110RRTUHF5 Start!!
+2024-11-12T17:49:21.659231+0700 INFO Order: 2411110RRTUHF5 get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:49:22.146271+0700 INFO Order: 2411110W9Y84HW Start!!
+2024-11-12T17:49:24.637225+0700 INFO Order: 2411110W9Y84HW get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:49:25.315169+0700 INFO Order: 2411110X8W33KF Start!!
+2024-11-12T17:51:10.396050+0700 INFO Order: 241111149HNKAK Start!!
+2024-11-12T17:55:48.828104+0700 INFO Order: 2411122FD4689K Start!!
+2024-11-12T17:59:25.467703+0700 INFO Order: 2411122FD4689K get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T17:59:47.059872+0700 INFO Order: 2411110D0FT8MR Start!!
+2024-11-12T18:00:52.653803+0700 INFO Order: 2411110D0FT8MR get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-12T18:01:41.366655+0700 INFO Order: 2411110FX66APN Start!!
+2024-11-12T18:03:09.180121+0700 INFO Order: 2411110PS4UT8A Start!!
+2024-11-12T18:04:34.224232+0700 INFO Order: 241111UV48VPP7 Start!!
+2024-11-12T18:06:37.971164+0700 INFO Order: 2411110RRTUHF5 Start!!
+2024-11-12T18:08:38.234176+0700 INFO Order: 2411110W9Y84HW Start!!
+2024-11-12T18:09:44.303877+0700 INFO Order: 241111149HNKAK Start!!
