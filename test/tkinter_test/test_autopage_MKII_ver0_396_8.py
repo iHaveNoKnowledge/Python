@@ -1,19 +1,15 @@
 
 from loguru import logger
-from decimal import Decimal
+
 import locale
-from concurrent.futures import ThreadPoolExecutor
 import threading
 import sys
 import os
-from xml.dom.minidom import Document
+
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.abstract_event_listener import AbstractEventListener
-from selenium.webdriver.support.events import EventFiringWebDriver, AbstractEventListener
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -24,13 +20,14 @@ from webdriver_auto_update.webdriver_manager import WebDriverManager
 
 import re
 import win32com.client as comclt
+import win32print
+import win32api
 import time
 import pandas as pd
 import numpy as np
 from tkinter import font
 from tkinter import ttk
 from tkinter import filedialog
-from tkinter import messagebox
 from tkinter import *
 from customtkinter import *
 from pypdf import PdfReader
@@ -180,7 +177,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.7")
+        self.root.title("Autosamatic ver0.396.8")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2833,7 +2830,7 @@ class Bot_POS:
         if inv_number in self.extracted_txt:
             print(f"""inv_number:\ncorrect inv!!\n{inv_number}""")
             #* print
-            self.print_pdf(self.pdf_path)
+            self.print_pdf_silence(self.pdf_path)
         else:
             print(f"""inv_number:\nwrong inv!!\nget src again""")
             if retry_count < max_retries:
@@ -2868,6 +2865,20 @@ class Bot_POS:
             print("Printing complete.")
         except OSError as err:
             print(f"No PDF Reader found: {err}")
+            
+    def print_pdf_silence(self,pdf_path):
+        try:
+            win32api.ShellExecute(
+                0,
+                "print",
+                f"{pdf_path}",
+                '/d:"%s"' % win32print.GetDefaultPrinter(),
+                ".",
+                0
+            )
+            print("Printing silently complete.")
+        except OSError as err:
+            print(f"(silence_mode)No PDF Reader found: {err}")
 
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
@@ -3644,12 +3655,14 @@ class Bot_POS:
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
                                 # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
+                                time.sleep(0.75)
                                 self.driver.find_element(
                                     By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").clear()
                                 self.driver.find_element(
                                     By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
                                 # เลือกประเภทชำระเงิน
+                                time.sleep(0.75)
                                 if self.app.marketplace_target.get() == 'SHOPEE':
                                     # เลือก shopee
                                     self.driver.find_element(
@@ -3841,6 +3854,7 @@ class Bot_POS:
                                         if is_etax and inv_number != "":
                                             self.etax_reprint(inv_number)
 
+                                        time.sleep(0.75)
                                         self.final_popup_btn.click()
                                         self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
                                         time.sleep(1)
@@ -3857,12 +3871,12 @@ class Bot_POS:
                                             self.used_serials
                                         )
 
-                                    except:
+                                    except Exception as err:
                                         # time.sleep(1)
                                         # print("ไม่ได้เลขบิล")
                                         # self.final_popup.click()
                                         self.final_popup_btn.click()
-                                        print("พัง ข้ามไปเลยละกัน")
+                                        print("พัง ข้ามไปเลยละกัน", err)
 
                                     break
 
@@ -4852,7 +4866,8 @@ if __name__ == "__main__":
 # * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
 # * 109 patch 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
 # * 110 patch 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
-# * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้   
+# * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
+# * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
