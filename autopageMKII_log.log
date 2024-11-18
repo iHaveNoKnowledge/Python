@@ -909,3 +909,11 @@ Stacktrace:
 2024-11-18T10:15:35.469201+0700 INFO Order: 241115A1H4E1DC Start!!
 2024-11-18T10:18:13.596863+0700 INFO Order: 241115A1H4E1DC Start!!
 2024-11-18T10:18:54.047618+0700 INFO Order: 241115A1H4E1DC get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-18T15:45:24.371101+0700 INFO Order: 241115ACA9WTRT Start!!
+2024-11-18T15:45:35.717434+0700 INFO Order: 241115ACA9WTRT get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-18T15:48:45.013795+0700 INFO Order: 241115ACA9WTRT Start!!
+2024-11-18T15:48:56.419410+0700 INFO Order: 241115ACA9WTRT get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-18T15:49:26.476717+0700 INFO Order: 241117FRP047XH Start!!
+2024-11-18T15:49:42.576570+0700 INFO Order: 241117FRP047XH get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2024-11-18T15:53:01.741940+0700 INFO Order: 241117FRP047XH Start!!
+2024-11-18T15:56:04.728976+0700 INFO Order: 241117FRP047XH get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
