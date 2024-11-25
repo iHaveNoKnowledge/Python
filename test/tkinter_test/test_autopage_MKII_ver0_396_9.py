@@ -177,7 +177,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.8")
+        self.root.title("Autosamatic ver0.396.9")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -2977,7 +2977,8 @@ class Bot_POS:
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click()
+                    # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click() //ใช้ได้แต่กันไว้ก่อน 25/11/2024 15:11
+                    self.driver.find_element(By.CSS_SELECTOR, 'div.eds-tabs__nav div.eds-tabs__nav-warp div div div.tab-label').click()
                     #! ตรงนี้มันไม่ใช้แล้ว
                     # self.wait1.until(EC.text_to_be_present_in_element(
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
@@ -2991,7 +2992,9 @@ class Bot_POS:
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 19/09/2024 17:00
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input')
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 25/11/2024 15:11
+                        (By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
+
                     ))
 
                     self.search_elmt.clear()
@@ -3003,7 +3006,8 @@ class Bot_POS:
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 18/09/2024 14:00
                         # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 19/09/2024 17:00
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[2]/button[1]'
+                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[2]/button[1]' ใช้ได้อยู่ แต่กันไว้ก่อน พัง 25/11/2024 15:11
+                        By.CSS_SELECTOR, 'div.order-search-buttons button.search-btn.eds-button.eds-button--primary.eds-button--normal.eds-button--outline'
                     )
                     self.searchBtn.click()
                 except:
@@ -4868,6 +4872,7 @@ if __name__ == "__main__":
 # * 110 patch 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
 # * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
 # * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
+# * 113 patch 0.396.9 // fix shopee ปรับ interface ใหม่
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
