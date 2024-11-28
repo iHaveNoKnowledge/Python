@@ -558,8 +558,7 @@ class MyApp:
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
         # * > Margetplace Products display Header
-        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น',
-                   'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
+        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
         self.row_header_maker(headers)
 
         # * > demonic cp segment
