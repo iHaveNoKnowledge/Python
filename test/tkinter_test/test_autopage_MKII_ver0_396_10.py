@@ -177,7 +177,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.396.9")
+        self.root.title("Autosamatic ver0.396.10")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -871,12 +871,12 @@ class MyApp:
         # df.fillna('', inplace=True)
 
         # เพิ่มส่วนที่ไม่มี และหาไม่ได้
-        df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['โค้ดส่วนลดชำระโดย Shopee'], df[
+        df['ส่วนลดจาก Shopee'], df['ประเภทใบกำกับภาษี'], df['โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)'], df[
             'ประเภทสาขา'], df['หมายเหตุจากผู้ซื้อ'], df['บันทึก'] = 0.00, "", 0, "", "", ""
 
         # กำหนด Datatype
         data_types = {'orderNumber': str, 'ส่วนลดจาก Shopee': float, 'ประเภทใบกำกับภาษี': str,
-                      'โค้ดส่วนลดชำระโดย Shopee': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str, 'customerEmail': str, 'taxCode': str, 'billingAddr3': str, 'billingAddr4': str, 'billingAddr5': str, 'billingName': str, 'billingPhone': str, 'customerName': str, 'shippingFee': float, 'sellerDiscountTotal': float, 'unitPrice': float}
+                      'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)': float, 'ประเภทสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str, 'paidPrice': float, 'variation': str, 'billingAddr': str, 'createTime': str, 'branchNumber': str, 'billingAddr2': str, 'customerEmail': str, 'taxCode': str, 'billingAddr3': str, 'billingAddr4': str, 'billingAddr5': str, 'billingName': str, 'billingPhone': str, 'customerName': str, 'shippingFee': float, 'sellerDiscountTotal': float, 'unitPrice': float}
         df = df.astype(data_types)
 
         # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
@@ -907,7 +907,7 @@ class MyApp:
             'ส่วนลดจาก Shopee': 'first',
             'ประเภทใบกำกับภาษี': 'first',
             'customerEmail': 'first',
-            'โค้ดส่วนลดชำระโดย Shopee': 'first',
+            'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)': 'first',
             'ประเภทสาขา': 'first',
             'หมายเหตุจากผู้ซื้อ': 'first',
             'บันทึก': 'first',
@@ -1159,7 +1159,7 @@ class MyApp:
                 "ราคาที่ต้องออก", self.f(self.total_price)))
 
             self.tree.insert("", "end", values=("Shopee Voucher",
-                                                self.f(self.nondistortedData['โค้ดส่วนลดชำระโดย Shopee']*-1)))
+                                                self.f(self.nondistortedData['โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)']*-1)))
 
             self.tree.insert("", "end", values=("ลูกค้าจ่ายทั้งหมด",
                                                 self.f(self.nondistortedData['จำนวนเงินทั้งหมด'])))
@@ -1478,7 +1478,7 @@ class MyApp:
             'ชื่อผู้ใช้ (ผู้ซื้อ)',
             'จำนวนเงินทั้งหมด',
             'วันที่ทำการสั่งซื้อ',
-            'โค้ดส่วนลดชำระโดย Shopee',
+            'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)',
             'รายละเอียดที่อยู่',
             'ประเภทสาขา',
             'รหัสประจำสาขา',
@@ -1513,8 +1513,7 @@ class MyApp:
                     row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
                         ' ', '')
 
-                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
-                )
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
                 self.update_log(f"สินค้าที่มี")
 
@@ -4872,6 +4871,7 @@ if __name__ == "__main__":
 # * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
 # * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
 # * 113 patch 0.396.9 // fix shopee ปรับ interface ใหม่
+# * 113 patch 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
