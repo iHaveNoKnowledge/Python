@@ -2967,7 +2967,7 @@ class Bot_POS:
             self.wait1 = WebDriverWait(self.driver, 50)
             # * เปลี่ยนไปtab MARKETPLACES เพื่อเช็ค status (เพราะไม่มี API เลยต้องทำ และเพื่อดูรูปว่ามีของแถมหรือไม่)
 
-            #### IF MARKETPLACE IS SHOPEE ###################################################################################################################################
+            ####* IF MARKETPLACE IS SHOPEE ###################################################################################################################################
             if self.app.marketplace_target.get() == 'SHOPEE':
                 self.driver.switch_to.window(self.merged_dict['Seller Centre'])
                 cur_url = self.driver.current_url
@@ -3065,8 +3065,7 @@ class Bot_POS:
                         bg="#ff2b2b", fg="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!", f"Order นี้มีสถานะ '{
-                          self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -3194,12 +3193,11 @@ class Bot_POS:
                 self.merged_dict['SMCO :: เปิดการขาย'])
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
-            self.cus_name_span_elmt = self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
-            self.cus_name_span_text = self.cus_name_span_elmt.text
-            if self.cus_name_span_text == 'Please select':
+            self.cus_name_span_elmt = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
+            self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
+            if self.cus_name_span_x_btn_text == 'Please select':
                 self.is_reset = False
-            elif self.cus_name_span_text == 'กรุณาเลือก':
+            elif self.cus_name_span_x_btn_text == 'กรุณาเลือก':
                 self.is_reset = False
             else:
                 self.is_reset = True
@@ -3209,12 +3207,10 @@ class Bot_POS:
                 print("เช็คว่าต้องรีไหม", self.is_reset)
                 if self.is_reset:
                     print("รีนี่หว่า, กดรีเลย")
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
+                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
                     try:
                         # คลิกเพื่อให้ปิด droprdown
-                        self.driver.find_element(
-                            By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
+                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
                     except:
                         # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
                         try:
@@ -3265,8 +3261,7 @@ class Bot_POS:
             #     else:
             #         continue
 
-            self.wait1.until(EC.element_to_be_clickable(
-                (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
+            self.wait1.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
 
             time.sleep(1)
             # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
@@ -3303,7 +3298,6 @@ class Bot_POS:
             #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
             #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            #! WIP
             # * 05/07/2024 Shopeeนั้นได้ลบ ชื่อลูกค้าแบบ ธรรมดา ออกไปอย่างถาวร จึงต้องปรับวิธีออกบิลให้กับแบบธรรมดาโดยการใช้ "account"+" ชื่อที่เป็นดอกจัน"+" หมายเลขโทรศัพท์"
             # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
             # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
@@ -3316,15 +3310,12 @@ class Bot_POS:
                 ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
             # * จับตาดูว่า ul เปิดอยู่ไหม
-            self.is_ul_not_open = False if self.driver.find_elements(
-                By.XPATH, self.app.cus_name_dropdown_ul) else True
+            self.is_ul_not_open = False if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul) else True
             # * กรณีไม่ได้เปิดไว้ จะเปิดให้
             if self.is_ul_not_open:
-                self.driver.find_element(
-                    By.XPATH, self.app.cus_arrow_btn).click()
+                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
 
-                self.wait1.until(EC.visibility_of_element_located(
-                    (By.XPATH, self.app.cusNameInput)))
+                self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
 
             # * ถ้าเปิดแล้วจะข้ามมานี่
             while True:
@@ -3342,8 +3333,7 @@ class Bot_POS:
                     # * มี pop-upไหม
                     if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
                         # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
-                        self.driver.find_element(
-                            By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
+                        self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
                         continue
                     # * ไม่มี pop-up ให้ break
                     break
@@ -3468,8 +3458,17 @@ class Bot_POS:
                 pass
 
             print("search หายไปแล้ว")
-            self.wait1.until(EC.invisibility_of_element_located(
-                (By.XPATH, self.app.cusNameInput)))
+            self.wait1.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+            
+            #!WIP ใส่ตัวเช็คที่อยู่ลูกค้า
+            if self.app.tax_bool.get():
+                print("tax required, start address check and correct")
+                self.smco_cus_address_element = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[11]/div[2]/div[1]/span/span[1]/span/span[1]')
+                self.cus_name_span = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                self.text_from_name_span = self.cus_name_span.get_attribute("title")
+                self.tax_address_corrector(self.smco_cus_address_element.text, self.text_from_name_span)
+            else:
+                print("no tax required, skip address check")
 
             # * ใส่ค่าขนส่ง
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
@@ -4332,7 +4331,7 @@ class Bot_POS:
         except:
             pass
         
-    def tax_address_corrector(self ,desired_address, current_address, cus_code):
+    def tax_address_corrector(self, current_address, cus_name):
         def wait_element(element, text=None):
             while True:
                 if element.is_displayed():
@@ -4344,11 +4343,16 @@ class Bot_POS:
                         time.sleep(0.75)
                 else:
                     time.sleep(0.75)
+                    
+        print("cus_name: ", cus_name)
+        match = re.search(r'C\w.*(?=-)', cus_name)
+        self.cus_code = match.group()
         
-        
-        desired_address = desired_address.replace(' ', '')
-        current_address = current_address.replace(' ', '')
-        if desired_address == current_address:
+        # self.desired_address = desired_address.replace(' ', '')
+        self.desired_address = self.app.address
+        self.current_address = current_address.replace(' ', '')
+        if not self.desired_address == self.current_address:
+            print("Customer Address is not correct")
             self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             customer_code_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
             if not customer_code_btn.is_displayed():    
@@ -4367,12 +4371,12 @@ class Bot_POS:
                 pass
             wait_element(customer_popup_input)
             
-            customer_popup_input.send_keys(cus_code)
+            customer_popup_input.send_keys(self.cus_code)
             
             while True:
                 customer_target = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li')
                 try:
-                    wait_element(customer_target, cus_code)
+                    wait_element(customer_target, self.cus_code)
                     break
                 except:
                     continue
@@ -4385,7 +4389,7 @@ class Bot_POS:
             
             while True:
                 try:
-                    customer_code_target = self.driver.find_element(By.XPATH, f"//*[text()='{cus_code}']")
+                    customer_code_target = self.driver.find_element(By.XPATH, f"//*[text()='{self.cus_code}']")
                     customer_code_target.click()
                     break
                 except:
@@ -4399,14 +4403,14 @@ class Bot_POS:
             
             #* กรอก Address
             address_revise_input_popup.clear()
-            desired_address = self.app.get_pure_address(desired_address)
-            address_revise_input_popup.send_keys(desired_address)
+            self.desired_address = self.app.get_pure_address(self.desired_address)
+            address_revise_input_popup.send_keys(self.desired_address)
 
             # * tel.
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').clear()
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys("0811234567")
+                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys(self.app.cus_tel.get())
 
             ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
             #* dropdown Country
@@ -4467,6 +4471,8 @@ class Bot_POS:
                 except:
                     continue
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        else:
+            print("Customer address has already corrected")
 
     # * function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
     def classify_vatinfo_address(self, input):
