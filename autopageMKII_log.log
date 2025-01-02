@@ -1149,3 +1149,4 @@ Stacktrace:
 2025-01-02T11:59:35.813076+0700 INFO Order: 250102E6GCYJ7U Start!!
 2025-01-02T11:59:45.416230+0700 INFO Order: 250102E6GCYJ7U get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-01-02T12:09:10.947100+0700 INFO Order: 250102E6GCYJ7U Start!!
+2025-01-02T12:17:14.103340+0700 INFO Order: 250102E6GCYJ7U get_tabs_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
