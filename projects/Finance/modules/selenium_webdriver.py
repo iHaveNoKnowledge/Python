@@ -129,15 +129,13 @@ class ChromeDriver:
                     if item in self.counter:
                         self.counter[item] += 1
                         print("counter[item] คือไร: ", self.counter[item])
-                        self.unique_titles.append(
-                            f"{item}{self.counter[item]-1}")
+                        self.unique_titles.append(f"{item}{self.counter[item]-1}")
                     else:
                         self.counter[item] = 1
                         self.unique_titles.append(item)
 
                 # เอาList มารวมกัน
-                self.merged_dict = dict(
-                    zip(self.unique_titles, self.value_list))
+                self.merged_dict = dict(zip(self.unique_titles, self.value_list))
                 print("มี tabs ไรบ้าง", self.merged_dict)
                 # self.operation_start()
         except Exception as e:
@@ -276,8 +274,7 @@ class ChromeDriver:
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
             # * สลับหน้าไป reprint
-            self.driver.switch_to.window(
-                self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
+            self.driver.switch_to.window(self.merged_dict['SMCO :: พิมพ์ใบเสร็จซ้ำ'])
             self.reprint_page_url = self.driver.current_url
             print("สลับไปหน้าพิม์ใบเสร็จซ้ำ")
 
@@ -388,8 +385,7 @@ class ChromeDriver:
                             print(f"{self.driver.find_element(
                                 By.XPATH, '/html/body/span/span/span[2]/ul/li').text} = {inv_number}")
                             print("found correct inv")
-                            self.driver.find_element(
-                                By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                            self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
                             time.sleep(1)
                             while not self.stop_event.is_set():
                                 try:
@@ -408,8 +404,7 @@ class ChromeDriver:
 
                 except Exception as err:
                     print("reprint พัง: ", err)
-                    self.app.update_log(
-                        f"Task: {idx+1} inv {inv_number} not printed", self.app.log_textbox)
+                    self.app.update_log(f"Task: {idx+1} inv {inv_number} not printed", self.app.log_textbox)
                     print(f"Reprinting: {idx+1} {inv_number} Ended")
 
             else:
@@ -417,16 +412,14 @@ class ChromeDriver:
                 break
 
             # *update interface log
-            self.app.update_log(
-                f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} ended", self.app.log_textbox)
+            self.app.update_log(f"Task: {idx+1}/{self.inv_numbers_len} {inv_number} ended", self.app.log_textbox)
             self.app.update_log(f" ", self.app.log_textbox)
             # *update percentage
             self.progress_bar['value'] += (1/self.inv_numbers_len)*100
             if self.inv_numbers_len == idx+1:
                 round(self.progress_bar['value'])
                 self.progress_bar['value'] = round(self.progress_bar['value'])
-            self.formatter_progress = "{:.0f}".format(
-                self.progress_bar['value'])
+            self.formatter_progress = "{:.0f}".format(self.progress_bar['value'])
             self.app.loading_progress.set(f"{self.formatter_progress} %")
             self.root_ui.update_idletasks()
             print(f"progress: {self.progress_bar['value']}%")
@@ -439,16 +432,14 @@ class ChromeDriver:
                     By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[1]/span/button[2]').click()
                 break
             except Exception as err:
-                print(f"cannot click that top right corner green btn: {
-                    err} bot will try to click the green btn again")
+                print(f"cannot click that top right corner green btn: {err} bot will try to click the green btn again")
                 continue
         print("click that top right corner green btn")
         time.sleep(0.75)
         # *กดปุ่ม ok  pop up
         while not self.stop_event.is_set():
             try:
-                self.driver.find_element(
-                    By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
                 break
             except Exception as err:
                 print(f"cannot click 'OK' btn: {err}")
@@ -475,7 +466,7 @@ class ChromeDriver:
                             time.sleep(2)
                             self.is_process = True
                             self.app.update_log(f"Task: {self.task_idx} inv {
-                                self.inv_number} printed", self.app.log_textbox)
+                                                self.inv_number} printed", self.app.log_textbox)
                             self.app.deduct_accel_file_data(self.inv_number)
                             break
 
@@ -489,8 +480,7 @@ class ChromeDriver:
                             time.sleep(1)
                             try:
                                 print("some error poped up")
-                                self.driver.find_element(
-                                    By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
+                                self.driver.find_element(By.XPATH, "/html/body/div[8]/div[2]/button[1]").click()
                                 self.refresh_reprint_page_verify()
                                 self.is_process = False
                                 print(f"message from pop up: {self.driver.find_element(
@@ -548,15 +538,12 @@ class ChromeDriver:
         # sku_kit_list = self.driver.find_elements(By.CSS_SELECTOR, "div.col-sm-9.col-xs-8")
         print("มีเซ็ตไรบ้าง")
         try:
-            self.kit_name_target = self.driver.find_element(
-                By.XPATH, f"//a[contains(., '{self.target}')]")
+            self.kit_name_target = self.driver.find_element(By.XPATH, f"//a[contains(., '{self.target}')]")
         except:
             print(f"หา ชุดkit {self.target} ไม่เจอ")
             return
-        self.kit_items_target_elmt = self.kit_name_target.find_element(
-            By.XPATH, "../div[1]")
-        self.kit_items_list = self.kit_items_target_elmt.find_elements(
-            By.CLASS_NAME, "ng-binding")
+        self.kit_items_target_elmt = self.kit_name_target.find_element(By.XPATH, "../div[1]")
+        self.kit_items_list = self.kit_items_target_elmt.find_elements(By.CLASS_NAME, "ng-binding")
         # print(f"element by kit name: {self.kit_name_target}, kit name: {self.kit_name_target.text}")
         # print(f"kit_items_target: {self.kit_items_target_elmt}")
         # print(f"kit_items_list: {self.kit_items_list}")
