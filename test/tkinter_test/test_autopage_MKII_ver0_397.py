@@ -4224,10 +4224,11 @@ class Bot_POS:
         match = re.search(r'C\w.*(?=-)', cus_name)
         self.cus_code = match.group()
         
-        # self.desired_address = desired_address.replace(' ', '')
         self.desired_address = self.app.address
-        self.current_address = current_address.replace(' ', '')
-        if not self.desired_address == self.current_address:
+        self.current_address = current_address
+        print("self.desired_address: ", self.desired_address.replace(' ', ''))
+        print("self.current_address: ", self.current_address.replace(' ', ''))
+        if not self.desired_address.replace(' ', '') == self.current_address.replace(' ', ''):
             print("Customer Address is not correct")
             self.get_tabs()
             if not 'SMCO :: ลูกค้า' in self.merged_dict:
@@ -4259,6 +4260,7 @@ class Bot_POS:
                 pass
             customer_code_btn.click()
             
+            #* customer code search popup
             wait_element('/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
             customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
             try:
@@ -4270,16 +4272,29 @@ class Bot_POS:
             
             customer_popup_input.send_keys(self.cus_code)
             
+            #* หา li 
             while True:
                 try:
                     wait_element('/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li', self.cus_code)
                     break
                 except:
                     continue
-            customer_target = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li')
-            customer_target.click()
-            exit_popupbutton = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/span')
-            exit_popupbutton.click()
+            customer_li_item_target = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li')
+            customer_li_item_target.click()
+            
+            #* Close pop up
+            exit_popup_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/span')
+            exit_popup_btn.click()
+            #* wait until pop up disappear
+            while True:
+                try:
+                    customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
+                    if not customer_popup_input.is_displayed():
+                        break
+                    else:
+                        continue
+                except:
+                    continue
             
             find_customer_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[3]/center/button[1]')
             find_customer_btn.click()
