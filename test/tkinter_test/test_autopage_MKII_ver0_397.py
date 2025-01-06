@@ -4916,7 +4916,9 @@ if __name__ == "__main__":
 # * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
 # * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
 # * 113 patch 0.396.9 // fix shopee ปรับ interface ใหม่
-# * 113 patch 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
+# * 114 patch 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
+# * 115 Feature 0.397 // เพิ่มตัวตรวจสอบ ภาษา ของ password
+# ? 116 Feature 0.397 // เพิ่มตัวตรวจสอบและแก้ไข address ของ ใบกำกับ
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
