@@ -2211,8 +2211,7 @@ class PopUp:
         self.id_label.config(state=DISABLED)
 
         # * Submit Button
-        self.submit_btn = Button(
-            self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
+        self.submit_btn = Button(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
         self.submit_btn.pack(fill='x', expand=True)
 
         # * ยก widget นี้ ขึ้นมาหน้าสุด
@@ -2222,25 +2221,22 @@ class PopUp:
         self.subwindow.lift()
 
 # * class สำหรับรับ ID PASS
-
-
 class UserAccount:
     def __init__(self, parent, app):
         self.parent = parent
         self.app = app
-        self.create_subwindow()
+        self.create_subwindow("Loginปลอม")
 
-    def create_subwindow(self):
+    def create_subwindow(self, title: str="Untitled"):
         self.subwindow = Toplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("250x140+650+400")
-        self.subwindow.title("Loginปลอม")
+        self.subwindow.title(title)
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
 
         # * Event Enter
-        self.subwindow.bind(
-            "<Return>", lambda event=None: self.submit_btn.invoke())
+        self.subwindow.bind("<Return>", lambda event=None: self.submit_btn.invoke())
         self.subwindow.bind("<Key>", _onKeyRelease)
 
         # * สร้างเฟรม
@@ -2248,8 +2244,7 @@ class UserAccount:
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง widget
-        self.id_label = Label(
-            self.subwin_frame, text="SMCO ID", font=("bazooka", 9), anchor="w")
+        self.id_label = Label(self.subwin_frame, text="SMCO ID", font=("bazooka", 9), anchor="w")
         self.id_label.pack(fill='x', expand=True)
         # self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
         #                       validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
@@ -2257,23 +2252,19 @@ class UserAccount:
         self.id_input.pack(fill='x', expand=True)
         self.id_input.focus()
 
-        self.pass_label = Label(
-            self.subwin_frame, text="SMCO Password", font=("bazooka", 9), anchor="w")
+        self.pass_label = Label(self.subwin_frame, text="SMCO Password", font=("bazooka", 9), anchor="w")
         self.pass_label.pack(fill='x', expand=True)
         # self.pass_input = Entry(
         #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
-        self.pass_input = Entry(
-            self.subwin_frame, textvariable=self.app.user_pw, show="*")
+        self.pass_input = Entry(self.subwin_frame, textvariable=self.app.user_pw, show="*")
         self.pass_input.pack(fill='x', expand=True)
 
         # * checkBox
-        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show Pass", font=(
-            'bazooka', 9), command=self.show_and_hide)
+        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show Pass", font=('bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
 
         # * Submit Button
-        self.submit_btn = Button(
-            self.subwin_frame, text="Submit", command=self.update_btn)
+        self.submit_btn = Button(self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
@@ -2330,41 +2321,44 @@ class UserAccount:
         else:
             print("Incorrect username or password")
             self.login_alert = PopUp(
-                "Login Fail!!", "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู", self.parent, "form")
+                "Login Fail!!", "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู", self.parent, "alert")
             return False
 
     def update_btn(self):
+        user_input = self.app.user_pw.get()
+        user_input_th_included = bool(re.search(r'[\u0E00-\u0E7F]', user_input))
         if self.app.user_id.get() and self.app.user_pw.get():
-
+            if user_input_th_included:
+                self.login_alert = PopUp("Login Fail!!", "พาสเวิร์ดมีภาษาไทย ไม่สามารถ login ได้", self.parent, "alert")
             # is_closable = self.login()
-            is_closable = True
-            print("ปิดได้ไหม ", is_closable)
-            if is_closable:
-                self.display_btn_txt = f"""Logged in !! ID : {
-                    self.app.user_id.get()}"""
-                self.app.display_acc_btn.config(text=self.display_btn_txt)
-                self.subwindow.destroy()
-
             else:
-                print("ไม่ติด")
-                self.display_btn_txt = "Login"
-                # self.subwindow.destroy()
-                # return self.display_btn_txt
+                is_closable = True
+                print("ปิดได้ไหม ", is_closable)
+                if is_closable:
+                    self.display_btn_txt = f"""Logged in !! ID : {self.app.user_id.get()}"""
+                    self.app.display_acc_btn.config(text=self.display_btn_txt)
+                    self.subwindow.destroy()
 
-            if self.app.user_id.get() in self.app.dev_account:
-
-                print("Accel mode approachable")
-                if self.app.accel_mode_checkbox.winfo_ismapped():
-                    pass
                 else:
-                    self.app.accel_mode_checkbox.grid(row=0, column=8, padx=5)
-            else:
-                print("Normal mode", self.app.user_id.get() in self.app.dev_account)
-                self.app.accel_mode_checkbox.grid_remove()
-                print(self.app.user_id.get())
-                print(self.app.dev_account)
+                    print("ไม่ติด")
+                    self.display_btn_txt = "Login"
+                    # self.subwindow.destroy()
+                    # return self.display_btn_txt
 
-            return self.display_btn_txt
+                if self.app.user_id.get() in self.app.dev_account:
+
+                    print("Accel mode approachable")
+                    if self.app.accel_mode_checkbox.winfo_ismapped():
+                        pass
+                    else:
+                        self.app.accel_mode_checkbox.grid(row=0, column=8, padx=5)
+                else:
+                    print("Normal mode", self.app.user_id.get() in self.app.dev_account)
+                    self.app.accel_mode_checkbox.grid_remove()
+                    print(self.app.user_id.get())
+                    # print(self.app.dev_account)
+
+                return self.display_btn_txt
 
     def show_and_hide(self):
         if self.pass_input['show'] == '*':
