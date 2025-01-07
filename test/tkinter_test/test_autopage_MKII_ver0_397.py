@@ -489,15 +489,11 @@ class MyApp:
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
         # >>> Labels
-        self.label_cus_address = Label(
-            self.invoice_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
-        self.label_cus_address.grid(
-            row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
+        self.label_cus_address = Label(self.invoice_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
+        self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_address = Text(
-            self.invoice_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
-        self.display_cus_address.grid(
-            row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
+        self.display_cus_address = Text(self.invoice_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_address.grid(row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
 
         # * >> Customer remark display component ส่วนแสดงผลหมายเหตุลูกค้า col 4-5
@@ -2386,7 +2382,7 @@ class Bot_POS:
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
-        # self.opt.add_argument("--disable-popup-blocking")
+        self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
         #     "download.default_directory" : Download_dir,
         #     "directory_upgrade": True
@@ -2585,9 +2581,9 @@ class Bot_POS:
 
         except Exception as err:
             traceback_str = traceback.format_exc()
-            print(f"get_tabs, An error occirred: {err}")
+            print(f"operation_task_thread, An error occirred: {err}")
             print(traceback_str)
-            logger.info(f"Order: {self.app.order} get_tabs_outer_Exception_Error!! {err}")
+            logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
 
     def enter_cus_name(self, cus_search):
         # * เคลียและกรอกชื่อลูกค้า
@@ -3973,8 +3969,7 @@ class Bot_POS:
         address = self.app.address
         if self.app.tax_bool.get():
             address = self.app.get_pure_address(self.app.address)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
 
         # * กรอก email
         self.email_input = self.driver.find_element(
@@ -4015,7 +4010,7 @@ class Bot_POS:
             # District
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
         self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+            self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("อ.", ""))  # District
         time.sleep(1.75)
         self.driver.find_element(
             By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
@@ -4195,6 +4190,85 @@ class Bot_POS:
         except:
             pass
         
+#*Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+    def get_cookies_from_driver(self):
+        cookies = self.driver.get_cookies()
+        cookies_from_webdriver = {}
+        for i in cookies:
+            cookies_from_webdriver[i['name']] = i['value']
+            # print(f"{i['name']} : {i['value']}")
+        return cookies_from_webdriver
+        
+    def address_api_request_smco(self, payload:dict={}):
+        cookies = self.get_cookies_from_driver()
+        current_url = self.driver.current_url
+        matched_str = re.search(r'\/[A-z].*', current_url).group()
+        origin = current_url.replace(matched_str, '')
+        
+        headers = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            # 'Cookie': 'JSESSIONID=342552DB2CF0B2DF30CA889D5848F200; locale=en_US; JWT-TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2MjA3OCwxODAsMjA4LGVuX1VTLEMxIiwiaWF0IjoxNzM2MTI5OTc4fQ.e73-mZtITbYthUrkfb4dwuYwuuUlcGiRvisejWxuWW8',
+            'Origin': f'{origin}',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+
+        data = payload
+
+        response = requests.post(
+            f'{origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm',
+            cookies=cookies,
+            headers=headers,
+            data=data,
+            verify=False,
+        )
+
+        # print('get_address_smco response status: ', response)
+        return response
+
+    def find_customer_id(self, cus_code:str=""):
+        print("find_customer_id excuted!: ")
+        payload = {
+            'requestText': f'{cus_code}',
+            'target': 'C',
+        }
+        response = self.address_api_request_smco(payload)
+        response_data:list = response.json()
+        # print(response_data)
+        cus_data:dict = {}
+        for i in response_data:
+            if i['custCode'] == cus_code:
+                cus_data = i
+                break
+            else:
+                print(f'ไม่มี {cus_code} นี้จาก response_data')
+                raise Exception(f'ไม่มี {cus_code} นี้จาก response_data')
+
+        customer_id = cus_data['id']
+        # print("customer_id: ", cus_data['id'])
+        return customer_id
+
+    def find_cus_address(self, cus_id:int=None):
+        payload = {
+            'target': '1',
+            'parentId': f'{cus_id}',
+        }
+        response = self.address_api_request_smco(payload)
+        response_data:dict = response.json()
+        extracted_address:dict = {}
+        for address in response_data['addressOfMember']:
+            if address['defaultFlag']:
+                extracted_address['address'] = address['custAddress']
+                extracted_address['subdistrict'] = address['subDustricId']['subdistrictNameTh']
+                extracted_address['district'] = address['districtId']['districtNameTh']
+                extracted_address['provice'] = address['provinceId']['provinceNameTh']
+                extracted_address['zip_code'] = address['zipCode']
+                
+        return extracted_address
+
     def tax_address_corrector(self, current_address, cus_name):
         def wait_element(xpath, text=None):
             while True:
@@ -4218,22 +4292,33 @@ class Bot_POS:
         match = re.search(r'C\w.*(?=-)', cus_name)
         self.cus_code = match.group()
         
-        self.desired_address = self.app.address
-        self.current_address = current_address
-        print("self.desired_address: ", self.desired_address.replace(' ', ''))
+        customer_id = self.find_customer_id(self.cus_code)
+        cus_address = self.find_cus_address(customer_id)
+        cus_address_to_compare = "".join(cus_address.values())
+        print("cus_address_to_compare: ", cus_address_to_compare)
+        
+        self.current_address = cus_address_to_compare 
+        self.desired_address = re.sub(r'\s{2,}', " ", f"""{self.app.address} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
+        self.desired_full_address = self.desired_address.replace("อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ตำบล", "").replace("แขวง", "").replace("ต.", "").replace("จังหวัด", "").replace("จ.", "")
+        print("self.desired_address: ", self.desired_full_address.replace(' ', ''))
         print("self.current_address: ", self.current_address.replace(' ', ''))
-        if not self.desired_address.replace(' ', '') == self.current_address.replace(' ', ''):
+        if not self.desired_full_address.replace(' ', '') == self.current_address.replace(' ', ''):
+            #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
             print("Customer Address is not correct")
             self.get_tabs()
             if not 'SMCO :: ลูกค้า' in self.merged_dict:
-                self.cur_url = self.driver.current_url
-                matched_str = re.search(r'\/[A-z].*', self.cur_url).group()
-                based_url = self.cur_url.replace(matched_str, '')
-                print("based URL:", based_url)
-                customer_edit_url = based_url+'/smartcore/customers/customers_search_new.htm?mc=POS1010'
-                print("customer edit URL:", customer_edit_url)
-                self.driver.execute_script(f"window.open('{customer_edit_url}', '_blank');")
-                self.get_tabs()
+                try:
+                    self.cur_url = self.driver.current_url
+                    matched_str = re.search(r'\/[A-z].*', self.cur_url).group()
+                    based_url = self.cur_url.replace(matched_str, '')
+                    print("based URL:", based_url)
+                    customer_edit_url = based_url+'/smartcore/customers/customers_search_new.htm?mc=POS1010'
+                    print("customer edit URL:", customer_edit_url)
+                    self.driver.execute_script(f"window.open('{customer_edit_url}', '_blank');")
+                    self.get_tabs()
+                except:
+                    print("try error: cannot open SMCO :: ลูกค้า")
+                    pass
             
             self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             
@@ -4379,7 +4464,8 @@ class Bot_POS:
         else:
             print("Customer address has already corrected")
 
-    # * function แยก address ของ output จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง)
+
+# * function แยก address:str ที่ได้จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง, จังหวัด, ปณ.)-------------------------------------
     def classify_vatinfo_address(self, input):
         try:
             # Create a copy of the output dictionary
@@ -4636,8 +4722,7 @@ class Bot_POS:
             # จัวนี้ต้องผูกกับ exe
             # tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
 
-            tambon_data_address = self.resource_path(
-                "Addresscleaner_TambonData.xlsx")
+            tambon_data_address = self.resource_path("Addresscleaner_TambonData.xlsx")
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
                 str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
