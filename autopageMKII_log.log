@@ -1187,3 +1187,4 @@ Stacktrace:
 2025-01-07T19:22:43.450311+0700 INFO Order: 250104KSCJ5EK3 Start!!
 2025-01-07T19:23:06.914923+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-01-07T19:25:53.331218+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-07T22:12:45.895124+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
