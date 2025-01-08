@@ -4308,6 +4308,7 @@ class Bot_POS:
             self.get_tabs()
             if not 'SMCO :: ลูกค้า' in self.merged_dict:
                 try:
+                    self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                     self.cur_url = self.driver.current_url
                     matched_str = re.search(r'\/[A-z].*', self.cur_url).group()
                     based_url = self.cur_url.replace(matched_str, '')
@@ -4321,6 +4322,37 @@ class Bot_POS:
                     pass
             
             self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            
+            #* รอดูว่า element โผล่ยัง
+            while True:
+                time.sleep(0.25)
+                try:
+                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]')
+                    break
+                except:
+                    continue
+            
+            
+            #* รอดูว่าelement โผล่ยัง
+            while True:
+                is_outer_page_on = False
+                is_inner_page_on = False
+                try:
+                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
+                    is_outer_page_on = True
+                    
+                except:
+                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[1]/div')
+                    is_inner_page_on = True
+                    
+                finally:
+                    if is_inner_page_on:
+                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]/a').click()
+                        break
+                    elif is_outer_page_on:
+                        break
+                    else:
+                        time.sleep(0.25)
             
             #* รอดูว่าelement โผล่ยัง
             while True:
@@ -5002,8 +5034,8 @@ if __name__ == "__main__":
 # * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
 # * 113 patch 0.396.9 // fix shopee ปรับ interface ใหม่
 # * 114 patch 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
-# * 115 Feature 0.397 // เพิ่มตัวตรวจสอบ ภาษา ของ password
-# ? 116 Feature 0.397 // เพิ่มตัวตรวจสอบและแก้ไข address ของ ใบกำกับ
+# * 115 Feature 0.397 // เพิ่มตัวตรวจสอบ ภาษา ของ password ตอน login bot (loginปลอม)
+# * 116 Feature 0.397 // เพิ่มตัวตรวจสอบและแก้ไข address ของ ใบกำกับ ในขั้นตอนหลังจากที่กดเลือกชื่อลูกค้าใบกำกับจาก รายการ dropdown ในหน้ายิงของออบิล
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
