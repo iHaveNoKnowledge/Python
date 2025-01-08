@@ -1208,3 +1208,23 @@ Stacktrace:
 2025-01-08T14:24:05.522033+0700 INFO Order: 250104KSCJ5EK3 Start!!
 2025-01-08T14:26:24.230671+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-01-08T14:28:22.907109+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:22:47.681044+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:22:55.442831+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:25:13.085608+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:25:30.646374+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:28:00.549856+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:28:20.362678+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:29:24.219821+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:29:37.755924+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:30:07.944737+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:31:52.791353+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:32:21.305726+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:48:36.762394+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:49:49.868966+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:50:14.682465+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:50:32.605709+0700 INFO Order: 250104KSCJ5EK3 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-08T16:50:42.969479+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:57:57.741402+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T16:58:45.235125+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T17:00:10.673965+0700 INFO Order: 250104KSCJ5EK3 Start!!
+2025-01-08T17:03:55.579498+0700 INFO Order: 250106Q7S50231 Start!!

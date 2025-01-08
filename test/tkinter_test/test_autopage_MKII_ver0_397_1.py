@@ -2584,6 +2584,14 @@ class Bot_POS:
             logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
 
     def enter_cus_name(self, cus_search):
+        # * จับตาดูว่า ul เปิดอยู่ไหม
+        self.is_ul_open = True if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul) else False
+        
+        # * กรณีไม่ได้เปิดไว้ จะเปิดให้
+        if not self.is_ul_open:
+            self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+            self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+            
         # * เคลียและกรอกชื่อลูกค้า
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(By.XPATH, self.app.cusNameInput).send_keys(cus_search)
@@ -3187,15 +3195,7 @@ class Bot_POS:
                 self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
                 ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            # * จับตาดูว่า ul เปิดอยู่ไหม
-            self.is_ul_not_open = False if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul) else True
-            # * กรณีไม่ได้เปิดไว้ จะเปิดให้
-            if self.is_ul_not_open:
-                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
 
-                self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
-
-            # * ถ้าเปิดแล้วจะข้ามมานี่
             while True:
                 self.enter_cus_name(self.cus_search_input)
                 print("กรอกชื่อเสร็จ")
@@ -3334,13 +3334,16 @@ class Bot_POS:
             #! WIP ใส่ รหัสพนักงาน
             self.smco_current_emp = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
             if not self.app.user_id.get() in self.smco_current_emp:
-                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').send_keys(self.app.user_id.get())
+                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
+                self.driver.find_element(By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
                 while True:
                     time.sleep(0.25)
                     try:
                         if self.app.user_id.get() in self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text:
                             self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                        break
+                            print("Found and select")
+                            break
+                        
                     except:
                         continue
                 
@@ -4511,8 +4514,10 @@ class Bot_POS:
             while True: #* รอกด li อันที่1 จาก dropdown ให้มันแสดงผลออกมา
                 time.sleep(0.25)
                 try:
-                    self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-                    break
+                    if self.cus_code in self.driver.find_element(By.XPATH, self.app.cusNameLi1).text:
+                        self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+                        break
+                    continue
                 except:
                     continue
                     
