@@ -1228,3 +1228,15 @@ Stacktrace:
 2025-01-08T16:58:45.235125+0700 INFO Order: 250104KSCJ5EK3 Start!!
 2025-01-08T17:00:10.673965+0700 INFO Order: 250104KSCJ5EK3 Start!!
 2025-01-08T17:03:55.579498+0700 INFO Order: 250106Q7S50231 Start!!
+2025-01-16T12:48:06.852454+0700 INFO Order: 25115J5G44H4F Start!!
+2025-01-16T12:48:08.520445+0700 INFO Order: 25115J5G44H4F operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-16T12:48:12.062899+0700 INFO Order: 25115J5G44H4F Start!!
+2025-01-16T12:48:13.607619+0700 INFO Order: 25115J5G44H4F operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-16T12:48:39.078316+0700 INFO Order: 250115J5G44H4F Start!!
+2025-01-16T12:48:44.238167+0700 INFO Order: 250115J5G44H4F operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-16T13:17:37.855524+0700 INFO Order: 250115J5G44H4F Start!!
+2025-01-16T13:21:58.664682+0700 INFO Order: 250115J5G44H4F Start!!
+2025-01-16T13:42:51.009579+0700 INFO Order: 250115J5G44H4F Start!!
+2025-01-16T13:43:05.681641+0700 INFO Order: 250115J5G44H4F operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-01-16T13:45:18.143376+0700 INFO Order: 250115J5G44H4F Start!!
+2025-01-16T13:49:30.698129+0700 INFO Order: 250115J5G44H4F Start!!
