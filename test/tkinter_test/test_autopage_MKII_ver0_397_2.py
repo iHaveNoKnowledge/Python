@@ -3724,6 +3724,11 @@ class Bot_POS:
                                         # * ไปหน้า Reprint ##########################################################################################
                                         if is_etax and inv_number != "":
                                             self.etax_reprint(inv_number)
+                                            #* ถ้ามี etax ก็ print แล้วจบไป
+                                            time.sleep(0.75)
+                                            self.final_popup_btn.click()
+                                            break
+                                            
 
                                         time.sleep(0.75)
                                         self.final_popup_btn.click()

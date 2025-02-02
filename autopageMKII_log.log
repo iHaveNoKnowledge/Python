@@ -1240,3 +1240,16 @@ Stacktrace:
 2025-01-16T13:43:05.681641+0700 INFO Order: 250115J5G44H4F operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-01-16T13:45:18.143376+0700 INFO Order: 250115J5G44H4F Start!!
 2025-01-16T13:49:30.698129+0700 INFO Order: 250115J5G44H4F Start!!
+2025-02-02T14:59:56.578485+0700 INFO Order: 2502024FDYDYFA Start!!
+2025-02-02T15:17:04.225042+0700 INFO Order: 2502023SCNQSHP Not found in the shopee's Export File
+2025-02-02T15:17:04.477713+0700 INFO Order: 2502023SCNQSHP Start!!
+2025-02-02T15:17:52.968820+0700 INFO Order: 2502013HP338P9 Not found in the shopee's Export File
+2025-02-02T15:17:53.197607+0700 INFO Order: 2502013HP338P9 Start!!
+2025-02-02T15:18:40.640836+0700 INFO Order: 2502024CMEKS2Y operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-02T15:18:40.821269+0700 INFO Order: 2502024CMEKS2Y Start!!
+2025-02-02T16:28:31.365616+0700 INFO Order: 2501310KFWEKVQ Start!!
+2025-02-02T17:30:02.657493+0700 INFO Order: 2501310KFWEKVQ operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-02T17:30:41.523836+0700 INFO Order: 2501310KFWEKVQ Start!!
+2025-02-02T17:58:58.086799+0700 INFO Order: 2502024CMEKS2Y Start!!
+2025-02-02T18:02:04.329858+0700 INFO Order: 2502023YTC0183 Start!!
+2025-02-02T18:04:21.772605+0700 INFO Order: 2502023QJSPGGC Start!!
