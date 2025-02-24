@@ -549,7 +549,7 @@ class MyApp:
         # * > demonic cp segment
         # * >> Label
         self.demonicCp_label = Label(
-            self.demonic_frame, text="Ulti CP", bg="#FFF", height=1)
+            self.demonic_frame, text="CP Adder", bg="#FFF", height=1)
         self.demonicCp_label.grid(row=0, column=0)
         # * >> Inputs1
         self.demonicCp_itemNo = StringVar()
@@ -563,7 +563,7 @@ class MyApp:
         self.demonicCp_cpNo_input.grid(row=0, column=4)
         # * >> Buttons
         self.demonicCp_btn = Button(
-            self.demonic_frame, text="SonicBlow!!", bg="#969696", command=self.demonic_cp_selection, width=10)
+            self.demonic_frame, text="Add CP!", bg="#969696", command=self.demonic_cp_selection, width=10)
         self.demonicCp_btn.grid(row=0, column=5)
 
         # * > Log windows component
