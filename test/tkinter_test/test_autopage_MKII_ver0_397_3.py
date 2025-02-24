@@ -175,7 +175,7 @@ class MyApp:
 
     def create_main_window(self):
         self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.397.2")
+        self.root.title("Autosamatic ver0.397.3")
         self.root.configure(bg="#444")
 
         # #* BG CANVAS ##################################################################################
@@ -837,7 +837,7 @@ class MyApp:
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(bg=f'{self.bg_by_market_place[self.marketplace_target.get()}')
+        # self.canvas.config(bg=f'{self.bg_by_market_place[self.marketplace_target.get()]')
         self.entry_frame.config(
             bg=f'{self.bg_by_market_place[str(result)]}')
         self.marketplace_label.config(
@@ -2147,7 +2147,7 @@ class DataSourceSelector:
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()}')
+        # self.canvas.config(bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]})
         self.app.entry_frame.config(
             bg=f'{self.app.bg_by_market_place[str(result)]}')
         self.app.marketplace_label.config(
@@ -3379,7 +3379,7 @@ class Bot_POS:
                         self.definePrice_btn_element.click()
                         time.sleep(1)
                         # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-                        print("กดที่ SKU ELEMENT 1 สำเร็จ")
+                        print("Successfully clicked on SKU ELEMENT 1")
 
                         self.changePriceInput = self.driver.find_element(
                             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
@@ -3403,15 +3403,15 @@ class Bot_POS:
                         self.driver.find_element(
                             By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
                         try:
-                            print("รอหาย")
+                            print("Waiting for element to disappear")
                             self.wait1(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
                         except:
-                            print("ไม่มีให้รอ")
+                            print("No need to wait")
                     except Exception as err:
-                        print("ค่าขนส่งโดนข้าม")
+                        print("Shipment cost skipped")
                         print(err)
                 else:
-                    print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
+                    print("No shipment cost")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.config(text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
@@ -3440,8 +3440,8 @@ class Bot_POS:
             self.autofinal = True
             while self.autofinal:
                 self.app.is_gui_busy.set(False)
-                print("เข้า final loop ")
-                print("รอให้มันโผล่")
+                print("Enter final loop")
+                print("Waiting for element to appear")
                 while self.parent.winfo_exists() and self.autofinal:
                     time.sleep(0.55)
                     while True:
@@ -3487,8 +3487,8 @@ class Bot_POS:
                         except UnexpectedAlertPresentException as err:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
-                            print("แสดงผล obj err แค่ส่วนเดียว", err.alert_text)
-                            PopUp("SNซ้ำ", f'{err.alert_text}', self.parent, "alert")
+                            print("Show only the part of obj err", err.alert_text)
+                            PopUp("SN Duplicate", f'{err.alert_text}', self.parent, "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
@@ -3498,14 +3498,14 @@ class Bot_POS:
                     # print("type(self.is_input_empty): ", type(self.is_input_empty))
                     # print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
                     if self.is_input_empty == "" and self.is_final_displayed == False:
-                        print("ชื่อหาย")
+                        print("Name disappeared")
                         break
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
                         continue
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
                         self.app.is_gui_busy.set(True)
                         time.sleep(0.55)
-                        print("หน้า จ่ายตัง")
+                        print("Page Payment")
                         self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
                             (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
                         self.last_page = self.driver.find_element(
@@ -3567,12 +3567,12 @@ class Bot_POS:
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
 
                             except:
-                                print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
+                                print("Final page failed, skip to waiting for price")
                                 break
 
                             if self.app.user_id.get() in self.app.dev_account:
                                 try:
-                                    print("ใส่ราคาอตัโนมัติ")
+                                    print("Auto enter price")
                                     print(
                                         (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
                                     final_price = (
@@ -3594,7 +3594,7 @@ class Bot_POS:
                                 "title")
 
                             # * พิมพ์ผลลัพธ์
-                            print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
+                            print("Check customer name self.is_input_on:", text_value)
 
                             # # * สำหรับ prefinal  pop-up (optional by ETAX)
                             # # * > แบบเลือกให้ตาม ข้อมูลลูกค้า
@@ -4231,13 +4231,11 @@ class Bot_POS:
             'X-Requested-With': 'XMLHttpRequest',
         }
 
-        data = payload
-
         response = requests.post(
             f'{origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm',
             cookies=cookies,
             headers=headers,
-            data=data,
+            data=payload,
             verify=False,
         )
 
@@ -4267,22 +4265,62 @@ class Bot_POS:
         return customer_id
 
     def find_cus_address(self, cus_id:int=None):
-        payload = {
-            'target': '1',
-            'parentId': f'{cus_id}',
-        }
-        response = self.address_api_request_smco(payload)
-        response_data:dict = response.json()
-        extracted_address:dict = {}
-        for address in response_data['addressOfMember']:
-            if address['defaultFlag']:
-                extracted_address['address'] = address['custAddress']
-                extracted_address['subdistrict'] = address['subDustricId']['subdistrictNameTh']
-                extracted_address['district'] = address['districtId']['districtNameTh']
-                extracted_address['provice'] = address['provinceId']['provinceNameTh']
-                extracted_address['zip_code'] = address['zipCode']
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                payload = {
+                    'target': '1',
+                    'parentId': f'{cus_id}',
+                }
+                response = self.address_api_request_smco(payload)
                 
-        return extracted_address
+                # ตรวจสอบ response status
+                if response.status_code in [400, 500]:
+                    print(f"Request failed with status {response.status_code}, retrying... ({retry_count + 1}/{max_retries})")
+                    retry_count += 1
+                    time.sleep(1)  # รอ 1 วินาทีก่อนลองใหม่
+                    continue
+                    
+                response.raise_for_status()  # จะ raise exception ถ้า status code เป็น 4xx หรือ 5xx
+                
+                response_data:dict = response.json()
+                extracted_address:dict = {}
+                
+                for address in response_data['addressOfMember']:
+                    if address['defaultFlag']:
+                        extracted_address['address'] = address['custAddress'] or ''
+                        extracted_address['subdistrict'] = address['subDustricId']['subdistrictNameTh'] or ''
+                        extracted_address['district'] = address['districtId']['districtNameTh'] or ''
+                        extracted_address['provice'] = address['provinceId']['provinceNameTh'] or ''
+                        extracted_address['zip_code'] = address['zipCode'] or ''
+                
+                return extracted_address
+
+            except requests.exceptions.RequestException as e:
+                print(f"Request error: {e}")
+                retry_count += 1
+                if retry_count == max_retries:
+                    print("Max retries reached, returning empty address")
+                    return {
+                        'address': '',
+                        'subdistrict': '',
+                        'district': '',
+                        'provice': '',
+                        'zip_code': ''
+                    }
+                time.sleep(1)
+                
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                return {
+                    'address': '',
+                    'subdistrict': '',
+                    'district': '',
+                    'provice': '',
+                    'zip_code': ''
+                }
 
     def tax_address_corrector(self, cus_name):
         def wait_element(xpath, text=None):
@@ -4309,6 +4347,18 @@ class Bot_POS:
         
         customer_id = self.find_customer_id(self.cus_code)
         cus_address = self.find_cus_address(customer_id)
+        
+        # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
+        if not any(cus_address.values()):
+            print("ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้")
+            PopUp(
+                "Error", 
+                "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง", 
+                self.parent, 
+                "error"
+            )
+            return
+            
         cus_address_to_compare = "".join(cus_address.values())
         print("cus_address_to_compare: ", cus_address_to_compare)
         
@@ -4316,8 +4366,10 @@ class Bot_POS:
         self.desired_address = re.sub(r'\n', " ", f"""{self.app.address} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
         self.desired_address = re.sub(r'\s{2,}',' ',self.desired_address)
         self.desired_full_address = self.desired_address.replace("อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ตำบล", "").replace("แขวง", "").replace("ต.", "").replace("จังหวัด", "").replace("จ.", "")
+        
         print("self.desired_address: ", self.desired_full_address.replace(' ', ''))
         print("self.current_address: ", self.current_address.replace(' ', ''))
+        
         if not self.desired_full_address.replace(' ', '') == self.current_address.replace(' ', ''):
             #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
             print("Customer Address is not correct")
@@ -4383,7 +4435,7 @@ class Bot_POS:
                 adavance_button = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[1]/div/div[2]/label')
                 adavance_button.click()
                 # adavance_button_text = adavance_button.text
-                print("adavance_button: ", adavance_button , "clicked")
+                # print("adavance_button: ", adavance_button , "clicked")
                 pass
             customer_code_btn.click()
             
@@ -4994,7 +5046,7 @@ if __name__ == "__main__":
 # ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข
 # ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
 # *43 แก้แล้ว 0.382 // File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
-# *44 0.383 แก้แล้ว // pop-up ของ contextwindow browser มันยังคงทำให้บอทดับอยู่ดีน่าจะเกิดจากการที่เราใช้ time.sleep แต่เราแก้ด้วยการใช้ while + try,except
+# *44 0.383 แก้แล้ว // pop-up ของ contextwindow browser มันยังคงทำให้บอทดับอยู่ดี น่าจะเกิดจากการที่เราใช้ time.sleep แต่เราแก้ด้วยการใช้ while + try,except
 # *45 0.384 แก้แล้ว // ปรับความเร็วกรอกบิล ในขั้นตอน reprint
 # *46 0.384 แสดงlogเลขบิล
 # *47 0.385 เอาเลขบิลมาโชว์ที่ GUI
@@ -5071,6 +5123,7 @@ if __name__ == "__main__":
 # * 117 Patch 0.397.1 // แก้ด้วยการ กรอกชื่อลูกค้าใหม่อีกรอบให้อัพเดท address ลูกค้าให้เป็น address ปัจจุบัน //หลังจากแก้ไขข้อมูล address ของลูกค้า แล้ว smco ไม่มีการ update ค่าใหม่ในหน้าออกบิล ต้อง reset ค่าใหม่สักวิธีนึง
 # * 118 Add 0.397.1 // เพิ่มฟังชั่น เติม รหัสพนักงานอัตโนมัติ
 # * 118 Patch 0.397.2 // แก้แล้ว//ตัวเทียบชื่อลูกค้ายังไม่ได้ตัดค่า "\n" ออกจาก shopee's exported data ทำให้วเลาเอามาเทียบจะผิดเสมอ
+# * 119 Patch 0.397.3 // ดัก error จาก req ของ find_cus_address โดยตรวจสอบ status และให้ return ค่าว่าง หาก response.status = 200 ต่ค่าด้านในไม่สามารถแกะออกมาได้อย่างสมบูรณ์
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
