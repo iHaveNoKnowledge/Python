@@ -1253,3 +1253,8 @@ Stacktrace:
 2025-02-02T17:58:58.086799+0700 INFO Order: 2502024CMEKS2Y Start!!
 2025-02-02T18:02:04.329858+0700 INFO Order: 2502023YTC0183 Start!!
 2025-02-02T18:04:21.772605+0700 INFO Order: 2502023QJSPGGC Start!!
+2025-02-24T14:07:11.842405+0700 INFO Order: 250220NS9CJU6C Start!!
+2025-02-24T14:10:42.659360+0700 INFO Order: 250222TJQ3QE0V Start!!
+2025-02-24T14:14:34.643313+0700 INFO Order: 2502241Q67Q5H4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-24T14:14:34.756424+0700 INFO Order: 2502241Q67Q5H4 Start!!
+2025-02-24T14:14:49.452841+0700 INFO Order: 2502241Q67Q5H4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
