@@ -1,4 +1,6 @@
 
+import pytz
+import datetime
 from loguru import logger
 
 import locale
@@ -43,8 +45,6 @@ from googletrans import Translator
 import requests
 session = requests.Session()
 
-import datetime
-import pytz
 
 # * images
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
@@ -152,14 +152,15 @@ class MyApp:
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
 
-        # Calculate scale factors
-        width_scale = screen_width / base_width
-        height_scale = screen_height / base_height
+        # Calculate scale factors - ใช้ขนาดหน้าต่างที่ต้องการเป็นตัวตั้ง
+        width_scale = base_width / screen_width  
+        height_scale = base_height / screen_height
 
-        # Use the smaller scale factor to maintain aspect ratio
-        scale_factor = min(width_scale, height_scale)
-
-        return scale_factor
+        # ใช้ scale factor ที่มากกว่าเพื่อให้แน่ใจว่า UI จะพอดีกับหน้าจอ
+        scale_factor = max(width_scale, height_scale)
+        
+        # กลับค่า scale เพื่อให้ UI เล็กลงเมื่อหน้าจอเล็กกว่าขนาดที่ต้องการ
+        return 1 / scale_factor
 
     def scale_widget(self, widget, scale_factor):
         if isinstance(widget, (CTkLabel, CTkButton, CTkEntry, CTkFrame)):
@@ -174,61 +175,93 @@ class MyApp:
                 self.scale_widget(child, scale_factor)
 
     def create_main_window(self):
-        self.root.geometry("1000x900+400+300")
+        # คำนวณ scale factor จากขนาดหน้าจอ
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        base_width = 1920
+        base_height = 1080
+        
+        # คำนวณ scaling factor
+        scaling_factor = min(screen_width / base_width, screen_height / base_height)
+        
+        # ตั้งค่า scaling สำหรับ window และ widgets
+        set_window_scaling(scaling_factor)
+        set_widget_scaling(scaling_factor)
+        
+        # ตั้งค่าขนาดและตำแหน่งหน้าต่าง
+        window_width = 1000
+        window_height = 900
+        x_position = (screen_width - window_width) // 2
+        y_position = (screen_height - window_height) // 2
+        
+        self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         self.root.title("Autosamatic ver0.397.3")
-        self.root.configure(bg="#444")
+        self.root.configure(fg_color="#444")
 
-        # #* BG CANVAS ##################################################################################
+        # สร้าง Main Canvas
         self.canvas = Canvas(self.root, bg="#444")
-
-        # * Scrollbar For Root ##################################################################################
-        self.root_scrollbar_y = Scrollbar(
-            self.canvas, command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
-        self.root_scrollbar_y.pack(side=RIGHT, fill="y")
-
-        self.root_scrollbar_x = Scrollbar(
-            self.root, command=self.canvas.xview, orient='horizontal')
-        self.root_scrollbar_x.pack(side=BOTTOM, fill="x")
-
-        self.canvas.config(xscrollcommand=self.root_scrollbar_x.set)
-        self.canvas.configure(xscrollcommand=self.root_scrollbar_x.set)
-        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.pack(fill="both", expand=True, padx=20)
 
         # #* FRAMES #####################################################################################################
-        # self.root_frame = Frame(self.canvas,  bg="pink") ใช้ได้แต่รอก่อน
+        # self.root_frame = CTkFrame(self.canvas,  fg_color="pink") ใช้ได้แต่รอก่อน
         # self.canvas.create_window((0, 0), window=self.root_frame, anchor="nw") ใช้ได้แต่รอก่อน
 
         # > Frame1 Order Entry
-        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444", borderwidth=1, relief="groove", highlightbackground="#ccc")
-        self.entry_frame.pack(side='top', pady=(10, 10))
+        self.entry_frame = CTkFrame(
+            self.canvas,
+            fg_color="#444",  # แทน bg
+            border_width=1,   # แทน borderwidth
+            border_color="#ccc",  # แทน highlightbackground
+        )
+        self.entry_frame.pack(side='top', pady=10, padx=5)
 
         # > Frame2 Log Frame
-        self.log_frame = Frame(self.canvas, bg="#444")
-        self.log_frame.pack(side='bottom', pady=(0, 20))
+        self.log_frame = CTkFrame(
+            self.canvas,
+            fg_color="#444"
+        )
+        self.log_frame.pack(side='bottom', pady=20)
 
         # > Frame3 ImportFile Status and Bot Status
-        self.import_file_frame = Frame(self.canvas, bg="#444")
-        self.import_file_frame.pack(side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+        self.import_file_frame = CTkFrame(
+            self.canvas,
+            fg_color="#444"
+        )
+        self.import_file_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame4 Customer Details
-        self.order_details_frame = Frame(self.canvas, bg="#444", )
-        self.order_details_frame.pack(side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+        self.order_details_frame = CTkFrame(
+            self.canvas,
+            fg_color="#444"
+        )
+        self.order_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame7 For Customer's Invoice Details
-        self.invoice_details_frame = Frame(self.canvas, bg="#445")
-        self.invoice_details_frame.pack(side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+        self.invoice_details_frame = CTkFrame(
+            self.canvas,
+            fg_color="#445"
+        )
+        self.invoice_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame5 Products Lists
-        self.products_list_frame = Frame(self.canvas, bg="#445")
-        self.products_list_frame.pack(side='top', padx=(5, 5), pady=(5, 5), fill=X)
+        self.products_list_frame = CTkFrame(
+            self.canvas,
+            fg_color="#445"
+        )
+        self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
 
         # > Frame6 Margetplace(MP) Products Lists
-        self.mp_products_list_frame = Frame(self.canvas, bg="#444")
-        self.mp_products_list_frame.pack(side='top',  padx=(5, 5), pady=(5, 5), fill="x")
+        self.mp_products_list_frame = CTkFrame(
+            self.canvas,
+            fg_color="#444"
+        )
+        self.mp_products_list_frame.pack(side='top', padx=5, pady=5, fill="x")
 
         # > Frame7 The Upper Log Frame Demonic Frame
-        self.demonic_frame = Frame(self.canvas, bg="#444")
+        self.demonic_frame = CTkFrame(
+            self.canvas,
+            fg_color="#444"
+        )
         self.demonic_frame.pack(side='bottom', pady=(0, 2))
 
         # * Create widgets in the main window
@@ -303,14 +336,14 @@ class MyApp:
         # * entry_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # *  MarketPlace
         # * > Label
-        self.marketplace_label = Label(
-            self.entry_frame, textvariable=self.marketplace_target, bg="#747474", fg="#FFF", font='bazooka 10 bold')
+        self.marketplace_label = CTkLabel(
+            self.entry_frame, textvariable=self.marketplace_target, fg_color="#747474", text_color="#FFF", font=CTkFont(family="bazooka", size=10, weight="bold"))
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
         # *  search order component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Labels
-        self.inp1_label_order = Label(
-            self.entry_frame, text="Order: ", bg="#FFF", width=10)
+        self.inp1_label_order = CTkLabel(
+            self.entry_frame, text="Order: ", fg_color="#FFF", width=10)
         self.inp1_label_order.grid(row=0, column=1, padx=5)
         # *> Inputs
         self.entered_order = StringVar()
@@ -336,12 +369,12 @@ class MyApp:
         # *  search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # * > Labels
-        self.accl_dir_label = Label(
+        self.accl_dir_label = CTkLabel(
             self.entry_frame, text=f"Accel File Dir ")
 
         # *> FileName Display on Button
-        self.accl_dir_namedisplay_on_btn = Button(
-            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, bg="#969696")
+        self.accl_dir_namedisplay_on_btn = CTkButton(
+            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, fg_color="#969696")
 
         # *> Buttons
         self.start_image = Image.open(arrow_icon)
@@ -382,13 +415,13 @@ class MyApp:
         # *  add transfers to accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # *พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # *> add transfer Button
-        self.add_trans_to_accel_file_btn = Button(
-            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir), bg="#969696")
+        self.add_trans_to_accel_file_btn = CTkButton(
+            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir), fg_color="#969696")
 
         # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get() and self.user_pw.get() else "Login"
-        self.display_acc_btn = Button(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
+        self.display_acc_btn = CTkButton(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
         self.display_acc_btn.grid(row=0, column=7, padx=5)
 
         # * Accel mode
@@ -404,27 +437,27 @@ class MyApp:
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # *  Export File and Bot status location display component
-        self.display_location_label = Label(
+        self.display_location_label = CTkLabel(
             self.import_file_frame, text=f"File located: ")
         self.display_location_label.grid(row=0, column=0, padx=(5, 0))
 
-        self.display_location_result = Label(
+        self.display_location_result = CTkLabel(
             self.import_file_frame, text=f"ยังไม่เลือก Import File")
         self.display_location_result.grid(row=0, column=1, padx=(5, 0))
 
-        self.display_location_result_btn = Button(
-            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, bg="#969696")
+        self.display_location_result_btn = CTkButton(
+            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, fg_color="#969696")
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
 
         # >> bot status
-        self.display_bot_status_label = Label(
-            self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", bg="#1f242e", fg="#ffec1f")
+        self.display_bot_status_label = CTkLabel(
+            self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", fg_color="#1f242e", text_color="#ffec1f")
         self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0))
 
         # * > Current Order display component
         # >> Labels
-        self.label_current_order = Label(
-            self.order_details_frame, text="Current Order: ", bg="#FFF",)
+        self.label_current_order = CTkLabel(
+            self.order_details_frame, text="Current Order: ", fg_color="#FFF",)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0))
 
         self.display_current_order = Entry(
@@ -433,30 +466,30 @@ class MyApp:
 
         # * > Current Status display component
         # >> Labels
-        self.label_current_status = Label(
-            self.order_details_frame, text="Status: ", bg="#FFF",)
+        self.label_current_status = CTkLabel(
+            self.order_details_frame, text="Status: ", fg_color="#FFF",)
         self.label_current_status.grid(
             row=1, column=2, padx=(5, 0), columnspan=1)
-        self.display_current_status = Label(
-            self.order_details_frame, width=20,  borderwidth=0, textvariable=self.cus_cur_status, fg="#000000", bg="#8fd4ff")
+        self.display_current_status = CTkLabel(
+            self.order_details_frame, width=20, textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff")
 
         self.display_current_status.grid(
             row=1, column=3, padx=(1, 0), sticky=W)
 
         # * > Is Tax?? display component
         # >> Labels
-        self.label_is_tax = Label(
-            self.order_details_frame, text="ใบกำกับ", bg="#FFF")
+        self.label_is_tax = CTkLabel(
+            self.order_details_frame, text="ใบกำกับ", fg_color="#FFF")
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew')
         # >> Value display
-        self.display_is_tax = Label(
-            self.order_details_frame,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
+        self.display_is_tax = CTkLabel(
+            self.order_details_frame, textvariable=self.is_tax, bg_color="#000000", fg_color="#fff")
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky='ew')
 
         # * > Tax Number display component
         # >> Labels
-        self.label_tax_number = Label(
-            self.order_details_frame, text="เลขผู้เสียภาษี", bg="#FFF")
+        self.label_tax_number = CTkLabel(
+            self.order_details_frame, text="เลขผู้เสียภาษี", fg_color="#FFF")
         self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_tax_number = Entry(
@@ -465,8 +498,8 @@ class MyApp:
 
         # * > Customer Email display component
         # >> Labels
-        self.label_cus_email = Label(
-            self.order_details_frame, text="Email", bg="#FFF")
+        self.label_cus_email = CTkLabel(
+            self.order_details_frame, text="Email", fg_color="#FFF")
         self.label_cus_email.grid(row=2, column=6, padx=(5, 0), sticky='ew')
         # >> Value display
         self.display_cus_email = Entry(
@@ -475,8 +508,8 @@ class MyApp:
 
         # * > Customer Name display component
         # * >> Labels
-        self.label_cus_name = Label(
-            self.order_details_frame, text="ชื่อ", bg="#FFF", height=1)
+        self.label_cus_name = CTkLabel(
+            self.order_details_frame, text="ชื่อ", fg_color="#FFF", height=1)
         self.label_cus_name.grid(row=2, column=0, padx=(
             5, 0), pady=(2, 2), sticky='ew')
         # * >> Value display
@@ -487,7 +520,7 @@ class MyApp:
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
         # >>> Labels
-        self.label_cus_address = Label(self.invoice_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
+        self.label_cus_address = CTkLabel(self.invoice_details_frame, text="ที่อยู่: ", fg_color="#FFF", height=1,)
         self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
         self.display_cus_address = Text(self.invoice_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
@@ -496,8 +529,8 @@ class MyApp:
 
         # * >> Customer remark display component ส่วนแสดงผลหมายเหตุลูกค้า col 4-5
         # >>> Labels
-        self.label_cus_remark = Label(
-            self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
+        self.label_cus_remark = CTkLabel(
+            self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", fg_color="#FFF", height=1,)
         self.label_cus_remark.grid(row=3, column=4, padx=(
             5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
@@ -509,8 +542,8 @@ class MyApp:
 
         # * >> Order Note display component ส่วนแสดงผลหมายเหตุลูกค้า col 6-7
         # >>> Labels
-        self.label_order_note = Label(
-            self.invoice_details_frame, text="บันทึก: ", bg="#FFF", height=1,)
+        self.label_order_note = CTkLabel(
+            self.invoice_details_frame, text="บันทึก: ", fg_color="#FFF", height=1,)
         self.label_order_note.grid(row=3, column=6, padx=(
             5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
@@ -521,8 +554,8 @@ class MyApp:
         self.display_order_note.tag_add("left", "1.0", "1.end")
 
         # * > Customter Products List
-        self.label_cus_products = Label(
-            self.products_list_frame, text="รายการสินค้า: ", bg="#FFF", height=1)
+        self.label_cus_products = CTkLabel(
+            self.products_list_frame, text="รายการสินค้า: ", fg_color="#FFF", height=1)
         self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
@@ -548,8 +581,8 @@ class MyApp:
 
         # * > demonic cp segment
         # * >> Label
-        self.demonicCp_label = Label(
-            self.demonic_frame, text="CP Adder", bg="#FFF", height=1)
+        self.demonicCp_label = CTkLabel(
+            self.demonic_frame, text="CP Adder", fg_color="#FFF", height=1)
         self.demonicCp_label.grid(row=0, column=0)
         # * >> Inputs1
         self.demonicCp_itemNo = StringVar()
@@ -562,8 +595,8 @@ class MyApp:
             self.demonic_frame, textvariable=self.demonicCp_cpNo, width=10)
         self.demonicCp_cpNo_input.grid(row=0, column=4)
         # * >> Buttons
-        self.demonicCp_btn = Button(
-            self.demonic_frame, text="Add CP!", bg="#969696", command=self.demonic_cp_selection, width=10)
+        self.demonicCp_btn = CTkButton(
+            self.demonic_frame, text="Add CP!", fg_color="#969696", command=self.demonic_cp_selection, width=10)
         self.demonicCp_btn.grid(row=0, column=5)
 
         # * > Log windows component
@@ -837,13 +870,13 @@ class MyApp:
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(bg=f'{self.bg_by_market_place[self.marketplace_target.get()]')
+        # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]')
         self.entry_frame.config(
-            bg=f'{self.bg_by_market_place[str(result)]}')
+            fg_color=f'{self.bg_by_market_place[str(result)]}')
         self.marketplace_label.config(
-            bg=f'{self.bg_by_market_place[str(result)]}')
+            fg_color=f'{self.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
-        #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
+        #     fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
 
         # * หลังจากได้ไฟล์เข้ามาแล้ว (self.table_location) เราจะทำการสร้างเป็น dataframe ด้วย function get_data_frame()
         self.get_data_frame()
@@ -1555,7 +1588,7 @@ class MyApp:
                     self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_col_value_widget)
 
                     # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
-                    # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search_order, width=10)
+                    # self.demonic_cp_btn = CTkButton(self.mp_products_list_frame, text="xxx", fg_color="#969696", command=self.search_order, width=10)
                     # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
 
                 # print("none ได้ไง:", self.widgets_no_col_lst)
@@ -1937,13 +1970,13 @@ class MyApp:
         print("Thread is done")
         if self.get_tabs_stat == False and self.search_thread_stat == False:
             self.display_bot_status_label.config(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวบน)")
 
         if self.get_tabs_thread.is_alive():
             print("มีthreadใหม่มาต่อ")
             self.display_bot_status_label.config(
-                text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+                text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
     def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
         # print(self.is_bot_running.get())
@@ -1956,10 +1989,10 @@ class MyApp:
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_gui_busy.get() == True:
                 self.display_bot_status_label.config(
-                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
             elif self.is_gui_busy.get() == False:
                 self.display_bot_status_label.config(
-                    text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
+                    text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
         else:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
@@ -1969,7 +2002,7 @@ class MyApp:
             print("longer_thread_cycle is alive?: ",
                   longer_thread_cycle.is_alive())
             self.display_bot_status_label.config(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
 
             if callback:
@@ -2013,7 +2046,7 @@ class MyApp:
 
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
         self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
-        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
@@ -2124,9 +2157,9 @@ class DataSourceSelector:
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
 
-        self.api_btn = Button(self.subwindow, text="API", command=self.select_api)
+        self.api_btn = CTkButton(self.subwindow, text="API", command=self.select_api)
         self.api_btn.pack(side='left', expand=TRUE, fill="both")
-        self.excel_btn = Button(self.subwindow, text="Excel", command=self.select_excel)
+        self.excel_btn = CTkButton(self.subwindow, text="Excel", command=self.select_excel)
         self.excel_btn.pack(side='left', expand=TRUE, fill="both")
 
         self.subwindow.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -2147,13 +2180,13 @@ class DataSourceSelector:
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]})
+        # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]})
         self.app.entry_frame.config(
-            bg=f'{self.app.bg_by_market_place[str(result)]}')
+            fg_color=f'{self.app.bg_by_market_place[str(result)]}')
         self.app.marketplace_label.config(
-            bg=f'{self.app.bg_by_market_place[str(result)]}')
+            fg_color=f'{self.app.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
-        #     bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
+        #     fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
 
         self.app.get_data_frame()
         print("Table Location:", self.app.table_location)
@@ -2195,7 +2228,7 @@ class PopUp:
         self.subwindow.resizable(True, False)
 
         # * สร้างเฟรม
-        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame = CTkFrame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง Texted widget
@@ -2205,7 +2238,7 @@ class PopUp:
         self.id_label.config(state=DISABLED)
 
         # * Submit Button
-        self.submit_btn = Button(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
+        self.submit_btn = CTkButton(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
         self.submit_btn.pack(fill='x', expand=True)
 
         # * ยก widget นี้ ขึ้นมาหน้าสุด
@@ -2234,11 +2267,11 @@ class UserAccount:
         self.subwindow.bind("<Key>", _onKeyRelease)
 
         # * สร้างเฟรม
-        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame = CTkFrame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง widget
-        self.id_label = Label(self.subwin_frame, text="SMCO ID", font=("bazooka", 9), anchor="w")
+        self.id_label = CTkLabel(self.subwin_frame, text="SMCO ID", font=CTkFont(family="bazooka", size=9), anchor="w")
         self.id_label.pack(fill='x', expand=True)
         # self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
         #                       validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
@@ -2246,7 +2279,7 @@ class UserAccount:
         self.id_input.pack(fill='x', expand=True)
         self.id_input.focus()
 
-        self.pass_label = Label(self.subwin_frame, text="SMCO Password", font=("bazooka", 9), anchor="w")
+        self.pass_label = CTkLabel(self.subwin_frame, text="SMCO Password", font=CTkFont(family="bazooka", size=9), anchor="w")
         self.pass_label.pack(fill='x', expand=True)
         # self.pass_input = Entry(
         #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
@@ -2258,7 +2291,7 @@ class UserAccount:
         self.chk_bx_show_pw.pack()
 
         # * Submit Button
-        self.submit_btn = Button(self.subwin_frame, text="Submit", command=self.update_btn)
+        self.submit_btn = CTkButton(self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
@@ -2941,7 +2974,7 @@ class Bot_POS:
                     print("Not found element classed big-text, try to wait and click element with XPATH")
                     self.wait1.until(EC.element_to_be_clickable(
                         # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div') พัง 28/08/2024 12:00 PM
+                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div'))) พัง 28/08/2024 12:00 PM
                         (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
                     ))
 
@@ -2961,14 +2994,14 @@ class Bot_POS:
                 # * จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
                 self.app.display_current_status.config(
-                    fg="#000000", bg="#8fd4ff")
+                    text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
                     self.app.display_current_status.config(
-                        bg="#00ff11", fg="#000000")
+                        fg_color="#00ff11", text_color="#000000")
                     PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
                     PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
@@ -3063,12 +3096,12 @@ class Bot_POS:
 
                 # จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
-                self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
+                self.app.display_current_status.config(text_color="#000000", fg_color="#8fd4ff")
                 if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.config(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
-                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
+                    self.app.display_current_status.config(fg_color="#00ff11", text_color="#000000")
 
             #### * IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
             else:
@@ -3078,7 +3111,7 @@ class Bot_POS:
             # * ถ้าสถานะยกเลิก ก็หยุดเลย
             if self.is_forbid:
                 print("This order was forbidden.")
-                self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+                self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 return
 
             ### * SMCO PART ############################################################################
@@ -3414,7 +3447,7 @@ class Bot_POS:
                     print("No shipment cost")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
-            self.app.display_bot_status_label.config(text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
+            self.app.display_bot_status_label.config(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
@@ -5073,7 +5106,7 @@ if __name__ == "__main__":
 # *67 fixed 0.390 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
 # *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
 # *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
-# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
+# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองเมื่อใบกำกับ
 # ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
 # *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
 # *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
@@ -5100,30 +5133,30 @@ if __name__ == "__main__":
 # * 94 Fixed 0.394 // น่าจะได้มั้งไม่มี FeedBack // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเทสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
 # * 95 Fixed 0.395 // แก้ให้เลือกได้แล้ว // มีโอกาสที่จะเลือกประเภทลูกค้าไม่ได้
 # * 96 Add 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
-# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface
+# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 18/09/2024
 # * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
 # ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order // เรียกหาชื่อปกติก็เปน ช่วงก่อนกรอก ค่าส่ง หลังเจอชื่อ
 # ? 100 Fixed 0.395R2 try to see the result after fixed if there still bug or not// duplicated orders will be remove, but removing duplicated order will affect sn columns  to be disappered
-# * 101 Fixed 0.395R2 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 18/09/2024
-# * 102 Fixed 0.395R3 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 19/09/2024 รู้สึกแปลกๆตั้งแต่ของ 0.395R2 แล้วละ เมื่อน element มันไม่ครบ
-# * 103 Fixed 0.395.4 // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
-# * 104 Add 0.396.0 // update new version Printing 08/10/2024 15:41
-# * 105 Add 0.396.1 // patch new version Printing 08/10/2024 16:46
-# * 106 Add 0.396.2 // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
-# * 107 Adde 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
-# * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
-# * 109 patch 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
-# * 110 patch 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
-# * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
-# * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
-# * 113 patch 0.396.9 // fix shopee ปรับ interface ใหม่
-# * 114 patch 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
-# * 115 Feature 0.397 // เพิ่มตัวตรวจสอบ ภาษา ของ password ตอน login bot (loginปลอม)
-# * 116 Feature 0.397 // เพิ่มตัวตรวจสอบและแก้ไข address ของ ใบกำกับ ในขั้นตอนหลังจากที่กดเลือกชื่อลูกค้าใบกำกับจาก รายการ dropdown ในหน้ายิงของออบิล
-# * 117 Patch 0.397.1 // แก้ด้วยการ กรอกชื่อลูกค้าใหม่อีกรอบให้อัพเดท address ลูกค้าให้เป็น address ปัจจุบัน //หลังจากแก้ไขข้อมูล address ของลูกค้า แล้ว smco ไม่มีการ update ค่าใหม่ในหน้าออกบิล ต้อง reset ค่าใหม่สักวิธีนึง
-# * 118 Add 0.397.1 // เพิ่มฟังชั่น เติม รหัสพนักงานอัตโนมัติ
-# * 118 Patch 0.397.2 // แก้แล้ว//ตัวเทียบชื่อลูกค้ายังไม่ได้ตัดค่า "\n" ออกจาก shopee's exported data ทำให้วเลาเอามาเทียบจะผิดเสมอ
-# * 119 Patch 0.397.3 // ดัก error จาก req ของ find_cus_address โดยตรวจสอบ status และให้ return ค่าว่าง หาก response.status = 200 ต่ค่าด้านในไม่สามารถแกะออกมาได้อย่างสมบูรณ์
+# * 101 Fixed 0.395R2 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 19/09/2024 รู้สึกแปลกๆตั้งแต่ของ 0.395R2 แล้วละ เมื่อน element มันไม่ครบ
+# * 102 Fixed 0.395.4 // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
+# * 103 Add 0.396.0 // update new version Printing 08/10/2024 15:41
+# * 104 Add 0.396.1 // patch new version Printing 08/10/2024 16:46
+# * 105 Add 0.396.2 // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
+# * 106 Add 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
+# * 107 Add 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
+# * 108 Add 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
+# * 109 Add 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
+# * 110 Add 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
+# * 111 Add 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
+# * 112 Add 0.396.9 // fix shopee ปรับ interface ใหม่
+# * 113 Add 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
+# * 114 Add 0.397 // เพิ่มตัวตรวจสอบ ภาษา ของ password ตอน login bot (loginปลอม)
+# * 115 Add 0.397.1 // เพิ่มตัวตรวจสอบและแก้ไข address ของ ใบกำกับ ในขั้นตอนหลังจากที่กดเลือกชื่อลูกค้าใบกำกับจาก รายการ dropdown ในหน้ายิงของออบิล
+# * 116 Add 0.397.1 // แก้แล้ว//ตัวเทียบชื่อลูกค้ายังไม่ได้ตัดค่า "\n" ออกจาก shopee's exported data ทำให้วเลาเอามาเทียบจะผิดเสมอ
+# * 117 Add 0.397.2 // ปรับปรุงการเติม รหัสพนักงานอัตโนมัติ
+# * 118 Add 0.397.2 // เพิ่มฟังชั่น เติม รหัสพนักงานอัตโนมัติ
+# * 119 Add 0.397.3 // แก้แล้ว//ตัวเทียบชื่อลูกค้ายังไม่ได้ตัดค่า "\n" ออกจาก shopee's exported data ทำให้วเลาเอามาเทียบจะผิดเสมอ
+# * 120 Add 0.397.3 // ดัก error จาก req ของ find_cus_address โดยตรวจสอบ status และให้ return ค่าว่าง หาก response.status = 200 ต่ค่าด้านในไม่สามารถแกะออกมาได้อย่างสมบูรณ์
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
