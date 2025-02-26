@@ -209,9 +209,9 @@ class MyApp:
         # > Frame1 Order Entry
         self.entry_frame = CTkFrame(
             self.canvas,
-            fg_color="#444",  # แทน bg
-            border_width=1,   # แทน borderwidth
-            border_color="#ccc",  # แทน highlightbackground
+            fg_color="#ccc",  # แทน bg
+            # border_width=10,   # แทน borderwidth
+            # border_color="#ccc",  # แทน highlightbackground
         )
         self.entry_frame.pack(side='top', pady=10, padx=5)
 
@@ -225,7 +225,10 @@ class MyApp:
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = CTkFrame(
             self.canvas,
-            fg_color="#444"
+            fg_color="#ccc",
+            border_width=10,
+            border_color="#ccc"
+            
         )
         self.import_file_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
@@ -337,7 +340,12 @@ class MyApp:
         # *  MarketPlace
         # * > Label
         self.marketplace_label = CTkLabel(
-            self.entry_frame, textvariable=self.marketplace_target, fg_color="#747474", text_color="#FFF", font=CTkFont(family="bazooka", size=10, weight="bold"))
+            self.entry_frame, 
+            textvariable=self.marketplace_target,
+            fg_color="#747474", 
+            text_color="#FFF", 
+            font=CTkFont(family="bazooka", size=10, weight="bold"), 
+        )
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
         # *  search order component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -421,7 +429,8 @@ class MyApp:
         # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get() and self.user_pw.get() else "Login"
-        self.display_acc_btn = CTkButton(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
+        self.display_acc_btn = CTkButton(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self), width=28,
+            height=25, font=self.font)
         self.display_acc_btn.grid(row=0, column=7, padx=5)
 
         # * Accel mode
@@ -531,8 +540,7 @@ class MyApp:
         # >>> Labels
         self.label_cus_remark = CTkLabel(
             self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", fg_color="#FFF", height=1,)
-        self.label_cus_remark.grid(row=3, column=4, padx=(
-            5, 0), pady=(2, 2), sticky="nsew")
+        self.label_cus_remark.grid(row=3, column=4, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
         self.display_cus_remark = Text(
             self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
@@ -544,13 +552,11 @@ class MyApp:
         # >>> Labels
         self.label_order_note = CTkLabel(
             self.invoice_details_frame, text="บันทึก: ", fg_color="#FFF", height=1,)
-        self.label_order_note.grid(row=3, column=6, padx=(
-            5, 0), pady=(2, 2), sticky="nsew")
+        self.label_order_note.grid(row=3, column=6, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
         self.display_order_note = Text(
             self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
-        self.display_order_note.grid(
-            row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
+        self.display_order_note.grid(row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
         self.display_order_note.tag_add("left", "1.0", "1.end")
 
         # * > Customter Products List
@@ -863,18 +869,19 @@ class MyApp:
         self.table_location = filedialog.askopenfilename(
             title="Select Shopee order toship file")
         # * ตัดเอาเฉพาะ ชื่อไฟล์
-        self.display_location_result.config(
-            text=f"{self.table_location.split('/')[-1]}")
+        self.display_location_result.configure(text=f"{self.table_location.split('/')[-1]}")
 
         # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
         # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]')
-        self.entry_frame.config(
-            fg_color=f'{self.bg_by_market_place[str(result)]}')
-        self.marketplace_label.config(
-            fg_color=f'{self.bg_by_market_place[str(result)]}')
+        self.entry_frame.configure(fg_color=f'{self.bg_by_market_place[str(result)]}')
+        self.marketplace_label.configure(
+            fg_color=f'{self.bg_by_market_place[str(result)]}',
+            width=0 if self.marketplace_target.get() == "" else 100
+        )
+        
         # self.import_file_frame.config(
         #     fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
 
@@ -2150,7 +2157,7 @@ class DataSourceSelector:
         self.create_subwindow()
 
     def create_subwindow(self):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("250x75+650+400")
         self.subwindow.title("Data Source")
@@ -2174,16 +2181,15 @@ class DataSourceSelector:
         print("Select Excel")
         self.app.table_location = filedialog.askopenfilename(
             title="Select Shopee order toship file")
-        self.app.display_location_result.config(
-            text=f"{self.app.table_location.split('/')[-1]}")
+        self.app.display_location_result.configure(text=f"{self.app.table_location.split('/')[-1]}")
         # target should come before get dataframe
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
         # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]})
-        self.app.entry_frame.config(
+        self.app.entry_frame.configure(
             fg_color=f'{self.app.bg_by_market_place[str(result)]}')
-        self.app.marketplace_label.config(
+        self.app.marketplace_label.configure(
             fg_color=f'{self.app.bg_by_market_place[str(result)]}')
         # self.import_file_frame.config(
         #     fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
@@ -2220,7 +2226,7 @@ class PopUp:
         self.subwindow.destroy()
 
     def create_subwindow(self):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("400x140+650+400")
         self.subwindow.title(f"{self.title}")
@@ -2232,7 +2238,7 @@ class PopUp:
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง Texted widget
-        self.id_label = Text(self.subwin_frame, font=("bazooka", 9))
+        self.id_label =Text(self.subwin_frame, font=("bazooka", 9))
         self.id_label.insert(END, f'{self.message}')
         self.id_label.pack(fill=BOTH, expand=True)
         self.id_label.config(state=DISABLED)
@@ -2255,9 +2261,9 @@ class UserAccount:
         self.create_subwindow("Loginปลอม")
 
     def create_subwindow(self, title: str="Untitled"):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
-        self.subwindow.geometry("250x140+650+400")
+        self.subwindow.geometry("250x180+650+400")
         self.subwindow.title(title)
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
@@ -2275,7 +2281,10 @@ class UserAccount:
         self.id_label.pack(fill='x', expand=True)
         # self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
         #                       validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
-        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id)
+        self.id_input = CTkEntry(
+            self.subwin_frame, 
+            textvariable=self.app.user_id
+        )
         self.id_input.pack(fill='x', expand=True)
         self.id_input.focus()
 
@@ -2283,11 +2292,15 @@ class UserAccount:
         self.pass_label.pack(fill='x', expand=True)
         # self.pass_input = Entry(
         #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
-        self.pass_input = Entry(self.subwin_frame, textvariable=self.app.user_pw, show="*")
+        self.pass_input = CTkEntry(
+            self.subwin_frame, 
+            textvariable=self.app.user_pw, 
+            show="*"
+        )
         self.pass_input.pack(fill='x', expand=True)
 
         # * checkBox
-        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show Pass", font=('bazooka', 9), command=self.show_and_hide)
+        self.chk_bx_show_pw = CTkCheckBox(self.subwin_frame, text="Show Pass", font=('bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
 
         # * Submit Button
@@ -2363,7 +2376,7 @@ class UserAccount:
                 print("ปิดได้ไหม ", is_closable)
                 if is_closable:
                     self.display_btn_txt = f"""Logged in !! ID : {self.app.user_id.get()}"""
-                    self.app.display_acc_btn.config(text=self.display_btn_txt)
+                    self.app.display_acc_btn.configure(text=self.display_btn_txt)
                     self.subwindow.destroy()
 
                 else:
@@ -2388,10 +2401,11 @@ class UserAccount:
                 return self.display_btn_txt
 
     def show_and_hide(self):
-        if self.pass_input['show'] == '*':
-            self.pass_input['show'] = ''
+        # สำหรับ CTkEntry ใช้ .configure(show="") หรือ .configure(show="*")
+        if self.chk_bx_show_pw.get():  # ถ้า checkbox ถูกติ๊ก
+            self.pass_input.configure(show="")  # แสดงรหัสผ่าน
         else:
-            self.pass_input['show'] = '*'
+            self.pass_input.configure(show="*")  # ซ่อนรหัสผ่าน
 
 
 class Bot_POS:
