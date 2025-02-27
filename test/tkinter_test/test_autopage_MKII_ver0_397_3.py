@@ -245,8 +245,6 @@ class MyApp:
         self.import_file_frame = CTkFrame(
             self.canvas,
             fg_color="#ccc",
-
-            
         )
         self.import_file_frame.pack(side='top', anchor=W, padx=10, pady=(5, 0))
 
@@ -487,31 +485,26 @@ class MyApp:
         self.label_current_order = CTkLabel(
             self.order_details_frame, text="Current Order: ", fg_color="#FFF",  corner_radius=4)
         self.label_current_order.grid(row=1, column=0, padx=(5, 0), pady=(2, 2), sticky=EW)
-
+        # >> Value display
         self.display_current_order = CTkEntry(
-            self.order_details_frame, state="readonly", width=210, height=25, border_width=0, textvariable=self.cus_order)
+            self.order_details_frame, state="readonly", width=210, height=25, border_width=0, textvariable=self.cus_order, corner_radius=4)
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Current Status display component
         # >> Labels
-        self.label_current_status = CTkLabel(
-            self.order_details_frame, text="Status: ", fg_color="#FFF", corner_radius=4)
-        self.label_current_status.grid(
-            row=1, column=2, padx=(5, 0), columnspan=1)
-        self.display_current_status = CTkLabel(
-            self.order_details_frame, width=20, textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff", corner_radius=4)
-
-        self.display_current_status.grid(
-            row=1, column=3, padx=(1, 0), sticky=W)
+        self.label_current_status = CTkLabel(self.order_details_frame, text="Status: ", fg_color="#FFF", corner_radius=4)
+        self.label_current_status.grid(row=1, column=2, padx=(5, 0), columnspan=1)
+        # >> Value display
+        self.display_current_status = CTkLabel(self.order_details_frame, width=20, textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff", corner_radius=4)
+        self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=W)
 
         # * > Is Tax?? display component
         # >> Labels
-        self.label_is_tax = CTkLabel(
-            self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
-        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew')
+        self.label_is_tax = CTkLabel(self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
+        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew', columnspan=1)
         # >> Value display
         self.display_is_tax = CTkLabel(self.order_details_frame, textvariable=self.is_tax, fg_color="#fff", corner_radius=4)
-        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky='ew')
+        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW)
 
         # * > Tax Number display component
         # >> Labels
@@ -4294,7 +4287,7 @@ class Bot_POS:
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             # 'Cookie': 'JSESSIONID=342552DB2CF0B2DF30CA889D5848F200; locale=en_US; JWT-TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2MjA3OCwxODAsMjA4LGVuX1VTLEMxIiwiaWF0IjoxNzM2MTI5OTc4fQ.e73-mZtITbYthUrkfb4dwuYwuuUlcGiRvisejWxuWW8',
             'Origin': f'{origin}',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
             'X-Requested-With': 'XMLHttpRequest',
         }
 
@@ -4424,7 +4417,6 @@ class Bot_POS:
                 self.parent, 
                 "error"
             )
-            return
             
         cus_address_to_compare = "".join(cus_address.values())
         print("cus_address_to_compare: ", cus_address_to_compare)
