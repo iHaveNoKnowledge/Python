@@ -537,10 +537,10 @@ class MyApp:
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
         # >>> Labels
-        self.label_cus_address = CTkLabel(self.invoice_details_frame, text="ที่อยู่: ", fg_color="#FFF", height=1,)
+        self.label_cus_address = CTkLabel(self.invoice_details_frame, text="ที่อยู่: ", fg_color="#FFF")
         self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_address = Text(self.invoice_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_address = CTkTextbox(self.invoice_details_frame, width=350, height=90, border_width=0, text_color="#000000", fg_color="#fff", state="disabled")
         self.display_cus_address.grid(row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
 
@@ -1131,10 +1131,10 @@ class MyApp:
             input = "-"
 
         self.cus_address = input
-        widget.config(state=NORMAL)
+        widget.configure(state=NORMAL)
         widget.delete(1.0, END)
         widget.insert(END, input)
-        widget.config(state=DISABLED)
+        widget.configure(state=DISABLED)
 
     def update_gui_remark(self):
         if self.cus_remark == "" or self.cus_remark == "nan":
@@ -1238,7 +1238,7 @@ class MyApp:
         else:
             truncated_address = cus_address
 
-        print("Address_cleaned: ", truncated_address.strip())
+        print("get_pure_address result: ", truncated_address.strip())
         return truncated_address.strip()
 
     def clean_duplicate_parts(self, address):
@@ -1320,8 +1320,7 @@ class MyApp:
                 self.tel_match = re.search(
                     r'tel\s*:?\s*,?(.*)', self.order_note.lower())
 
-            self.address_match = re.search(
-                r'ที่อยู่\s*:?\s*(.*)', self.order_note)
+            self.address_match = re.search(r'ที่อยู่\s*:?\s*(.*)', self.order_note)
 
             print("try: regexบันทึก: ", self.name_match)
             print("try: ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
@@ -1784,8 +1783,8 @@ class MyApp:
                         if self.marketplace_target.get() == "LAZADA":
                             self.update_gui(
                                 re.sub(r'\s{2,}',
-                                       " ",
-                                       f"""{self.address} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', '')).strip(),
+                                " ",
+                                f"""{self.address} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', '')).strip(),
                                 self.display_cus_address
                             )
                         else:
@@ -2583,6 +2582,7 @@ class Bot_POS:
                 try:
                     # * เช็คก่อนว่า driver ใช้ได้ไหม หรือการเชื่อมต่อ session หลุดไหม
                     self.driver.window_handles
+                    print("driver is still running")
                 except:
                     # * driver หลุดก็ออก seesion เก่า
                     try:
@@ -3346,7 +3346,7 @@ class Bot_POS:
                 try:
                     customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
-                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
+                    # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
                     break
 
                 except:
@@ -4420,12 +4420,15 @@ class Bot_POS:
         # print("cus_address_to_compare: ", cus_address_to_compare)
         
         self.current_address = cus_address_to_compare 
-        self.desired_address = re.sub(r'\n', " ", f"""{self.app.address} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
+        self.desired_address = re.sub(r'\n', " ", f"""{self.app.get_pure_address(self.app.address)} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
         self.desired_address = re.sub(r'\s{2,}',' ',self.desired_address)
+        print("self.desired_address: ", self.desired_address.replace(' ', ''))
+        
         self.desired_full_address = self.desired_address.replace("อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ตำบล", "").replace("แขวง", "").replace("ต.", "").replace("จังหวัด", "").replace("จ.", "")
         
-        print("self.current_address: ", self.current_address.replace(' ', ''))
-        print("self.desired_address: ", self.desired_full_address.replace(' ', ''))
+        print("compare self.current_address & self.desired_full_address")
+        print(self.current_address.replace(' ', ''))
+        print(self.desired_full_address.replace(' ', ''))
         
         if not self.desired_full_address.replace(' ', '') == self.current_address.replace(' ', ''):
             #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
@@ -4454,11 +4457,14 @@ class Bot_POS:
                 try:
                     self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]')
                     break
+                    
                 except:
                     continue
+
+                    
             
             
-            #* รอดูว่าelement โผล่ยัง
+            #* เนื่องจาก หน้าลูกค้ามันมีสองชั้น ตรวจสอบว่า หน้าที่กำลังแสดงผลเป็นหน้าในหรือนอก ถ้าในต้องปรับเป็นนอกก่อน
             while True:
                 is_outer_page_on = False
                 is_inner_page_on = False
@@ -4478,15 +4484,20 @@ class Bot_POS:
                         break
                     else:
                         time.sleep(0.25)
-            
+                
+                
             #* รอดูว่าelement โผล่ยัง
-            while True:
+            while True:  
                 try:
                     self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
                     break
                 except:
                     continue
-                
+
+            
+            
+
+            #* ปุ่มลูกค้า
             customer_code_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
             if not customer_code_btn.is_displayed():    
                 adavance_button = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[1]/div/div[2]/label')
@@ -4580,43 +4591,45 @@ class Bot_POS:
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
             self.driver.find_element(
-                # District drop
+                #* District drop
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
-                # District
+                #* District fill and enter
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
             self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
             time.sleep(1.75)
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-            # SubDistrict drop
+            #* SubDistrict drop
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-            # SubDistrict
+            #* SubDistrict fill and enter
             self.driver.find_element(
                 By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
             self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
             time.sleep(1.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
             
+            #* Submit ปิด pop-up
             revised_submit = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[1]/div/button[2]')
             revised_submit.click()
             
-            #* กดปิด
-            while True:
-                try:
-                    cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
-                    cancel_btn.click()
-                    break
-                except:
-                    continue
+            #! กดปิดหน้าลูกค้า ใช้ดีไหม ปิดไว้ก่อน
+            # while True:
+            #     try:
+            #         cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
+            #         cancel_btn.click()
+            #         break
+            #     except:
+            #         continue
+                
+            #* กลับไปหน้าการขาย
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
             
             #* เพื่อ reset ค่า address ให้เป็น lasted update
@@ -4635,8 +4648,7 @@ class Bot_POS:
                     continue
                 except:
                     continue
-                    
-            
+        
         else:
             print("Customer address has already corrected")
 
