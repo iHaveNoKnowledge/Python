@@ -495,8 +495,8 @@ class MyApp:
         self.label_current_status = CTkLabel(self.order_details_frame, text="Status: ", fg_color="#FFF", corner_radius=4)
         self.label_current_status.grid(row=1, column=2, padx=(5, 0), columnspan=1)
         # >> Value display
-        self.display_current_status = CTkLabel(self.order_details_frame, width=20, textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff", corner_radius=4)
-        self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=W)
+        self.display_current_status = CTkLabel(self.order_details_frame,  textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff", corner_radius=4)
+        self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
 
         # * > Is Tax?? display component
         # >> Labels
@@ -504,7 +504,7 @@ class MyApp:
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew', columnspan=1)
         # >> Value display
         self.display_is_tax = CTkLabel(self.order_details_frame, textvariable=self.is_tax, fg_color="#fff", corner_radius=4)
-        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW)
+        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Tax Number display component
         # >> Labels
@@ -518,13 +518,11 @@ class MyApp:
 
         # * > Customer Email display component
         # >> Labels
-        self.label_cus_email = CTkLabel(
-            self.order_details_frame, text="Email", fg_color="#FFF", corner_radius=4)
+        self.label_cus_email = CTkLabel(self.order_details_frame, text="Email", fg_color="#FFF", corner_radius=4)
         self.label_cus_email.grid(row=2, column=6, padx=(5, 0), sticky='ew')
         # >> Value display
-        self.display_cus_email = CTkEntry(
-            self.order_details_frame, width=105, height=25,  border_width=0, textvariable=self.cus_email,  state="readonly", corner_radius=4)
-        self.display_cus_email.grid(row=2, column=7, padx=(1, 0), sticky='ew')
+        self.display_cus_email = CTkEntry(self.order_details_frame, height=25,  border_width=0, width=180, textvariable=self.cus_email,  state="readonly", corner_radius=4)
+        self.display_cus_email.grid(row=2, column=7, padx=(1, 4), sticky='ew')
 
         # * > Customer Name display component
         # * >> Labels
@@ -1489,7 +1487,7 @@ class MyApp:
         print("order_search ทำงาน")
         self.on_complete = on_complete
         self.order = order.strip()
-        if len(self.order) < 14: raise ValueError("Order num is weird")
+        if len(self.order) < 14: raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
         differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า','ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = [
@@ -4419,15 +4417,15 @@ class Bot_POS:
             )
             
         cus_address_to_compare = "".join(cus_address.values())
-        print("cus_address_to_compare: ", cus_address_to_compare)
+        # print("cus_address_to_compare: ", cus_address_to_compare)
         
         self.current_address = cus_address_to_compare 
         self.desired_address = re.sub(r'\n', " ", f"""{self.app.address} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
         self.desired_address = re.sub(r'\s{2,}',' ',self.desired_address)
         self.desired_full_address = self.desired_address.replace("อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ตำบล", "").replace("แขวง", "").replace("ต.", "").replace("จังหวัด", "").replace("จ.", "")
         
-        print("self.desired_address: ", self.desired_full_address.replace(' ', ''))
         print("self.current_address: ", self.current_address.replace(' ', ''))
+        print("self.desired_address: ", self.desired_full_address.replace(' ', ''))
         
         if not self.desired_full_address.replace(' ', '') == self.current_address.replace(' ', ''):
             #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
