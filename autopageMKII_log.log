@@ -1268,3 +1268,30 @@ Stacktrace:
 2025-02-24T15:25:00.487747+0700 INFO Order: 2502241TVUB2TH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-02-24T15:25:00.528337+0700 INFO Order: 2502241TVUB2TH Start!!
 2025-02-24T15:26:25.327925+0700 INFO Order: 2502241TVUB2TH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:18:58.135053+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:19:00.720640+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:24:32.514113+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:24:35.039699+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:24:58.274795+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:25:00.788261+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:25:26.267055+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:25:28.759699+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:26:41.772256+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:27:04.001511+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:30:04.313237+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:30:32.261406+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T11:30:34.820915+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T11:30:39.833001+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T12:03:16.205945+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:04:13.884740+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T12:09:43.770087+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:10:39.889611+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T12:12:00.198228+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:12:56.265916+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T12:17:26.367130+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:18:12.537817+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:18:28.022567+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T12:18:46.599944+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:19:10.121412+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-02-27T12:19:35.023424+0700 INFO Order: 2502242DW1Y51R Start!!
+2025-02-27T12:20:30.498224+0700 INFO Order: 2502242DW1Y51R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
