@@ -32,7 +32,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import *
 from customtkinter import *
-import customtkinter as ctk 
+import customtkinter as ctk
 from pypdf import PdfReader
 from openpyxl import load_workbook
 from PIL import Image, ImageTk
@@ -125,7 +125,6 @@ class MyApp:
         # self.cus_masked_name = StringVar(value="")
         # self.cus_masked_tel = StringVar(value="")
 
-
         self.scale_factor = self.adjust_scale(self.root, 1000, 900)
         self.create_main_window()
         self.scale_widget(self.root, self.scale_factor)
@@ -155,12 +154,12 @@ class MyApp:
         screen_height = root.winfo_screenheight()
 
         # Calculate scale factors - ใช้ขนาดหน้าต่างที่ต้องการเป็นตัวตั้ง
-        width_scale = base_width / screen_width  
+        width_scale = base_width / screen_width
         height_scale = base_height / screen_height
 
         # ใช้ scale factor ที่มากกว่าเพื่อให้แน่ใจว่า UI จะพอดีกับหน้าจอ
         scale_factor = max(width_scale, height_scale)
-        
+
         # กลับค่า scale เพื่อให้ UI เล็กลงเมื่อหน้าจอเล็กกว่าขนาดที่ต้องการ
         return 1 / scale_factor
 
@@ -182,13 +181,38 @@ class MyApp:
         screen_height = self.root.winfo_screenheight()
         base_width = 1920
         base_height = 1080
-        
+
         # คำนวณ scaling factor
         scaling_factor = min(screen_width / base_width, screen_height / base_height)
-        
+
         # ตั้งค่า scaling สำหรับ window และ widgets
         set_window_scaling(scaling_factor)
         set_widget_scaling(scaling_factor)
+
+        if screen_height <= 768:
+            base_font_size = 10
+        elif screen_height <= 1080:
+            base_font_size = 10
+        else:
+            base_font_size = 12
+            
+        # สร้าง font objects ที่ใช้บ่อย
+        self.normal_font = CTkFont(
+            family="Arial",
+            size=int(base_font_size * scaling_factor)
+        )
+        
+        self.bold_font = CTkFont(
+            family="Arial",
+            size=int(base_font_size * scaling_factor),
+            weight="bold"
+        )
+        
+        self.header_font = CTkFont(
+            family="Arial", 
+            size=int((base_font_size + 2) * scaling_factor),
+            weight="bold"
+        )
         
         # ตั้งค่าขนาดและตำแหน่งหน้าต่าง
         window_width = min(int(1000 * scaling_factor), screen_width - 100)
@@ -218,8 +242,47 @@ class MyApp:
             base_font_size = 10
         
         # สร้าง Main Canvas
-        self.canvas = Canvas(self.root, bg="#444")
-        self.canvas.pack(fill="both", expand=True)
+        self.canvas = Canvas(self.root, bg="#444", width=800, height=600)
+    
+        # สร้าง Scrollbar แนวตั้ง
+        self.scrollbar_y = CTkScrollbar(
+            self.root,
+            orientation="vertical",
+            command=self.canvas.yview
+        )
+        self.scrollbar_y.pack(side="right", fill="y")
+
+        # สร้าง Scrollbar แนวนอน
+        self.scrollbar_x = CTkScrollbar(
+            self.root,
+            orientation="horizontal",
+            command=self.canvas.xview
+        )
+        self.scrollbar_x.pack(side="bottom", fill="x")
+
+        # กำหนด scrollcommand ให้ canvas
+        self.canvas.configure(
+            yscrollcommand=self.scrollbar_y.set,
+            xscrollcommand=self.scrollbar_x.set
+        )
+        
+        # สร้าง main frame ที่จะอยู่ใน canvas
+        self.main_frame = CTkFrame(self.canvas, fg_color="#444")
+        
+        # สร้าง window ใน canvas เพื่อใส่ main_frame
+        self.canvas_window = self.canvas.create_window(
+            (0, 0),
+            window=self.main_frame,
+            anchor="nw"
+        )
+        
+        # Pack canvas
+        self.canvas.pack(side="left", fill="both", expand=True)
+        
+        # Bind events สำหรับการ scroll
+        self.main_frame.bind("<Configure>", self.on_frame_configure)
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
+        
 
         # #* FRAMES #####################################################################################################
         # self.root_frame = CTkFrame(self.canvas,  fg_color="pink") ใช้ได้แต่รอก่อน
@@ -227,70 +290,79 @@ class MyApp:
 
         # > Frame1 Order Entry
         self.entry_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#ccc",  # แทน bg
             # border_width=10,   # แทน borderwidth
             # border_color="#ccc",  # แทน highlightbackground
         )
         self.entry_frame.pack(side='top', pady=10, padx=5)
 
-        # > Frame2 Log Frame
-        self.log_frame = CTkFrame(
-            self.canvas,
-            fg_color="#444"
-        )
-        self.log_frame.pack(side='bottom', pady=20)
-
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#ccc",
         )
         self.import_file_frame.pack(side='top', anchor=W, padx=10, pady=(5, 0))
 
         # > Frame4 Customer Details
         self.order_details_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#ccc"
         )
         self.order_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame7 For Customer's Invoice Details
         self.invoice_details_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#445"
         )
         self.invoice_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame5 Products Lists
         self.products_list_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#445"
         )
         self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
 
         # > Frame6 Margetplace(MP) Products Lists
         self.mp_products_list_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#444"
         )
         self.mp_products_list_frame.pack(side='top', padx=5, pady=5, fill="x")
 
         # > Frame7 The Upper Log Frame Demonic Frame
         self.demonic_frame = CTkFrame(
-            self.canvas,
+            self.main_frame,
             fg_color="#444"
         )
-        self.demonic_frame.pack(side='bottom', pady=(0, 2))
+        self.demonic_frame.pack(side='top', pady=(0, 2))
+        
+        # > Frame2 Log Frame
+        self.log_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#444"
+        )
+        self.log_frame.pack(side='top', pady=20, fill="both")
 
         # * Create widgets in the main window
         self.create_widgets()
 
         # * start the scrollbar
-        self.canvas.update_idletasks()
-        self.canvas.config(scrollregion=self.canvas.bbox("all"))
-        self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
-        # self.canvas.bind("<Configure>", self.on_canvas_configure) ใช้ได้แต่รอก่อน
+        # self.canvas.update_idletasks()
+        # self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        # self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
+        # # self.canvas.bind("<Configure>", self.on_canvas_configure) 
+        
+    def on_frame_configure(self, event=None):
+        # """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def on_canvas_configure(self, event):
+        # """ปรับขนาด canvas window เมื่อ canvas มีการ resize"""
+        # ปรับความกว้างของ window ใน canvas ให้เท่ากับความกว้างของ canvas
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
@@ -300,20 +372,19 @@ class MyApp:
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
-        self.cols_width = [5, 100, 10, 10, 10, 10]
+        # self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
+        self.cols_width = [40, 550, 80, 50, 80, 80]
         self.entry_list = []
         i = 0
         for header in self.list_of_cols:
-            self.mp_products_header = Entry(
-                self.mp_products_list_frame, foreground="#000000", background="#fff", width=int(self.cols_width[i]))
+            self.mp_products_header = CTkEntry(self.mp_products_list_frame, text_color="#000000", fg_color="#fff", width=int(self.cols_width[i]), height=14)
             self.mp_products_header.insert(0, header)
             self.entry_list.append(self.mp_products_header)
             i += 1
 
         for idx, entry in enumerate(self.entry_list):
-            entry.grid(
-                row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
+            entry.grid(row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
             entry.configure(state="readonly")
 
     # * เป็นส่วนของ GUI ช่อง input ที่รับ order sn ในรูปแบบ file excel
@@ -398,8 +469,7 @@ class MyApp:
             self.entry_frame, text=f"Accel File Dir ")
 
         # * >> FileName Display on Button
-        self.accl_dir_namedisplay_on_btn = CTkButton(
-            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, fg_color="#969696")
+        self.accl_dir_namedisplay_on_btn = CTkButton(self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, fg_color="#969696")
 
         # * >> Buttons
         self.start_image = Image.open(arrow_icon)
@@ -550,8 +620,8 @@ class MyApp:
             self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", fg_color="#FFF", height=1,)
         self.label_cus_remark.grid(row=3, column=4, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_remark = Text(
-            self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_remark = CTkTextbox(
+            self.invoice_details_frame, width=160, height=90, border_width=0, text_color ="#000000", fg_color="#fff", state="disabled")
         self.display_cus_remark.grid(
             row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
         self.display_cus_remark.tag_add("left", "1.0", "1.end")
@@ -562,19 +632,17 @@ class MyApp:
             self.invoice_details_frame, text="บันทึก: ", fg_color="#FFF", height=1,)
         self.label_order_note.grid(row=3, column=6, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_order_note = Text(
-            self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_order_note = CTkTextbox(
+            self.invoice_details_frame, width=160, height=90, border_width=0, text_color="#000000", fg_color="#fff", state="disabled")
         self.display_order_note.grid(row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
         self.display_order_note.tag_add("left", "1.0", "1.end")
 
         # * > Customter Products List
-        self.label_cus_products = CTkLabel(
-            self.products_list_frame, text="รายการสินค้า: ", fg_color="#FFF", height=1)
+        self.label_cus_products = CTkLabel(self.products_list_frame, text="รายการสินค้า: ", fg_color="#FFF", height=1)
         self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
-        self.tree = ttk.Treeview(self.products_list_frame, columns=(
-            "Productname", "Price", "QTY"), show="headings")
+        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings")
         self.tree.column("Productname", anchor=W, width=350)
         self.tree.column("Price", width=self.measure_text("Price")+10)
         self.tree.column("QTY", width=self.measure_text("QTY")+10)
@@ -582,14 +650,13 @@ class MyApp:
         self.tree.heading("Price", text="Price")
         self.tree.heading("QTY", text="QTY")
 
-        self.y_scrollbar = ttk.Scrollbar(
-            self.products_list_frame, command=self.tree.yview)
+        self.y_scrollbar = ttk.Scrollbar(self.products_list_frame, command=self.tree.yview)
 
         self.y_scrollbar.pack(side="right", fill="y")
         self.tree.pack(side='bottom', fill=X)
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
-        # * > Margetplace Products display Header
+        # * > Margetplace Products display Header purchased products list header
         headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
         self.row_header_maker(headers)
 
@@ -609,19 +676,13 @@ class MyApp:
             self.demonic_frame, textvariable=self.demonicCp_cpNo, width=10)
         self.demonicCp_cpNo_input.grid(row=0, column=4)
         # * >> Buttons
-        self.demonicCp_btn = CTkButton(
-            self.demonic_frame, text="Add CP!", command=self.demonic_cp_selection, width=60,  height=4)
+        self.demonicCp_btn = CTkButton(self.demonic_frame, text="Add CP!", command=self.demonic_cp_selection, width=60,  height=4)
         self.demonicCp_btn.grid(row=0, column=5, padx=(1, 0))
 
         # * > Log windows component
-        self.report_log = Text(self.log_frame, state=DISABLED, height=13)
+        self.report_log = CTkTextbox(self.log_frame, state=DISABLED, height=208)
+        self.report_log.pack(side="left", fill="both", expand=True)
 
-        self.scrollbar = Scrollbar(
-            self.log_frame, command=self.report_log.yview)
-        self.scrollbar.pack(side="right", fill="y")
-
-        self.report_log.pack(side='bottom', fill=X)
-        self.report_log.config(yscrollcommand=self.scrollbar.set)
 
         ## * Create DataSourceSelector instance ###########
         self.data_source_selector = DataSourceSelector(self.root, self)
@@ -652,15 +713,15 @@ class MyApp:
 
     def update_log(self, update_txt):
         self.update_txt = update_txt
-        self.report_log.config(state=NORMAL)
+        self.report_log.configure(state=NORMAL)
         self.report_log.insert(END, self.update_txt + "\n")
-        self.report_log.config(state=DISABLED)
+        self.report_log.configure(state=DISABLED)
 
     def update_mp_frame(self, data_list):
         data_list
-        self.report_log.config(state=NORMAL)
+        self.report_log.configure(state=NORMAL)
         self.report_log.insert(END, self.update_txt + "\n")
-        self.report_log.config(state=DISABLED)
+        self.report_log.configure(state=DISABLED)
 
     def define_marketplace(self):
         file_input = self.table_location
@@ -703,11 +764,9 @@ class MyApp:
         self.accel_file_dir = filedialog.askopenfilename(
             title="Select Accel File")
         if self.accel_file_dir:
-            self.accl_dir_namedisplay_on_btn.config(
-                text=f"{self.accel_file_dir.split('/')[-1]}")
+            self.accl_dir_namedisplay_on_btn.configure(text=f"{self.accel_file_dir.split('/')[-1]}")
         else:
-            self.accl_dir_namedisplay_on_btn.config(
-                text=f"ยังไม่เลือก Accel File")
+            self.accl_dir_namedisplay_on_btn.configure(text=f"ยังไม่เลือก Accel File")
             
         self.read_accel_file_to_state(self.accel_file_dir)
             
@@ -873,8 +932,7 @@ class MyApp:
     def select_excel(self):
         self.result = "Excel"
         print("Select Excel")
-        self.table_location = filedialog.askopenfilename(
-            title="Select Shopee order toship file")
+        self.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
         # * ตัดเอาเฉพาะ ชื่อไฟล์
         self.display_location_result.configure(text=f"{self.table_location.split('/')[-1]}")
 
@@ -1138,29 +1196,29 @@ class MyApp:
 
     def update_gui_remark(self):
         if self.cus_remark == "" or self.cus_remark == "nan":
-            self.display_cus_remark.config(state=NORMAL)
+            self.display_cus_remark.configure(state=NORMAL)
             self.display_cus_remark.delete(1.0, END)
             self.display_cus_remark.insert(END, 'ไม่มี')
-            self.display_cus_remark.config(state=DISABLED)
+            self.display_cus_remark.configure(state=DISABLED)
 
         else:
-            self.display_cus_remark.config(state=NORMAL)
+            self.display_cus_remark.configure(state=NORMAL)
             self.display_cus_remark.delete(1.0, END)
             self.display_cus_remark.insert(END, self.cus_remark)
-            self.display_cus_remark.config(state=DISABLED)
+            self.display_cus_remark.configure(state=DISABLED)
 
     def update_gui_note(self):
         if self.order_note == "" or self.order_note == "nan":
-            self.display_order_note.config(state=NORMAL)
+            self.display_order_note.configure(state=NORMAL)
             self.display_order_note.delete(1.0, END)
             self.display_order_note.insert(END, 'ไม่มี')
-            self.display_order_note.config(state=DISABLED)
+            self.display_order_note.configure(state=DISABLED)
 
         else:
-            self.display_order_note.config(state=NORMAL)
+            self.display_order_note.configure(state=NORMAL)
             self.display_order_note.delete(1.0, END)
             self.display_order_note.insert(END, self.order_note)
-            self.display_order_note.config(state=DISABLED)
+            self.display_order_note.configure(state=DISABLED)
 
     # * widget รายการสินค้า ///////////////////////////////////////////////
     def show_products(self, products_list):
@@ -1181,8 +1239,7 @@ class MyApp:
         if self.marketplace_target.get() == 'SHOPEE':
             self.total_price += self.cus_ship_cost.get()
             self.phase1_sum_price = self.total_price
-            self.tree.insert("", "end", value=(
-                "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
+            self.tree.insert("", "end", value=("ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
             self.total_price -= self.cus_seller_voucher.get()
             self.tree.insert("", "end", value=(
                 "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
@@ -1574,29 +1631,29 @@ class MyApp:
                 self.idx = 0
                 self.mimic_list_item_states = []
                 for row in self.items:
-                    self.no_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[0]))
+                    self.no_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[0]), height=14)
                     self.no_col_value_widget.insert(0, self.idx+1)
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
 
-                    self.product_col_name_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[1]))
+                    self.product_col_name_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[1]), height=14)
                     self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
                     self.widgets_product_col_lst.append(self.product_col_name_value_widget)
                     self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
-                    self.price_unit_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[2]))
+                    self.price_unit_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[2]), height=14)
                     self.price_unit_col_value_widget.insert(0, f"{float(row['ราคาขาย']):,.2f}")
                     self.widgets_prc_unit_lst.append(self.price_unit_col_value_widget)
 
-                    self.qty_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[3]))
+                    self.qty_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[3]), height=14)
                     self.qty_col_value_widget.insert(0, int(row['จำนวน']))
                     self.widgets_qty_lst.append(self.qty_col_value_widget)
 
-                    self.total_price_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[4]))
+                    self.total_price_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[4]), height=14)
                     self.total_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
                     self.widgets_total_prc_lst.append(self.total_price_col_value_widget)
 
-                    self.total_rebate_price_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[5]))
+                    self.total_rebate_price_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[5]), height=14)
                     self.total_rebate_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
                     self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_col_value_widget)
 
@@ -2034,14 +2091,14 @@ class MyApp:
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
         self.entered_order.set("")
         if self.search_query != "":
-            self.report_log.config(state=NORMAL)
+            self.report_log.configure(state=NORMAL)
             self.report_log.delete("1.0", "end")
             # self.report_log.insert(END, self.search_query + "\n")
-            self.report_log.config(state=DISABLED)
+            self.report_log.configure(state=DISABLED)
         else:
-            self.report_log.config(state=NORMAL)
+            self.report_log.configure(state=NORMAL)
             self.report_log.delete("1.0", "end")
-            self.report_log.config(state=DISABLED)
+            self.report_log.configure(state=DISABLED)
 
         self.search_complete = threading.Event()
         self.search_complete.set()
@@ -2246,10 +2303,10 @@ class PopUp:
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง Texted widget
-        self.id_label =Text(self.subwin_frame, font=("bazooka", 9))
+        self.id_label = CTkTextbox(self.subwin_frame, font=("bazooka", 9))
         self.id_label.insert(END, f'{self.message}')
         self.id_label.pack(fill=BOTH, expand=True)
-        self.id_label.config(state=DISABLED)
+        self.id_label.configure(state=DISABLED)
 
         # * Submit Button
         self.submit_btn = CTkButton(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
