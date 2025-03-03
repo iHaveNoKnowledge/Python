@@ -3837,6 +3837,11 @@ class Bot_POS:
                                         # * ไปหน้า Reprint ##########################################################################################
                                         if is_etax and inv_number != "":
                                             self.etax_reprint(inv_number)
+                                            # * Update Accel file //////////////////////
+                                            self.app.deduct_accel_file_data(
+                                                self.app.cus_order,
+                                                self.used_serials
+                                            )
                                             #* ถ้ามี etax ก็ print แล้วจบไป
                                             time.sleep(0.75)
                                             self.final_popup_btn.click()
@@ -4375,7 +4380,7 @@ class Bot_POS:
                 print(f'ไม่มี {cus_code} นี้จาก response_data')
                 raise Exception(f'ไม่มี {cus_code} นี้จาก response_data')
 
-        customer_id = cus_data['id']
+        customer_id = cus_data['id'] or False
         # print("customer_id: ", cus_data['id'])
         return customer_id
 
@@ -4461,8 +4466,17 @@ class Bot_POS:
         self.cus_code = match.group()
         
         customer_id = self.find_customer_id(self.cus_code)
-        cus_address = self.find_cus_address(customer_id)
         
+        if customer_id:
+            cus_address = self.find_cus_address(customer_id)
+        else:
+            cus_address = {
+                        'address': '',
+                        'subdistrict': '',
+                        'district': '',
+                        'provice': '',
+                        'zip_code': ''
+                    }
         # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
         if not any(cus_address.values()):
             print("ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้")
@@ -4470,7 +4484,7 @@ class Bot_POS:
                 "Error", 
                 "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง", 
                 self.parent, 
-                "error"
+                "alert"
             )
             
         cus_address_to_compare = "".join(cus_address.values())
@@ -5252,6 +5266,9 @@ if __name__ == "__main__":
 # * 118 Add 0.397.2 // เพิ่มฟังชั่น เติม รหัสพนักงานอัตโนมัติ
 # * 119 Add 0.397.3 // แก้แล้ว//ตัวเทียบชื่อลูกค้ายังไม่ได้ตัดค่า "\n" ออกจาก shopee's exported data ทำให้วเลาเอามาเทียบจะผิดเสมอ
 # * 120 Add 0.397.3 // ดัก error จาก req ของ find_cus_address โดยตรวจสอบ status และให้ return ค่าว่าง หาก response.status = 200 ต่ค่าด้านในไม่สามารถแกะออกมาได้อย่างสมบูรณ์
+# * 121 Update 0.398 // เปลี่ยน obj ที่ใช้สร้าง ui ใหม่ จาก tkinter สู่ ctk ทำให้ component ปรับขนาดตาม resolution
+# * 122 Fixed 0.398 // ปรับให้ accel_mode ใช้กับ etax ได้
+# ? 123 Fixed 0.398 // (Progress, ไม่สมบูรณ์)ปรับ function การดึงข้อมูลลูกค้า ให้ไม่ error จน bot หยุดทำงาน
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
