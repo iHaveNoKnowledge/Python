@@ -4525,6 +4525,7 @@ class Bot_POS:
             #* รอดูว่า element โผล่ยัง
             while True:
                 time.sleep(0.25)
+                self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
                 try:
                     self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]')
                     break
@@ -4539,6 +4540,7 @@ class Bot_POS:
             while True:
                 is_outer_page_on = False
                 is_inner_page_on = False
+                self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
                 try:
                     self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
                     is_outer_page_on = True
@@ -4559,6 +4561,8 @@ class Bot_POS:
                 
             #* รอดูว่าelement โผล่ยัง
             while True:  
+                time.sleep(0.25)
+                self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
                 try:
                     self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
                     break
@@ -4592,6 +4596,8 @@ class Bot_POS:
             
             #* หา li 
             while True:
+                time.sleep(0.25)
+                self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
                 try:
                     wait_element('/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li', self.cus_code)
                     break
@@ -4605,6 +4611,8 @@ class Bot_POS:
             exit_popup_btn.click()
             #* wait until pop up disappear
             while True:
+                time.sleep(0.25)
+                self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
                 try:
                     customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
                     if not customer_popup_input.is_displayed():
@@ -4618,6 +4626,8 @@ class Bot_POS:
             find_customer_btn.click()
             
             while True:
+                time.sleep(0.25)
+                self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
                 try:
                     customer_code_target = self.driver.find_element(By.XPATH, f"//*[text()='{self.cus_code}']")
                     customer_code_target.click()
@@ -5269,6 +5279,8 @@ if __name__ == "__main__":
 # * 121 Update 0.398 // เปลี่ยน obj ที่ใช้สร้าง ui ใหม่ จาก tkinter สู่ ctk ทำให้ component ปรับขนาดตาม resolution
 # * 122 Fixed 0.398 // ปรับให้ accel_mode ใช้กับ etax ได้
 # ? 123 Fixed 0.398 // (Progress, ไม่สมบูรณ์)ปรับ function การดึงข้อมูลลูกค้า ให้ไม่ error จน bot หยุดทำงาน
+# ! 124 // ปรับตัว อัพเดทที่อยู่ลูกค้าปัจจุบัน ให้เป็นแบบ Semi-auto
+# ! 125 // กรณี ลูกค้าที่มีชื่อภาษาอังกฤษปน ตัว function get_pure_address จะใช้ไม่ได้ ทำให้ ตัวอัพเดทที่อยู่ กรอก address แบบ non pure address 
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
