@@ -1274,3 +1274,19 @@ Stacktrace:
 2025-03-03T17:34:15.423014+0700 INFO Order: 250303JF9TGSB2 Start!!
 2025-03-03T17:34:20.778588+0700 INFO Order: 250303JF9TGSB2 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-03-03T17:51:02.223623+0700 INFO Order: 250303JF9TGSB2 Start!!
+2025-03-25T00:36:00.821225+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T00:36:43.347069+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T00:42:51.878249+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T00:42:53.543369+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T00:47:01.351702+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T00:47:53.384958+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T00:52:21.736706+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T00:52:26.100542+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T00:52:36.503150+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T00:52:40.361620+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T01:04:39.639697+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T01:04:43.963098+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T01:07:13.950676+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T01:07:18.057082+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T01:07:28.640340+0700 INFO Order: 250227AQNGB2P4 Start!!
+2025-03-25T01:07:32.729392+0700 INFO Order: 250227AQNGB2P4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
