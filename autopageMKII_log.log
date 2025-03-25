@@ -1346,3 +1346,17 @@ Stacktrace:
 2025-03-25T16:19:57.785311+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-03-25T16:20:27.222589+0700 INFO Order: 250325GTNHKJ71 Start!!
 2025-03-25T16:23:15.984963+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T18:10:40.099625+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T18:38:31.123714+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T18:39:41.061869+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T18:59:42.301617+0700 INFO Order: SP2-001703 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T18:59:42.305613+0700 INFO Order: SP2-001703 Start!!
+2025-03-25T19:06:04.033099+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T19:11:10.320360+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T19:11:24.756552+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T19:11:24.765858+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T19:11:27.557040+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T19:11:30.382401+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T19:11:33.175465+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-25T19:11:35.320846+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-25T19:11:38.133037+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
