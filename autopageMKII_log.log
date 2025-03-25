@@ -1360,3 +1360,20 @@ Stacktrace:
 2025-03-25T19:11:33.175465+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-03-25T19:11:35.320846+0700 INFO Order: 250325GTNHKJ71 Start!!
 2025-03-25T19:11:38.133037+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T00:43:35.096686+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-26T00:50:21.038966+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T00:50:40.328751+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-26T01:10:30.427385+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-26T01:11:47.312709+0700 INFO Order: 250325GTNHKJ71 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T01:12:15.332888+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-26T01:33:18.460216+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-26T01:34:41.940983+0700 INFO Order: 250325GTNHKJ71 Start!!
+2025-03-26T01:38:33.330794+0700 INFO Order: 250325GTGK9EJ0 Start!!
+2025-03-26T01:39:08.881763+0700 INFO Order: 250325GSXP5YEK Start!!
+2025-03-26T01:39:08.986894+0700 INFO Order: 250325GSXP5YEK operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T01:40:05.159462+0700 INFO Order: 250325GSXP5YEK operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T01:57:04.447726+0700 INFO Order: 250325GSXP5YEK Start!!
+2025-03-26T01:57:10.688936+0700 INFO Order: 250325GSXP5YEK operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T02:00:03.696670+0700 INFO Order: 250325GSXP5YEK Start!!
+2025-03-26T02:01:01.125479+0700 INFO Order: 250325GSXP5YEK operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-26T02:03:56.990779+0700 INFO Order: 250325GSXP5YEK Start!!
