@@ -133,8 +133,7 @@ class MyApp:
         logger.add("autopageMKII_log.log", format="{time} {level} {message}", level="INFO")
 
     def demonic_cp_selection(self):
-        self.bot.demonic_cp_bot(
-            self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
+        self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
 
     def validate_input(self, value):
         pattern = r'[A-z]'
@@ -2188,12 +2187,16 @@ class MyApp:
                 if is_found != -1:
                     print("เจอที่ ", li_position)
                     print("is_found: ", is_found)
-                    cp_btn_xpath = f'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/a'
-                    self.driver.find_element(By.XPATH, cp_btn_xpath).click()
-
+                    #! cp_btn_xpath = f'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/a'
+                    cp_btn_xpath = f'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'
+                    #! self.driver.find_element(By.XPATH, cp_btn_xpath).click()
+                    self.driver.execute_script("arguments[0].click();", cp_btn_xpath)
+                    
                     # * เลือก cp เป้าหมาย
-                    selected_btn = f'/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'
-                    self.driver.find_element(By.XPATH, selected_btn).click()
+                    #! selected_btn = f'/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'
+                    selected_btn = f'/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{self.cp_no}]/div[1]/button'
+                    #! self.driver.find_element(By.XPATH, selected_btn).click()
+                    self.driver.execute_script("arguments[0].click();", selected_btn)
 
                     self.driver.find_element(By.XPATH, green_agree_btn_xpath).click()
                     # time.sleep(0.55)
@@ -2560,8 +2563,7 @@ class Bot_POS:
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_ordered_items_list = self.convert_text(
-            self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        self.demonic_ordered_items_list = self.convert_text(self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
         print(self.demonic_ordered_items_list)
         print(self.cp_no)
 
@@ -2597,24 +2599,18 @@ class Bot_POS:
                     if is_found != -1:
                         print("เจอที่ ", li_position)
                         print("is_found: ", is_found)
-                        cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{
-                            li_position}]/div/div[2]/div[3]/div[1]/a'''
-                        self.driver.find_element(
-                            By.XPATH, cp_btn_xpath).click()
+                        cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/a'''
+                        self.driver.find_element(By.XPATH, cp_btn_xpath).click()
 
                         # * เลือก cp เป้าหมาย
                         try:
                             # * SMCO ให้ ตั้งแต่ v6.3.3
-                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]/div[{
-                                self.cp_no+1}]/div[1]/button'''
-                            self.driver.find_element(
-                                By.XPATH, selected_btn).click()
+                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]/div[{self.cp_no+1}]/div[1]/button'''
+                            self.driver.find_element(By.XPATH, selected_btn).click()
                         except:
                             # * SMCO เก่า
-                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
-                                self.cp_no}]/div[1]/button'''
-                            self.driver.find_element(
-                                By.XPATH, selected_btn).click()
+                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'''
+                            self.driver.find_element(By.XPATH, selected_btn).click()
 
                         self.driver.find_element(
                             By.XPATH, green_agree_btn_xpath).click()
@@ -3495,8 +3491,9 @@ class Bot_POS:
 
                         self.changePriceInput = self.driver.find_element(By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
                         self.changePriceInput.clear()
-                        self.changePriceInput.send_keys(69)
-                        # self.changePriceInput.send_keys(self.app.cus_ship_cost.get())
+                        # self.changePriceInput.send_keys(69)
+                        # self.changePriceInput.send_keys(int(self.app.cus_ship_cost.get()))
+                        self.driver.execute_script("angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')", self.changePriceInput, self.app.cus_ship_cost.get())
                         self.driver.find_element(
                             By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
                         self.driver.find_element(
@@ -3560,11 +3557,11 @@ class Bot_POS:
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
                             # print("loop หลัก")
-                            self.cus_name_input_element = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                            self.cus_name_input_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
                             title_attribute = self.cus_name_input_element.get_attribute("title")
 
-                            self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
+                            #! self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]').is_displayed()
+                            self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]').is_displayed()
                             # self.is_input_empty = re.search(
                             #     "^C[0-9]+\-", self.cus_name_input_element.text)
                             break
@@ -3584,8 +3581,7 @@ class Bot_POS:
                         time.sleep(0.55)
                         try:
 
-                            sn_window = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')
+                            sn_window = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')
                             # print("SN_window is still there")
                             if sn_window.is_displayed():
                                 # print("หน้า SN กำลังโชว์")
@@ -3618,31 +3614,28 @@ class Bot_POS:
                         self.app.is_gui_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
-                        self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                        self.last_page = self.driver.find_element(
-                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
+                        self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
+                        self.last_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                         if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                             # Auto หน้าท้าย ทำได้ครั้งเดียว
-                            self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
-                                (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
+                            self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
 
                             # self.is_final_page = self.wait1.until(EC.visibility_of_element_located(
-                            #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
+                            #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea')))
                             try:
                                 if self.app.cus_seller_voucher.get():
                                     # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').clear()
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').clear()
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
                                 # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
                                 time.sleep(0.75)
                                 self.driver.find_element(
-                                    By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").clear()
+                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
                                 self.driver.find_element(
-                                    By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
+                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
                                 # เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
@@ -3655,10 +3648,11 @@ class Bot_POS:
                                     self.driver.find_element(
                                         By.XPATH, "//a[contains(., 'LAZ')]").click()
 
+                                #* PO No:
                                 self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
+                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
                                 self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                                 try:
                                     self.driver.find_element(
@@ -3666,22 +3660,24 @@ class Bot_POS:
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
                                 except:
                                     print("ปุ่ม Brows() ไม่โผล่")
-                                # ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ a
+                                    
+                                #* ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ a
                                 if self.app.cus_name.get():
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
                                 else:
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                             except:
                                 print("Final page failed, skip to waiting for price")
                                 break
 
+                            #*Auto Enter final Price
                             if self.app.user_id.get() in self.app.dev_account:
                                 try:
                                     print("Auto enter price")
@@ -3690,10 +3686,8 @@ class Bot_POS:
                                     final_price = (
                                         self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                                     if self.app.user_id.get() in self.app.dev_account:
-                                        self.driver.find_element(
-                                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
-                                        self.driver.find_element(
-                                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
+                                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
                                 except Exception as e:
                                     print("auto_final_price broken", e)
 
@@ -3702,8 +3696,7 @@ class Bot_POS:
                                 By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
 
                             # * ดึงข้อความจาก element ที่ค้นหาได้
-                            text_value = self.is_input_on.get_attribute(
-                                "title")
+                            text_value = self.is_input_on.get_attribute("title")
 
                             # * พิมพ์ผลลัพธ์
                             print("Check customer name self.is_input_on:", text_value)
@@ -3772,18 +3765,15 @@ class Bot_POS:
                                 time.sleep(1)
                                 try:
                                     # print("auto click Before print loop")
-                                    self.final_popup = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                                    self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]')
                                     # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
-                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                                    self.is_final_page = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
-                                    self.etax_radio_sendmail = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
+                                    #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
+                                    self.is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
+                                    self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
                                     # print("self.is_final_page= ",
                                     #       self.is_final_page)
                                 except:
-                                    print("Element not found, continuing loop...")
+                                    # print("Element not found, continuing loop...")
                                     continue
 
                                 if self.final_popup.is_displayed():
@@ -5294,9 +5284,12 @@ if __name__ == "__main__":
 # * 121 Update 0.398 // เปลี่ยน obj ที่ใช้สร้าง ui ใหม่ จาก tkinter สู่ ctk ทำให้ component ปรับขนาดตาม resolution
 # * 122 Fixed 0.398 // ปรับให้ accel_mode ใช้กับ etax ได้
 # ? 123 Fixed 0.398 // (Progress, ไม่สมบูรณ์)ปรับ function การดึงข้อมูลลูกค้า ให้ไม่ error จน bot หยุดทำงาน
-# ! 124 // ปรับตัว อัพเดทที่อยู่ลูกค้าปัจจุบัน ให้เป็นแบบ Semi-auto
+# ? 124 Update 0.398.1 // ใช้จริงน่าจะไม่ work //ปรับตัว อัพเดทที่อยู่ลูกค้าปัจจุบัน ให้เป็นแบบ Semi-auto
 # ! 125 // กรณี ลูกค้าที่มีชื่อภาษาอังกฤษปน ตัว function get_pure_address จะใช้ไม่ได้ ทำให้ ตัวอัพเดทที่อยู่ กรอก address แบบ non pure address 
-# ! 126 // SMCO update ver ใหม่ จาก 6.3.3 เป็น 7.0.0 ทำให้ element เปลี่ยนแปลง แล้วทำต่อไม่ได้เพราะมันติด ต้องเลือก saletype ก่อน แล้ว saletype ไม่มีใน dropdown
+# ? 126 Update 0.398.1// ปรับ element แล้ว แต่ไม่ชัว // SMCO update ver ใหม่ จาก 6.3.3 เป็น 7.0.0 ทำให้ element เปลี่ยนแปลง แล้วทำต่อไม่ได้เพราะมันติด ต้องเลือก saletype ก่อน แล้ว saletype ไม่มีใน dropdown
+# ! 127 // sonic blow ไม่สมบูรณ์ หน้า print อาจจะไม่สมบูรณ์
+# ! 128 // memory leak เพราะใช้ while loop นานเกินไปมั้ง แต่ ในหน้าท้าย ส่วนของ Element not found, continuing loop... ก็ใช้ แต่ไม่ leak
+
 
 # Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
 #!--------------------- ETAX SAGA ------------------------------------
