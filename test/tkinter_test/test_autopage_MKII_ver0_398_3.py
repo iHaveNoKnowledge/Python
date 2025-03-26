@@ -2489,7 +2489,10 @@ class Bot_POS:
         for element in elements:
             prefix, code = element.split("-")
             code = code.zfill(6)
-            result.append(prefix + "-" + code)
+            raw_product_code = prefix + "-" + code
+            matched_obj = re.search(r'^\w.*-\d{6}', raw_product_code)
+            product_code = matched_obj.group()
+            result.append(product_code)
 
         return result
 
@@ -2507,7 +2510,7 @@ class Bot_POS:
         cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
         green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'
 
-        items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         try:
             # * ก่อน SMCOver 6.3.3
             cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
@@ -2518,19 +2521,16 @@ class Bot_POS:
         # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_ordered_items_list):
             print("มาถึงนี่ไหม")
-            for idx2, div in enumerate(items_list):
+            print("จำนวน div ", len(items_list_element))
+            for idx2, div in enumerate(items_list_element):
                 try:
-                    print("จำนนวน div ", len(items_list))
-                    # print("รอบ", idx2)
-                    # time.sleep(0.55)
-
                     is_found = div.text.find(item)
-
-                    li_position = idx+1
+                    li_position = idx2+1
+                    
                     if is_found != -1:
-                        print("เจอที่ ", li_position)
+                        print("found at li no: ", li_position)
                         print("is_found: ", is_found)
-                        cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position+1}]/div/div[2]/div[3]/div[1]/button'''
+                        cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'''
                         self.driver.find_element(By.XPATH, cp_btn_xpath).click()
 
                         # * เลือก cp เป้าหมาย
@@ -2543,7 +2543,7 @@ class Bot_POS:
                         continue
                         # print(div.text)
                     else:
-                        print("ไม่เจอ", item, "นะ")
+                        # print("ไม่เจอ", item, "นะ")
                         pass
                 except:
                     pass
@@ -4408,12 +4408,12 @@ class Bot_POS:
                     'zip_code': ''
                 }
                 
-    def direct_to_customer_info(self):
+    def direct_to_customer_info(self, wait_element):
         #* เนื่องจาก หน้าลูกค้ามันมีสองชั้น ตรวจสอบว่า หน้าที่กำลังแสดงผลเป็นหน้าในหรือนอก ถ้าในต้องปรับเป็นนอกก่อน
         while True:
             is_outer_page_on = False
             is_inner_page_on = False
-            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
                 'SMCO :: ลูกค้า'  in self.merged_dict
                 self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
@@ -4455,7 +4455,7 @@ class Bot_POS:
         customer_code_btn.click()
         
         #* customer code search popup
-        self.wait_element('/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
+        wait_element('/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
         customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
         try:
             customer_popup_clear_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/span')
@@ -4472,7 +4472,7 @@ class Bot_POS:
             # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
                 'SMCO :: ลูกค้า'  in self.merged_dict
-                self.wait_element('/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li', self.cus_code)
+                wait_element('/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li', self.cus_code)
                 break
             except:
                 continue
@@ -4603,9 +4603,9 @@ class Bot_POS:
             print("Customer Address is not correct")
             self.get_tabs()
             if not 'SMCO :: ลูกค้า' in self.merged_dict:
-                self.open_customer_edit_page()
+                self.open_customer_edit_page(wait_element)
                 
-            self.direct_to_customer_info()
+            self.direct_to_customer_info(wait_element)
             
             address_revise_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[2]/div[1]/div/div[6]/a')
             address_revise_btn.click()
