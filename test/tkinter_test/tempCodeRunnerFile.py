@@ -1,1 +1,1 @@
-
+self.driver.execute_script(f"window.open('{customer_edit_url}', '_blank');")
