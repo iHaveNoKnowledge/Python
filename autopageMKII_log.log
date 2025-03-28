@@ -1638,3 +1638,22 @@ Stacktrace:
 2025-03-27T17:24:21.396174+0700 INFO Order: 250327PCG6UBDB operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-03-27T17:27:14.580579+0700 INFO Order: 250327PCSP413R Start!!
 2025-03-27T17:27:36.606699+0700 INFO Order: 250327PCSP413R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T09:33:28.276689+0700 INFO Order: 250328R2FPNGM4 Start!!
+2025-03-28T09:37:07.132337+0700 INFO Order: 250328R28B31ST Start!!
+2025-03-28T09:37:21.309118+0700 INFO Order: 250328R283FH1J Start!!
+2025-03-28T09:37:21.322125+0700 INFO Order: 250328R283FH1J operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T10:38:17.483736+0700 INFO Order: 250328R283FH1J operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T10:44:33.085511+0700 INFO Order: 250328R245HPDK Start!!
+2025-03-28T10:44:41.043423+0700 INFO Order: 250328R245HPDK operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T10:44:46.391855+0700 INFO Order: 250328R245HPDK Start!!
+2025-03-28T10:46:04.791399+0700 INFO Order: 250328R0UPDT6K Start!!
+2025-03-28T10:46:11.741544+0700 INFO Order: 250328R0UPDT6K operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T10:47:04.739684+0700 INFO Order: 250328R0UPDT6K Start!!
+2025-03-28T10:50:28.129366+0700 INFO Order: 250328R0E9904H Start!!
+2025-03-28T10:50:42.848366+0700 INFO Order: 250328R06VRFFX Start!!
+2025-03-28T10:50:43.331326+0700 INFO Order: 250328R06VRFFX operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T10:51:08.928427+0700 INFO Order: 250328QYUTY76Q Start!!
+2025-03-28T10:51:27.803391+0700 INFO Order: 250328QYQJKDUJ Start!!
+2025-03-28T10:51:38.477346+0700 INFO Order: 250328QY763NBR Start!!
+2025-03-28T10:51:39.010676+0700 INFO Order: 250328QY763NBR operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-03-28T10:52:44.199996+0700 INFO Order: 250328QVUGNPX1 Start!!
