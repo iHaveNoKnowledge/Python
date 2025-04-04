@@ -242,7 +242,7 @@ class MyApp:
             base_font_size = 10
         
         # สร้าง Main Canvas
-        self.canvas = Canvas(self.root, bg="#444", width=800, height=600)ส
+        self.canvas = Canvas(self.root, bg="#444", width=800, height=600)
     
         # สร้าง Scrollbar แนวตั้ง
         self.scrollbar_y = CTkScrollbar(
