@@ -3378,7 +3378,7 @@ class Bot_POS:
                         
                     except:
                         continue
-                
+
 
             # * ใส่ค่าขนส่ง
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น

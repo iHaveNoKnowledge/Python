@@ -3289,7 +3289,7 @@ class Bot_POS:
                             #* กรณี add แล้ว มี popup-duplicate customer
                             self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
                             cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
-                            self.duplicate_resolver(cus_code_element)
+                            self.duplicate_cus_name_resolver(cus_code_element)
         
                         except EXCEPTION as err:
                             print("No duplicate!", err)
@@ -3378,8 +3378,14 @@ class Bot_POS:
                         
                     except:
                         continue
-                
-
+            
+            # # * Update Accel file //////////////////////
+            # self.app.deduct_accel_file_data(
+            #     self.app.cus_order,
+            #     self.used_serials
+            # )
+            # return
+                    
             # * ใส่ค่าขนส่ง
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
@@ -4724,7 +4730,7 @@ class Bot_POS:
         WebDriverWait(self.driver, 12).until(EC.element_to_be_clickable((By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input")))
         self.driver.find_element(By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").send_keys(self.app.tax_num.get())
 
-    def duplicate_resolver(self, popup_dup_element):
+    def duplicate_cus_name_resolver(self, popup_dup_element):
         self.cus_code_element = popup_dup_element
         self.dup_popup_content = self.cus_code_element.text
         self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
