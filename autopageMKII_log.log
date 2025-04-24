@@ -2015,3 +2015,19 @@ Stacktrace:
 2025-04-04T23:56:30.329728+0700 INFO Order: 250404BH0PDBGA Start!!
 2025-04-04T23:56:37.152009+0700 INFO Order: 250404BH0PDBGA operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-04-04T23:56:37.874440+0700 INFO Order: 250404BH1DA0K6 Start!!
+2025-04-24T14:46:32.746424+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T14:46:38.268273+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-04-24T14:55:26.385179+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T14:55:30.914058+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-04-24T14:57:46.166020+0700 INFO Order: 25042339Y6V2X3 Start!!
+2025-04-24T15:02:18.716985+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T15:02:25.291114+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-04-24T15:03:50.984611+0700 INFO Order: 25042339Y6V2X3 Start!!
+2025-04-24T15:10:46.934338+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T15:10:53.535796+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-04-24T15:20:55.658259+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T15:21:01.148105+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-04-24T15:23:22.873775+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T15:23:28.963654+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-04-24T15:44:18.671551+0700 INFO Order: 25042335WXQ719 Start!!
+2025-04-24T15:44:24.291089+0700 INFO Order: 25042335WXQ719 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
