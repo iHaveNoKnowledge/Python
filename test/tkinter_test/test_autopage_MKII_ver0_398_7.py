@@ -841,12 +841,10 @@ class MyApp:
         extracted_txt = re.sub(pattern2, '', extracted_txt, flags=re.DOTALL)
 
         pattern_serial = r'Serial\s:'
-        extracted_txt = re.sub(
-            pattern_serial, '', extracted_txt, flags=re.DOTALL)
+        extracted_txt = re.sub(pattern_serial, '', extracted_txt, flags=re.DOTALL)
 
         pattern_sku_no = r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))'
-        extracted_txt = re.sub(
-            pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
+        extracted_txt = re.sub(pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
 
         # * สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
         # * Regular expression สำหรับการจับ SKU
@@ -855,9 +853,12 @@ class MyApp:
         # *Regular expression สำหรับการจับ serial numbers
         # serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
         serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+        serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n, \W]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
 
         # * สกัด SKU
         product_codes = re.findall(sku_pattern, extracted_txt)
+        
+        print("Before_find_sn_pattern: ", extracted_txt)
 
         # * สกัด serial numbers
         serial_numbers = re.findall(serial_pattern, extracted_txt, re.DOTALL)
