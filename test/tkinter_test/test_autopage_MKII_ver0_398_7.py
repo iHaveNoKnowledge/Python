@@ -853,7 +853,7 @@ class MyApp:
         # *Regular expression สำหรับการจับ serial numbers
         # serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
         serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
-        serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n, \W]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+        #! serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n, \W]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))' กากโคตร
 
         # * สกัด SKU
         product_codes = re.findall(sku_pattern, extracted_txt)
