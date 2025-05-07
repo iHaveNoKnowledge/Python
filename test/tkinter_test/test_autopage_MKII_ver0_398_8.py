@@ -779,9 +779,9 @@ class MyApp:
         print("after self.accel_df_state: ", self.accel_df_state)
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
-        accel_file_columns = self.accel_df_state.columns.dropna().tolist()
+        self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
         self.obj_data_from_accel_file = {
-            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
+            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
         }
 
         self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
@@ -802,13 +802,45 @@ class MyApp:
         # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
-            df.loc[df['orders'] == order, 'orders'] = ''
+            df.loc[df['orders'] == order, 'orders'] = pd.NA
 
         print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
         if sku_serials:
             for sn in sku_serials:
-                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
+                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+        
+        self.obj_data_from_accel_file = {
+            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+        }
+    # def deduct_accel_file_data(self, order, sku_serials=[]):
+    #     # ตรวจสอบว่ามีค่า order หรือไม่
+    #     df = self.accel_df_state
+    #     print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
+    #     print("deduct_accel_file_data order: ", order)
+        
+    #     # ตรวจสอบว่า df มี order ที่ต้องการหรือไม่
+    #     has_order = df.loc[df['orders'] == order, 'orders']
+    #     if not has_order.empty:
+    #         # ถ้ามี order ที่ตรงกับที่รับเข้ามา ก็ให้ลบค่าในคอลัมน์ 'orders'
+    #         df.loc[df['orders'] == order, 'orders'] = pd.NA
+        
+    #     # ลบค่า sku ตามที่รับมาจาก sku_serials
+    #     print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
+    #     if sku_serials:
+    #         for sn in sku_serials:
+    #             # sn['sku'] คือชื่อคอลัมน์, sn['sn'] คือค่า serial number ที่จะลบ
+    #             if sn['sku'] in df.columns:
+    #                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
+
+    #     # บันทึกข้อมูลใหม่ลง Excel
+    #     df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+        
+    #     # ปรับข้อมูลจาก df
+    #     self.obj_data_from_accel_file = {
+    #         col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+    #     }
+
 
     # todo WIP transfer to accel
     def extract_sn_btn(self, accel_file_dir):
@@ -2836,7 +2868,7 @@ class Bot_POS:
     def accel_fill_sku(self):
         self.available_sn_skus_lsit = list(self.app.obj_data_from_accel_file.keys())
         self.used_serials = []
-        # *  ดึง array items เก็บลงตัวแปร items
+        # *  ดึง array items เก็บลงตัวแปร ordered_items
         ordered_items = self.app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_items)
         if len(ordered_items) > 0:
@@ -2861,7 +2893,8 @@ class Bot_POS:
                                     break
                                 except:
                                     continue
-                            sn = self.app.obj_data_from_accel_file[current_sku].pop(0)
+                            #! sn = self.app.obj_data_from_accel_file[current_sku].pop(0) เพราะตรงนี้มันใช้ pop(0) ทำให้กรณีข้าม order sn ที่คู่กับ order ที่ถูกข้ามมันจะถูกข้ามไปด้วย 
+                            sn = self.app.obj_data_from_accel_file[current_sku][0]
                             skuInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                             skuInput.clear()
                             attempts = 10
@@ -3699,7 +3732,8 @@ class Bot_POS:
                                 time.sleep(1)
                                 try:
                                     # print("auto click Before print loop")
-                                    self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]')
+                                    # self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]') #! ปุ่มนี้น่าจะหายไปละ
+                                    self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]')
                                     # self.is_final_page = self.wait50.until(EC.invisibility_of_element_located(
                                     #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
                                     self.is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
@@ -3746,11 +3780,12 @@ class Bot_POS:
                                     print("final pop-up has finally displayed!")
                                     try:
                                         self.final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
-                                            (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+                                            # (By.XPATH, '/html/body/div[24]/div[2]/button[1]'))) #! ปุ่มนี้น่าจะหายไปละ
+                                            (By.XPATH, '/html/body/div[24]/div[2]')))
                                         # *> ให้เวลาดูเลขบิล 1 วิ
                                         time.sleep(1)
 
-                                        alert_text = self.driver.find_element(By().XPATH, '/html/body/div[24]/div[2]/div[6]').text
+                                        alert_text = self.driver.find_element(By().XPATH, '/html/body/div[24]/div[2]/div[6]').text #อันนี้น่าจะใช้ไม่ได้ละ
                                         
                                         match = re.search(r'B\d+-W\d+-\d+', alert_text)
                                         print("match: ", match)
@@ -3762,6 +3797,7 @@ class Bot_POS:
                                         # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                                         # * ไปหน้า Reprint ##########################################################################################
                                         if is_etax and inv_number != "":
+                                            print("has etax")
                                             self.etax_reprint(inv_number)
                                             # * Update Accel file //////////////////////
                                             self.app.deduct_accel_file_data(
@@ -3770,12 +3806,12 @@ class Bot_POS:
                                             )
                                             #* ถ้ามี etax ก็ print แล้วจบไป
                                             time.sleep(0.75)
-                                            self.final_popup_btn.click()
+                                            # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
                                             break
-                                            
-
-                                        time.sleep(0.75)
-                                        self.final_popup_btn.click()
+                                        
+                                        self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]')))
+                                        # time.sleep(1)
+                                        # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
                                         
                                         #* > printing
                                         #* >> รอหน้า canvas โผล่ก่อน
@@ -3799,7 +3835,7 @@ class Bot_POS:
                                         # print("ไม่ได้เลขบิล")
                                         # self.final_popup.click()
                                         try:
-                                            self.final_popup_btn.click()
+                                            self.final_popup_btn.click()  #! ปุ่มนี้น่าจะหายไปละ
                                         except:
                                             pass
                                         print("พัง ข้ามไปเลยละกัน", err)
@@ -4861,8 +4897,7 @@ class Bot_POS:
                     jsession_id = response.cookies['JSESSIONID']
                     print(
                         "we never have usable cookies before that why the response has cookies. We'll use it like a state in app.cookies")
-                    self.app.cookies['vatinfo']['JSESSIONID'] = f"""{
-                        jsession_id}"""
+                    self.app.cookies['vatinfo']['JSESSIONID'] = f"""{jsession_id}"""
                 except Exception as err:
                     # * กรณี ที่ ไม่มี cookies returns กลับมา เพราะอันเก่าใช้ได้อยู่ ใช้ cookies เดิมได้เลย
                     print("if the response is '<RequestCookieJar[]>', it indicates that no cookies were returned. Therefore, we already have available cookies now.", response)
