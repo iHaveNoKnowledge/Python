@@ -2146,3 +2146,32 @@ Stacktrace:
 2025-05-07T09:02:05.501382+0700 INFO Order: 2505054JJ5NSKE Start!!
 2025-05-07T09:03:29.745454+0700 INFO Order: 2505065QNUHJJT Start!!
 2025-05-07T15:32:44.641906+0700 INFO Order: 250504035EH9TN Start!!
+2025-05-09T09:47:07.848688+0700 INFO Order: 25050528M1N174 Start!!
+2025-05-09T09:48:35.776876+0700 INFO Order: 25050528U1RSKP Start!!
+2025-05-09T09:54:54.786706+0700 INFO Order: 25050536BRB8DA Start!!
+2025-05-09T09:56:39.478689+0700 INFO Order: 2505053V5GMNEY Start!!
+2025-05-09T09:58:05.175676+0700 INFO Order: 2505053V5GMNEY Start!!
+2025-05-09T09:59:23.207281+0700 INFO Order: 2505064TG7R8EG Start!!
+2025-05-09T10:01:11.216469+0700 INFO Order: 2505065FHVJBXG Start!!
+2025-05-09T10:10:56.888268+0700 INFO Order: 2505065S7N3A6Y Start!!
+2025-05-09T10:11:16.111357+0700 INFO Order: 2505065S7N3A6Y operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:11:45.371169+0700 INFO Order: 2505065S7N3A6Y Start!!
+2025-05-09T10:12:42.851766+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:13:34.357096+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:13:38.950684+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:14:41.935664+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:14:45.627003+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:16:31.378168+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:16:35.230090+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:17:23.427967+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:17:27.140973+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:18:19.612510+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:19:13.550368+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:22:58.250867+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:23:17.260894+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:23:22.846609+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:24:17.544420+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:28:54.233585+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:29:48.293474+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-05-09T10:36:54.444546+0700 INFO Order: 25050664AT0YAE Start!!
+2025-05-09T10:37:48.559613+0700 INFO Order: 25050664AT0YAE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed

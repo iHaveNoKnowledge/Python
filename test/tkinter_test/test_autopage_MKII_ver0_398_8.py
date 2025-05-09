@@ -3745,6 +3745,11 @@ class Bot_POS:
 
                                 if self.final_popup.is_displayed():
                                     print("self.final_popup is displayed")
+                                    try:
+                                        self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+                                        print('Click space behind final popup')
+                                    except:
+                                        print('Cannot click space behind final popup')
                                     pass
                                 #! etax พังใช้ไม่ได้
                                 # elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
@@ -4616,13 +4621,13 @@ class Bot_POS:
                     }
         # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
         if not any(cus_address.values()):
-            print("ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้")
-            PopUp(
-                "Error", 
-                "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง", 
-                self.parent, 
-                "alert"
-            )
+            print("Address not matched")
+            # PopUp(
+            #     "Error", 
+            #     "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง", 
+            #     self.parent, 
+            #     "alert"
+            # )
             
         cus_address_to_compare = "".join(cus_address.values())
         # print("cus_address_to_compare: ", cus_address_to_compare)
