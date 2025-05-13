@@ -227,7 +227,7 @@ class MyApp:
         ))
         
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver0.398.9")
+        self.root.title("Autosamatic ver0.399")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
@@ -2445,6 +2445,12 @@ class Bot_POS:
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.setup_chrome()
+        self.channel_options = {
+            'shp_itcitymobile_master':'SHP ITCITY Mobile',
+            'itcity':'SHOPEE',
+            'shp_wisegadget_master':'SHOPEE Wise Gadget',
+        }
+        
 
     def setup_chrome(self):
         self.opt = Options()
@@ -2936,6 +2942,7 @@ class Bot_POS:
         self.is_forbid = False
         is_etax = False
         inv_number = ""
+        self.operation_states = {"purchase_channel":None}
         if self.app.order != "":
             ### * MARKETPLACES Part ########################################################################################
             self.autofinal = False
@@ -2947,6 +2954,7 @@ class Bot_POS:
             ####* IF MARKETPLACE IS SHOPEE ###################################################################################################################################
             if self.app.marketplace_target.get() == 'SHOPEE':
                 self.driver.switch_to.window(self.merged_dict['Seller Centre'])
+                self.operation_states['purchase_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
                 cur_url = self.driver.current_url
 
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน add_new_customer, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
@@ -3601,13 +3609,13 @@ class Bot_POS:
                                 # เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
                                 if self.app.marketplace_target.get() == 'SHOPEE':
+                                    channel = self.channel_options[f'{self.operation_states['purchase_channel']}']
+                                    print("channel: ", channel)
                                     # เลือก shopee
-                                    self.driver.find_element(
-                                        By.XPATH, "//a[contains(.,'SHOPEE')]").click()
+                                    self.driver.find_element(By.XPATH, f"//a[contains(., '{channel}')]").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
-                                    self.driver.find_element(
-                                        By.XPATH, "//a[contains(., 'LAZ')]").click()
+                                    self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
 
                                 #* PO No:
                                 self.driver.find_element(
