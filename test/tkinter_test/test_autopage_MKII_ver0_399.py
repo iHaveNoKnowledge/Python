@@ -3822,15 +3822,20 @@ class Bot_POS:
                                             # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
                                             break
                                         
-                                        self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]')))
+                                        # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]')))
                                         # time.sleep(1)
                                         # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
+                                        
+                                        #* ลอง click container ดู ใช้ได้แล้ว
+                                        print("click container!")
+                                        # self.driver.find_element(By.XPATH, '/html/body/div[24]').click()
+                                        self.driver.execute_script("document.querySelector('.swal2-overlay').click();") #* อันนี้ดีย์
+
                                         
                                         #* > printing
                                         #* >> รอหน้า canvas โผล่ก่อน
                                         self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
                                         time.sleep(1)
-                                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
                                         
                                         #! วิธี print แบบเก่า
                                         # self.printtingPage()
