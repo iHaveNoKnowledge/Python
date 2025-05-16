@@ -1,4 +1,6 @@
 
+import pytz
+import datetime
 from loguru import logger
 
 import locale
@@ -30,6 +32,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import *
 from customtkinter import *
+import customtkinter as ctk
 from pypdf import PdfReader
 from openpyxl import load_workbook
 from PIL import Image, ImageTk
@@ -43,8 +46,6 @@ from googletrans import Translator
 import requests
 session = requests.Session()
 
-import datetime
-import pytz
 
 # * images
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
@@ -109,10 +110,11 @@ class MyApp:
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
         self.cus_purchase_time = StringVar(value="")
-        self.cus_arrow_btn = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
+        self.cus_arrow_btn = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
         self.cusNameInput = '/html/body/span/span/span[1]/input'
-        self.cusSearchSMCO = '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
-        self.cusCreateBtn = '/html/body/div[1]/div[2]/div[11]/div/div/div[2]/div/form/div[1]/div[2]/button[1]'
+        self.cusSearchSMCO = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
+        self.cusCreateBtn = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[13]/button[1]'
+        
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
@@ -132,8 +134,7 @@ class MyApp:
         logger.add("autopageMKII_log.log", format="{time} {level} {message}", level="INFO")
 
     def demonic_cp_selection(self):
-        self.bot.demonic_cp_bot(
-            self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
+        self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
 
     def validate_input(self, value):
         pattern = r'[A-z]'
@@ -152,14 +153,15 @@ class MyApp:
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
 
-        # Calculate scale factors
-        width_scale = screen_width / base_width
-        height_scale = screen_height / base_height
+        # Calculate scale factors - ใช้ขนาดหน้าต่างที่ต้องการเป็นตัวตั้ง
+        width_scale = base_width / screen_width
+        height_scale = base_height / screen_height
 
-        # Use the smaller scale factor to maintain aspect ratio
-        scale_factor = min(width_scale, height_scale)
+        # ใช้ scale factor ที่มากกว่าเพื่อให้แน่ใจว่า UI จะพอดีกับหน้าจอ
+        scale_factor = max(width_scale, height_scale)
 
-        return scale_factor
+        # กลับค่า scale เพื่อให้ UI เล็กลงเมื่อหน้าจอเล็กกว่าขนาดที่ต้องการ
+        return 1 / scale_factor
 
     def scale_widget(self, widget, scale_factor):
         if isinstance(widget, (CTkLabel, CTkButton, CTkEntry, CTkFrame)):
@@ -174,71 +176,193 @@ class MyApp:
                 self.scale_widget(child, scale_factor)
 
     def create_main_window(self):
-        self.root.geometry("1000x900+400+300")
-        self.root.title("Autosamatic ver0.397.2")
-        self.root.configure(bg="#444")
+        # คำนวณ scale factor จากขนาดหน้าจอ
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        base_width = 1920
+        base_height = 1080
 
-        # #* BG CANVAS ##################################################################################
-        self.canvas = Canvas(self.root, bg="#444")
+        # คำนวณ scaling factor
+        scaling_factor = min(screen_width / base_width, screen_height / base_height)
 
-        # * Scrollbar For Root ##################################################################################
-        self.root_scrollbar_y = Scrollbar(
-            self.canvas, command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=self.root_scrollbar_y.set)
-        self.root_scrollbar_y.pack(side=RIGHT, fill="y")
+        # ตั้งค่า scaling สำหรับ window และ widgets
+        set_window_scaling(scaling_factor)
+        set_widget_scaling(scaling_factor)
 
-        self.root_scrollbar_x = Scrollbar(
-            self.root, command=self.canvas.xview, orient='horizontal')
-        self.root_scrollbar_x.pack(side=BOTTOM, fill="x")
+        if screen_height <= 768:
+            base_font_size = 10
+        elif screen_height <= 1080:
+            base_font_size = 10
+        else:
+            base_font_size = 12
+            
+        # สร้าง font objects ที่ใช้บ่อย
+        self.normal_font = CTkFont(
+            family="Arial",
+            size=int(base_font_size * scaling_factor)
+        )
+        
+        self.bold_font = CTkFont(
+            family="Arial",
+            size=int(base_font_size * scaling_factor),
+            weight="bold"
+        )
+        
+        self.header_font = CTkFont(
+            family="Arial", 
+            size=int((base_font_size + 2) * scaling_factor),
+            weight="bold"
+        )
+        
+        # ตั้งค่าขนาดและตำแหน่งหน้าต่าง
+        window_width = min(int(1000 * scaling_factor), screen_width - 100)
+        window_height = min(int(900 * scaling_factor), screen_height - 100)
+        x_position = max(0, min(
+            (screen_width - window_width) // 2,
+            screen_width - window_width - 20
+        ))
+        y_position = max(0, min(
+            (screen_height - window_height) // 2,
+            screen_height - window_height - 40
+        ))
+        
+        self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+        self.root.title("Autosamatic ver0.399.1")
+        self.root.configure(fg_color="#444")
 
-        self.canvas.config(xscrollcommand=self.root_scrollbar_x.set)
-        self.canvas.configure(xscrollcommand=self.root_scrollbar_x.set)
+        # กำหนด minimum size
+        min_width = min(int(800 * scaling_factor), screen_width - 100)
+        min_height = min(int(600 * scaling_factor), screen_height - 100)
+        self.root.minsize(min_width, min_height)
+
+        # กำหนด base font size ตาม resolution
+        if screen_height <= 768:
+            base_font_size = 12
+        else:
+            base_font_size = 10
+        
+        # สร้าง Main Canvas
+        self.canvas = Canvas(self.root, bg="#444", width=800, height=600)
+    
+        # สร้าง Scrollbar แนวตั้ง
+        self.scrollbar_y = CTkScrollbar(
+            self.root,
+            orientation="vertical",
+            command=self.canvas.yview
+        )
+        self.scrollbar_y.pack(side="right", fill="y")
+
+        # สร้าง Scrollbar แนวนอน
+        self.scrollbar_x = CTkScrollbar(
+            self.root,
+            orientation="horizontal",
+            command=self.canvas.xview
+        )
+        self.scrollbar_x.pack(side="bottom", fill="x")
+
+        # กำหนด scrollcommand ให้ canvas
+        self.canvas.configure(
+            yscrollcommand=self.scrollbar_y.set,
+            xscrollcommand=self.scrollbar_x.set
+        )
+        
+        # สร้าง main frame ที่จะอยู่ใน canvas
+        self.main_frame = CTkFrame(self.canvas, fg_color="#444")
+        
+        # สร้าง window ใน canvas เพื่อใส่ main_frame
+        self.canvas_window = self.canvas.create_window(
+            (0, 0),
+            window=self.main_frame,
+            anchor="nw"
+        )
+        
+        # Pack canvas
         self.canvas.pack(side="left", fill="both", expand=True)
+        
+        # Bind events สำหรับการ scroll
+        self.main_frame.bind("<Configure>", self.on_frame_configure)
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
+        
 
         # #* FRAMES #####################################################################################################
-        # self.root_frame = Frame(self.canvas,  bg="pink") ใช้ได้แต่รอก่อน
+        # self.root_frame = CTkFrame(self.canvas,  fg_color="pink") ใช้ได้แต่รอก่อน
         # self.canvas.create_window((0, 0), window=self.root_frame, anchor="nw") ใช้ได้แต่รอก่อน
 
         # > Frame1 Order Entry
-        self.entry_frame = Frame(self.canvas, padx=5, pady=5, bg="#444", borderwidth=1, relief="groove", highlightbackground="#ccc")
-        self.entry_frame.pack(side='top', pady=(10, 10))
-
-        # > Frame2 Log Frame
-        self.log_frame = Frame(self.canvas, bg="#444")
-        self.log_frame.pack(side='bottom', pady=(0, 20))
+        self.entry_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#ccc",  # แทน bg
+            # border_width=10,   # แทน borderwidth
+            # border_color="#ccc",  # แทน highlightbackground
+        )
+        self.entry_frame.pack(side='top', pady=10, padx=5)
 
         # > Frame3 ImportFile Status and Bot Status
-        self.import_file_frame = Frame(self.canvas, bg="#444")
-        self.import_file_frame.pack(side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+        self.import_file_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#ccc",
+        )
+        self.import_file_frame.pack(side='top', anchor=W, padx=10, pady=(5, 0))
 
         # > Frame4 Customer Details
-        self.order_details_frame = Frame(self.canvas, bg="#444", )
-        self.order_details_frame.pack(side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+        self.order_details_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#ccc"
+        )
+        self.order_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame7 For Customer's Invoice Details
-        self.invoice_details_frame = Frame(self.canvas, bg="#445")
-        self.invoice_details_frame.pack(side='top', anchor=W, padx=(5, 5), pady=(5, 0))
+        self.invoice_details_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#445"
+        )
+        self.invoice_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
         # > Frame5 Products Lists
-        self.products_list_frame = Frame(self.canvas, bg="#445")
-        self.products_list_frame.pack(side='top', padx=(5, 5), pady=(5, 5), fill=X)
+        self.products_list_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#445"
+        )
+        self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
 
         # > Frame6 Margetplace(MP) Products Lists
-        self.mp_products_list_frame = Frame(self.canvas, bg="#444")
-        self.mp_products_list_frame.pack(side='top',  padx=(5, 5), pady=(5, 5), fill="x")
+        self.mp_products_list_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#444"
+        )
+        self.mp_products_list_frame.pack(side='top', padx=5, pady=5, fill="x")
 
         # > Frame7 The Upper Log Frame Demonic Frame
-        self.demonic_frame = Frame(self.canvas, bg="#444")
-        self.demonic_frame.pack(side='bottom', pady=(0, 2))
+        self.demonic_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#444"
+        )
+        self.demonic_frame.pack(side='top', pady=(0, 2))
+        
+        # > Frame2 Log Frame
+        self.log_frame = CTkFrame(
+            self.main_frame,
+            fg_color="#444"
+        )
+        self.log_frame.pack(side='top', pady=20, fill="both")
 
         # * Create widgets in the main window
         self.create_widgets()
 
         # * start the scrollbar
-        self.canvas.update_idletasks()
-        self.canvas.config(scrollregion=self.canvas.bbox("all"))
-        self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
-        # self.canvas.bind("<Configure>", self.on_canvas_configure) ใช้ได้แต่รอก่อน
+        # self.canvas.update_idletasks()
+        # self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        # self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
+        # # self.canvas.bind("<Configure>", self.on_canvas_configure) 
+        
+    def on_frame_configure(self, event=None):
+        # """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def on_canvas_configure(self, event):
+        # """ปรับขนาด canvas window เมื่อ canvas มีการ resize"""
+        # ปรับความกว้างของ window ใน canvas ให้เท่ากับความกว้างของ canvas
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
@@ -248,20 +372,19 @@ class MyApp:
         self.list_of_cols = list_of_cols
         self.colspan_amount = [1, 19, 2, 2, 2, 2]
         self.cols_location = [0, 1, 21, 23, 25, 27]
-        self.cols_width = [5, 100, 10, 10, 10, 10]
+        # self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
+        self.cols_width = [40, 550, 80, 50, 80, 80]
         self.entry_list = []
         i = 0
         for header in self.list_of_cols:
-            self.mp_products_header = Entry(
-                self.mp_products_list_frame, foreground="#000000", background="#fff", width=int(self.cols_width[i]))
+            self.mp_products_header = CTkEntry(self.mp_products_list_frame, text_color="#000000", fg_color="#fff", width=int(self.cols_width[i]), height=14)
             self.mp_products_header.insert(0, header)
             self.entry_list.append(self.mp_products_header)
             i += 1
 
         for idx, entry in enumerate(self.entry_list):
-            entry.grid(
-                row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
+            entry.grid(row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
             entry.configure(state="readonly")
 
     # * เป็นส่วนของ GUI ช่อง input ที่รับ order sn ในรูปแบบ file excel
@@ -301,23 +424,29 @@ class MyApp:
 
     def create_widgets(self):
         # * entry_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # *  MarketPlace
-        # * > Label
-        self.marketplace_label = Label(
-            self.entry_frame, textvariable=self.marketplace_target, bg="#747474", fg="#FFF", font='bazooka 10 bold')
+        # * > MarketPlace
+        # * >> Label
+        self.marketplace_label = CTkLabel(
+            self.entry_frame, 
+            textvariable=self.marketplace_target,
+            fg_color="#747474", 
+            text_color="#FFF", 
+            font=CTkFont(family="bazooka", size=10, weight="bold"),
+            padx=6
+        )
         self.marketplace_label.grid(row=0, column=0, padx=5)
 
-        # *  search order component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # * > Labels
-        self.inp1_label_order = Label(
-            self.entry_frame, text="Order: ", bg="#FFF", width=10)
+        # * > search order component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # * >> Labels
+        self.inp1_label_order = CTkLabel(
+            self.entry_frame, text="Order: ", fg_color="#FFF", width=10)
         self.inp1_label_order.grid(row=0, column=1, padx=5)
-        # *> Inputs
+        # * >> Inputs
         self.entered_order = StringVar()
         self.inp1_order_input = Entry(
             self.entry_frame, textvariable=self.entered_order, width=50)
         self.inp1_order_input.grid(row=0, column=3)
-        # *> Buttons
+        # * >> Buttons
         self.font = CTkFont(family='fixedsys', size=10, weight="bold")
         self.inp1_search_btn = CTkButton(
             self.entry_frame,
@@ -333,17 +462,16 @@ class MyApp:
         )
         self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
-        # *  search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # * > search order Accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
-        # * > Labels
-        self.accl_dir_label = Label(
+        # * >> Labels
+        self.accl_dir_label = CTkLabel(
             self.entry_frame, text=f"Accel File Dir ")
 
-        # *> FileName Display on Button
-        self.accl_dir_namedisplay_on_btn = Button(
-            self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, bg="#969696")
+        # * >> FileName Display on Button
+        self.accl_dir_namedisplay_on_btn = CTkButton(self.entry_frame, text=f"ยังไม่เลือก Accel File", command=self.select_accel_file, fg_color="#969696")
 
-        # *> Buttons
+        # * >> Buttons
         self.start_image = Image.open(arrow_icon)
         self.start_photo = ImageTk.PhotoImage(
             self.start_image.resize((30, 20)))
@@ -363,7 +491,7 @@ class MyApp:
             height=25
         )
 
-        # *  search order Stop Button
+        # * >> search order Stop Button
         self.accel_stop_btn = CTkButton(
             self.entry_frame,
             font=self.font,
@@ -379,20 +507,21 @@ class MyApp:
         self.accel_stop_btn.grid(row=0, column=6, padx=5)
 
         # todo WIP transfer to accel
-        # *  add transfers to accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # *พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
-        # *> add transfer Button
-        self.add_trans_to_accel_file_btn = Button(
-            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir), bg="#969696")
+        # * > add transfers to accel mode component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
+        # * >> add transfer Button
+        self.add_trans_to_accel_file_btn = CTkButton(
+            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.extract_sn_btn(self.accel_file_dir), fg_color="#969696")
 
-        # *  Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # * > A BTN to display the User_account
+        # * > Log in button component !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # * >> A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get() and self.user_pw.get() else "Login"
-        self.display_acc_btn = Button(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self))
+        self.display_acc_btn = CTkButton(self.entry_frame, text=self.btn_display, command=lambda: UserAccount(self.root, self), width=28,
+            height=25, font=self.font)
         self.display_acc_btn.grid(row=0, column=7, padx=5)
 
-        # * Accel mode
-        # * > Checkbox for activation toggle
+        # * > Accel mode
+        # * >> Checkbox for activation toggle
         self.accel_mode_checkbox = Checkbutton(
             self.entry_frame, text="Accel Mode", variable=self.is_accel_mode, command=self.accelmode_toggle)
 
@@ -403,131 +532,116 @@ class MyApp:
         #     print("Normal mode")
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # *  Export File and Bot status location display component
-        self.display_location_label = Label(
+        # * > Export File and Bot status location display component
+        self.display_location_label = CTkLabel(
             self.import_file_frame, text=f"File located: ")
         self.display_location_label.grid(row=0, column=0, padx=(5, 0))
 
-        self.display_location_result = Label(
-            self.import_file_frame, text=f"ยังไม่เลือก Import File")
-        self.display_location_result.grid(row=0, column=1, padx=(5, 0))
+        self.display_location_result = CTkLabel(
+            self.import_file_frame, text=f"ยังไม่เลือก Import File", fg_color="#FFF", corner_radius=10)
+        self.display_location_result.grid(row=0, column=1, padx=10 )
 
-        self.display_location_result_btn = Button(
-            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, bg="#969696")
+        self.display_location_result_btn = CTkButton(
+            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, fg_color="#969696")
         self.display_location_result_btn.grid(row=0, column=2, padx=(5, 0))
 
         # >> bot status
-        self.display_bot_status_label = Label(
-            self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", bg="#1f242e", fg="#ffec1f")
-        self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0))
+        self.display_bot_status_label = CTkLabel(
+            self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", fg_color="#1f242e", text_color="#ffec1f", padx=5)
+        self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0), )
 
         # * > Current Order display component
         # >> Labels
-        self.label_current_order = Label(
-            self.order_details_frame, text="Current Order: ", bg="#FFF",)
-        self.label_current_order.grid(row=1, column=0, padx=(5, 0))
-
-        self.display_current_order = Entry(
-            self.order_details_frame, width=40, state="readonly",  borderwidth=0, textvariable=self.cus_order)
-        self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=W)
+        self.label_current_order = CTkLabel(
+            self.order_details_frame, text="Current Order: ", fg_color="#FFF",  corner_radius=4)
+        self.label_current_order.grid(row=1, column=0, padx=(5, 0), pady=(2, 2), sticky=EW)
+        # >> Value display
+        self.display_current_order = CTkEntry(
+            self.order_details_frame, state="readonly", width=210, height=25, border_width=0, textvariable=self.cus_order, corner_radius=4)
+        self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Current Status display component
         # >> Labels
-        self.label_current_status = Label(
-            self.order_details_frame, text="Status: ", bg="#FFF",)
-        self.label_current_status.grid(
-            row=1, column=2, padx=(5, 0), columnspan=1)
-        self.display_current_status = Label(
-            self.order_details_frame, width=20,  borderwidth=0, textvariable=self.cus_cur_status, fg="#000000", bg="#8fd4ff")
-
-        self.display_current_status.grid(
-            row=1, column=3, padx=(1, 0), sticky=W)
+        self.label_current_status = CTkLabel(self.order_details_frame, text="Status: ", fg_color="#FFF", corner_radius=4)
+        self.label_current_status.grid(row=1, column=2, padx=(5, 0), columnspan=1)
+        # >> Value display
+        self.display_current_status = CTkLabel(self.order_details_frame,  textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff", corner_radius=4)
+        self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
 
         # * > Is Tax?? display component
         # >> Labels
-        self.label_is_tax = Label(
-            self.order_details_frame, text="ใบกำกับ", bg="#FFF")
-        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew')
+        self.label_is_tax = CTkLabel(self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
+        self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew', columnspan=1)
         # >> Value display
-        self.display_is_tax = Label(
-            self.order_details_frame,  borderwidth=0, textvariable=self.is_tax, foreground="#000000", background="#fff")
-        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky='ew')
+        self.display_is_tax = CTkLabel(self.order_details_frame, textvariable=self.is_tax, fg_color="#fff", corner_radius=4)
+        self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Tax Number display component
         # >> Labels
-        self.label_tax_number = Label(
-            self.order_details_frame, text="เลขผู้เสียภาษี", bg="#FFF")
+        self.label_tax_number = CTkLabel(
+            self.order_details_frame, text="เลขผู้เสียภาษี", fg_color="#FFF", corner_radius=4)
         self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky='ew')
         # >> Value display
-        self.display_tax_number = Entry(
-            self.order_details_frame, width=15,  borderwidth=0, textvariable=self.tax_num, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
+        self.display_tax_number = CTkEntry(
+            self.order_details_frame,  width=105, height=25,  border_width=0, textvariable=self.tax_num,  state="readonly", corner_radius=4)
         self.display_tax_number.grid(row=2, column=5, padx=(1, 0), sticky='ew')
 
         # * > Customer Email display component
         # >> Labels
-        self.label_cus_email = Label(
-            self.order_details_frame, text="Email", bg="#FFF")
+        self.label_cus_email = CTkLabel(self.order_details_frame, text="Email", fg_color="#FFF", corner_radius=4)
         self.label_cus_email.grid(row=2, column=6, padx=(5, 0), sticky='ew')
         # >> Value display
-        self.display_cus_email = Entry(
-            self.order_details_frame, width=15,  borderwidth=0, textvariable=self.cus_email, foreground="#000000", background="#fff", readonlybackground="white", state="readonly")
-        self.display_cus_email.grid(row=2, column=7, padx=(1, 0), sticky='ew')
+        self.display_cus_email = CTkEntry(self.order_details_frame, height=25,  border_width=0, width=180, textvariable=self.cus_email,  state="readonly", corner_radius=4)
+        self.display_cus_email.grid(row=2, column=7, padx=(1, 4), sticky='ew')
 
         # * > Customer Name display component
         # * >> Labels
-        self.label_cus_name = Label(
-            self.order_details_frame, text="ชื่อ", bg="#FFF", height=1)
-        self.label_cus_name.grid(row=2, column=0, padx=(
-            5, 0), pady=(2, 2), sticky='ew')
+        self.label_cus_name = CTkLabel(
+            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
         # * >> Value display
-        self.display_cus_name = Entry(
-            self.order_details_frame, width=40,  borderwidth=0, textvariable=self.cus_name, foreground="#000000", background="#fff", state="readonly")
+        self.display_cus_name = CTkEntry(
+            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
         self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
 
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
         # >>> Labels
-        self.label_cus_address = Label(self.invoice_details_frame, text="ที่อยู่: ", bg="#FFF", height=1,)
+        self.label_cus_address = CTkLabel(self.invoice_details_frame, text="ที่อยู่: ", fg_color="#FFF")
         self.label_cus_address.grid(row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_address = Text(self.invoice_details_frame, width=44, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_address = CTkTextbox(self.invoice_details_frame, width=350, height=90, border_width=0, text_color="#000000", fg_color="#fff", state="disabled")
         self.display_cus_address.grid(row=3, column=1, padx=(1, 0), columnspan=2, sticky=W)
         self.display_cus_address.tag_add("left", "1.0", "1.end")
 
         # * >> Customer remark display component ส่วนแสดงผลหมายเหตุลูกค้า col 4-5
         # >>> Labels
-        self.label_cus_remark = Label(
-            self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", bg="#FFF", height=1,)
-        self.label_cus_remark.grid(row=3, column=4, padx=(
-            5, 0), pady=(2, 2), sticky="nsew")
+        self.label_cus_remark = CTkLabel(self.invoice_details_frame, text="หมายเหตุจากผู้ซื้อ: ", fg_color="#FFF", height=1,)
+        self.label_cus_remark.grid(row=3, column=4, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_cus_remark = Text(
-            self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
+        self.display_cus_remark = CTkTextbox(
+            self.invoice_details_frame, width=160, height=90, border_width=0, text_color ="#000000", fg_color="#fff", state="disabled")
         self.display_cus_remark.grid(
             row=3, column=5, padx=(1, 0), columnspan=1, sticky=W)
         self.display_cus_remark.tag_add("left", "1.0", "1.end")
 
         # * >> Order Note display component ส่วนแสดงผลหมายเหตุลูกค้า col 6-7
         # >>> Labels
-        self.label_order_note = Label(
-            self.invoice_details_frame, text="บันทึก: ", bg="#FFF", height=1,)
-        self.label_order_note.grid(row=3, column=6, padx=(
-            5, 0), pady=(2, 2), sticky="nsew")
+        self.label_order_note = CTkLabel(
+            self.invoice_details_frame, text="บันทึก: ", fg_color="#FFF", height=1,)
+        self.label_order_note.grid(row=3, column=6, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
-        self.display_order_note = Text(
-            self.invoice_details_frame, width=20, height=5, borderwidth=0, foreground="#000000", background="#fff", state="disabled")
-        self.display_order_note.grid(
-            row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
+        self.display_order_note = CTkTextbox(
+            self.invoice_details_frame, width=160, height=90, border_width=0, text_color="#000000", fg_color="#fff", state="disabled")
+        self.display_order_note.grid(row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
         self.display_order_note.tag_add("left", "1.0", "1.end")
 
         # * > Customter Products List
-        self.label_cus_products = Label(
-            self.products_list_frame, text="รายการสินค้า: ", bg="#FFF", height=1)
+        self.label_cus_products = CTkLabel(self.products_list_frame, text="รายการสินค้า: ", fg_color="#FFF", height=1)
         self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
-        self.tree = ttk.Treeview(self.products_list_frame, columns=(
-            "Productname", "Price", "QTY"), show="headings")
+        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings")
         self.tree.column("Productname", anchor=W, width=350)
         self.tree.column("Price", width=self.measure_text("Price")+10)
         self.tree.column("QTY", width=self.measure_text("QTY")+10)
@@ -535,22 +649,21 @@ class MyApp:
         self.tree.heading("Price", text="Price")
         self.tree.heading("QTY", text="QTY")
 
-        self.y_scrollbar = ttk.Scrollbar(
-            self.products_list_frame, command=self.tree.yview)
+        self.y_scrollbar = ttk.Scrollbar(self.products_list_frame, command=self.tree.yview)
 
         self.y_scrollbar.pack(side="right", fill="y")
         self.tree.pack(side='bottom', fill=X)
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
-        # * > Margetplace Products display Header
+        # * > Margetplace Products display Header purchased products list header
         headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
         self.row_header_maker(headers)
 
         # * > demonic cp segment
         # * >> Label
-        self.demonicCp_label = Label(
-            self.demonic_frame, text="Ulti CP", bg="#FFF", height=1)
-        self.demonicCp_label.grid(row=0, column=0)
+        self.demonicCp_label = CTkLabel(
+            self.demonic_frame, text="CP Adder", fg_color="#FFF", height=4, padx=2, pady=2)
+        self.demonicCp_label.grid(row=0, column=0, padx=(0,1))
         # * >> Inputs1
         self.demonicCp_itemNo = StringVar()
         self.demonicCp_itemNo_input = Entry(
@@ -562,19 +675,13 @@ class MyApp:
             self.demonic_frame, textvariable=self.demonicCp_cpNo, width=10)
         self.demonicCp_cpNo_input.grid(row=0, column=4)
         # * >> Buttons
-        self.demonicCp_btn = Button(
-            self.demonic_frame, text="SonicBlow!!", bg="#969696", command=self.demonic_cp_selection, width=10)
-        self.demonicCp_btn.grid(row=0, column=5)
+        self.demonicCp_btn = CTkButton(self.demonic_frame, text="Add CP!", command=self.demonic_cp_selection, width=60,  height=4)
+        self.demonicCp_btn.grid(row=0, column=5, padx=(1, 0))
 
         # * > Log windows component
-        self.report_log = Text(self.log_frame, state=DISABLED, height=13)
+        self.report_log = CTkTextbox(self.log_frame, state=DISABLED, height=208)
+        self.report_log.pack(side="left", fill="both", expand=True)
 
-        self.scrollbar = Scrollbar(
-            self.log_frame, command=self.report_log.yview)
-        self.scrollbar.pack(side="right", fill="y")
-
-        self.report_log.pack(side='bottom', fill=X)
-        self.report_log.config(yscrollcommand=self.scrollbar.set)
 
         ## * Create DataSourceSelector instance ###########
         self.data_source_selector = DataSourceSelector(self.root, self)
@@ -599,22 +706,21 @@ class MyApp:
         self.cus_tel.set("")
         self.cus_cur_status.set("")
         self.cus_account_name.set("")
-        self.display_is_tax.config(
-            background="#FFF", foreground="#000", font='Chiller 10 normal')
+        self.display_is_tax.configure(font=("Chiller", 10, "normal"))
         for i in self.tree.get_children():
             self.tree.delete(i)
 
     def update_log(self, update_txt):
         self.update_txt = update_txt
-        self.report_log.config(state=NORMAL)
+        self.report_log.configure(state=NORMAL)
         self.report_log.insert(END, self.update_txt + "\n")
-        self.report_log.config(state=DISABLED)
+        self.report_log.configure(state=DISABLED)
 
     def update_mp_frame(self, data_list):
         data_list
-        self.report_log.config(state=NORMAL)
+        self.report_log.configure(state=NORMAL)
         self.report_log.insert(END, self.update_txt + "\n")
-        self.report_log.config(state=DISABLED)
+        self.report_log.configure(state=DISABLED)
 
     def define_marketplace(self):
         file_input = self.table_location
@@ -657,11 +763,9 @@ class MyApp:
         self.accel_file_dir = filedialog.askopenfilename(
             title="Select Accel File")
         if self.accel_file_dir:
-            self.accl_dir_namedisplay_on_btn.config(
-                text=f"{self.accel_file_dir.split('/')[-1]}")
+            self.accl_dir_namedisplay_on_btn.configure(text=f"{self.accel_file_dir.split('/')[-1]}")
         else:
-            self.accl_dir_namedisplay_on_btn.config(
-                text=f"ยังไม่เลือก Accel File")
+            self.accl_dir_namedisplay_on_btn.configure(text=f"ยังไม่เลือก Accel File")
             
         self.read_accel_file_to_state(self.accel_file_dir)
             
@@ -675,9 +779,9 @@ class MyApp:
         print("after self.accel_df_state: ", self.accel_df_state)
 
         # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
-        accel_file_columns = self.accel_df_state.columns.dropna().tolist()
+        self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
         self.obj_data_from_accel_file = {
-            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
+            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
         }
 
         self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
@@ -698,13 +802,45 @@ class MyApp:
         # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
-            df.loc[df['orders'] == order, 'orders'] = ''
+            df.loc[df['orders'] == order, 'orders'] = pd.NA
 
         print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
         if sku_serials:
             for sn in sku_serials:
-                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = ''
+                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+        
+        self.obj_data_from_accel_file = {
+            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+        }
+    # def deduct_accel_file_data(self, order, sku_serials=[]):
+    #     # ตรวจสอบว่ามีค่า order หรือไม่
+    #     df = self.accel_df_state
+    #     print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
+    #     print("deduct_accel_file_data order: ", order)
+        
+    #     # ตรวจสอบว่า df มี order ที่ต้องการหรือไม่
+    #     has_order = df.loc[df['orders'] == order, 'orders']
+    #     if not has_order.empty:
+    #         # ถ้ามี order ที่ตรงกับที่รับเข้ามา ก็ให้ลบค่าในคอลัมน์ 'orders'
+    #         df.loc[df['orders'] == order, 'orders'] = pd.NA
+        
+    #     # ลบค่า sku ตามที่รับมาจาก sku_serials
+    #     print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
+    #     if sku_serials:
+    #         for sn in sku_serials:
+    #             # sn['sku'] คือชื่อคอลัมน์, sn['sn'] คือค่า serial number ที่จะลบ
+    #             if sn['sku'] in df.columns:
+    #                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
+
+    #     # บันทึกข้อมูลใหม่ลง Excel
+    #     df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+        
+    #     # ปรับข้อมูลจาก df
+    #     self.obj_data_from_accel_file = {
+    #         col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+    #     }
+
 
     # todo WIP transfer to accel
     def extract_sn_btn(self, accel_file_dir):
@@ -737,12 +873,10 @@ class MyApp:
         extracted_txt = re.sub(pattern2, '', extracted_txt, flags=re.DOTALL)
 
         pattern_serial = r'Serial\s:'
-        extracted_txt = re.sub(
-            pattern_serial, '', extracted_txt, flags=re.DOTALL)
+        extracted_txt = re.sub(pattern_serial, '', extracted_txt, flags=re.DOTALL)
 
         pattern_sku_no = r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))'
-        extracted_txt = re.sub(
-            pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
+        extracted_txt = re.sub(pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
 
         # * สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
         # * Regular expression สำหรับการจับ SKU
@@ -750,10 +884,13 @@ class MyApp:
 
         # *Regular expression สำหรับการจับ serial numbers
         # serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
-        serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+        # serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+        serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n, \/]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
 
         # * สกัด SKU
         product_codes = re.findall(sku_pattern, extracted_txt)
+        
+        print("Before_find_sn_pattern: ", extracted_txt)
 
         # * สกัด serial numbers
         serial_numbers = re.findall(serial_pattern, extracted_txt, re.DOTALL)
@@ -786,7 +923,8 @@ class MyApp:
 
         # * จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
         # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_numbers]
-        serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
+        # serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
+        serial_numbers_grouped = [serial.replace(" ", "").split(",") for serial in cleaned_serial_numbers]
 
         #* ตรวจสอบข้อมูลที่ถูกสกัด
         print("SKU Matches:")
@@ -827,23 +965,23 @@ class MyApp:
     def select_excel(self):
         self.result = "Excel"
         print("Select Excel")
-        self.table_location = filedialog.askopenfilename(
-            title="Select Shopee order toship file")
+        self.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
         # * ตัดเอาเฉพาะ ชื่อไฟล์
-        self.display_location_result.config(
-            text=f"{self.table_location.split('/')[-1]}")
+        self.display_location_result.configure(text=f"{self.table_location.split('/')[-1]}")
 
         # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
         result = self.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(bg=f'{self.bg_by_market_place[self.marketplace_target.get()}')
-        self.entry_frame.config(
-            bg=f'{self.bg_by_market_place[str(result)]}')
-        self.marketplace_label.config(
-            bg=f'{self.bg_by_market_place[str(result)]}')
+        # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]')
+        self.entry_frame.configure(fg_color=f'{self.bg_by_market_place[str(result)]}')
+        self.marketplace_label.configure(
+            fg_color=f'{self.bg_by_market_place[str(result)]}',
+            width=1000 if self.marketplace_target.get() == "" else 0
+        )
+        
         # self.import_file_frame.config(
-        #     bg=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
+        #     fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
 
         # * หลังจากได้ไฟล์เข้ามาแล้ว (self.table_location) เราจะทำการสร้างเป็น dataframe ด้วย function get_data_frame()
         self.get_data_frame()
@@ -943,12 +1081,10 @@ class MyApp:
         # *  รวม dataframe เป็น dataframe ใหม่
         # merge1_df = pd.merge(result_count, total_per_order_df,
         #                      on='orderNumber', how='left')
-        merge2_df = pd.merge(result_count, total_sellerDiscountTotal_df,
-                             on='orderNumber', how='left')
+        merge2_df = pd.merge(result_count, total_sellerDiscountTotal_df, on='orderNumber', how='left')
         merge3_df = pd.merge(
             merge2_df, result_with_additional_columns_df, on='orderNumber', how='left')
-        result_df = pd.merge(merge3_df, total_shippingfee_df,
-                             on='orderNumber', how='left')
+        result_df = pd.merge(merge3_df, total_shippingfee_df, on='orderNumber', how='left')
         # result_df = pd.concat([result_count, total_per_order_df,
         #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
 
@@ -959,8 +1095,7 @@ class MyApp:
         print("result_df d-type", type(result_df['ประเภทสาขา']))
 
         # * สกัดและหาเลขสาขา จากข้อมูลที่กรอกมั่วๆไร้ซึ่ง pattern จาก lazada exportfile และเก็บไว้ในตัวแปร extracted_branch_df สาขาจะแสดงเป็นเลข 5 หลักแทนช่องว่างด้วย 0 แต่สาขา 00000 จะแสดงเป็น "สำนักงานใหญ่"
-        extracted_branch_df = result_df['ประเภทสาขา'].apply(
-            self.find_branch)
+        extracted_branch_df = result_df['ประเภทสาขา'].apply(self.find_branch)
 
         # * เปลี่ยน ค่าใน col branchNumber ให้กลายเป็นบอกเฉพาะเลขสาขาถ้าเป็นสาขาย่อย และ เป็นค่าว่างถ้าเป็นสำนักงานใหญ่
         result_df['branchNumber'] = extracted_branch_df.copy()
@@ -1084,36 +1219,36 @@ class MyApp:
             input = "-"
 
         self.cus_address = input
-        widget.config(state=NORMAL)
+        widget.configure(state=NORMAL)
         widget.delete(1.0, END)
         widget.insert(END, input)
-        widget.config(state=DISABLED)
+        widget.configure(state=DISABLED)
 
     def update_gui_remark(self):
         if self.cus_remark == "" or self.cus_remark == "nan":
-            self.display_cus_remark.config(state=NORMAL)
+            self.display_cus_remark.configure(state=NORMAL)
             self.display_cus_remark.delete(1.0, END)
             self.display_cus_remark.insert(END, 'ไม่มี')
-            self.display_cus_remark.config(state=DISABLED)
+            self.display_cus_remark.configure(state=DISABLED)
 
         else:
-            self.display_cus_remark.config(state=NORMAL)
+            self.display_cus_remark.configure(state=NORMAL)
             self.display_cus_remark.delete(1.0, END)
             self.display_cus_remark.insert(END, self.cus_remark)
-            self.display_cus_remark.config(state=DISABLED)
+            self.display_cus_remark.configure(state=DISABLED)
 
     def update_gui_note(self):
         if self.order_note == "" or self.order_note == "nan":
-            self.display_order_note.config(state=NORMAL)
+            self.display_order_note.configure(state=NORMAL)
             self.display_order_note.delete(1.0, END)
             self.display_order_note.insert(END, 'ไม่มี')
-            self.display_order_note.config(state=DISABLED)
+            self.display_order_note.configure(state=DISABLED)
 
         else:
-            self.display_order_note.config(state=NORMAL)
+            self.display_order_note.configure(state=NORMAL)
             self.display_order_note.delete(1.0, END)
             self.display_order_note.insert(END, self.order_note)
-            self.display_order_note.config(state=DISABLED)
+            self.display_order_note.configure(state=DISABLED)
 
     # * widget รายการสินค้า ///////////////////////////////////////////////
     def show_products(self, products_list):
@@ -1134,8 +1269,7 @@ class MyApp:
         if self.marketplace_target.get() == 'SHOPEE':
             self.total_price += self.cus_ship_cost.get()
             self.phase1_sum_price = self.total_price
-            self.tree.insert("", "end", value=(
-                "ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
+            self.tree.insert("", "end", value=("ค่าขนส่ง", self.f(self.cus_ship_cost.get()), 1))
             self.total_price -= self.cus_seller_voucher.get()
             self.tree.insert("", "end", value=(
                 "Seller Voucher",  "-"+self.f(self.cus_seller_voucher.get()), 1))
@@ -1191,7 +1325,7 @@ class MyApp:
         else:
             truncated_address = cus_address
 
-        print("Address_cleaned: ", truncated_address.strip())
+        print("get_pure_address result: ", truncated_address.strip())
         return truncated_address.strip()
 
     def clean_duplicate_parts(self, address):
@@ -1273,8 +1407,7 @@ class MyApp:
                 self.tel_match = re.search(
                     r'tel\s*:?\s*,?(.*)', self.order_note.lower())
 
-            self.address_match = re.search(
-                r'ที่อยู่\s*:?\s*(.*)', self.order_note)
+            self.address_match = re.search(r'ที่อยู่\s*:?\s*(.*)', self.order_note)
 
             print("try: regexบันทึก: ", self.name_match)
             print("try: ใช้ group กับ regexบันทึก: ", self.name_match.group(1))
@@ -1354,18 +1487,17 @@ class MyApp:
                 print('holy shetttttttttttt+')
 
     def find_branch(self, input):
-        # จะ method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น
+        #* method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น
         # ตัวแปร branch
         input = re.sub(r'\s+', '', str(input))
         branch = str(input).strip()
 
-        pattern = re.compile(
-            r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
+        pattern = re.compile(r"สำนักงานใหญ่|ใหญ่|สนงใหญ่|สนง\.ใหญ่|สนง|Head|สนญ|^0+$")
         match = pattern.findall(branch)
-        # ตรวจสอบค่าของตัวแปร branch
+        
+        #* ตรวจสอบค่าของตัวแปร branch
         if match:
             return 'สำนักงานใหญ่'
-
           # เมื่อไม่มีสำนักงานใหญ่ ให้ดูว่ามีเลขไหม
         elif re.findall(r'[0-9]+', branch):
             #   เมื่อมีเลขให้ดูว่ามีคำว่าสาขากับเลขหรือไม่
@@ -1440,7 +1572,7 @@ class MyApp:
         print("order_search ทำงาน")
         self.on_complete = on_complete
         self.order = order.strip()
-        if len(self.order) < 14: raise ValueError("Order num is weird")
+        if len(self.order) < 14: raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
         differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า','ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = [
@@ -1528,34 +1660,34 @@ class MyApp:
                 self.idx = 0
                 self.mimic_list_item_states = []
                 for row in self.items:
-                    self.no_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[0]))
+                    self.no_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[0]), height=14)
                     self.no_col_value_widget.insert(0, self.idx+1)
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
 
-                    self.product_col_name_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[1]))
+                    self.product_col_name_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[1]), height=14)
                     self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
                     self.widgets_product_col_lst.append(self.product_col_name_value_widget)
                     self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
-                    self.price_unit_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[2]))
+                    self.price_unit_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[2]), height=14)
                     self.price_unit_col_value_widget.insert(0, f"{float(row['ราคาขาย']):,.2f}")
                     self.widgets_prc_unit_lst.append(self.price_unit_col_value_widget)
 
-                    self.qty_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[3]))
+                    self.qty_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[3]), height=14)
                     self.qty_col_value_widget.insert(0, int(row['จำนวน']))
                     self.widgets_qty_lst.append(self.qty_col_value_widget)
 
-                    self.total_price_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[4]))
+                    self.total_price_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[4]), height=14)
                     self.total_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
                     self.widgets_total_prc_lst.append(self.total_price_col_value_widget)
 
-                    self.total_rebate_price_col_value_widget = Entry(self.mp_products_list_frame, width=int(self.cols_width[5]))
+                    self.total_rebate_price_col_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[5]), height=14)
                     self.total_rebate_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
                     self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_col_value_widget)
 
                     # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
-                    # self.demonic_cp_btn = Button(self.mp_products_list_frame, text="xxx", bg="#969696", command=self.search_order, width=10)
+                    # self.demonic_cp_btn = CTkButton(self.mp_products_list_frame, text="xxx", fg_color="#969696", command=self.search_order, width=10)
                     # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
 
                 # print("none ได้ไง:", self.widgets_no_col_lst)
@@ -1611,7 +1743,7 @@ class MyApp:
                 if tax_num_only == "ไม่มีเลข":
                     self.tax_bool.set(False)
                     self.is_tax.set("ไม่ขอใบกำกับ")
-                    self.display_is_tax.config(background="#6ec7ff", foreground="#000", font='Chiller 10 normal')
+                    self.display_is_tax.configure(fg_color="#6ec7ff", text_color="#000", font=("Chiller", 10, "normal"))
                     self.tax_num.set("")
                 elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
                     if len(tax_num_only) > 13:
@@ -1621,26 +1753,24 @@ class MyApp:
                         self.tax_bool.set(False)
                         self.is_tax.set("ขอ//เลขไม่ครบ")
 
-                    self.display_is_tax.config(background="#8502d1", foreground="#FFF", font='Chiller 10 normal')
+                    self.display_is_tax.configure(fg_color="#8502d1", text_color ="#FFF", font=("Chiller", 10, "normal"))
                     self.tax_num.set(tax_num_only)
 
                 else:
                     if "สำนักงานใหญ่" in self.branch_type:
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สนงใหญ่")
-                        self.display_is_tax.config(background="#ff0000", foreground="#FFF", font='Chiller 10 bold')
+                        self.display_is_tax.configure(fg_color="#ff0000", text_color ="#FFF", font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
                         self.tax_bool.set(True)
                         self.is_tax.set("ขอใบกำกับ สาขาย่อย")
-                        self.display_is_tax.config(background="#ff0055", foreground="#FFF", font='Chiller 10 bold')
+                        self.display_is_tax.configure(fg_color="#ff0055", text_color ="#FFF", font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
                         self.tax_bool.set(True)
                         self.is_tax.set("ไม่ขอแต่มีเลข")
-                        self.display_is_tax.config(
-                            background="#ff9e36", foreground="#FFF", font='Chiller 12 bold'
-                        )
+                        self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF", font=("Chiller", 12, "bold"))
                         self.tax_num.set(tax_num_only)
 
                 if self.tax_bool.get() == True and len(tax_num_only) == 13:
@@ -1656,8 +1786,7 @@ class MyApp:
                     str(self.nondistortedData['อีเมลสำหรับรับใบกำกับภาษี']))
 
                 print("ตรวจหมายเหตุ: ", self.cus_remark)
-                print("ตรวจบันทึก: ", self.order_note,
-                      "type: ", type(self.order_note))
+                print("ตรวจบันทึก: ", self.order_note, "type: ", type(self.order_note))
 
                 # * ดึงบันทึกลูกค้า SHOPEE
                 if self.marketplace_target.get() == 'SHOPEE':
@@ -1715,8 +1844,7 @@ class MyApp:
                     sku = str(item['เลขอ้างอิง SKU (SKU Reference No.)'])
                     result = {'sku': sku, 'qty': amount}
                     self.input_formula.append(result)
-                    print("จำนวน", int(item['จำนวน']),
-                          type(int(item['จำนวน'])))
+                    print("จำนวน", int(item['จำนวน']), type(int(item['จำนวน'])))
                 print("สูตรสร้าง input", self.input_formula)
                 for idx, item in enumerate(self.input_formula):
                     print("รายการที่ ", idx+1, item['sku'])
@@ -1733,14 +1861,13 @@ class MyApp:
                 # * การจะเลือกรายcol ได้ต้องชัวร์ว่า col แขวง/ตำบลต้องไม่ใช่ค่าว่าง หรือต้องไม่ Return เป็น "nan"
                 try:
                     if not str(self.nondistortedData['แขวง/ตำบล']) == "nan":
-                        print("แขวง/ตำบล ไม่เท่ากับ nan: ",
-                              self.nondistortedData['แขวง/ตำบล'])
+                        print("แขวง/ตำบล ไม่เท่ากับ nan: ", self.nondistortedData['แขวง/ตำบล'])
                         # * Lazada กับ shopee มันแสดงผล address ไม่เหมือนกันเพราะ ตาราง Excel ที่มันให้มา
                         if self.marketplace_target.get() == "LAZADA":
                             self.update_gui(
                                 re.sub(r'\s{2,}',
-                                       " ",
-                                       f"""{self.address} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', '')).strip(),
+                                " ",
+                                f"""{self.address} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', '')).strip(),
                                 self.display_cus_address
                             )
                         else:
@@ -1781,10 +1908,8 @@ class MyApp:
                         self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
-                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ",
-                      self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
-                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?: ",
-                      pd.isna(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']))
+                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ", self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
+                print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?: ", pd.isna(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']))
 
                 if not str(self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']) == "nan":
                     print("มีเบอร์โทร")
@@ -1828,8 +1953,7 @@ class MyApp:
 
                 self.update_log(f" ")
                 self.update_log(f"-↓↓↓↓↓↓-หน้าสุดท้าย-↓↓↓↓↓↓-")
-                self.update_log(
-                    f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
+                self.update_log(f"seller voucher: -{self.f(self.cus_seller_voucher.get())}")
 
                 # * จากปัญหาข้อที่ 37 // การอัพเดท LOG เนื่องจาก LAZ กับ Shopee มีเงื่อนไข การใส่ค่าขนส่งในการออกบิลไม่เหมือนกัน SHOPEE ใส่หมด แต่ LAZ ใส่เป็นบาง ORDER ขึ้นอยู่กับว่า ลูกค้า จะ inbox มาขอให้ใส่หรือไม่
                 if self.marketplace_target.get() == "SHOPEE":
@@ -1843,15 +1967,13 @@ class MyApp:
                         (self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
             else:
-                print(f"Order ที่ยิงมา {
-                      self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
+                print(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
                 print(
                     "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
                 print("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
-                self.update_log(f"Order ที่ยิงมา {
-                                self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
+                self.update_log(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
                 self.update_log(
                     "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
                 self.update_log(
@@ -1869,8 +1991,7 @@ class MyApp:
 
     def cusNameFixer5(self, name, account_name=":"):
         is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
-        name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '',
-                      name).strip() if is_found else name.strip()
+        name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '', name).strip() if is_found else name.strip()
         # เช็คว่าถ้ามองชื่อเป็น list มันจะแบ่งได้กี่ส่วน
         name += " "+account_name if len(name.split()) == 1 else ""
         print("name:", name)
@@ -1885,14 +2006,12 @@ class MyApp:
 
         if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
             print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
-            name_edited = name_edited.replace("หจก.", "").replace(
-                "ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
+            name_edited = name_edited.replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
             name_edited = f"""ห้างหุ้นส่วนจำกัด {name_edited}"""
 
         elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
             print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
-            name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace(
-                "จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
+            name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
             name_edited = f"""บริษัท {name_edited} จำกัด"""
 
         # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ (ส่วนท้ายของ code)
@@ -1905,10 +2024,8 @@ class MyApp:
 
         # * >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
         if any(pattern in name_edited for pattern in head_office_patterns):
-            # * re.sub(pattern, คำที่เอามาแทน, ข้อความที่เป็นกรรม(ถูกกระทำ))
             # * r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
-            name_edited = re.sub(
-                r'|'.join(head_office_patterns), '', name_edited).strip()
+            name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
         elif '(สาขา' in name_edited or 'สาขา' in name_edited:
             name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
             name_edited = re.sub(r'สาขา\d*', '', name_edited)
@@ -1936,14 +2053,14 @@ class MyApp:
 
         print("Thread is done")
         if self.get_tabs_stat == False and self.search_thread_stat == False:
-            self.display_bot_status_label.config(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            self.display_bot_status_label.configure(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวบน)")
 
         if self.get_tabs_thread.is_alive():
             print("มีthreadใหม่มาต่อ")
-            self.display_bot_status_label.config(
-                text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+            self.display_bot_status_label.configure(
+                text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
     def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
         # print(self.is_bot_running.get())
@@ -1955,21 +2072,19 @@ class MyApp:
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_gui_busy.get() == True:
-                self.display_bot_status_label.config(
-                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+                self.display_bot_status_label.configure(
+                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
             elif self.is_gui_busy.get() == False:
-                self.display_bot_status_label.config(
-                    text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
+                self.display_bot_status_label.configure(
+                    text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
         else:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
-            print("shorter_thread_cycle is alive?: ",
-                  shorter_thread_cycle.is_alive())
-            print("longer_thread_cycle is alive?: ",
-                  longer_thread_cycle.is_alive())
-            self.display_bot_status_label.config(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+            print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
+            print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
+            self.display_bot_status_label.configure(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
 
             if callback:
@@ -1990,14 +2105,14 @@ class MyApp:
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
         self.entered_order.set("")
         if self.search_query != "":
-            self.report_log.config(state=NORMAL)
+            self.report_log.configure(state=NORMAL)
             self.report_log.delete("1.0", "end")
             # self.report_log.insert(END, self.search_query + "\n")
-            self.report_log.config(state=DISABLED)
+            self.report_log.configure(state=DISABLED)
         else:
-            self.report_log.config(state=NORMAL)
+            self.report_log.configure(state=NORMAL)
             self.report_log.delete("1.0", "end")
-            self.report_log.config(state=DISABLED)
+            self.report_log.configure(state=DISABLED)
 
         self.search_complete = threading.Event()
         self.search_complete.set()
@@ -2013,7 +2128,7 @@ class MyApp:
 
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
         self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
-        self.display_bot_status_label.config(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", bg="#cf1313", fg="#ffffff")
+        self.display_bot_status_label.configure(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
     # * method accel_search() จะทำงานจากการกดปุ่ม
     def accel_search(self):
@@ -2053,55 +2168,6 @@ class MyApp:
 
         return result
 
-    def demonic_cp(self):
-        self.item_no = int(self.entered_item_no.get())-1
-        self.cp_no = int(self.entered_cp_no.get())
-        self.demonic_ordered_items_list = self.convert_text(
-            self.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        print(self.demonic_ordered_items_list)
-        print(self.cp_no)
-
-        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-        self.cp_no = 1
-        # *>  element location
-        # * >> ปุ่มคูปองด้านนอก ที่ตำแหน่ง [-4] จะเป็นตัวแยก element หรือ ตัวบอกตำแหน่งของ element ว่าเป็นลำดับที่เท่าไหร่ อย่างตัวอย่างนี้เป็น อันที่1
-        cp_btn_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
-        green_agree_btn_xpath = '/html/body/div[1]/div[2]/div[9]/div/div[1]/div[2]/a'
-
-        items_list = self.driver.find_elements(
-            By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-        cp_list = self.driver.find_elements(
-            By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
-
-        # print("items_list", items_list)
-        for idx, item in enumerate(self.demonic_ordered_items_list):
-            print("มาถึงนี่ไหม")
-            for idx2, div in enumerate(items_list):
-                print("รอบ", idx2)
-                # time.sleep(0.55)
-                try:
-                    is_found = div.text.find(item)
-                except:
-                    pass
-                li_position = idx+1
-                if is_found != -1:
-                    print("เจอที่ ", li_position)
-                    print("is_found: ", is_found)
-                    cp_btn_xpath = f'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/a'
-                    self.driver.find_element(By.XPATH, cp_btn_xpath).click()
-
-                    # * เลือก cp เป้าหมาย
-                    selected_btn = f'/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{self.cp_no}]/div[1]/button'
-                    self.driver.find_element(By.XPATH, selected_btn).click()
-
-                    self.driver.find_element(By.XPATH, green_agree_btn_xpath).click()
-                    # time.sleep(0.55)
-                    continue
-                    # print(div.text)
-                else:
-                    print("ไม่เจอ", item, "นะ")
-                    pass
-
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
 
@@ -2117,16 +2183,16 @@ class DataSourceSelector:
         self.create_subwindow()
 
     def create_subwindow(self):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("250x75+650+400")
         self.subwindow.title("Data Source")
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
 
-        self.api_btn = Button(self.subwindow, text="API", command=self.select_api)
+        self.api_btn = CTkButton(self.subwindow, text="API", command=self.select_api)
         self.api_btn.pack(side='left', expand=TRUE, fill="both")
-        self.excel_btn = Button(self.subwindow, text="Excel", command=self.select_excel)
+        self.excel_btn = CTkButton(self.subwindow, text="Excel", command=self.select_excel)
         self.excel_btn.pack(side='left', expand=TRUE, fill="both")
 
         self.subwindow.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -2141,19 +2207,19 @@ class DataSourceSelector:
         print("Select Excel")
         self.app.table_location = filedialog.askopenfilename(
             title="Select Shopee order toship file")
-        self.app.display_location_result.config(
-            text=f"{self.app.table_location.split('/')[-1]}")
+        self.app.display_location_result.configure(text=f"{self.app.table_location.split('/')[-1]}")
         # target should come before get dataframe
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
         print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()}')
-        self.app.entry_frame.config(
-            bg=f'{self.app.bg_by_market_place[str(result)]}')
-        self.app.marketplace_label.config(
-            bg=f'{self.app.bg_by_market_place[str(result)]}')
+        # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]})
+        self.app.entry_frame.configure(fg_color=f'{self.app.bg_by_market_place[str(result)]}')
+        self.app.marketplace_label.configure(
+            fg_color=f'{self.app.bg_by_market_place[str(result)]}',
+            width=1000 if self.app.marketplace_target.get() == "" else 0
+        )
         # self.import_file_frame.config(
-        #     bg=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
+        #     fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
 
         self.app.get_data_frame()
         print("Table Location:", self.app.table_location)
@@ -2162,6 +2228,9 @@ class DataSourceSelector:
 
     def on_close(self):
         self.app.marketplace_target.set("")
+        self.app.marketplace_label.configure(
+            width=70 if self.app.marketplace_target.get() == "" else 0
+        )
         self.subwindow.destroy()
 
 
@@ -2187,7 +2256,7 @@ class PopUp:
         self.subwindow.destroy()
 
     def create_subwindow(self):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("400x140+650+400")
         self.subwindow.title(f"{self.title}")
@@ -2195,17 +2264,17 @@ class PopUp:
         self.subwindow.resizable(True, False)
 
         # * สร้างเฟรม
-        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame = CTkFrame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง Texted widget
-        self.id_label = Text(self.subwin_frame, font=("bazooka", 9))
+        self.id_label = CTkTextbox(self.subwin_frame, font=("bazooka", 9))
         self.id_label.insert(END, f'{self.message}')
         self.id_label.pack(fill=BOTH, expand=True)
-        self.id_label.config(state=DISABLED)
+        self.id_label.configure(state=DISABLED)
 
         # * Submit Button
-        self.submit_btn = Button(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
+        self.submit_btn = CTkButton(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
         self.submit_btn.pack(fill='x', expand=True)
 
         # * ยก widget นี้ ขึ้นมาหน้าสุด
@@ -2222,9 +2291,9 @@ class UserAccount:
         self.create_subwindow("Loginปลอม")
 
     def create_subwindow(self, title: str="Untitled"):
-        self.subwindow = Toplevel(self.parent)
+        self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
-        self.subwindow.geometry("250x140+650+400")
+        self.subwindow.geometry("250x180+650+400")
         self.subwindow.title(title)
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
@@ -2234,31 +2303,38 @@ class UserAccount:
         self.subwindow.bind("<Key>", _onKeyRelease)
 
         # * สร้างเฟรม
-        self.subwin_frame = Frame(self.subwindow)
+        self.subwin_frame = CTkFrame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
         # * สร้าง widget
-        self.id_label = Label(self.subwin_frame, text="SMCO ID", font=("bazooka", 9), anchor="w")
+        self.id_label = CTkLabel(self.subwin_frame, text="SMCO ID", font=CTkFont(family="bazooka", size=9), anchor="w")
         self.id_label.pack(fill='x', expand=True)
         # self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id,
         #                       validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
-        self.id_input = Entry(self.subwin_frame, textvariable=self.app.user_id)
+        self.id_input = CTkEntry(
+            self.subwin_frame, 
+            textvariable=self.app.user_id
+        )
         self.id_input.pack(fill='x', expand=True)
         self.id_input.focus()
 
-        self.pass_label = Label(self.subwin_frame, text="SMCO Password", font=("bazooka", 9), anchor="w")
+        self.pass_label = CTkLabel(self.subwin_frame, text="SMCO Password", font=CTkFont(family="bazooka", size=9), anchor="w")
         self.pass_label.pack(fill='x', expand=True)
         # self.pass_input = Entry(
         #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
-        self.pass_input = Entry(self.subwin_frame, textvariable=self.app.user_pw, show="*")
+        self.pass_input = CTkEntry(
+            self.subwin_frame, 
+            textvariable=self.app.user_pw, 
+            show="*"
+        )
         self.pass_input.pack(fill='x', expand=True)
 
         # * checkBox
-        self.chk_bx_show_pw = Checkbutton(self.subwin_frame, text="Show Pass", font=('bazooka', 9), command=self.show_and_hide)
+        self.chk_bx_show_pw = CTkCheckBox(self.subwin_frame, text="Show Pass", font=('bazooka', 9), command=self.show_and_hide)
         self.chk_bx_show_pw.pack()
 
         # * Submit Button
-        self.submit_btn = Button(self.subwin_frame, text="Submit", command=self.update_btn)
+        self.submit_btn = CTkButton(self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
@@ -2330,7 +2406,7 @@ class UserAccount:
                 print("ปิดได้ไหม ", is_closable)
                 if is_closable:
                     self.display_btn_txt = f"""Logged in !! ID : {self.app.user_id.get()}"""
-                    self.app.display_acc_btn.config(text=self.display_btn_txt)
+                    self.app.display_acc_btn.configure(text=self.display_btn_txt, font=CTkFont(family="bazooka", size=9))
                     self.subwindow.destroy()
 
                 else:
@@ -2355,10 +2431,11 @@ class UserAccount:
                 return self.display_btn_txt
 
     def show_and_hide(self):
-        if self.pass_input['show'] == '*':
-            self.pass_input['show'] = ''
+        # สำหรับ CTkEntry ใช้ .configure(show="") หรือ .configure(show="*")
+        if self.chk_bx_show_pw.get():  # ถ้า checkbox ถูกติ๊ก
+            self.pass_input.configure(show="")  # แสดงรหัสผ่าน
         else:
-            self.pass_input['show'] = '*'
+            self.pass_input.configure(show="*")  # ซ่อนรหัสผ่าน
 
 
 class Bot_POS:
@@ -2368,6 +2445,12 @@ class Bot_POS:
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.setup_chrome()
+        self.channel_options = {
+            'shp_itcitymobile_master':'SHP ITCITY Mobile',
+            'itcity':'SHOPEE',
+            'shp_wisegadget_master':'SHOPEE Wise Gadget',
+        }
+        
 
     def setup_chrome(self):
         self.opt = Options()
@@ -2440,7 +2523,10 @@ class Bot_POS:
         for element in elements:
             prefix, code = element.split("-")
             code = code.zfill(6)
-            result.append(prefix + "-" + code)
+            raw_product_code = prefix + "-" + code
+            matched_obj = re.search(r'^\w.*-\d{6}', raw_product_code)
+            product_code = matched_obj.group()
+            result.append(product_code)
 
         return result
 
@@ -2448,119 +2534,101 @@ class Bot_POS:
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_ordered_items_list = self.convert_text(
-            self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        self.demonic_ordered_items_list = self.convert_text(self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
         print(self.demonic_ordered_items_list)
         print(self.cp_no)
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         # *>  element location
         # * >> ปุ่มคูปองด้านนอก ที่ตำแหน่ง [-4] จะเป็นตัวแยก element หรือ ตัวบอกตำแหน่งของ element ว่าเป็นลำดับที่เท่าไหร่ อย่างตัวอย่างนี้เป็น อันที่1
-        cp_btn_xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
-        green_agree_btn_xpath = '/html/body/div[1]/div[2]/div[9]/div/div[1]/div[2]/a'
+        cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
+        green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'
 
-        items_list = self.driver.find_elements(
-            By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         try:
             # * ก่อน SMCOver 6.3.3
-            cp_list = self.driver.find_elements(
-                By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
+            cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
         except:
             # * ตั้งแต่ SMCOver 6.3.3
-            cp_list = self.driver.find_elements(
-                By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
+            cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
 
         # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_ordered_items_list):
             print("มาถึงนี่ไหม")
-            for idx2, div in enumerate(items_list):
+            print("จำนวน div ", len(items_list_element))
+            for idx2, div in enumerate(items_list_element):
                 try:
-                    print("จำนนวน div ", len(items_list))
-                    # print("รอบ", idx2)
-                    # time.sleep(0.55)
-
                     is_found = div.text.find(item)
-
                     li_position = idx2+1
+                    
                     if is_found != -1:
-                        print("เจอที่ ", li_position)
+                        print("found at li no: ", li_position)
                         print("is_found: ", is_found)
-                        cp_btn_xpath = f'''/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[{
-                            li_position}]/div/div[2]/div[3]/div[1]/a'''
-                        self.driver.find_element(
-                            By.XPATH, cp_btn_xpath).click()
+                        cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'''
+                        self.driver.find_element(By.XPATH, cp_btn_xpath).click()
 
                         # * เลือก cp เป้าหมาย
-                        try:
-                            # * SMCO ให้ ตั้งแต่ v6.3.3
-                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]/div[{
-                                self.cp_no+1}]/div[1]/button'''
-                            self.driver.find_element(
-                                By.XPATH, selected_btn).click()
-                        except:
-                            # * SMCO เก่า
-                            selected_btn = f'''/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]/div[{
-                                self.cp_no}]/div[1]/button'''
-                            self.driver.find_element(
-                                By.XPATH, selected_btn).click()
+                        selected_btn = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{self.cp_no}]/div[1]/button'''
+                        self.driver.find_element(By.XPATH, selected_btn).click()
 
-                        self.driver.find_element(
-                            By.XPATH, green_agree_btn_xpath).click()
+                        # * กดยืนยัน
+                        self.driver.find_element(By.XPATH, green_agree_btn_xpath).click()
                         # time.sleep(1)
                         continue
                         # print(div.text)
                     else:
-                        print("ไม่เจอ", item, "นะ")
+                        # print("ไม่เจอ", item, "นะ")
                         pass
                 except:
                     pass
                 
     def get_tabs(self):
-            if self.parent.winfo_exists():
-                print("รายงานจำนวนtabs")
-                self.title_list = []
-                # self.title_list_Idx = [] #!เหมือนจะไม่ได้ใช้
-                self.value_list = []
-                # self.title_dict = {} #!เหมือนจะไม่ได้ใช้
+        if self.parent.winfo_exists():
+            print("รายงานจำนวนtabs")
+            self.title_list = []
+            # self.title_list_Idx = [] #!เหมือนจะไม่ได้ใช้
+            self.value_list = []
+            # self.title_dict = {} #!เหมือนจะไม่ได้ใช้
 
-                # * check ว่า self.driver เดิมยังทำงานได้ไหม
+            # * check ว่า self.driver เดิมยังทำงานได้ไหม
+            try:
+                # * เช็คก่อนว่า driver ใช้ได้ไหม หรือการเชื่อมต่อ session หลุดไหม
+                self.driver.window_handles
+                print("driver is still running")
+            except:
+                # * driver หลุดก็ออก seesion เก่า
                 try:
-                    # * เช็คก่อนว่า driver ใช้ได้ไหม หรือการเชื่อมต่อ session หลุดไหม
-                    self.driver.window_handles
+                    print(
+                        "Quit old driver, not sure if this process is auto or not")
+                    self.driver.quit()
                 except:
-                    # * driver หลุดก็ออก seesion เก่า
-                    try:
-                        print(
-                            "Quit old driver, not sure if this process is auto or not")
-                        self.driver.quit()
-                    except:
-                        print("No need to quit old driver, no driver found")
-                        pass
+                    print("No need to quit old driver, no driver found")
+                    pass
 
-                    self.driver = webdriver.Chrome(
-                        service=Service(r'C:\bin\chromedriver.exe'),
-                        options=self.opt
-                    )
+                self.driver = webdriver.Chrome(
+                    service=Service(r'C:\bin\chromedriver.exe'),
+                    options=self.opt
+                )
 
-                for idx, handle in enumerate(self.driver.window_handles):
-                    self.driver.switch_to.window(handle)
-                    self.title_list.append(self.driver.title)
-                    self.value_list.append(self.driver.current_window_handle)
+            for idx, handle in enumerate(self.driver.window_handles):
+                self.driver.switch_to.window(handle)
+                self.title_list.append(self.driver.title)
+                self.value_list.append(self.driver.current_window_handle)
 
-                self.unique_titles = []
-                self.counter = {}
-                for item in self.title_list:
-                    if item in self.counter:
-                        self.counter[item] += 1
-                        print("counter[item] คือไร: ", self.counter[item])
-                        self.unique_titles.append(f"{item}{self.counter[item]-1}")
-                    else:
-                        self.counter[item] = 1
-                        self.unique_titles.append(item)
+            self.unique_titles = []
+            self.counter = {}
+            for item in self.title_list:
+                if item in self.counter:
+                    self.counter[item] += 1
+                    print("counter[item] คือไร: ", self.counter[item])
+                    self.unique_titles.append(f"{item}{self.counter[item]-1}")
+                else:
+                    self.counter[item] = 1
+                    self.unique_titles.append(item)
 
-                #* เอาList มารวมกัน
-                self.merged_dict = dict(zip(self.unique_titles, self.value_list))
-                print("มี tabs ไรบ้าง", self.merged_dict)
+            #* เอาList มารวมกัน
+            self.merged_dict = dict(zip(self.unique_titles, self.value_list))
+            print("มี tabs ไรบ้าง", self.merged_dict)
 
     def operation_task_thread(self):
         try:
@@ -2590,13 +2658,13 @@ class Bot_POS:
         # * กรณีไม่ได้เปิดไว้ จะเปิดให้
         if not self.is_ul_open:
             self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-            self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+            self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
             
         # * เคลียและกรอกชื่อลูกค้า
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
-    def add_cusname(self):
+    def add_new_customer(self):
         # * ขอใบกำกับป่าว
         if self.app.tax_bool.get():
             print("Tax_needed")
@@ -2613,8 +2681,10 @@ class Bot_POS:
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, names, cb=""):
-        cus_desire_name = self.app.cus_name.get().replace(" ", "")
-
+        cus_desire_name = self.app.cus_name.get()
+        cus_desire_name = cus_desire_name.replace("จำกัด", "").replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("บริษัท", "").replace(" ", "")
+        cus_desire_name = re.sub(r'^บจก\.?','',cus_desire_name)
+    
         # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array
         names_no_code = names.copy()
         for i in range(len(names)):
@@ -2644,7 +2714,7 @@ class Bot_POS:
             # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
             # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
             # self.cus_search_input = self.app.cus_name.get()
-            # self.add_cusname()
+            # self.add_new_customer()
         except:
             print("cb doesn't works")
 
@@ -2754,11 +2824,11 @@ class Bot_POS:
                 self.get_pdf_src_and_print(inv_number, retry_count+1)
         
         #* กดปุ่มแดงปิดหน้า print
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/div/a').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
         
     def get_base64_from_ui(self):
-        # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
-        pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[8]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
+        # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
+        pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
         proc = re.search("(?<=,).*", pdf_src)
         base64_str = proc.group(0)
         return base64_str
@@ -2800,7 +2870,7 @@ class Bot_POS:
     def accel_fill_sku(self):
         self.available_sn_skus_lsit = list(self.app.obj_data_from_accel_file.keys())
         self.used_serials = []
-        # *  ดึง array items เก็บลงตัวแปร items
+        # *  ดึง array items เก็บลงตัวแปร ordered_items
         ordered_items = self.app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_items)
         if len(ordered_items) > 0:
@@ -2821,12 +2891,13 @@ class Bot_POS:
                             while True:
                                 try:
                                     # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
-                                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                                     break
                                 except:
                                     continue
-                            sn = self.app.obj_data_from_accel_file[current_sku].pop(0)
-                            skuInput = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                            #! sn = self.app.obj_data_from_accel_file[current_sku].pop(0) เพราะตรงนี้มันใช้ pop(0) ทำให้กรณีข้าม order sn ที่คู่กับ order ที่ถูกข้ามมันจะถูกข้ามไปด้วย 
+                            sn = self.app.obj_data_from_accel_file[current_sku][0]
+                            skuInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                             skuInput.clear()
                             attempts = 10
                             while attempts > 0:
@@ -2871,37 +2942,40 @@ class Bot_POS:
         self.is_forbid = False
         is_etax = False
         inv_number = ""
+        self.operation_states = {"purchase_channel":None}
         if self.app.order != "":
             ### * MARKETPLACES Part ########################################################################################
             self.autofinal = False
             print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
-            self.wait1 = WebDriverWait(self.driver, 50)
+            self.wait50 = WebDriverWait(self.driver, 50)
+            self.wait5 = WebDriverWait(self.driver, 5)
             # * เปลี่ยนไปtab MARKETPLACES เพื่อเช็ค status (เพราะไม่มี API เลยต้องทำ และเพื่อดูรูปว่ามีของแถมหรือไม่)
 
             ####* IF MARKETPLACE IS SHOPEE ###################################################################################################################################
             if self.app.marketplace_target.get() == 'SHOPEE':
                 self.driver.switch_to.window(self.merged_dict['Seller Centre'])
+                self.operation_states['purchase_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
                 cur_url = self.driver.current_url
 
-                # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน css, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
+                # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน add_new_customer, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
-                    # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click() //ใช้ได้แต่กันไว้ก่อน 25/11/2024 15:11
+                    # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click() //ใช้ได้แต่กันไว้ก่อน 25/11/2024 15:11
                     self.driver.find_element(By.CSS_SELECTOR, 'div.eds-tabs__nav div.eds-tabs__nav-warp div div div.tab-label').click()
                     #! ตรงนี้มันไม่ใช้แล้ว
-                    # self.wait1.until(EC.text_to_be_present_in_element(
+                    # self.wait50.until(EC.text_to_be_present_in_element(
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
                 else:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
 
                 try:
                     # * กรอก order ลงในช่อง search
-                    self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 19/09/2024 17:00
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 25/11/2024 15:11
+                    self.search_elmt = self.wait50.until(EC.visibility_of_element_located(
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 19/09/2024 17:00
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 25/11/2024 15:11
                         (By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
 
                     ))
@@ -2911,11 +2985,11 @@ class Bot_POS:
 
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 18/09/2024 14:00
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 19/09/2024 17:00
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[2]/button[1]' ใช้ได้อยู่ แต่กันไว้ก่อน พัง 25/11/2024 15:11
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/button[1]') เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[2]/button[1]' พัง 28/08/2024 12:00
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 18/09/2024 14:00
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[2]/button[1]' พัง 19/09/2024 17:00
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[2]/button[1]' ใช้ได้อยู่ แต่กันไว้ก่อน พัง 25/11/2024 15:11
                         By.CSS_SELECTOR, 'div.order-search-buttons button.search-btn.eds-button.eds-button--primary.eds-button--normal.eds-button--outline'
                     )
                     self.searchBtn.click()
@@ -2939,10 +3013,10 @@ class Bot_POS:
                     print("Found element classed big-text")
                 except:
                     print("Not found element classed big-text, try to wait and click element with XPATH")
-                    self.wait1.until(EC.element_to_be_clickable(
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div') พัง 28/08/2024 12:00 PM
-                        (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
+                    self.wait50.until(EC.element_to_be_clickable(
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div'))) พัง 28/08/2024 12:00 PM
+                        (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')
                     ))
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
@@ -2953,22 +3027,22 @@ class Bot_POS:
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
                     self.app.cus_cur_status.set(self.driver.find_element(
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) พัง 28/08/2024 12:00 PM
-                        # By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text) พัง 18/09/2024
-                        By.XPATH, '/html/body/div[1]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div[3]/div/div[1]/span').text)
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[3]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[4]/div/div[3]/a/div[2]/div/div/div/div[3]/div[1]/span').text) พัง 28/08/2024 12:00 PM
+                        # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div/div[3]/div/div[2]/span').text) พัง 18/09/2024
+                        By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div[3]/div/div[1]/span').text)
 
                 # * จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
-                self.app.display_current_status.config(
-                    fg="#000000", bg="#8fd4ff")
+                self.app.display_current_status.configure(
+                    text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.config(
-                        bg="#00ff11", fg="#000000")
+                    self.app.display_current_status.configure(
+                        fg_color="#00ff11", text_color="#000000")
                     PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
                     PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
@@ -2998,13 +3072,13 @@ class Bot_POS:
                     self.driver.find_element(
                         By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[2]/div/div[1]/div/div/div/ul/li[1]/div').click()
                     time.sleep(0.75)
-                    self.wait1.until(EC.element_to_be_clickable(
+                    self.wait50.until(EC.element_to_be_clickable(
                         (By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div[1]/div[1]/div[2]/div[2]/span[1]/span[2]/span/a')))
                 # else:
                 #     pass
 
                 # * กรอก order ลงในช่อง search
-                self.search_elmt = self.wait1.until(EC.visibility_of_element_located(
+                self.search_elmt = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/span/input')))
 
                 self.driver.find_element(
@@ -3056,19 +3130,19 @@ class Bot_POS:
 
                 # * ตรวจสอบ Status และ update
                 # รอให้ btn element กดได้
-                self.wait1.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button')))
+                self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button')))
 
                 # เก็บ status order เข้าตัวแปรไปแสดงผลใน GUI
                 self.app.cus_cur_status.set(self.driver.find_element(By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button/span').text)
 
                 # จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
-                self.app.display_current_status.config(fg="#000000", bg="#8fd4ff")
+                self.app.display_current_status.configure(text_color="#000000", fg_color="#8fd4ff")
                 if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.config(bg="#ff2b2b", fg="#FFF")
+                    self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
-                    self.app.display_current_status.config(bg="#00ff11", fg="#000000")
+                    self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
 
             #### * IF MARKETPLACE NON OF THEM ABOVE ###################################################################################################################
             else:
@@ -3078,7 +3152,7 @@ class Bot_POS:
             # * ถ้าสถานะยกเลิก ก็หยุดเลย
             if self.is_forbid:
                 print("This order was forbidden.")
-                self.display_bot_status_label.config(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", bg="#d9f2ff", fg="#000")
+                self.display_bot_status_label.configure(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 return
 
             ### * SMCO PART ############################################################################
@@ -3086,7 +3160,8 @@ class Bot_POS:
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
-            self.cus_name_span_elmt = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span')
+            self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
+            self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir)
             self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
             if self.cus_name_span_x_btn_text == 'Please select':
                 self.is_reset = False
@@ -3100,32 +3175,34 @@ class Bot_POS:
                 print("เช็คว่าต้องรีไหม", self.is_reset)
                 if self.is_reset:
                     print("รีนี่หว่า, กดรีเลย")
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
-                    try:
-                        # คลิกเพื่อให้ปิด droprdown
-                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
-                    except:
+                    self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
+                    items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                    if len(items_list) == 0:
+                        #* คลิกเพื่อให้ปิด droprdown
+                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
+                        print("ปิด dropwdown กรณีไม่มีสินค้า")
+                    else:
                         # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
+                        print("กรณีมีสินค้า")
+                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
                         try:
                             print("wait for pop-up(try)")
                             # ระบุปุ่ม ok
-                            if self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]'):
+                            if self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]'):
                                 print("has pop-up(try)")
-                                self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+                                self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
                                 print("Click OK(try)")
-
                         except:
                             print("wait for pop-up(except)")
                             time.sleep(1)
                             # * ระบุปุ่ม ok
-                            if self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]'):
+                            if self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]'):
                                 print("has pop-up(except)")
-                                self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
+                                self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
                                 print("Click OK(except)")
                         # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
                         try:
-                            self.driver.find_element(
-                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
+                            self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
                             print("Cusname still appear the btn 'x' is available.")
                         except:
                             print("Cusname has disappeared no 'x' to press.")
@@ -3138,7 +3215,7 @@ class Bot_POS:
                 while True:
                     print("รอ")
                     time.sleep(1)
-                    if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/label/div/button'):
+                    if self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button'):
                         print("เจอแล้ว")
                         break
                     else:
@@ -3146,33 +3223,33 @@ class Bot_POS:
 
             print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
             # while True:
-            #     if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
+            #     if self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
             #         print("เจอแล้วออก")
             #         break
             #     else:
             #         continue
 
-            self.wait1.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
+            self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
 
             time.sleep(1)
             # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
             print("self.app.tax_bool: ", self.app.tax_bool.get())
 
             # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ search
-            self.wait1.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
+            self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
             if self.app.tax_bool.get() == True:
                 # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
                 if self.app.marketplace_target.get() == "SHOPEE":
                     print("ขอใบกำกับSHOPEE ใช้ T:")
-                    self.driver.find_element(By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+                    self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
                 elif self.app.marketplace_target.get() == "LAZADA":
                     print("ขอใบกำกับLazada ใช้ T:")
-                    self.driver.find_element(By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+                    self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
             elif self.app.tax_bool.get() == False:
                 # ไม่ขอใบกำกับ
                 print("ไม่ขอใบกำกับใช้ N:")
-                self.driver.find_element(By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
+                self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
             # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
             # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
@@ -3205,12 +3282,12 @@ class Bot_POS:
                 print("มันทำไม", self.wait_condition.text)
 
                 # ? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
-                # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[16]/div[2]/button[1]"
+                # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[24]/div[2]/button[1]"
                 try:
                     # * มี pop-upไหม
                     if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
                         # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
-                        self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
+                        self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
                         continue
                     # * ไม่มี pop-up ให้ break
                     break
@@ -3223,7 +3300,7 @@ class Bot_POS:
             while True:
                 if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
                     time.sleep(0.7)
-                    # self.wait1.until(EC.visibility_of_element_located(
+                    # self.wait50.until(EC.visibility_of_element_located(
                     #     (By.XPATH, self.app.cusNameLi1)))
 
                     # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
@@ -3239,28 +3316,22 @@ class Bot_POS:
                     except:
                         pass
 
-                    # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
-                    self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
+                    # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
+                    self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
                     self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
 
                     # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
                     if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
                         print("No results found and NeverAdd")
-                        #! ปิดไว้ก่อน จะเทสของใหม่
-                        # # * ขอใบกำกับป่าว
-                        # if self.app.tax_bool.get():
-                        #     print("Tax_needed")
-                        #     if self.app.marketplace_target.get() == 'SHOPEE':
-                        #         self.addTaxInvCustomer()
-
-                        #     # * กำลังทำ กำลังปรับปรุง ยังไม่เสร็จ การหาลูกค้าของ laz มันมีกรณี excel และ api
-                        #     elif self.app.marketplace_target.get() == 'LAZADA':
-                        #         self.addTaxInvCustomerLaz()
-
-                        # else:
-                        #     print("no_Tax_needed")
-                        #     self.addNormalCustomer(self.cus_search_input)
-                        self.add_cusname()
+                        self.add_new_customer()
+                        try:
+                            #* กรณี add แล้ว มี popup-duplicate customer
+                            self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
+                            cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
+                            self.duplicate_cus_name_resolver(cus_code_element)
+        
+                        except EXCEPTION as err:
+                            print("No duplicate!", err)
 
                         # * เพิ่มจำนวนครั้งที่ add
                         self.customer_added_times += 1
@@ -3285,12 +3356,12 @@ class Bot_POS:
                 print("addcustomer and select While end!")
                 break
 
-            # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก
+            # !66 เปลี่ยนวิธีเลือกชื่อลูกค้า
             while True:
                 try:
                     customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
-                    print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
+                    # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
                     break
 
                 except:
@@ -3309,32 +3380,33 @@ class Bot_POS:
             # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
             if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
                 try:
-                    self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/button[1]").click()
+                    self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
                     self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-                    self.wait1.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+                    self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
                 except:
                     print("Skip, Alert Element is appear but can not perform actions.")
             else:
                 print("Skip, Alert Element is Not appear")
+                print("No customer name input found")
                 pass
 
             print("search หายไปแล้ว")
-            self.wait1.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+            self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
             
-            #!WIP ใส่ตัวเช็คที่อยู่ลูกค้า
+            #* ใส่ตัวเช็คที่อยู่ลูกค้า
             if self.app.tax_bool.get():
                 print("tax required, start address check and correct")
-                self.smco_cus_address_element = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[11]/div[2]/div[1]/span/span[1]/span/span[1]')
-                self.cus_name_span = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                self.smco_cus_address_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[14]/div[2]/div[1]/span/span[1]/span/span[1]')
+                self.cus_name_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
                 self.text_from_name_span = self.cus_name_span.get_attribute("title")
                 self.tax_address_corrector(self.text_from_name_span)
             else:
                 print("no tax required, skip address check")
                 
-            #! WIP ใส่ รหัสพนักงาน
-            self.smco_current_emp = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
+            #* ใส่ รหัสพนักงาน
+            self.smco_current_emp = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
             if not self.app.user_id.get() in self.smco_current_emp:
-                self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
                 self.driver.find_element(By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
                 while True:
                     time.sleep(0.25)
@@ -3346,24 +3418,28 @@ class Bot_POS:
                         
                     except:
                         continue
-                
-
+            
+            # # * Update Accel file //////////////////////
+            # self.app.deduct_accel_file_data(
+            #     self.app.cus_order,
+            #     self.used_serials
+            # )
+            # return
+                    
             # * ใส่ค่าขนส่ง
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 if int(self.app.cus_ship_cost.get()) != int(0):
                     try:
-                        self.skuInput_element = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                        # skuInput = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                        self.skuInput_element = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                        # skuInput = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         self.skuInput_element.clear()
 
                         self.skuInput_element.send_keys("SV0-000101")
                         print("กรอก Code ขนส่งสำเร็จ")
 
-                        self.skuAddBtn = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                        # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                        self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                        # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                         self.skuAddBtn.send_keys(Keys().ENTER)
                         print("กด Enter ที่ช่อง SKU Input สำเร็จ")
 
@@ -3373,53 +3449,53 @@ class Bot_POS:
                         time.sleep(2)
 
                         # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                        self.definePrice_btn_element = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                        # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+                        self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+                        # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
                         self.definePrice_btn_element.click()
                         time.sleep(1)
                         # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-                        print("กดที่ SKU ELEMENT 1 สำเร็จ")
+                        print("Successfully clicked on SKU ELEMENT 1")
 
-                        self.changePriceInput = self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[1]/input')
+                        self.changePriceInput = self.driver.find_element(By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
                         self.changePriceInput.clear()
-                        self.changePriceInput.send_keys(self.app.cus_ship_cost.get())
+                        # self.changePriceInput.send_keys(69)
+                        # self.changePriceInput.send_keys(int(self.app.cus_ship_cost.get()))
+                        self.driver.execute_script("angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')", self.changePriceInput, self.app.cus_ship_cost.get())
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').clear()
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
 
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').clear()
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
 
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').clear()
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
                         self.driver.find_element(
-                            By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]').click()
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
                         try:
-                            print("รอหาย")
-                            self.wait1(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[6]/div/div/div[2]/div[6]/a[1]')))
+                            print("Waiting for element to disappear")
+                            self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
                         except:
-                            print("ไม่มีให้รอ")
+                            print("No need to wait")
                     except Exception as err:
-                        print("ค่าขนส่งโดนข้าม")
+                        print("Shipment cost skipped")
                         print(err)
                 else:
-                    print("เงื่อนไขค่าขนส่ง มี Boolean เป็น False")
+                    print("No shipment cost")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
-            self.app.display_bot_status_label.config(text=f"Bot Status: Your Turn", bg="#21ff29", fg="#000")
+            self.app.display_bot_status_label.configure(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
             # while True:
-            #     self.phase1_net_price = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]')
+            #     self.phase1_net_price = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]')
             #     self.phase1_net_price = float(self.phase1_net_price.text)
             #     if self.app.phase1_sum_price != self.phase1_net_price:
             #         print("ราคาไม่ตรง", self.app.phase1_sum_price,  " = ",self.phase1_net_price)
@@ -3440,19 +3516,19 @@ class Bot_POS:
             self.autofinal = True
             while self.autofinal:
                 self.app.is_gui_busy.set(False)
-                print("เข้า final loop ")
-                print("รอให้มันโผล่")
+                print("Enter final loop")
+                print("Waiting for element to appear")
                 while self.parent.winfo_exists() and self.autofinal:
                     time.sleep(0.55)
                     while True:
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
                             # print("loop หลัก")
-                            self.cus_name_input_element = self.driver.find_element(
-                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                            self.cus_name_input_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
                             title_attribute = self.cus_name_input_element.get_attribute("title")
 
-                            self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]').is_displayed()
+                            #! self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]').is_displayed()
+                            self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]').is_displayed()
                             # self.is_input_empty = re.search(
                             #     "^C[0-9]+\-", self.cus_name_input_element.text)
                             break
@@ -3461,9 +3537,9 @@ class Bot_POS:
                             continue
 
                     # *ดึงตัวอักษรออกมา
-                    x = re.search("^C[0-9]+", title_attribute)
+                    matched_obj = re.search("^C[0-9]+", title_attribute)
                     try:
-                        self.is_input_empty = x.group()
+                        self.is_input_empty = matched_obj.group()
                     except:
                         self.is_input_empty = ""
 
@@ -3472,13 +3548,12 @@ class Bot_POS:
                         time.sleep(0.55)
                         try:
 
-                            sn_window = self.driver.find_element(
-                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[7]/div/div/div[1]')
+                            sn_window = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')
                             # print("SN_window is still there")
                             if sn_window.is_displayed():
                                 # print("หน้า SN กำลังโชว์")
 
-                                # if self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').is_displayed():
+                                # if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).is_displayed():
                                 continue
 
                             else:
@@ -3487,8 +3562,8 @@ class Bot_POS:
                         except UnexpectedAlertPresentException as err:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
-                            print("แสดงผล obj err แค่ส่วนเดียว", err.alert_text)
-                            PopUp("SNซ้ำ", f'{err.alert_text}', self.parent, "alert")
+                            print("Show only the part of obj err", err.alert_text)
+                            PopUp("SN Duplicate", f'{err.alert_text}', self.parent, "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
@@ -3498,55 +3573,55 @@ class Bot_POS:
                     # print("type(self.is_input_empty): ", type(self.is_input_empty))
                     # print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
                     if self.is_input_empty == "" and self.is_final_displayed == False:
-                        print("ชื่อหาย")
+                        print("Name disappeared")
                         break
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
                         continue
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
                         self.app.is_gui_busy.set(True)
                         time.sleep(0.55)
-                        print("หน้า จ่ายตัง")
-                        self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                        self.last_page = self.driver.find_element(
-                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
+                        print("Page Payment")
+                        self.is_final_page2 = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
+                        self.last_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                         if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                             # Auto หน้าท้าย ทำได้ครั้งเดียว
-                            self.is_final_page2 = self.wait1.until(EC.visibility_of_element_located(
-                                (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
+                            self.is_final_page2 = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
 
-                            # self.is_final_page = self.wait1.until(EC.visibility_of_element_located(
-                            #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea')))
+                            # self.is_final_page = self.wait50.until(EC.visibility_of_element_located(
+                            #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea')))
                             try:
-                                if self.app.cus_seller_voucher.get():
-                                    # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').clear()
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
+                                #! deprecated
+                                #* กรอก seller voucher
+                                # if self.app.cus_seller_voucher.get():
+                                #     # ถ้ามี เซลเลอร์ให้ ให้กรอกให้ด้วย
+                                #     self.driver.find_element(
+                                #         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').clear()
+                                #     self.driver.find_element(
+                                #         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
                                 # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
                                 time.sleep(0.75)
                                 self.driver.find_element(
-                                    By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").clear()
+                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
                                 self.driver.find_element(
-                                    By.XPATH, "/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
+                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
                                 # เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
                                 if self.app.marketplace_target.get() == 'SHOPEE':
+                                    channel = self.channel_options[f'{self.operation_states['purchase_channel']}']
+                                    print("channel: ", channel)
                                     # เลือก shopee
-                                    self.driver.find_element(
-                                        By.XPATH, "//a[contains(.,'SHOPEE')]").click()
+                                    self.driver.find_element(By.XPATH, f"//a[contains(., '{channel}')]").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
-                                    self.driver.find_element(
-                                        By.XPATH, "//a[contains(., 'LAZ')]").click()
+                                    self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
 
+                                #* PO No:
                                 self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
+                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
                                 self.driver.find_element(
-                                    By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                                 try:
                                     self.driver.find_element(
@@ -3554,47 +3629,49 @@ class Bot_POS:
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
                                 except:
                                     print("ปุ่ม Brows() ไม่โผล่")
-                                # ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ a
+                                    
+                                #* ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ a
                                 if self.app.cus_name.get():
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
                                 else:
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                     self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys("a")
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                             except:
-                                print("Auto หน้าท้ายพัง ข้ามไปรอราคาเลย")
+                                print("Final page failed, skip to waiting for price")
                                 break
 
-                            if self.app.user_id.get() in self.app.dev_account:
-                                try:
-                                    print("ใส่ราคาอตัโนมัติ")
-                                    print(
-                                        (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
-                                    final_price = (
-                                        self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
-                                    if self.app.user_id.get() in self.app.dev_account:
-                                        self.driver.find_element(
-                                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
-                                        self.driver.find_element(
-                                            By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[7]/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
-                                except Exception as e:
-                                    print("auto_final_price broken", e)
+                            #*Auto Enter final Price
+                            try:
+                                print("Auto enter price")
+                                print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
+                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
+                                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                            except Exception as e:
+                                print("auto_final_price broken", e)
+                            #*Auto price มันมีสองอันได้ไง
+                            # print("Auto enter price")
+                            # print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
+                            # final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                            # if self.app.user_id.get() in self.app.dev_account:
+                            #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
+                            #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
 
                             # * ค้นหา element โดยใช้ XPath
                             self.is_input_on = self.driver.find_element(
-                                By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
 
                             # * ดึงข้อความจาก element ที่ค้นหาได้
-                            text_value = self.is_input_on.get_attribute(
-                                "title")
+                            text_value = self.is_input_on.get_attribute("title")
 
                             # * พิมพ์ผลลัพธ์
-                            print("ตรวจหาชื่อลูกค้า self.is_input_on:", text_value)
+                            print("Check customer name self.is_input_on:", text_value)
 
                             # # * สำหรับ prefinal  pop-up (optional by ETAX)
                             # # * > แบบเลือกให้ตาม ข้อมูลลูกค้า
@@ -3624,7 +3701,7 @@ class Bot_POS:
                             # # * > แบบเลือกemail เป็น default
                             # ใช้ได้หรือป่าวไม่แน่ใจ
                             # while True:
-                            #     self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[16]/div[2]/button[1]')
+                            #     self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]')
 
                             #     print("Radio while loop")
                             #     if self.final_popup.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
@@ -3660,32 +3737,36 @@ class Bot_POS:
                                 time.sleep(1)
                                 try:
                                     # print("auto click Before print loop")
-                                    self.final_popup = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                                    # self.is_final_page = self.wait1.until(EC.invisibility_of_element_located(
-                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')))
-                                    self.is_final_page = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[1]/span[1]')
-                                    self.etax_radio_sendmail = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input')
-                                    # print("self.is_final_page= ",
-                                    #       self.is_final_page)
+                                    # self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]') #! ปุ่มนี้น่าจะหายไปละ
+                                    self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]')
+                                    # self.is_final_page = self.wait50.until(EC.invisibility_of_element_located(
+                                    #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
+                                    self.is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
+                                    #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
+                                    print("self.is_final_page= ", self.is_final_page)
                                 except:
                                     print("Element not found, continuing loop...")
                                     continue
 
                                 if self.final_popup.is_displayed():
+                                    print("self.final_popup is displayed")
+                                    try:
+                                        self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+                                        print('Click space behind final popup')
+                                    except:
+                                        print('Cannot click space behind final popup')
                                     pass
-                                elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
-                                    # print("Radio ยังไม่โผล่")
-                                    continue
+                                #! etax พังใช้ไม่ได้
+                                # elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
+                                #     print("Radio ยังไม่โผล่")
+                                #     continue
                                 elif self.is_final_page.is_displayed() == False:
                                     print("หน้า final หายไป")
                                     pass
                                 else:
                                     try:
-
-                                        print("Radio appeared")
+                                        #? พังหมด
+                                        # print("Radio appeared")
                                         if self.etax_radio_sendmail.is_displayed():
                                             is_etax = True
                                             print("Click Send Email Radio")
@@ -3701,18 +3782,21 @@ class Bot_POS:
                                             print("ไม่โชว์ก็ออก")
 
                                     except:
-                                        print("radio has Disappeared")
+                                        # print("radio has Disappeared")
+                                        pass
 
                                 if self.final_popup.is_displayed() == True:
                                     self.app.is_gui_busy.set(True)
                                     print("final pop-up has finally displayed!")
                                     try:
-                                        self.final_popup_btn = self.wait1.until(EC.element_to_be_clickable(
-                                            (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
+                                        self.final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
+                                            # (By.XPATH, '/html/body/div[24]/div[2]/button[1]'))) #! ปุ่มนี้น่าจะหายไปละ
+                                            (By.XPATH, '/html/body/div[24]/div[2]')))
                                         # *> ให้เวลาดูเลขบิล 1 วิ
                                         time.sleep(1)
 
-                                        alert_text = self.driver.find_element(By().XPATH, '/html/body/div[16]/div[2]/div[6]').text
+                                        alert_text = self.driver.find_element(By().XPATH, '/html/body/div[24]/div[2]/div[6]').text #อันนี้น่าจะใช้ไม่ได้ละ
+                                        
                                         match = re.search(r'B\d+-W\d+-\d+', alert_text)
                                         print("match: ", match)
                                         # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
@@ -3723,35 +3807,61 @@ class Bot_POS:
                                         # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                                         # * ไปหน้า Reprint ##########################################################################################
                                         if is_etax and inv_number != "":
+                                            print("has etax")
                                             self.etax_reprint(inv_number)
+                                            # * Update Accel file //////////////////////
+                                            try:
+                                                self.used_serials
+                                                print("Accel mode used")
+                                                self.app.deduct_accel_file_data(self.app.cus_order,getattr(self, "used_serials", [])) #* ใช้ getattr() แทน self.used_serialsโดยตรง เพราะ ค่า self.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                                            except:
+                                                print("Accel mode not used")
+                                                pass
                                             #* ถ้ามี etax ก็ print แล้วจบไป
                                             time.sleep(0.75)
-                                            self.final_popup_btn.click()
+                                            # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
                                             break
-                                            
+                                        
+                                        # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]')))
+                                        # time.sleep(1)
+                                        # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
+                                        
+                                        #* ลอง click container ดู ใช้ได้แล้ว
+                                        print("click container!")
+                                        # self.driver.find_element(By.XPATH, '/html/body/div[24]').click()
+                                        self.driver.execute_script("document.querySelector('.swal2-overlay').click();") #* อันนี้ดีย์
 
-                                        time.sleep(0.75)
-                                        self.final_popup_btn.click()
-                                        self.wait1.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                        
+                                        #* > printing
+                                        #* >> รอหน้า canvas โผล่ก่อน
+                                        self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
                                         time.sleep(1)
-                                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
-                                        #* วิธี print แบบเก่า
+                                        
+                                        #! วิธี print แบบเก่า
                                         # self.printtingPage()
                                         # self.justPressP()
                                         #* วิธี print แบบใหม่
-                                        self.get_pdf_src_and_print(inv_number)
+                                        self.printing_thread = threading.Thread(target=self.get_pdf_src_and_print, args=(inv_number,))
+                                        self.printing_thread.start()
+                                        #! self.get_pdf_src_and_print(inv_number) ถ้าบรรทัดข้างบนใช้ได้มึงโดนโละแน่
                                         
                                         # * Update Accel file //////////////////////
-                                        self.app.deduct_accel_file_data(
-                                            self.app.cus_order,
+                                        try:
                                             self.used_serials
-                                        )
+                                            print("Accel mode used")
+                                            self.app.deduct_accel_file_data(self.app.cus_order,getattr(self, "used_serials", [])) #* ใช้ getattr() แทน self.used_serialsโดยตรง เพราะ ค่า self.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                                        except:
+                                            print("Accel mode not used")
+                                            pass
 
                                     except Exception as err:
                                         # time.sleep(1)
                                         # print("ไม่ได้เลขบิล")
                                         # self.final_popup.click()
-                                        self.final_popup_btn.click()
+                                        try:
+                                            self.final_popup_btn.click()  #! ปุ่มนี้น่าจะหายไปละ
+                                        except:
+                                            pass
                                         print("พัง ข้ามไปเลยละกัน", err)
 
                                     break
@@ -3759,13 +3869,13 @@ class Bot_POS:
                                     # * > รอหน้า canvas โผล่ก่อน
                                     # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
 
-                                    #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait1
+                                    #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait50
                                     #! ย้ายไปข้างบนแล้ว ถ้าข้างบนใช้ได้ข้างล่างลบทิ้งได้เลย
-                                    # self.wait1.until(EC.visibility_of_element_located(
-                                    #     (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                    # self.wait50.until(EC.visibility_of_element_located(
+                                    #     (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
                                     # time.sleep(1)
                                     # self.driver.find_element(
-                                    #     By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')
+                                    #     By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
                                     # self.printtingPage()
                                     # self.justPressP()
                                     # break
@@ -3773,13 +3883,13 @@ class Bot_POS:
                                 # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
                                 elif self.is_final_page.is_displayed() == False:
                                     print("End or back")
-                                    if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[1]/span').text)):
+                                    if bool(re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[1]').text)):
                                         print("ไปหน้าสุดท้าย จบ loop")
                                         break
-                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == "":
+                                    elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == "":
                                         print("มันจบละ")
                                         break
-                                    elif self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
+                                    elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
                                         print("กลับมาหน้าเดิม")
                                         break
 
@@ -3790,14 +3900,14 @@ class Bot_POS:
                                     #     print('จุดจบ')
                                     #     # * กดปุ่มใน pop-up สุดท้าย
                                     #     self.driver.find_element(
-                                    #         By.XPATH, '/html/body/div[16]/div[2]/button[1]')
-                                    #     self.wait1.until(EC.visibility_of_element_located(
-                                    #         (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-                                    #     self.wait1.until(EC.element_to_be_clickable(
-                                    #         (By.XPATH, '/html/body/div[16]/div[2]/button[1]'))).click()
+                                    #         By.XPATH, '/html/body/div[24]/div[2]/button[1]')
+                                    #     self.wait50.until(EC.visibility_of_element_located(
+                                    #         (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+                                    #     self.wait50.until(EC.element_to_be_clickable(
+                                    #         (By.XPATH, '/html/body/div[24]/div[2]/button[1]'))).click()
                                     #     # > รอหน้า canvas โผล่ก่อน
-                                    #     self.wait1.until(EC.visibility_of_element_located(
-                                    #         (By.XPATH, '/html/body/div[1]/div[2]/div[8]/div/div[2]')))
+                                    #     self.wait50.until(EC.visibility_of_element_located(
+                                    #         (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
                                     #     self.printtingPage()
                                     #     break
                                     # except Exception as err:
@@ -3805,11 +3915,13 @@ class Bot_POS:
                                     #     pass
 
                             # * ต้องใช้จริงๆเหรอ?
-                            # if self.final_popup.is_displayed() == True:
-                            #     break
+                            # if self.app.accel_search_thread:
+                            #     self.app.accel_timer = threading.Timer(
+                            #         0.2, self.app.on_accel_thread_done)
+                            #     self.app.accel_timer.start()
                             # else:
-                            #     break
-                                # break ที่แก้เป็น break ดูเหมือน code ด้านบนมันจะผิด และไม่สามารถรับมือกับเหตุการณืแบบ dynamic ได้ ทำให้ continue ตรงนี้ทำงานอย่างผิดปกติ แต่ตอนนี้แก้ถูกแล้ว
+                            #     print("'MyApp' object has no attribute 'accel_search_thread'")
+                            #     pass
 
                             # * ไม่แน่ใจ
                             continue
@@ -3842,79 +3954,87 @@ class Bot_POS:
         is_functionworking = False
         is_functionworking = True
         while is_functionworking:
-            self.driver.switch_to.window(
-                self.merged_dict['SMCO :: เปิดการขาย1'])
+            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
 
-            self.element = self.driver.find_element(
-                By.XPATH, self.app.cusSearchSMCO)
+            self.element = self.driver.find_element(By.XPATH, self.app.cusCreateBtn)
             self.element.click()  # * กดแว่นขยาย
-            self.btnElement = self.wait1.until(
-                EC.element_to_be_clickable((By.XPATH, self.app.cusCreateBtn)))
-            time.sleep(0.65)
-            self.btnElement.click()  # * create
 
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
             try:
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
+                self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[3]/div[1]/div/span/span[1]/span/span[1]')))
+                print("เจอแล้ว customer class")
+                time.sleep(0.55)
+                # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
+                self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]').click()
+
 
                 # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
                 while True:
+                    
                     try:
-                        choice_found = self.driver.find_element(
-                            By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text
+                        choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
                         print("choice_found: ", choice_found)
-                        if self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li").text == "CM1-Domestic Customer":
+                        if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
+                            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+                            time.sleep(0.75)
+                            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
                             break
                     except Exception as err:
                         time.sleep(1)
                         # print("except: ", err) # for develop inspection
                         continue
 
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-                time.sleep(0.75)
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+                
             except:
                 print("No customer category, Pass")
+                
+            
+
+            
+            #* Name TH
+            self.wait50.until(EC.visibility_of_element_located(
+                (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')
+            ))
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(cusname_fixed)
+
+            #* Name ENG
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(cusname_fixed)
+
+            #* Address
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
+
+            #* Contact No
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
+            self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(1)
 
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(cusname_fixed)
+                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(cusname_fixed)
-
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
-
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(1)
-
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
-
-            # รอมันหายก่อน
-            self.wait1.until(EC.invisibility_of_element_located(
-                (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+            #* รอปุ่ม save หยุดแสดงผล
+            self.wait50.until(EC.invisibility_of_element_located(
+                (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
             is_functionworking = False
 
             # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
-            # self.wait1.until(EC.visibility_of_element_located(
-            #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-            try:
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-            except:
-                pass
+            # self.wait50.until(EC.visibility_of_element_located(
+            #     (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+            #! smco 7.0.0 เลิกใช้เพราะมันจะไม่มีในยามปกติละ 
+            # try:
+            #     self.driver.find_element(
+            #         By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+            # except:
+            #     pass
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
@@ -3931,137 +4051,153 @@ class Bot_POS:
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch_num.get()})"""
 
-        self.driver.switch_to.window(
-            self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
-        time.sleep(0.75)
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
         try:
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-            time.sleep(0.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+            self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[3]/div[1]/div/span/span[1]/span/span[1]')))
+            print("เจอแล้ว customer class")
+            time.sleep(0.55)
+            # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
+            self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]').click()
+
+
+            # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
+            while True:
+                try:
+                    choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
+                    print("choice_found: ", choice_found)
+                    if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
+                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+                        time.sleep(0.75)
+                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
+                        break
+                except Exception as err:
+                    time.sleep(0.75)
+                    # print("except: ", err) # for develop inspection
+                    continue
+
         except:
             print("No customer category, Pass")
+                
+            
 
         # * > nameTH clear
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
         # # * >nameTH fill input better style ปิดการใช้งาน
-        # self.driver.find_element( By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # self.driver.find_element( By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
         # * >nameTH SMCO style
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(f'{name}')
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(f'{name}')
 
         # * >nameEN clear
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
         # * >nameEN fill input better style ปิดการใช้งาน
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+        # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
         # * >nameEN SMCO style
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(f'{name}')
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(f'{name}')
 
         # ! เปิดใช้การออกใบกำกับ ตาม SMCO style (ถ้าไม่เปิดจะถือว่าเป็นการใช้ Better style)
         # * clear Identity ID
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
         # * Identity ID
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(self.app.tax_num.get())
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(self.app.tax_num.get())
 
         # * กรอก Address
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
         # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
-        # self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(self.app.cus_address)
+        # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
         # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
         address = self.app.address
         if self.app.tax_bool.get():
             address = self.app.get_pure_address(self.app.address)
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(address)
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(address)
 
         # * กรอก email
-        self.email_input = self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
+        self.email_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
         self.email_input.clear()
         self.email_input.send_keys(self.app.cus_email.get())
 
         # * tel.
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(self.app.cus_tel.get())
 
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # dropdown Country
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
-        time.sleep(1)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
+        time.sleep(1.55)
         # select thailand in dropdown
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
+        # self.driver.find_element(By.XPATH, "//*[text()='Thailand']").click()
+        self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li[2]").click()
 
         # province dropdown
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
             # province input
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
-        time.sleep(1.75)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
+        time.sleep(1.55)
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
+        # District drop
         self.driver.find_element(
-            # District drop
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            # District
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            # *> District clear
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+            # *> District fill input
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
             self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("อ.", ""))  # District
         time.sleep(1.75)
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # SubDistrict drop
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
         # SubDistrict
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
         time.sleep(1.75)
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # # * กด Save
         # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
         
         # รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
-        self.wait1.until(EC.invisibility_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        self.wait50.until(EC.invisibility_of_element_located(
+            (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
 
         # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
-        # self.wait1.until(EC.visibility_of_element_located(
-        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-        try:
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-        except:
-            pass
+        # self.wait50.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+        #! smco 7.0.0 เลิกใช้เพราะมันจะไม่มีในยามปกติละ 
+        # try:
+        #     self.driver.find_element(
+        #         By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+        # except:
+        #     pass
 
     def addTaxInvCustomerLaz(self):
         tax_info = self.get_vatinfo_data(
@@ -4081,129 +4217,143 @@ class Bot_POS:
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
 
-        self.driver.switch_to.window(
-            self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.XPATH, self.app.cusSearchSMCO).click()
-        time.sleep(0.75)
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
         self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
         try:
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[1]/div[3]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-            time.sleep(0.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li').click()
+            self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[3]/div[1]/div/span/span[1]/span/span[1]')))
+            print("เจอแล้ว customer class")
+            time.sleep(0.55)
+            # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
+            self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]').click()
+
+
+            # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
+            while True:
+                try:
+                    choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
+                    print("choice_found: ", choice_found)
+                    if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
+                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+                        time.sleep(0.75)
+                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
+                        break
+                except Exception as err:
+                    time.sleep(1)
+                    # print("except: ", err) # for develop inspection
+                    continue
+
         except:
             print("No customer category, Pass")
 
         # * clear nameTH
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
 
         # * nameTH
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[1]/input').send_keys(name)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
 
         # * clear nameEN
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
         # * nameEN
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[2]/input').send_keys(name)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(name)
 
         # * clear Identity ID
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
         # * Identity ID
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[3]/div[3]/input').send_keys(tax_info['tax_num'])
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(tax_info['tax_num'])
 
         # * กรอก Address
 
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[7]/div/textarea').send_keys(tax_info['address_shortened'])
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(tax_info['address_shortened'])
 
         # * กรอก email
         self.email_input = self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[13]/div[2]/input')
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
         self.email_input.clear()
         self.email_input.send_keys(self.app.cus_email.get())
 
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # * dropdown Country
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[1]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
         time.sleep(1)
         # * > select thailand in dropdown
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[2]/ul/li[2]').click()
+            By.XPATH, "//*[text()='Thailand']").click()
 
         # * province dropdown
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[9]/div[2]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
             # * > province input
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
             tax_info['province'].replace("จังหวัด", ""))  # province input
         time.sleep(1.55)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # *> District drop
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[1]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
         # *> District clear
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
         # *> District fill input
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
             tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
         time.sleep(1.55)
         # *> District Enter to submit District from the dropdown
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # * SubDistrict drop
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[11]/div[3]/div/span/span[1]/span/span[1]').click()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
         self.driver.find_element(
             # > SubDistrict
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(
-            # > SubDistrict
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
             tax_info['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
         time.sleep(1.55)
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # * tel.
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').clear()
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
         self.driver.find_element(
-            By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[14]/div[2]/input').send_keys(self.app.cus_tel.get())
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(self.app.cus_tel.get())
 
         # # * กด Save
         # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]').click()
+        #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 
         # #* รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป ใช้ได้
-        self.wait1.until(EC.invisibility_of_element_located(
-            (By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div/div[3]/div/form/div[16]/center/button[1]')))
+        self.wait50.until(EC.invisibility_of_element_located(
+            (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
 
         # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
-        # self.wait1.until(EC.visibility_of_element_located(
-        #     (By.XPATH, '/html/body/div[16]/div[2]/button[1]')))
-        try:
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[16]/div[2]/button[1]').click()
-        except:
-            pass
+        # self.wait50.until(EC.visibility_of_element_located(
+        #     (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+        #! smco 7.0.0 เลิกใช้เพราะมันจะไม่มีในยามปกติละ 
+        # try:
+        #     self.driver.find_element(
+        #         By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+        # except:
+        #     pass
         
 #*Customer Tax Address Correction--------------------------------------------------------------------------------------------------
     def get_cookies_from_driver(self):
@@ -4225,34 +4375,32 @@ class Bot_POS:
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            # 'Cookie': 'JSESSIONID=342552DB2CF0B2DF30CA889D5848F200; locale=en_US; JWT-TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2MjA3OCwxODAsMjA4LGVuX1VTLEMxIiwiaWF0IjoxNzM2MTI5OTc4fQ.e73-mZtITbYthUrkfb4dwuYwuuUlcGiRvisejWxuWW8',
             'Origin': f'{origin}',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
             'X-Requested-With': 'XMLHttpRequest',
         }
-
-        data = payload
 
         response = requests.post(
             f'{origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm',
             cookies=cookies,
             headers=headers,
-            data=data,
+            data=payload,
             verify=False,
         )
 
-        # print('get_address_smco response status: ', response)
+        print('get_address_smco response status: ', response)
+        print('response.json(): ', response.json())
         return response
 
     def find_customer_id(self, cus_code:str=""):
-        print("find_customer_id excuted!: ")
+        print("find_customer_id excuted by code: ",cus_code)
         payload = {
             'requestText': f'{cus_code}',
             'target': 'C',
         }
         response = self.address_api_request_smco(payload)
         response_data:list = response.json()
-        # print(response_data)
+        print("response_data: ", response_data)
         cus_data:dict = {}
         for i in response_data:
             if i['custCode'] == cus_code:
@@ -4262,182 +4410,272 @@ class Bot_POS:
                 print(f'ไม่มี {cus_code} นี้จาก response_data')
                 raise Exception(f'ไม่มี {cus_code} นี้จาก response_data')
 
-        customer_id = cus_data['id']
+        customer_id = cus_data['id'] or False
         # print("customer_id: ", cus_data['id'])
         return customer_id
 
     def find_cus_address(self, cus_id:int=None):
-        payload = {
-            'target': '1',
-            'parentId': f'{cus_id}',
-        }
-        response = self.address_api_request_smco(payload)
-        response_data:dict = response.json()
-        extracted_address:dict = {}
-        for address in response_data['addressOfMember']:
-            if address['defaultFlag']:
-                extracted_address['address'] = address['custAddress']
-                extracted_address['subdistrict'] = address['subDustricId']['subdistrictNameTh']
-                extracted_address['district'] = address['districtId']['districtNameTh']
-                extracted_address['provice'] = address['provinceId']['provinceNameTh']
-                extracted_address['zip_code'] = address['zipCode']
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                payload = {
+                    'target': '1',
+                    'parentId': f'{cus_id}',
+                }
+                response = self.address_api_request_smco(payload)
                 
-        return extracted_address
-
-    def tax_address_corrector(self, cus_name):
-        def wait_element(xpath, text=None):
-            while True:
-                try:
-                    element = self.driver.find_element(By.XPATH, xpath)
-                    pass
-                except:
+                # ตรวจสอบ response status
+                if response.status_code in [400, 500]:
+                    print(f"Request failed with status {response.status_code}, retrying... ({retry_count + 1}/{max_retries})")
+                    retry_count += 1
+                    time.sleep(1)  # รอ 1 วินาทีก่อนลองใหม่
                     continue
+                    
+                response.raise_for_status()  # จะ raise exception ถ้า status code เป็น 4xx หรือ 5xx
                 
-                if element.is_displayed():
-                    if not text:
-                        break
-                    elif text in element.text :
-                        break
-                    else:
-                        time.sleep(0.75)
+                response_data:dict = response.json()
+                extracted_address:dict = {}
+                
+                for address in response_data['addressOfMember']:
+                    if address['defaultFlag']:
+                        extracted_address['address'] = address['custAddress'] or ''
+                        extracted_address['subdistrict'] = address['subDustricId']['subdistrictNameTh'] or ''
+                        extracted_address['district'] = address['districtId']['districtNameTh'] or ''
+                        extracted_address['provice'] = address['provinceId']['provinceNameTh'] or ''
+                        extracted_address['zip_code'] = address['zipCode'] or ''
+                
+                return extracted_address
+
+            except requests.exceptions.RequestException as e:
+                print(f"Request error: {e}")
+                retry_count += 1
+                if retry_count == max_retries:
+                    print("Max retries reached, returning empty address")
+                    return {
+                        'address': '',
+                        'subdistrict': '',
+                        'district': '',
+                        'provice': '',
+                        'zip_code': ''
+                    }
+                time.sleep(1)
+                
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                return {
+                    'address': '',
+                    'subdistrict': '',
+                    'district': '',
+                    'provice': '',
+                    'zip_code': ''
+                }
+                
+    def direct_to_customer_info(self):
+        #* เนื่องจาก หน้าลูกค้ามันมีสองชั้น ตรวจสอบว่า หน้าที่กำลังแสดงผลเป็นหน้าในหรือนอก ถ้าในต้องปรับเป็นนอกก่อน
+        while True:
+            is_outer_page_on = False
+            is_inner_page_on = False
+            self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            try:
+                'SMCO :: ลูกค้า'  in self.merged_dict
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
+                is_outer_page_on = True
+                
+            except:
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[1]/div')
+                is_inner_page_on = True
+                
+            finally:
+                if is_inner_page_on:
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[1]/div[1]/div[1]/a').click()
+                    break
+                elif is_outer_page_on:
+                    break
+                else:
+                    time.sleep(0.25)
+            
+            
+        #* รอดูว่าelement โผล่ยัง
+        while True:  
+            time.sleep(0.25)
+            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            try:
+                'SMCO :: ลูกค้า'  in self.merged_dict
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
+                break
+            except:
+                continue
+
+        #* ปุ่มลูกค้า
+        customer_code_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
+        if not customer_code_btn.is_displayed():    
+            adavance_button = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[1]/div/div[2]/label')
+            adavance_button.click()
+            # adavance_button_text = adavance_button.text
+            # print("adavance_button: ", adavance_button , "clicked")
+            pass
+        customer_code_btn.click()
+        
+        #* customer code search popup
+        self.wait_element('/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
+        customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
+        try:
+            customer_popup_clear_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/span')
+            customer_popup_clear_btn.click()
+        except:
+            pass
+        
+        
+        customer_popup_input.send_keys(self.cus_code)
+        
+        #* หา li 
+        while True:
+            time.sleep(0.25)
+            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            try:
+                'SMCO :: ลูกค้า'  in self.merged_dict
+                self.wait_element('/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li', self.cus_code)
+                break
+            except:
+                continue
+        customer_li_item_target = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li')
+        customer_li_item_target.click()
+        
+        #* Close pop up
+        exit_popup_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/span')
+        exit_popup_btn.click()
+        #* wait until pop up disappear
+        while True:
+            time.sleep(0.25)
+            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            try:
+                'SMCO :: ลูกค้า'  in self.merged_dict
+                customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
+                if not customer_popup_input.is_displayed():
+                    break
+                else:
+                    continue
+            except:
+                continue
+        
+        find_customer_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[3]/center/button[1]')
+        find_customer_btn.click()
+        
+        while True:
+            time.sleep(0.25)
+            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            try:
+                'SMCO :: ลูกค้า'  in self.merged_dict
+                customer_code_target = self.driver.find_element(By.XPATH, f"//*[text()='{self.cus_code}']")
+                customer_code_target.click()
+                break
+            except:
+                continue
+                
+    def open_customer_edit_page(self):
+        try:
+            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+            self.cur_url = self.driver.current_url
+            matched_str = re.search(r'\/[A-z].*', self.cur_url).group()
+            based_url = self.cur_url.replace(matched_str, '')
+            print("based URL:", based_url)
+            customer_edit_url = based_url+'/smartcore/customers/customers_search_new.htm?mc=POS1010'
+            print("customer edit URL:", customer_edit_url)
+            self.driver.execute_script(f"window.open('{customer_edit_url}', '_blank');")
+            time.sleep(0.75)
+            self.get_tabs()
+        except:
+            print("try error: cannot open SMCO :: ลูกค้า")
+            pass
+        
+        self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            
+        #* รอดูว่า element โผล่ยัง
+        while True:
+            time.sleep(0.25)
+            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
+            try:
+                'SMCO :: ลูกค้า'  in self.merged_dict
+                self.driver.find_element(By.CLASS_NAME, 'container-fluid')
+                break
+                
+            except:
+                continue
+    def wait_element(self, xpath, text=None):
+        while True:
+            try:
+                element = self.driver.find_element(By.XPATH, xpath)
+                pass
+            except:
+                continue
+            
+            if element.is_displayed():
+                if not text:
+                    break
+                elif text in element.text :
+                    break
                 else:
                     time.sleep(0.75)
-                
+            else:
+                time.sleep(0.75)
+
+    def tax_address_corrector(self, cus_name):     
         print("cus_name: ", cus_name)
-        match = re.search(r'C\w.*(?=-)', cus_name)
+        # match = re.search(r'C\d*(?=-)', cus_name) #! อันนี้ถ้าหากมีคนตั้งชื่อเหมือนรหัสมันจะเจอสองจุดแต่ patter รหัสมันจะต้องขึ้นต้นก่อนเสมอฉะนั้นต้องปรับ
+        match = re.search(r'^C\d{1,}(?=-)', cus_name)
         self.cus_code = match.group()
         
         customer_id = self.find_customer_id(self.cus_code)
-        cus_address = self.find_cus_address(customer_id)
+        
+        if customer_id:
+            cus_address = self.find_cus_address(customer_id)
+        else:
+            cus_address = {
+                        'address': '',
+                        'subdistrict': '',
+                        'district': '',
+                        'provice': '',
+                        'zip_code': ''
+                    }
+        # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
+        if not any(cus_address.values()):
+            print("Address not matched")
+            # PopUp(
+            #     "Error", 
+            #     "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง", 
+            #     self.parent, 
+            #     "alert"
+            # )
+            
         cus_address_to_compare = "".join(cus_address.values())
-        print("cus_address_to_compare: ", cus_address_to_compare)
+        # print("cus_address_to_compare: ", cus_address_to_compare)
         
         self.current_address = cus_address_to_compare 
-        self.desired_address = re.sub(r'\n', " ", f"""{self.app.address} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
+        self.desired_address = re.sub(r'\n', " ", f"""{self.app.get_pure_address(self.app.address)} {self.app.nondistortedData['แขวง/ตำบล']} {self.app.nondistortedData['เขต/อำเภอ.1']} {self.app.nondistortedData['จังหวัด.1']} {self.app.nondistortedData['รหัสไปรษณีย์.1']}""".replace('\u200b', ''))
         self.desired_address = re.sub(r'\s{2,}',' ',self.desired_address)
+        print("self.desired_address: ", self.desired_address.replace(' ', ''))
+        
         self.desired_full_address = self.desired_address.replace("อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ตำบล", "").replace("แขวง", "").replace("ต.", "").replace("จังหวัด", "").replace("จ.", "")
-        print("self.desired_address: ", self.desired_full_address.replace(' ', ''))
-        print("self.current_address: ", self.current_address.replace(' ', ''))
+        
+        print("compare self.current_address & self.desired_full_address")
+        print(self.current_address.replace(' ', ''))
+        print(self.desired_full_address.replace(' ', ''))
+        
         if not self.desired_full_address.replace(' ', '') == self.current_address.replace(' ', ''):
             #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
             print("Customer Address is not correct")
             self.get_tabs()
             if not 'SMCO :: ลูกค้า' in self.merged_dict:
-                try:
-                    self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-                    self.cur_url = self.driver.current_url
-                    matched_str = re.search(r'\/[A-z].*', self.cur_url).group()
-                    based_url = self.cur_url.replace(matched_str, '')
-                    print("based URL:", based_url)
-                    customer_edit_url = based_url+'/smartcore/customers/customers_search_new.htm?mc=POS1010'
-                    print("customer edit URL:", customer_edit_url)
-                    self.driver.execute_script(f"window.open('{customer_edit_url}', '_blank');")
-                    self.get_tabs()
-                except:
-                    print("try error: cannot open SMCO :: ลูกค้า")
-                    pass
-            
-            self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
-            
-            #* รอดูว่า element โผล่ยัง
-            while True:
-                time.sleep(0.25)
-                try:
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]')
-                    break
-                except:
-                    continue
-            
-            
-            #* รอดูว่าelement โผล่ยัง
-            while True:
-                is_outer_page_on = False
-                is_inner_page_on = False
-                try:
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
-                    is_outer_page_on = True
-                    
-                except:
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[1]/div')
-                    is_inner_page_on = True
-                    
-                finally:
-                    if is_inner_page_on:
-                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]/a').click()
-                        break
-                    elif is_outer_page_on:
-                        break
-                    else:
-                        time.sleep(0.25)
-            
-            #* รอดูว่าelement โผล่ยัง
-            while True:
-                try:
-                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
-                    break
-                except:
-                    continue
+                self.open_customer_edit_page()
                 
-            customer_code_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
-            if not customer_code_btn.is_displayed():    
-                adavance_button = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[1]/div/div[2]/label')
-                adavance_button.click()
-                # adavance_button_text = adavance_button.text
-                print("adavance_button: ", adavance_button , "clicked")
-                pass
-            customer_code_btn.click()
+            self.direct_to_customer_info()
             
-            #* customer code search popup
-            wait_element('/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
-            customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
-            try:
-                customer_popup_clear_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/span')
-                customer_popup_clear_btn.click()
-            except:
-                pass
-            
-            
-            customer_popup_input.send_keys(self.cus_code)
-            
-            #* หา li 
-            while True:
-                try:
-                    wait_element('/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li', self.cus_code)
-                    break
-                except:
-                    continue
-            customer_li_item_target = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/span/span/span/ul/li')
-            customer_li_item_target.click()
-            
-            #* Close pop up
-            exit_popup_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/span')
-            exit_popup_btn.click()
-            #* wait until pop up disappear
-            while True:
-                try:
-                    customer_popup_input = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[2]/div/div/span/span[1]/span/ul/li/input')
-                    if not customer_popup_input.is_displayed():
-                        break
-                    else:
-                        continue
-                except:
-                    continue
-            
-            find_customer_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/div/div[3]/center/button[1]')
-            find_customer_btn.click()
-            
-            while True:
-                try:
-                    customer_code_target = self.driver.find_element(By.XPATH, f"//*[text()='{self.cus_code}']")
-                    customer_code_target.click()
-                    break
-                except:
-                    continue
-            
-            address_revise_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[2]/div[1]/div/div[6]/a')
+            address_revise_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[2]/div[1]/div/div[6]/a')
             address_revise_btn.click()
-            wait_element('/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
-            address_revise_input_popup = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
+            self.wait_element('/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
+            address_revise_input_popup = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
             
             #* กรอก Address
             address_revise_input_popup.clear()
@@ -4446,75 +4684,87 @@ class Bot_POS:
 
             # * tel.
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').clear()
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').clear()
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys(self.app.cus_tel.get())
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys(self.app.cus_tel.get())
 
             ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
             #* dropdown Country
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[2]/div/span/span[1]/span/span[1]').click()
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[2]/div/span/span[1]/span/span[1]').click()
             time.sleep(1)
             #* select thailand in dropdown
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]').click()
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]').click()
 
             #* province dropdown
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[4]/div/span/span[1]/span/span[1]').click()
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[4]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
                 #* province input
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
             time.sleep(1.75)
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
             self.driver.find_element(
-                # District drop
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]').click()
+                #* District drop
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
-                # District
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+                #* District fill and enter
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
             time.sleep(1.75)
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-            # SubDistrict drop
+            #* SubDistrict drop
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
             self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-            # SubDistrict
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
+                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+            #* SubDistrict fill and enter
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
             self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
             time.sleep(1.75)
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
             
-            revised_submit = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[4]/div[3]/div/div/div[1]/div/button[2]')
-            revised_submit.click()
-            
-            #* กดปิด
             while True:
+                time.sleep(0.25)
                 try:
-                    cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
-                    cancel_btn.click()
-                    break
+                    'SMCO :: ลูกค้า'  in self.merged_dict
+                    success_popup_element = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
+                    if success_popup_element.is_displayed():
+                        break
+                    continue
                 except:
                     continue
+            
+            # #*  กด save เพื่อ บันทึกการเปลี่ยนที่อยู่ แล้วจะทำให้ pop-up แก้ที่อยู่หายไป
+            # revised_submit = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[1]/div/button[2]')
+            # revised_submit.click()
+            
+            #! กดปิดหน้าลูกค้า ใช้ดีไหม ปิดไว้ก่อน
+            # while True:
+            #     try:
+            #         cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
+            #         cancel_btn.click()
+            #         break
+            #     except:
+            #         continue
+                
+            #* กลับไปหน้าการขาย
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
             
             #* เพื่อ reset ค่า address ให้เป็น lasted update
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
-            self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click() #* กด dropdown เพื่อดู list ประเภทของการ query data ลูกค้า
-            self.wait1.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
-            self.driver.find_element(By.XPATH, r'''/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
+            self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click() #* กด dropdown เพื่อดู list ประเภทของการ query data ลูกค้า
+            self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
+            self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
             self.enter_cus_name(self.cus_code) #* ใส่ customer code ลง input ช่องค้นหา
             
             while True: #* รอกด li อันที่1 จาก dropdown ให้มันแสดงผลออกมา
@@ -4526,12 +4776,51 @@ class Bot_POS:
                     continue
                 except:
                     continue
-                    
-            
+        
         else:
             print("Customer address has already corrected")
+            
+    def edit_cus_info(self):
+        while True:
+            try:
+                self.driver.find_element(By.CSS_SELECTOR, f"div.btn-group.pull-right a.btn.btn-default").click()
+                break
+            except:
+                time.sleep(1)
+                continue
+        # WebDriverWait(driver, 12).until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched")))
+        # driver.find_element(By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched").send_keys(self.app.tax_num.get())
+        WebDriverWait(self.driver, 12).until(EC.element_to_be_clickable((By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input")))
+        self.driver.find_element(By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").send_keys(self.app.tax_num.get())
 
-
+    def duplicate_cus_name_resolver(self, popup_dup_element):
+        self.cus_code_element = popup_dup_element
+        self.dup_popup_content = self.cus_code_element.text
+        self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+        if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
+            print("Not Duplicate")
+            return
+        print("close dup popup and dup_popup_content = ",self.dup_popup_content)
+        matched_obj = re.search(r'^C.\d*', self.dup_popup_content, re.MULTILINE)
+        print("matched_obj:", matched_obj)
+        self.cus_code = matched_obj.group()
+        print("cus_code: ", self.cus_code) 
+        self.get_tabs()
+        if not 'SMCO :: ลูกค้า' in self.merged_dict:
+            self.open_customer_edit_page()
+        self.direct_to_customer_info()
+        self.edit_cus_info()
+        
+        #* press the upper right conor save btn
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[1]/div[2]/div[2]/a').click()
+        
+        #* press to close complete popup
+        try:
+            self.wait5.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'body div.swal2-container div.swal2-modal.show-swal2.visible button.swal2-confirm.styled')))
+            self.driver.find_element(By.CSS_SELECTOR, 'body div.swal2-container div.swal2-modal.show-swal2.visible button.swal2-confirm.styled').click()
+        except:
+            pass
+        
 # * function แยก address:str ที่ได้จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง, จังหวัด, ปณ.)-------------------------------------
     def classify_vatinfo_address(self, input):
         try:
@@ -4541,8 +4830,7 @@ class Bot_POS:
 
             # Remove the "ตำบล" and everything after it from the address
             address_only = re.compile(r'(?:ตำบล|ต\.).*')
-            result['address_shortened'] = address_only.sub(
-                '', result['address']).strip()
+            result['address_shortened'] = address_only.sub('', result['address']).strip()
 
             # Define the regular expression pattern
             pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
@@ -4634,8 +4922,7 @@ class Bot_POS:
                     jsession_id = response.cookies['JSESSIONID']
                     print(
                         "we never have usable cookies before that why the response has cookies. We'll use it like a state in app.cookies")
-                    self.app.cookies['vatinfo']['JSESSIONID'] = f"""{
-                        jsession_id}"""
+                    self.app.cookies['vatinfo']['JSESSIONID'] = f"""{jsession_id}"""
                 except Exception as err:
                     # * กรณี ที่ ไม่มี cookies returns กลับมา เพราะอันเก่าใช้ได้อยู่ ใช้ cookies เดิมได้เลย
                     print("if the response is '<RequestCookieJar[]>', it indicates that no cookies were returned. Therefore, we already have available cookies now.", response)
@@ -4766,10 +5053,8 @@ class Bot_POS:
         # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ
         print("assign_address order:", order)
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
-        df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
-            str)
-        df['หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(
-            str)
+        df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(str)
+        df['หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(str)
 
         # * หาตำบลจากไฟล์
         target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
@@ -4930,6 +5215,8 @@ if __name__ == "__main__":
 
     root = CTk()
     # * options
+    ctk.set_appearance_mode("Light")
+    
     # * change icon
     root.iconbitmap(icon_path)
 
@@ -4949,154 +5236,17 @@ if __name__ == "__main__":
     app = MyApp(root)
     root.mainloop()
 
-# ปัญหาที่ต้องแก้
-# *1แก้แล้ว** บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
-# *2 fixed 0.394 // เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
-# *3 แอดใบกำกับ บัค ตรงที่ เราเหลือ ปุ่มสุดท้ายยังไม่กด แต่พอยังไม่กด มันไม่รอ มัน error ไปเลย
-# *4 ลูกค้าธรรมดาไม่ต้องกรอก address แต่ใบกำกับกรอกให้แม่น
-# *5 แก้แล้ว**ใบกำกับ/บิล ลืมล้างค่าก่อน แอด จริงๆ ทุก input ต้องล้างก่อนแอด ควรทำเป็นนิสัย ยังไม่เสร็จ
-# *6แก้แล้ว** ตัวอย่าง order ทำ scrollbar "231010GK0S3VV3" เพราะมีหลายรายการ
-# *7 หน้าท้ายรัน Auto ไปด้วย จะได้ไม่ต้อง copy
-# *8 ปิด thread หลังจบคำสั่งด้วย terminateไม่ได้ แก้ด้วยข้อ 22 แทน
-# *9แก้แล้ว** Total LastPage in SMCO -> ราคาที่ต้องออก
-# *10แก้แล้ว** "Auto หน้าท้าย ทำได้ครั้งเดียว ส่วนนี้มันจะดัก" เวลามี pop-up ขึ้นกรณียิงของแล้ว SN ไม่มี มันจะ BUG  wait มันจะ Error ทีก่อนหน้านี้ waitfail ดันไม่ error งงชิพไห
-# * /html/body/div[16]/div[2]/div[6] มีข้อความ "Your data has been successfully saved doing print Invoice No : B0183-W06-2310130023"
-# *11 มีบัคตรงที่ลูกค้าบางคนใส่ (สำนักงานใหญ่) บางคนไม่ใส่ (สำนักงานใหญ่)//เปลี่ยนวิธี Add ลูกค้า และ ใบกำกับใหม่ ใช้สูตร BigM
-# *12 ทำแล้ว //ทำ input ID PASS
-# *13 แก้แล้วแต่จะใส่ให้สองครั้ง//ยังแก้ไม่ได้ลูกสึก bigM ยังมีปัญหากับตรงนี้อยู่ อาจจะลองแก้ด้วย while True // searhลูกค้า ไม่เจอแล้วแอด มันมีโอกาสที่แอดแล้วไม่เสิชต่อ
-# *14 ทำแล้ว // ทำแยกตารางใหม่โดยใช้ layout แบบ Shopee //ตัวอักษรใน LOG หรือ ทำให้ Log อ่านและแยกแยะง่ายขึ้น ใช่ มันอ่านยากจริงๆ
-# ?15 ตรวจดูแล้วยังไม่เจอสาเหตุ** ข้อความ "เพิ่มไฟล์แล้ว" แสดงผลไม่ถูกต้อง เนื่องจาก แสดงผล แม้ไม่ได้ แอดไฟล์จริงๆ
-# *16 รายงาน มาว่าไม่เจอ แก้แล้วไม่รู้ใช้ได้ยัง // U200b display as ?
-# *17 สินค้าบางประเภทต้องใส่ Variations ของมันด้วย ใน log จะได้แยกได้ เช่น หมึก มันจะไม่บอกสีใน ชื่อสินค้า แต่บอกใน variations
-# *18 มีเลขลำดับบอกใน productslist
-# ?19 แก้แล้ว!!!ยากมาก!!!เลยไม่ชัวว่าแก้ได้จริงป่าว ///order ไม่มี แต่ยังทำงานอยู่ เกิดจากการทำงานมันแยก thread กัน ต้องเอาผลลัพจากการเสิช มาเป็นเงื่อนไขว่าจะทำต่อหรือไม่
-# *20 แก้แล้ว //แก้แล้วรอทดสอบ//ใบกำกับไม่มีคำว่า ใน margetplace มีคำว่า (สำนักงานใหญ่) แต่พอแอดมาดันไม่มี
-# *21 ใช้ได้แล้ว //ทำได้แล้วรอทดสอบ //หน้าสุดท้ายกรอกเบิ้ล หากมีการยกเลิก หรือ รันบอททับ (ยากชิพไห) แต่หลักๆแก้ด้วย while True
-# *22 แก้แล้ว//พวกไม่ขอแต่มีเลข มันจะได้สาขา nan มา ต้องแก้ด้วย
-# *23  เพราะลูกค้าไม่ได้บอกว่าเป็น หจก หรือ บจก ไง เลยทำเงื่อนไขไม่ได้ เพราะกูก็ไม่รู้ว่าต้องเขียนชื่อเป็นอะไร // 231021G8CWC1N5 คำว่า บริษัทไม่ขึ้น
-# *24 แก้แล้ว//เวลาสินค้ามีมากกว่า 1 รายการ แล้วถัดไปมีน้อยลง element ที่แสดงรายการ ของ order ที่แล้วจะไม่หายไป
-# ?25 แก้แล้วเมื่อมี error thread จะถูกปิดทันที //Threading ทำให้ chrome กิน ram หนักมาก จนทำให้ browser ค้าง
-# *26 แก้แล้วเกิดจาก ใช้ตัวแปรผิด ลืมใช้ตัวแปรที่เก็บค่าที่ลบคำแล้ว แต่ใช้ค่าเดิมไปเติม (สำนักงานใหญ่) จึงทำให้คนที่ให้ชื่อที่มีคำว่า "(สำนักงานใหญ่)" จะได้รับการเพิ่มคำว่า "(สำนักงานใหญ่)" ทำให้เบิ้ล //คำว่า สำนักงานใหญ่ เบิ้ล
-# *27 แก้แล้ว // ลูกค้าขอใบกำกับแต่ให้คำว่า สาขาย่อย แต่ไม่มีชื่อสาขา และไม่มีรหัสสาขา แต่code ให้ผลลัพธ์ว่า (สาขาnan)
-# *28 เพิ่ม Bot Status ว่ากำลังทำไรอยู่
-# *29 เพิ่มแล้ว //เพิ่มช่องหมาเหตุจากผู้ซื้อ และ บันทึก
-# *30 ปรับการทำงานให้เข้ากับ SMCO v6.2 อันเดิมคือ 6.1.1
-# *31 แก้แล้ว//เพิ่มหน่วงเวลาให้ตอนกดแอดลูกค้าดูเหมือนว่า element ที่แอดลูกค้า มันจะขึ้นมาช้า locator มันเจอ แต่ กดไม่ได้ ซึ่งcodeผมมันสั่งให้กดไวไป = กับว่า การใช้ wait elment โผล่ กับ clickable element โผล่มันจะไวกว่า ต้องใช้อะไรที่ช้ากว่านั้นก็คือ clickable
-# *32 แก้แล้วมั้ง ปัจจุบันไม่มีปัญหา จำไม่ได้ว่าแก้ตอนไหน // ทำ auto ตอนเริ่ม phase2 แต่ตอนนี้มีปัญหา error data type ถ้าเอาตัวauto ไปใช้ ใน final whileloop
-# !!33 ใน phase2 ก่อน final loop จะต้องเช็คก่อนว่าเข้า final ได้ไหม โดยการเช็ค "ราคารวมก่อนหักseller voucher"  ว่ามีค่าตรงกับ '/html/body/div[1]/div[2]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]' หรือไม่ ถ้าไม่ตรงให้ finalloop ไม่ต้องทำงานแต่จะกด esc ย้อนกลับไปหน้าเก่า
-# *34 แก้แล้วหายแล้ว//แต่ยังบัคอยู่//แก้แล้ว//ตัว auto print bug ย้อนกลับหน้าเดิมไม่ได้
-# *35 แก้แล้วใช้ได้//SMCO เอา Auto ออกทำให้ใช้ไม่ได้
-# !36 ใช้หาใบกำกับได้ดีกว่า vatinfo สะอีก https://www.dataforthai.com/company/{เลข13หลัก}/
-# *37 แก้แล้ว //ใน log ด้านล่าง จะไม่ได้แยกการแสดงผลของ SHOPEE กับ LAZADA นะ
-# ?38 แก้แล้ว // module แปลภาษา รู้สึกจะมีปัญหาเรื่อยๆ เพราะมันมีตัวอักษรพิเศษ แฝงในชื่อด้วย
-# ?39 แก้แล้ว // โหมดเสิชลูกค้ารู้สึกว่าจะไม่มีเวลารอ หรือไม่ก็มีการออกแอคชั่นกด ที่เร็วเกินไป ยังหา elemtn ไม่เจอเลย
-# *40 แก้แล้ว // pop up ของ browser ทำ element ใน DOM หาย ทำให้ while loop error ต้องหยุดในช่วงที่ elment หายส่งผลให้ BOT หยุดทำงาน
-# ?41 หายแล้วแต่ไม่ได้แก้ แค่เดินไปก็หายเอง //810074145748076 วันที่ 16/01/2024 อันนี้เคสตัวอย่างเลขใบกำกับ dtype มันกลายเป็นเลข
-# ?42 24011504S292UB แอดไม่ติด ได้ไงวะ? แต่ปั่นอยู่
-# *43 แก้แล้ว 0.382 // File address lazada ที่ add เข้าไป มันใช้ไม่ได้ หาไม่เจอนั่นเอง
-# *44 0.383 แก้แล้ว // pop-up ของ contextwindow browser มันยังคงทำให้บอทดับอยู่ดีน่าจะเกิดจากการที่เราใช้ time.sleep แต่เราแก้ด้วยการใช้ while + try,except
-# *45 0.384 แก้แล้ว // ปรับความเร็วกรอกบิล ในขั้นตอน reprint
-# *46 0.384 แสดงlogเลขบิล
-# *47 0.385 เอาเลขบิลมาโชว์ที่ GUI
-# Todo 48 กรอกก่อนที่ element จะ display ได้ ดูเหมือนจะเป็นเช่นนั้น
-# * 8/2/2024
-# *49 fixed 0.387 // lazada ราคารวม bug
-# *50 fixed 0.387 // Ultimate CP prototype for หมึก
-# *51 fixed 0.387 // lazada ลูกค้า ภาษาสเปน googletrans ช่วยไม่ได้ กรณีถ้าแปลแล้วไม่ได้จริงๆ return ค่าinput ไปแหละ
-# *52 fixed 0.387 // Order ยกเลิกแสดงผลไม่ชัดเจน
-# *53 fixed 0.387 // shopee ปรับเปลี่ยนวิธีหาชื่อลูกค้าจาก Email เป็น ใช้ เลขผู้เสียภาษี
-# *54 fixed 0.387 // shopee ลดความเร็วในการกรอก แขวง/ตำบล ใน dropdown ตอน เพิ่มชื่อลูกค้าใหม่
-# !55 เอาเป็นว่าใช้เขตบางบอนดีกว่า มีแขวง บางบอนอยู่ 5 อัน แนวทางการแก้ไขอาจจะต้องใช้ req/res เพื่อดึงค่าจาก SMCO มาใช้แล้วแหละไม่งั้นทำไม่ได้ //วัฒนา ทวีวัฒนา dropdown จะมีสองค่า แล้วมันจะเอาค่าที่ยาวกว่าขึ้นก่อน การเลือกอันที่ 1 มันจะ ผิด
-# ?56 สังเกตุมาเป็นปีละไม่เคยเจอกับตัวแต่คนอื่นเจอตลอด // จาก กรุงเทพ กลายเป็น ภูเก็ตได้ order นี้ 2401309DCMAYCS มันคนละแบบกับที่เจอตอนแรกที่ผิดแค่ ตำบล แต่อันนี้ผิดที่จังหวัด ต้องไป recheck ที่จุดเริ่มต้น
-# *57 หายแล้ว จำไม่ได้แก้แพทช์ไหน // ประเทศไม่เลือกไทยในบางกรณี บางกรณีเลือกเป็น china เป็นเพราะเลือกจาก index แต่ไม่ได้เลือกจากข้อความด้านใน
-# !!58 สำคัญมาก ใบกำกับที่ print ออกมาจะ !!!แสดงผลด้วยภาษาไทย!!! แต่จะ !!!เสิชจากภาษาอังกิด!!! ถ้าจะใช้เพื่อ เสิช ต้องใช้ภาษาอังกิด อังกิดจะใส่ไรก็ใส่
-# !59 เวลามีหลาย SKU มัรจะ sonic blow ช้า
-# *60 fixed 0.388 // อัพเดท Path ของ Shopee เนื่องจาก Shopee อัพเดท path หน้าเว็บใหม่
-# *61 fixed 0.388 // Sonic blow บัค
-# *62 fixed 0.389 // Accel_mode มันจบที่หน้าท้ายหน้าปริ้น ทำให้เวลาขึ้น loop ใหม่มันจะ error
-# *63 fixed 0.389 // แก้เป็น float แล้ว // seller voucher Lazada มันมีค่าทศนิยมด้วย เนื่องจากมีบัคเก็บค่าของ sellervoucher เป็น int ไม่ใช่ float
-# *64 fixed 0.389 // เพิ่ม pattern แล้ว // ใน method cus_name_standardizer() นอกจากจะมี "สำนักงานใหญ่" ในชื่อแล้ว บางกรณีมีคำว่า สนญ. ด้วย
-# *65 fixed 0.389 // ทำตัวโหลด chromedriver อัตโนมัติ
-# !66 ยังพังอยู่มันยัง Add ลูกค้าใหม่ได้ยังไม่ดีพอ // fixed 0.390  // ลองแล้วแต่ยังไม่ชัวเพราะใส่ callback recursion ด้วย ซึ่งยังไม่เซียน //การเลือกลูกค้าบางทีข้อมูลลูกค้าไม่ตรงกับที่ขอมา
-# *67 fixed 0.390 ยังไม่ชัว น่าจะยังไม่ได้แก้ // ข้อมูล ไม่ตรงกัน ในส่วนของอันบนและ อันล่าง(ในGUI) orderตัวอย่าง 240416U5DMC0E5 เนื่องจาก Order นี้ มีการใส่ข้อมูลใน column "บันทึก" เข้ามา แปลว่าที่ผ่านมาไม่เคยเจอเลยงั้นรึนี่
-# *68 Fixed 0.390 // SMCO อัพ 6.3.1 24/04/2024 ทำให้ต้องเพิ่ม input ในส่วนของ ประเภทลูกค้า ไม่งั้น submit form ไม่ได้
-# *69 Fixed 0.390 // pop-up หลัง add ชื่อลูกค้ากลับมาอีกครั้ง จัดการแล้ว
-# *70 Update 0.390 // ปรับให้ Lazada ต้องกด save เองกรณีใบกำกับ
-# ?71 Fixed 0.390 Lazada เลขใบกำกับlazada ไม่ยอมเป็น str แถม ตัด 0 ด้านหน้าออก หลังแปลงค่าด้วย
-# *72 Fixed 0.390 // ปรับcode การเลือก ช่องทางชำระเงินให้แม่นยำยิ่งขึ้น
-# *73 Fixed 0.390 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่
-# Todo74 Fixed 0.391 // Last pop-up มีตัวรอ event ที่เป็น driver.wait ทำให้รอนาน ควรเปลี่ยนเป็น while loop จะได้จบ errror ทันที
-# *75 Fixed 0.391 // Shopee อัพเดท ui ใหม่ ทำให้ต้องเปลี่ยน path ใหม่ อีกแล้วเรอะ
-# *76 Fixed 0.391 // จาก ข้อ 66 ปรับวิธีเลือก li ใบกำกับ เนื่องจากอันเดิม เป็นการเลือกจาก "ชื่อเต็ม"จาก li  แต่มันมีปัญหาคือ หา element ไม่เจอ เปลี่ยนไปใช้หาโดย idx แทนทดสอบแล้ว แม่นอยู่ (แต่เดี๋ยว พอใช้จริงพัง 55555)
-# *77 Fixed 0.392 // ปรับช่วงรับ Data ขาเข้าของ Sonicblow ให้ตัด space ออกก่อนแล้ว
-# *78 Done but bug 0.392 // สรุปว่าพัง // ปรับ accel mode แบบ อัดทุก SKU รอทดลองว่าพังไหม
-# !79 issue จากข้อ 78 มันพังเวลาloop หา sku อื่นหลังจากจบ sku ก่อนหน้า อันแรกของ sku ถัดไป จะพังเป็นบางรอบ
-# !80 issue Accel mode ยัง ขาด ความสามารถในการตรวจผลลัพธ์ว่า SN ที่กรอก ถูกต้องหรือไม่ มันกรอกและจบไปเฉยๆ
-# *81 Fixed 0.392 // สามารถใช้ copy shortcut ขณะที่ keyboard input เป็นภาษาอื่นนอกจากภาษาอังกฤษได้แล้ว
-# Todo82 // WIP deduct_accel_file_data ยังไม่เสร็จ เหลือจัดการ sn ต้องเก็บ sn ที่ใช้เป็น array
-# *83 Fixed 0.392 แก้ละ //Shopee ลบชื่อลูกค้าออกไปจาก Exported File แล้ว ทำให้ เพิ่มชื่อลูกค้าไม่ได้ // แนวทางคือ ใช้ชื่อ Account+\s+ชื่อที่มีแต่\* แทน
-# * 84 Fixed // จากข้อ 83 มันจะมีลูกค้าบางคนใช้เครื่องหมาย "(" หรือ ")"ทำให้ชื่อลูกค้าใช้เสิชหาชื่อลูกค้าไม่ได้
-# * 85 Fixed 0.392R2// จากการแก้ 83 ทำให้ lazadabug แก้แล้วรอทดสอบ
-# * 86 Fixed 0.392R3// แก้ Path ของ Shopee เนื่องจาก Shopee อัพเดท path input หน้า "ทั้งหมด" ใหม่
-# !87 // Accelmode ปัญหาน่าจะเกิด เมื่อมีการข้าม บิล sn จะถูกข้ามมั้ง มันมีโอกาสที่จะไม่ดึงSN ที่เหลือ
-# ?88 // แอดแบบมี * น่าจะไม่เวิร์ค เพราะหลายๆค่าใน db มี* ทำให้้ช้ามั้ง ยังไม่เคยลองทดสอบ
-# * 89 Add 0.393 // เพิ่ม ฟังชั่น Read transfer เพื่อเพิ่มลง accelmode_file
-# ! 90 ช่วงถ้ายังเลือก dropdown ไม่ได้มันจะ error
-# ? 91 Fixed 0.394 // ปรับลูกค้าที่มีบันทึกให้อ่านค่าจากบันทึกได้ แต่อาจจะต้องมีทำต่อ เพราะใช้ได้แค่กรณีไม่ได้ขอใบกำกับ ตรงนี้ไม่มีระบบรองรับ ทำให้ input Dynamic มาก
-# * 92 Fixed 0.394 //  อ่านได้ละ //ตัวอ่าน PDF ยังแยก serial ได้ไม่ดี
-# * 93 Fixed 0.394 // แก้ การดึงค่า สถานะ จาก UI ใหม่ Shopee กรณี ส่งสำเร็จ, ยกเลิก, ส่งแล้ว
-# * 94 Fixed 0.394 // น่าจะได้มั้งไม่มี FeedBack // อ่าน sn จาก pdf แล้ว อัพเดทค่า sn ลง state ได้แล้ว  แต่ต้องเทสก่อนว่าตัดค่าได้อย่างเหมาะสมหรือไม่
-# * 95 Fixed 0.395 // แก้ให้เลือกได้แล้ว // มีโอกาสที่จะเลือกประเภทลูกค้าไม่ได้
-# * 96 Add 0.395 // Logger เอาไว้ตรวจสอบการทำงานว่าเริ่มแล้วจบไหม
-# * 97 Fixed 0.395 // แก้ xpath แล้ว shopee ปรับ interface
-# * 98 Fixed 0.395R1 // เพิ่ม regex ในการ read pdf
-# ! 99 popup หลัง add ลูกค้ามันต้องการเวลารอนานกว่านี้ เหมือนมันจะหา element ในขณะที่ตอนกด submit ลูกค้ายังไม่เสร็จ เลยข้าม order // เรียกหาชื่อปกติก็เปน ช่วงก่อนกรอก ค่าส่ง หลังเจอชื่อ
-# ? 100 Fixed 0.395R2 try to see the result after fixed if there still bug or not// duplicated orders will be remove, but removing duplicated order will affect sn columns  to be disappered
-# * 101 Fixed 0.395R2 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 18/09/2024
-# * 102 Fixed 0.395R3 // shopee ปรับ interface พบการเปลี่ยนแปลงวันที่ 19/09/2024 รู้สึกแปลกๆตั้งแต่ของ 0.395R2 แล้วละ เมื่อน element มันไม่ครบ
-# * 103 Fixed 0.395.4 // เปลี่ยนชื่อแล้ว 27/09/2567 16:23 // Lazada เปลี่ยน title ใหม่ เลยเข้า tab lazada ไม่ได้ 27/09/2567 16:23
-# * 104 Add 0.396.0 // update new version Printing 08/10/2024 15:41
-# * 105 Add 0.396.1 // patch new version Printing 08/10/2024 16:46
-# * 106 Add 0.396.2 // patch code error line 538 ลืมใส่ f-string 09/10/2024 14:16
-# * 107 Adde 0.396.3 // patch ชื่อ pdf เป็นเลขบิลใบเสร็จ และ แก้ปัญหา interface shopee โหลดช้าเกินกว่าบอทจะตรวจสถานะ ทำให้ตรวจไม่เจอ เพราะ ui โหลดไม่ทัน
-# * 108 patch 0.396.4 // patch ชื่อ pdf src ที่เก็บ base64 ของSMCO บางครั้งโหลดไม่ทัน เลยต้องปรับ code ใหม่ ให้ตรวจสอบก่อน print
-# * 109 patch 0.396.5 // patch ตัวแปร self.accel_df_state ไม่มีค่าเริ่มต้นทำให้ตอนเช็คเงื่อนไขมันพัง
-# * 110 patch 0.396.6 // patch function get_pdf_src_and_print() function ย่อยภายใน เขียน param ไม่ครบ ทำให้ aguemtn เกิน
-# * 111 patch 0.396.7 // bugfixed accel_mode พัง ใน function "accel_fill_sku(self)" ของ loop accel_mode ที่เช็คว่า "items จาก order ที่สั่ง มีใน accel_file หรือไม่" มีการนำ data type ที่ผิดมาเช็ค ในเงื่อนไข in-condition ทำให้เริ่มกรอก sn ไม่ได้
-# * 112 patch 0.396.8 // patch ปรับปรุงการ print ให้เงียบกว่าเดิม ด้วยการใช้ win32api ซึ่งเงียบและแนบเนียนกว่าการใช้ os.startfile
-# * 113 patch 0.396.9 // fix shopee ปรับ interface ใหม่
-# * 114 patch 0.396.10 // fix shopee ปรับ ปรับ column ใน excel ใหม่
-# * 115 Feature 0.397 // เพิ่มตัวตรวจสอบ ภาษา ของ password ตอน login bot (loginปลอม)
-# * 116 Feature 0.397 // เพิ่มตัวตรวจสอบและแก้ไข address ของ ใบกำกับ ในขั้นตอนหลังจากที่กดเลือกชื่อลูกค้าใบกำกับจาก รายการ dropdown ในหน้ายิงของออบิล
-# * 117 Patch 0.397.1 // แก้ด้วยการ กรอกชื่อลูกค้าใหม่อีกรอบให้อัพเดท address ลูกค้าให้เป็น address ปัจจุบัน //หลังจากแก้ไขข้อมูล address ของลูกค้า แล้ว smco ไม่มีการ update ค่าใหม่ในหน้าออกบิล ต้อง reset ค่าใหม่สักวิธีนึง
-# * 118 Add 0.397.1 // เพิ่มฟังชั่น เติม รหัสพนักงานอัตโนมัติ
-# * 118 Patch 0.397.2 // แก้แล้ว//ตัวเทียบชื่อลูกค้ายังไม่ได้ตัดค่า "\n" ออกจาก shopee's exported data ทำให้วเลาเอามาเทียบจะผิดเสมอ
-
-# Todo ควรจะต้องแยก MODULE เป็นแบบ version ธรรมดา กับ version ETAX เพราะวิธีการทำงานค่อข้างแตกต่างกัน
-#!--------------------- ETAX SAGA ------------------------------------
-# *E1 อยากให้ display Email ใน gui ปัญหาจริงๆมาจาก Shopee ไม่รู้ว่ามีลูกค้าขอใบกำกับ เขาไม่ได้ขอมาโดยตรง แล้วมันขัดกับ วิธีการทำใบกำกับของ SHOPEE สูตร BigM ด้วย
-# *E1.5 ในบิลมันมีคำว่า tax ID : ขึ้นรอไว้เลย แบบมันมัดมือชกเลยว่ามึงต้องแอดใบกำกับเท่านั้น 555+ ต้องกลับมาทำเวย์เดิมแล้ว
-# *E2 The POS does not lead to the printing page. ทำให้ต้องไปเปิดหน้า print แยก ซึ่งอาจจะถูกแก้สักวันละมั้ง
-# *E3 canvas มันไม่โผล่ ทำให้ bot status มันไม่จบ มันจะค้างที่ Your turn
-# Todo ETAX ได้ข่าวมาว่าจะไม่ได้ใช้ตลอดไป แต่อาจจะเลิกใช้ที่เดือนกุมภา วันที่ 15 แปลว่า etax อาจจะเป็นโหมดชั่วคราว
-
-# Todo Future Features
-#!--------------------- Auto CP SAGA ------------------------------------
-# * ACP1 CPs บางอันมันจะมีวันที่ทับกัน
-# * ACP2 CPs แต่ละอันมันอาจจะมีราคาที่ต้องออก เท่ากัน บางอัน
-# * ACP3 แต่ CPs แต่ละอันมันจะมีมูลค่า CP ไม่เท่ากัน ถึงแม้ปลายทางมันจะเหมือนกัน ผลรวมลด เท่ากัน
-
 # เก็บข้อมูล
 # รอให้ final pop-up poped up /html/body/div[16]/div[2]/div[6]
 # หรือ
-# กดปุ่ม รอจนกว่าปุ่มนี้จะกดได้ /html/body/div[16]/div[2]/button[1] then click
+# กดปุ่ม รอจนกว่าปุ่มนี้จะกดได้ /html/body/div[24]/div[2]/button[1] then click
 
 
 # note
-# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2] parent
+# /html/body/div[2]/div[2]/div[2]/div[2]/div[1]/div[2] parent
 
-# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[1]/div[2]/a sv0
-# /html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div/div[1]/div[2]/a MNL
+# /html/body/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[1]/div[2]/a sv0
+# /html/body/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/div/div[1]/div[2]/a MNL
 
 # you should try this to find child 2 <div>
 # div_elements = x.find_elements_by_xpath("./div")
