@@ -2213,3 +2213,55 @@ Stacktrace:
 2025-05-16T17:49:34.973428+0700 INFO Order: 250514TMAKQ8BF Start!!
 2025-05-16T17:51:04.161365+0700 INFO Order: 250514TRT5KA91 Start!!
 2025-05-16T17:53:07.456817+0700 INFO Order: 250514TVJKBHD7 Start!!
+2025-06-06T12:05:04.536920+0700 INFO Order: 250602G5F54F7T Start!!
+2025-06-06T12:05:06.323363+0700 INFO Order: 250602G5F54F7T operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T12:05:14.208702+0700 INFO Order: 250602G5F54F7T Start!!
+2025-06-06T12:05:51.945892+0700 INFO Order: 250602G5F54F7T operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T12:06:01.442208+0700 INFO Order: 250602G5F54F7T Start!!
+2025-06-06T12:07:25.062625+0700 INFO Order: 250602GE4D53VD Start!!
+2025-06-06T15:13:53.302755+0700 INFO Order: 250606SH1SBM9C Start!!
+2025-06-06T15:13:56.403827+0700 INFO Order: 250606SH1SBM9C operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:13:57.134547+0700 INFO Order: 250606RK84QE7C Start!!
+2025-06-06T15:13:59.952140+0700 INFO Order: 250606RK84QE7C operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:14:19.118317+0700 INFO Order: 250606SH1SBM9C Start!!
+2025-06-06T15:16:00.650915+0700 INFO Order: 250606RK84QE7C Start!!
+2025-06-06T15:16:04.168504+0700 INFO Order: 250606RK84QE7C operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:04.719112+0700 INFO Order: 250606RE1HR47H Start!!
+2025-06-06T15:16:08.206846+0700 INFO Order: 250606RE1HR47H operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:08.860776+0700 INFO Order: 250606RH1DN37W Start!!
+2025-06-06T15:16:12.363864+0700 INFO Order: 250606RH1DN37W operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:12.806848+0700 INFO Order: 250606RJRJY12B Start!!
+2025-06-06T15:16:15.817084+0700 INFO Order: 250606RJRJY12B operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:16.830150+0700 INFO Order: 250606RHXWT03X Start!!
+2025-06-06T15:16:20.127915+0700 INFO Order: 250606RHXWT03X operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:44.654215+0700 INFO Order: 250606RK84QE7C Start!!
+2025-06-06T15:16:47.613482+0700 INFO Order: 250606RK84QE7C operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:48.617936+0700 INFO Order: 250606RE1HR47H Start!!
+2025-06-06T15:16:51.534362+0700 INFO Order: 250606RE1HR47H operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:52.612761+0700 INFO Order: 250606RH1DN37W Start!!
+2025-06-06T15:16:55.528315+0700 INFO Order: 250606RH1DN37W operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:56.699043+0700 INFO Order: 250606RJRJY12B Start!!
+2025-06-06T15:16:59.499934+0700 INFO Order: 250606RJRJY12B operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:16:59.729475+0700 INFO Order: 250606RHXWT03X Start!!
+2025-06-06T15:17:02.592634+0700 INFO Order: 250606RHXWT03X operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T15:17:23.246999+0700 INFO Order: 250606RK84QE7C Start!!
+2025-06-06T15:18:47.499742+0700 INFO Order: 250606RE1HR47H Start!!
+2025-06-06T15:20:14.807709+0700 INFO Order: 250606RH1DN37W Start!!
+2025-06-06T15:35:22.438104+0700 INFO Order: 250606RJRJY12B Start!!
+2025-06-06T15:37:42.954803+0700 INFO Order: 250606RHXWT03X Start!!
+2025-06-06T16:23:42.444323+0700 INFO Order: 250605R3NTCDTR Start!!
+2025-06-06T16:23:42.456408+0700 INFO Order: 250605R3NTCDTR operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T16:29:53.845028+0700 INFO Order: 250606T3FAXDKT Start!!
+2025-06-06T16:29:53.939129+0700 INFO Order: 250606T3FAXDKT Not found in the shopee's Export File
+2025-06-06T16:32:18.891064+0700 INFO Order: 250606T3FAXDKT Start!!
+2025-06-06T16:32:19.112812+0700 INFO Order: 250606T3FAXDKT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T16:48:37.696104+0700 INFO Order: 250602GPCXXFBE Start!!
+2025-06-06T16:49:32.628784+0700 INFO Order: 250602GPCXXFBE operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T16:49:49.975260+0700 INFO Order: 250602GPCXXFBE Start!!
+2025-06-06T16:53:58.844620+0700 INFO Order: 250606T3FAXDKT Start!!
+2025-06-06T17:23:37.070841+0700 INFO Order: 250604NDK84D9C Start!!
+2025-06-06T17:42:24.388882+0700 INFO Order: 250606T667UR6Q Start!!
+2025-06-06T17:42:28.113351+0700 INFO Order: 250606T667UR6Q operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-06-06T17:42:35.726421+0700 INFO Order: 250606T5NUAH7N Start!!
+2025-06-06T17:44:34.841428+0700 INFO Order: 250606T4PKXPC9 Start!!
+2025-06-06T17:46:51.815994+0700 INFO Order: 250606T4KPEY20 Start!!

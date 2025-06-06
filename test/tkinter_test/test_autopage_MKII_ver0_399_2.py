@@ -2818,7 +2818,8 @@ class Bot_POS:
         if inv_number in self.extracted_txt:
             print(f"""inv_number:\ncorrect inv!!\n{inv_number}""")
             #* print
-            self.print_pdf_silence(self.pdf_path)
+            # self.print_pdf_silence(self.pdf_path)
+            self.print_pdf_silence_sumatra(self.pdf_path)
         else:
             print(f"""inv_number:\nwrong inv!!\nget src again""")
             if retry_count < max_retries:
@@ -2900,7 +2901,7 @@ class Bot_POS:
         try:
             sumatra_path = self.find_sumatra_from_registry()
             subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
-            print("Printing silently complete.")
+            print("SMT Printing silently complete.")
         except Exception as e:
             print(f"Silent print failed: {e}")
 
