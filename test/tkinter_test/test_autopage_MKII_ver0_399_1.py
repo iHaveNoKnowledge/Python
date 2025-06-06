@@ -2854,19 +2854,19 @@ class Bot_POS:
         except OSError as err:
             print(f"No PDF Reader found: {err}")
             
-    # def print_pdf_silence(self,pdf_path):
-    #     try:
-    #         win32api.ShellExecute(
-    #             0,
-    #             "print",
-    #             f"{pdf_path}",
-    #             '/d:"%s"' % win32print.GetDefaultPrinter(),
-    #             ".",
-    #             0
-    #         )
-    #         print("Printing silently complete.")
-    #     except OSError as err:
-    #         print(f"(silence_mode)No PDF Reader found: {err}")
+    def print_pdf_silence(self,pdf_path):
+        try:
+            win32api.ShellExecute(
+                0,
+                "print",
+                f"{pdf_path}",
+                '/d:"%s"' % win32print.GetDefaultPrinter(),
+                ".",
+                0
+            )
+            print("Printing silently complete.")
+        except OSError as err:
+            print(f"(silence_mode)No PDF Reader found: {err}")
     
     def find_sumatra_from_registry(self):
         reg_paths = [
@@ -2880,7 +2880,7 @@ class Bot_POS:
                     with winreg.OpenKey(reg_root, reg_path) as key: #*เอา path ที่ต่อกันของreg_rootและreg_path มาเปิด แล้วเอาค่าที่เปิดมาเก็บเป็น object เข้า ตัวแปร key ภาษา ui คือ เปิด folder uninstall แต่ใน regedit uninstall เรียกว่า key เพราะมันถูกเก็บเป็น key-value pair 
                         for i in range(0, winreg.QueryInfoKey(key)[0]): #* winreg.QueryInfoKey(key) มันจะ return tuple ที่มีสมาชิก 3 อัน โดยบอกรายละเอียดของkey โดย idx0จะบอก จำนวน subkey(ในui คือfolder ย่อย), idx1บอกว่าkeyนี้มีvalue ไรบ้าง, idx2บอกเวลาที่เปลี่ยนแปลงล่าสุด 
                             try:
-                                subkey_name = winreg.EnumKey(key, i) #* Enumkey ทำการ return "ชื่อsub_key" จาก key(param1) ที่อยู่ลำดับที่ i(param2) 
+                                subkey_name = winreg.EnumKey(key, i) #* Enumkey ทำการ return "ชื่อsub_key" ของ key(param1) ที่อยู่ลำดับที่ i(param2) 
                                 with winreg.OpenKey(key, subkey_name) as subkey: #* เหมือน double click ที่ folderที่ชื่อ subkey_name(param2) ที่อยู่ภายใต้ key(param1), as subkey เหมือนหน้าจอใหม่ที่กำลังแสดงค่าภายใน subkey_name(param2)
                                     display_name, _ = winreg.QueryValueEx(subkey, "DisplayName") #* เป็นการขอเอาค่าออกมจาก sub_keyที่openแล้ว(subkey(param1)), โดยค่าที่เอาออกมานั้นเราจะใส่ค่า value_name ลงไปใน param2 เพื่อที่จะ query เอา value ออกมา ในที่นี้ value_name คือ DisplayName ฉะนั้นมันจะ return value ของ value_name "DisplayName" ภายใต้ subkey ที่กำลังเปิด
                                     if "SumatraPDF" in display_name: #* เทียบดิวะรอไร
@@ -2896,7 +2896,7 @@ class Bot_POS:
         print("ไม่มี SumatraPDF install อยู่ในเครื่องแล้วละมั้ง")
         return None
     
-    def print_pdf_silence(self, pdf_path):
+    def print_pdf_silence_sumatra(self, pdf_path):
         try:
             sumatra_path = self.find_sumatra_from_registry()
             subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
