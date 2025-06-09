@@ -2818,8 +2818,7 @@ class Bot_POS:
         if inv_number in self.extracted_txt:
             print(f"""inv_number:\ncorrect inv!!\n{inv_number}""")
             #* print
-            # self.print_pdf_silence(self.pdf_path)
-            self.print_pdf_silence_sumatra(self.pdf_path)
+            self.print_pdf_silence(self.pdf_path)
         else:
             print(f"""inv_number:\nwrong inv!!\nget src again""")
             if retry_count < max_retries:
@@ -2869,42 +2868,6 @@ class Bot_POS:
         except OSError as err:
             print(f"(silence_mode)No PDF Reader found: {err}")
     
-    def find_sumatra_from_registry(self):
-        reg_paths = [
-            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-            r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-        ]
-
-        for reg_root in [winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER]:
-            for reg_path in reg_paths:
-                try:
-                    with winreg.OpenKey(reg_root, reg_path) as key: #*เอา path ที่ต่อกันของreg_rootและreg_path มาเปิด แล้วเอาค่าที่เปิดมาเก็บเป็น object เข้า ตัวแปร key ภาษา ui คือ เปิด folder uninstall แต่ใน regedit uninstall เรียกว่า key เพราะมันถูกเก็บเป็น key-value pair 
-                        for i in range(0, winreg.QueryInfoKey(key)[0]): #* winreg.QueryInfoKey(key) มันจะ return tuple ที่มีสมาชิก 3 อัน โดยบอกรายละเอียดของkey โดย idx0จะบอก จำนวน subkey(ในui คือfolder ย่อย), idx1บอกว่าkeyนี้มีvalue ไรบ้าง, idx2บอกเวลาที่เปลี่ยนแปลงล่าสุด 
-                            try:
-                                subkey_name = winreg.EnumKey(key, i) #* Enumkey ทำการ return "ชื่อsub_key" ของ key(param1) ที่อยู่ลำดับที่ i(param2) 
-                                with winreg.OpenKey(key, subkey_name) as subkey: #* เหมือน double click ที่ folderที่ชื่อ subkey_name(param2) ที่อยู่ภายใต้ key(param1), as subkey เหมือนหน้าจอใหม่ที่กำลังแสดงค่าภายใน subkey_name(param2)
-                                    display_name, _ = winreg.QueryValueEx(subkey, "DisplayName") #* เป็นการขอเอาค่าออกมจาก sub_keyที่openแล้ว(subkey(param1)), โดยค่าที่เอาออกมานั้นเราจะใส่ค่า value_name ลงไปใน param2 เพื่อที่จะ query เอา value ออกมา ในที่นี้ value_name คือ DisplayName ฉะนั้นมันจะ return value ของ value_name "DisplayName" ภายใต้ subkey ที่กำลังเปิด
-                                    if "SumatraPDF" in display_name: #* เทียบดิวะรอไร
-                                        install_location, _ = winreg.QueryValueEx(subkey, "InstallLocation")
-                                        exe_path = os.path.join(install_location, "SumatraPDF.exe")
-                                        if os.path.isfile(exe_path):
-                                            return exe_path
-                            except (FileNotFoundError, OSError, PermissionError, KeyError):
-                                print("continue")
-                                continue
-                except FileNotFoundError:
-                    continue
-        print("ไม่มี SumatraPDF install อยู่ในเครื่องแล้วละมั้ง")
-        return None
-    
-    def print_pdf_silence_sumatra(self, pdf_path):
-        try:
-            sumatra_path = self.find_sumatra_from_registry()
-            subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
-            print("SMT Printing silently complete.")
-        except Exception as e:
-            print(f"Silent print failed: {e}")
-
     #! WIP accel_mode[1]หากใช้ accel_mode จะดูว่ามี SN ในไฟล์ที่นำเข้าหรือไม่ ถ้ามีให้ระบุว่าเป็นโหมดของเหมือน(uni-SKU) แล้วเอา SN ยัดลงไป เติม CP ให้เรียบร้อย
     def accel_fill_sku(self):
         self.available_sn_skus_lsit = list(self.app.obj_data_from_accel_file.keys())
