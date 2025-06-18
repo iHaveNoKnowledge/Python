@@ -229,7 +229,7 @@ class MyApp:
         ))
         
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver0.400")
+        self.root.title("Autosamatic ver3.0.0")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
