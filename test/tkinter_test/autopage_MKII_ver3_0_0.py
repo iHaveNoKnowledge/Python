@@ -2117,7 +2117,7 @@ class MyApp:
             self.report_log.configure(state=DISABLED)
 
         self.search_complete = threading.Event()
-        self.search_complete.set()
+        
 
         # * สร้าง Thread
         self.shorter_thread_cycle = threading.Thread(target=self.bot.operation_task_thread)
@@ -2156,6 +2156,7 @@ class MyApp:
     def stop_operation(self):
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
         self.is_bot_running.set(False)
+        self.search_complete.set()
 
     def convert_text(self, text):
         result = []
