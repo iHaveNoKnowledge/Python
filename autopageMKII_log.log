@@ -2293,3 +2293,37 @@ Stacktrace:
 2025-07-07T17:08:50.306880+0700 INFO Order: 250707FT8YUX4N Start!!
 2025-07-07T17:11:21.016091+0700 INFO Order: 250707FVPJ9VSQ Start!!
 2025-07-07T17:14:10.735185+0700 INFO Order: 250707FTA9U72E Start!!
+2025-07-09T17:58:07.328108+0700 INFO Order: 250707F4SU1XH4 Start!!
+2025-07-09T17:58:10.301358+0700 INFO Order: 250707F4SU1XH4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T17:58:15.326995+0700 INFO Order: 250707F4SU1XH4 Start!!
+2025-07-09T17:58:18.102149+0700 INFO Order: 250707F4SU1XH4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T17:59:42.832456+0700 INFO Order: 250707F4SU1XH4 Start!!
+2025-07-09T17:59:45.741192+0700 INFO Order: 250707F4SU1XH4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:00:00.786485+0700 INFO Order: 250707F4SU1XH4 Start!!
+2025-07-09T18:00:03.545197+0700 INFO Order: 250707F4SU1XH4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:02:48.451244+0700 INFO Order: 250707F4S09MKB Start!!
+2025-07-09T18:02:51.405759+0700 INFO Order: 250707F4S09MKB operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:07:13.156990+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:07:16.295012+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:08:42.556391+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:09:53.148401+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:10:13.954269+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:10:30.442978+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:10:33.492917+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:12:38.108343+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:12:41.186839+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:14:50.923022+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:14:54.219054+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:17:22.723840+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:17:25.983619+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:21:22.547049+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:21:25.806396+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:22:51.962925+0700 INFO Order: ทำไมใช้ while ไม่ได้ Not found in the shopee's Export File
+2025-07-09T18:22:52.042554+0700 INFO Order: ทำไมใช้ while ไม่ได้ operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-07-09T18:22:58.981901+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:23:02.248239+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:27:30.152726+0700 INFO Order: 250707F4RACHP4 Start!!
+2025-07-09T18:27:33.416339+0700 INFO Order: 250707F4RACHP4 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-09T18:30:19.359602+0700 INFO Order: 250707F4S09MKB Start!!
+2025-07-09T18:32:09.493025+0700 INFO Order: 250707F4S09MKB Start!!
+2025-07-09T18:32:13.570250+0700 INFO Order: 250707F4S09MKB Start!!

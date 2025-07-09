@@ -2043,7 +2043,7 @@ class MyApp:
         print("ก่อนifเช็คตัวรัน excel", self.search_thread_stat)
         if self.get_tabs_thread.is_alive():
             print("self.get_tabs_thread.is_alive()")
-            # self.search_complete.set()
+            # self.operation_thread.set()
             self.get_tabs_thread.join()
 
         print("Thread is done คงเหงาแย่")
@@ -2116,12 +2116,14 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.configure(state=DISABLED)
 
-        self.search_complete = threading.Event()
-        
+        self.operation_thread = threading.Event()
+        self.order_Search_thread = threading.Event()
+        self.operation_thread.clear()
+        print("self.operation_thread: ", self.operation_thread.is_set())
 
         # * สร้าง Thread
-        self.shorter_thread_cycle = threading.Thread(target=self.bot.operation_task_thread)
-        self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.search_complete))
+        self.shorter_thread_cycle = threading.Thread(target=lambda: self.bot.operation_task_thread(self.operation_thread) )
+        self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.order_Search_thread))
         print("Thread Name: ", self.longer_thread_cycle.name)
         
         # * สั่ง Thread ให้เริ่มทำงาน
@@ -2156,7 +2158,7 @@ class MyApp:
     def stop_operation(self):
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
         self.is_bot_running.set(False)
-        self.search_complete.set()
+        self.operation_thread.set()
 
     def convert_text(self, text):
         result = []
@@ -2633,26 +2635,31 @@ class Bot_POS:
             self.merged_dict = dict(zip(self.unique_titles, self.value_list))
             print("มี tabs ไรบ้าง", self.merged_dict)
 
-    def operation_task_thread(self):
-        try:
-            self.get_tabs()
-            # * เริ่มการทำงาน Operation Start
-            if self.app.order != "":
+    def operation_task_thread(self, event=None):
+        self.operation_thread = event
+        if  not self.operation_thread.is_set():
+            try:
+                self.get_tabs()
+                # * เริ่มการทำงาน Operation Start
+                if self.app.order != "" and not self.operation_thread.is_set():
 
-                logger.info(f"Order: {self.app.order} Start!!")
-                try:
-                    self.operation_start()
-                except EXCEPTION as err:
-                    logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
-            else:
-                self.app.update_log("กรุณากรอก Order ก่อน")
-                self.app.search_complete.set()
+                    logger.info(f"Order: {self.app.order} Start!!")
+                    try:
+                        self.operation_start()
+                    except EXCEPTION as err:
+                        logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
+                else:
+                    self.app.update_log("กรุณากรอก Order ก่อน")
+                    self.app.search_complete.set()
 
-        except Exception as err:
-            traceback_str = traceback.format_exc()
-            print(f"operation_task_thread, An error occirred: {err}")
-            print(traceback_str)
-            logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
+            except Exception as err:
+                traceback_str = traceback.format_exc()
+                print(f"operation_task_thread, An error occirred: {err}")
+                print(traceback_str)
+                logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
+        else:
+            print("Operation thread is already set, skipping operation task")
+            self.app.update_log("Operation thread is already set, skipping operation task")
 
     def enter_cus_name(self, cus_search):
         # * จับตาดูว่า ul เปิดอยู่ไหม
@@ -2984,13 +2991,13 @@ class Bot_POS:
             print("No items, return!!")
             return
 
-    def operation_start(self):
+    def operation_start(self):      
         self.app.is_gui_busy.set(True)
         self.is_forbid = False
         is_etax = False
         inv_number = ""
         self.operation_states = {"purchase_channel":None}
-        if self.app.order != "":
+        if self.app.order != "" and not self.operation_thread.is_set():
             ### * MARKETPLACES Part ########################################################################################
             self.autofinal = False
             print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
@@ -3344,7 +3351,8 @@ class Bot_POS:
             # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
             self.customer_added_times = 0
             self.customer_name_search_count = 0
-            while True:
+            print("ทำไมใช้ while ไม่ได้: ", not self.operation_thread.is_set())
+            while not self.operation_thread.is_set():
                 if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
                     time.sleep(0.7)
                     # self.wait50.until(EC.visibility_of_element_located(
@@ -3404,7 +3412,7 @@ class Bot_POS:
                 break
 
             # !66 เปลี่ยนวิธีเลือกชื่อลูกค้า
-            while True:
+            while not self.operation_thread.is_set():
                 try:
                     customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
@@ -3455,7 +3463,7 @@ class Bot_POS:
             if not self.app.user_id.get() in self.smco_current_emp:
                 self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
                 self.driver.find_element(By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
-                while True:
+                while not self.operation_thread.is_set():
                     time.sleep(0.25)
                     try:
                         if self.app.user_id.get() in self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text:
@@ -3561,7 +3569,7 @@ class Bot_POS:
                 self.accel_fill_sku()
 
             self.autofinal = True
-            while self.autofinal:
+            while self.autofinal and not self.operation_thread.is_set():
                 self.app.is_gui_busy.set(False)
                 print("Enter final loop")
                 print("Waiting for element to appear")
@@ -5172,10 +5180,10 @@ class Bot_POS:
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
-            #! ตรงนี้ผิด กุลบทำไมวะ
+            #! ตรงนี้ผิด ลบทำไม
             # prog = re.compile(fr'{re.escape(decent_tambon)}.*')
             # cleaned_address = prog.sub('', cleaned_address)
-            # print("ลบไม่ได้วะ", cleaned_address)
+            # print("ลบไม่ได้", cleaned_address)
 
             # * เลือกว่าจะ ตำบล หรหือ แขวง
             if decent_tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
