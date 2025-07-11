@@ -2338,3 +2338,24 @@ Stacktrace:
 2025-07-11T11:26:47.577781+0700 INFO Order: 250710QMD7TA0S operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-07-11T11:26:51.255008+0700 INFO Order: 250710QMD7TA0S operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
 2025-07-11T11:27:00.469560+0700 INFO Order: 250710QP08FTAS Start!!
+2025-07-11T16:04:32.693240+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:07:59.525688+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:13:45.525131+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:13:57.536777+0700 INFO Order: 250710QUUXRXMV stop operation
+2025-07-11T16:14:03.808392+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:14:13.425359+0700 INFO Order: 250710QUUXRXMV stop operation
+2025-07-11T16:21:26.792263+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:21:46.179858+0700 INFO Order: 250710QUUXRXMV operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T16:43:35.149668+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:46:00.043440+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:47:45.626292+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:49:49.800546+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:50:14.594234+0700 INFO Order: 250710QUUXRXMV operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T16:52:30.132335+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:52:41.115841+0700 INFO Order: 250710QUUXRXMV stop operation
+2025-07-11T16:52:54.270187+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:52:59.522265+0700 INFO Order: 250710QUUXRXMV operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T16:53:06.422832+0700 INFO Order: 250710QUUXRXMV stop operation
+2025-07-11T16:53:10.054621+0700 INFO Order: 250710QUUXRXMV Start!!
+2025-07-11T16:53:30.308037+0700 INFO Order: 250710QUUXRXMV stop operation
+2025-07-11T16:53:34.978386+0700 INFO Order: 250710QUUXRXMV Start!!
