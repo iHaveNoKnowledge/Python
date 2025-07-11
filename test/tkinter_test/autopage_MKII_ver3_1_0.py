@@ -429,6 +429,15 @@ class MyApp:
             self.inp1_order_input.grid(row=0, column=3)
             self.inp1_search_btn.grid(row=0, column=5, padx=5)
 
+    def seller_voucher_popup_checkbox_toggle(self):
+        if self.is_seller_voucher_popup.get():
+            self.seller_voucher_popup_checkbox.configure(bg='#21ff29', fg='#000')
+        else:
+            self.seller_voucher_popup_checkbox.configure(
+            bg="#BF2D2A", 
+            fg="#FFF"
+        )
+
     #! น่าจะไม่ได้ใช้ deprecated
     # def seller_voucher_popup_toggle(self):
     #     self.is_seller_voucher_popup.set(not self.is_seller_voucher_popup.get())
@@ -531,7 +540,7 @@ class MyApp:
         
         # * > Seller voucher Pop-up Checkbox
         # * >> Checkbox for activation toggle
-        self.seller_voucher_popup_checkbox = Checkbutton(self.entry_frame, text="S.V.Notice", variable=self.is_seller_voucher_popup)
+        self.seller_voucher_popup_checkbox = Checkbutton(self.entry_frame, text="S.V.Notice", variable=self.is_seller_voucher_popup, command=self.seller_voucher_popup_checkbox_toggle, bg="#BF2D2A", fg="#FFF")
         self.seller_voucher_popup_checkbox.grid(row=0, column=9, padx=5)
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
