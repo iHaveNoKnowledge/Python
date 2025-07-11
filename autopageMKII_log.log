@@ -2327,3 +2327,14 @@ Stacktrace:
 2025-07-09T18:30:19.359602+0700 INFO Order: 250707F4S09MKB Start!!
 2025-07-09T18:32:09.493025+0700 INFO Order: 250707F4S09MKB Start!!
 2025-07-09T18:32:13.570250+0700 INFO Order: 250707F4S09MKB Start!!
+2025-07-11T11:17:55.624616+0700 INFO Order: 250710QKQJGP4Y Start!!
+2025-07-11T11:19:24.103728+0700 INFO Order: 250710QKQJGP4Y operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T11:19:54.413044+0700 INFO Order: 250710QKQJGP4Y Start!!
+2025-07-11T11:19:59.255126+0700 INFO Order: 250710QKQJGP4Y operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T11:25:10.772565+0700 INFO Order: 250710QN4AXM4X Start!!
+2025-07-11T11:26:17.364731+0700 INFO Order: 250710QN4AXM4X Start!!
+2025-07-11T11:26:40.029571+0700 INFO Order: 250710QN4AXM4X Start!!
+2025-07-11T11:26:47.040578+0700 INFO Order: 250710QMD7TA0S Start!!
+2025-07-11T11:26:47.577781+0700 INFO Order: 250710QMD7TA0S operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T11:26:51.255008+0700 INFO Order: 250710QMD7TA0S operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-07-11T11:27:00.469560+0700 INFO Order: 250710QP08FTAS Start!!

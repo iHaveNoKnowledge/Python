@@ -1,4 +1,5 @@
 
+
 import pytz
 import datetime
 from loguru import logger
@@ -75,6 +76,9 @@ print("file located:", directory_of_file)
 
 # * ปรับ https ให้ตัว translate
 setattr(httpcore, 'SyncHTTPTransport', 'AsyncHTTPProxy')
+
+if getattr(sys, 'frozen', False):
+    import pyi_splash
 
 
 class MyApp:
@@ -2122,7 +2126,7 @@ class MyApp:
         print("self.operation_thread: ", self.operation_thread.is_set())
 
         # * สร้าง Thread
-        self.shorter_thread_cycle = threading.Thread(target=lambda: self.bot.operation_task_thread(self.operation_thread) )
+        self.shorter_thread_cycle = threading.Thread(target=lambda: self.bot.operation_task_thread(self.operation_thread))
         self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.order_Search_thread))
         print("Thread Name: ", self.longer_thread_cycle.name)
         
@@ -2159,6 +2163,7 @@ class MyApp:
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
         self.is_bot_running.set(False)
         self.operation_thread.set()
+        logger.info(f"Order: {self.order} stop operation")
 
     def convert_text(self, text):
         result = []
@@ -3573,7 +3578,7 @@ class Bot_POS:
                 self.app.is_gui_busy.set(False)
                 print("Enter final loop")
                 print("Waiting for element to appear")
-                while self.parent.winfo_exists() and self.autofinal:
+                while self.parent.winfo_exists() and not self.operation_thread.is_set():
                     time.sleep(0.55)
                     while True:
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
@@ -3983,6 +3988,7 @@ class Bot_POS:
                         else:
                             print("จบสูตร")
                         self.autofinal = False
+                        self.operation_thread.set()
                         break
 
                     print("Whileหลัก ถ้ามาถึงนี่แปลว่าต้องเริ่มใหม่")
@@ -3991,6 +3997,7 @@ class Bot_POS:
 
             print("จบ auto_last_page")
             self.autofinal = False
+            self.operation_thread.set()
             # self.driver.quit()
 
         else:
@@ -5289,7 +5296,10 @@ if __name__ == "__main__":
 
     # * Create Instance
     app = MyApp(root)
+    if getattr(sys, 'frozen', False):
+        pyi_splash.close()
     root.mainloop()
+    
 
 # เก็บข้อมูล
 # รอให้ final pop-up poped up /html/body/div[16]/div[2]/div[6]
