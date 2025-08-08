@@ -83,6 +83,7 @@ if getattr(sys, 'frozen', False):
 
 class MyApp:
     def __init__(self, root):
+        #* Variables------------------------------------------------------------------------------------
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
         self.is_bot_running = BooleanVar(value=False)
@@ -121,7 +122,6 @@ class MyApp:
         self.cusNameInput = '/html/body/span/span/span[1]/input'
         self.cusSearchSMCO = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
         self.cusCreateBtn = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[13]/button[1]'
-        
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
@@ -129,16 +129,18 @@ class MyApp:
             'JSESSIONID': '',
         }}
         self.is_gui_busy = BooleanVar(value=False)
-        self.bot = Bot_POS(self.root, self)
-        # self.cus_masked_name = StringVar(value="")
-        # self.cus_masked_tel = StringVar(value="")
-
+        self.mimic_list_item_states = []
+        
+        #* เราจะใช้สอง obj หลักๆ UI กับ BOT WEBDRIVER ###################################################################
+        #* 1)Create UI ---------------------------------------------------------------------------------------------
         self.scale_factor = self.adjust_scale(self.root, 1000, 900)
         self.create_main_window()
         self.scale_widget(self.root, self.scale_factor)
-        self.get_dataframe()
-        self.mimic_list_item_states = []
+        #! self.get_dataframe() สร้างไว้ไมวะ
         logger.add("autopageMKII_log.log", format="{time} {level} {message}", level="INFO")
+        
+        #* 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
+        self.bot = Bot_POS(self.root, self)
 
     def demonic_cp_selection(self):
         self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
@@ -2178,8 +2180,9 @@ class MyApp:
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
 
-    def get_dataframe(self):
-        print("เรียกหา dataframe")
+    #! สร้างไว้ไมวะ
+    # def get_dataframe(self):
+    #     print("เรียกหา dataframe")
 
 
 # สำหรับเลือกที่มาของแหล่งข้อมูล
@@ -4808,7 +4811,7 @@ class Bot_POS:
             # revised_submit = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[1]/div/button[2]')
             # revised_submit.click()
             
-            #! กดปิดหน้าลูกค้า ใช้ดีไหม ปิดไว้ก่อน
+            #? กดปิดหน้าลูกค้า ใช้ดีไหม ปิดไว้ก่อน
             # while True:
             #     try:
             #         cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
