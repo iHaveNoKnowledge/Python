@@ -2724,7 +2724,7 @@ class Bot_POS:
             # * ถ้ามันเจอก็จะ break ไม่เจอค่อย cb
         try:
             if cb:
-                print("use callback")
+                print("use callback layer1")
                 cb(names)
 
             # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
@@ -2733,10 +2733,16 @@ class Bot_POS:
             # self.add_new_customer()
         except:
             print("cb doesn't works")
-
+        #? ไม่แน่ใจ เลือกไม่เจอ add ใหม่ ใช้ได้ป่าวไม่รู้ //refactor ตรงนี้ refator ได้นะ มันมีการ add ลูกค้าแล้วเลือกใหม่สองจุด คือ จุดนี้ และ จุดปกติ
+        self.add_new_customer()
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        print("ก่อนRe Enter ชื่อลูกค้า")
+        self.enter_cus_name(self.cus_search_input)
+        print(f"Re enter name after add")
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
         try:
             if cb:
+                print("use callback layer2")
                 cb(names)
         except:
             print("cb doesn't works")
@@ -2934,7 +2940,7 @@ class Bot_POS:
         ordered_items = self.app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_items)
         if len(ordered_items) > 0:
-            for ordered_item in ordered_items:
+            for i, ordered_item in enumerate(ordered_items):
                 print("item ordered by customer", ordered_item)
                 current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
                 print("current_sku: ", current_sku)
@@ -2956,7 +2962,7 @@ class Bot_POS:
                                 except:
                                     continue
                             #! sn = self.app.obj_data_from_accel_file[current_sku].pop(0) เพราะตรงนี้มันใช้ pop(0) ทำให้กรณีข้าม order sn ที่คู่กับ order ที่ถูกข้ามมันจะถูกข้ามไปด้วย 
-                            sn = self.app.obj_data_from_accel_file[current_sku][0]
+                            sn = self.app.obj_data_from_accel_file[current_sku][i]
                             skuInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                             skuInput.clear()
                             attempts = 10
