@@ -2552,3 +2552,68 @@ Stacktrace:
 2025-08-08T18:01:48.188013+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
 2025-08-08T18:01:49.219285+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
 2025-08-08T18:01:50.316830+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:09:10.070632+0700 INFO Order: 2508089PJUY053 Start!!
+2025-08-10T12:15:04.589208+0700 INFO Order: 2508089PJUY053 stop operation
+2025-08-10T12:15:18.798080+0700 INFO Order: 250807624EDMEN Start!!
+2025-08-10T12:16:26.488638+0700 INFO Order: 2508077YX829AN Start!!
+2025-08-10T12:16:29.577061+0700 INFO Order: 2508077YX829AN operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-08-10T12:16:30.540458+0700 INFO Order: 250807831QCTTF Start!!
+2025-08-10T12:16:33.351410+0700 INFO Order: 250807831QCTTF operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-08-10T12:16:33.584535+0700 INFO Order: 25080783TGV67P Start!!
+2025-08-10T12:18:20.598336+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:21.559815+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:22.554884+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:23.573891+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:24.597917+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:25.630746+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:26.652928+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:27.672493+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:28.686461+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:29.880110+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:30.787825+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:31.784108+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:32.824332+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:33.806535+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:18:34.848014+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T12:21:45.466471+0700 INFO Order: 2508077YX829AN Start!!
+2025-08-10T12:22:52.562811+0700 INFO Order: 250807831QCTTF Start!!
+2025-08-10T12:24:12.343126+0700 INFO Order: 25080889YBUYC6 Start!!
+2025-08-10T12:25:36.920419+0700 INFO Order: 2508088ARV96G1 Start!!
+2025-08-10T12:26:43.480960+0700 INFO Order: 2508088BTKU6AU Start!!
+2025-08-10T12:27:58.255613+0700 INFO Order: 2508088J5EHA2A Start!!
+2025-08-10T12:28:58.932307+0700 INFO Order: 25080889S9A4WG Start!!
+2025-08-10T12:30:12.542099+0700 INFO Order: 2508089PJUY053 Start!!
+2025-08-10T12:31:20.209908+0700 INFO Order: 250809C7VJQGN1 Start!!
+2025-08-10T12:34:44.984394+0700 INFO Order: 250809C9R0BYC9 Start!!
+2025-08-10T12:36:44.463360+0700 INFO Order: 250809C9FJF4NP Start!!
+2025-08-10T14:19:49.554314+0700 INFO Order: 250809C9FJF4NP stop operation
+2025-08-10T14:19:51.896929+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:19:52.766284+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:19:53.913388+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:19:54.813438+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:19:55.819408+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:19:56.837506+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:20:12.311176+0700 INFO Order: 250809C9FJF4NP Start!!
+2025-08-10T14:21:28.090439+0700 INFO Order: 250809C9FJF4NP operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-08-10T14:21:28.626516+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:21:29.666274+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:21:30.658237+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:21:31.642043+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:21:32.679302+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:21:33.695725+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-08-10T14:21:42.375146+0700 INFO Order: 250809C9FJF4NP Start!!
+2025-08-10T14:22:43.723607+0700 INFO Order: 250809C2AT1J6C Start!!
+2025-08-10T14:23:41.977814+0700 INFO Order: 250809CD106K7P Start!!
+2025-08-10T14:49:39.275228+0700 INFO Order: 250809CD106K7P Start!!
+2025-08-10T14:51:09.535334+0700 INFO Order: 250809CDE00BVG Start!!
+2025-08-10T14:51:12.930684+0700 INFO Order: 250809CDE00BVG operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-08-10T14:51:14.298956+0700 INFO Order: 250809CDW5CM0F Start!!
+2025-08-10T14:51:17.039488+0700 INFO Order: 250809CDW5CM0F operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-08-10T14:51:18.250831+0700 INFO Order: 250809CCYBPNCF Start!!
+2025-08-10T15:01:02.784616+0700 INFO Order: 250809CAUNYBQM Start!!
+2025-08-10T15:03:01.296240+0700 INFO Order: 250809CDE00BVG Start!!
+2025-08-10T15:04:03.607463+0700 INFO Order: 250809CDW5CM0F Start!!
+2025-08-10T15:05:36.731883+0700 INFO Order: 2508078663BADB Not found in the shopee's Export File
+2025-08-10T15:05:37.005133+0700 INFO Order: 2508078663BADB Start!!
+2025-08-10T15:07:58.842119+0700 INFO Order: 2508078663BADB Not found in the shopee's Export File
+2025-08-10T15:07:59.358264+0700 INFO Order: 2508078663BADB Start!!

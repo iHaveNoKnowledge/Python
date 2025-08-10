@@ -2962,13 +2962,14 @@ class Bot_POS:
                                 except:
                                     continue
                             #! sn = self.app.obj_data_from_accel_file[current_sku].pop(0) เพราะตรงนี้มันใช้ pop(0) ทำให้กรณีข้าม order sn ที่คู่กับ order ที่ถูกข้ามมันจะถูกข้ามไปด้วย 
-                            sn = self.app.obj_data_from_accel_file[current_sku][i]
+                            sn = self.app.obj_data_from_accel_file[current_sku][0]
                             skuInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                             skuInput.clear()
                             attempts = 10
                             while attempts > 0:
                                 try:
                                     skuInput.send_keys(sn)
+                                    self.app.obj_data_from_accel_file[current_sku].pop(0)
                                     break
                                 except:
                                     time.sleep(0.5)
@@ -3916,7 +3917,7 @@ class Bot_POS:
                                         try:
                                             self.used_serials
                                             print("Accel mode used")
-                                            self.app.deduct_accel_file_data(self.app.cus_order,getattr(self, "used_serials", [])) #* ใช้ getattr() แทน self.used_serialsโดยตรง เพราะ ค่า self.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                                            self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", [])) #* ใช้ getattr() แทน self.used_serialsโดยตรง เพราะ ค่า self.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
                                         except:
                                             print("Accel mode not used")
                                             pass
