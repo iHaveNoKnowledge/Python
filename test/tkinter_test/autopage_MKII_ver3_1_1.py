@@ -2690,14 +2690,14 @@ class Bot_POS:
             self.addNormalCustomer(self.cus_search_input)
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
-    def select_cus_name_from_lis(self, names, cb=""):
+    def select_cus_name_from_lis(self, target_names_from_li, cb=""):
         cus_desire_name = self.app.cus_name.get()
         cus_desire_name = cus_desire_name.replace("จำกัด", "").replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("บริษัท", "").replace(" ", "")
         cus_desire_name = re.sub(r'^บจก\.?','',cus_desire_name)
     
         # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array
-        names_no_code = names.copy()
-        for i in range(len(names)):
+        names_no_code = target_names_from_li.copy()
+        for i in range(len(target_names_from_li)):
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
 
@@ -2707,7 +2707,7 @@ class Bot_POS:
                 print("ชื่อที่ต้องการ อยู่ใน li")
                 while True:
                     try:
-                        print("เลือกชื่อลูกค้า", names[i])
+                        print("เลือกชื่อลูกค้า", target_names_from_li[i])
                         self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
                         break
 
@@ -2719,7 +2719,7 @@ class Bot_POS:
         try:
             if cb:
                 print("use callback layer1")
-                cb(names)
+                cb(target_names_from_li)
 
             # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
             # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
@@ -2737,7 +2737,7 @@ class Bot_POS:
         try:
             if cb:
                 print("use callback layer2")
-                cb(names)
+                cb(target_names_from_li)
         except:
             print("cb doesn't works")
 

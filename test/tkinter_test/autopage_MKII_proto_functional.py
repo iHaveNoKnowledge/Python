@@ -2,7 +2,7 @@
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
-from test_auto_cus_name_MKII import *
+from test.tkinter_test.auto_cus_name_MKII import *
 # %run test_input_receiver.ipynb
 
 
