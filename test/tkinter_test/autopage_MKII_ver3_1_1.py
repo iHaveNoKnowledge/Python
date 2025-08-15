@@ -1689,6 +1689,7 @@ class MyApp:
 
                 # * ชื่อที่ต้องออกใบกำกับ
                 try:
+                    #* ต้องใช้ translator เพราะ ในระบบ รับได้แค่ ภาษา "ไทย" กับ "อังกฤษเท่านั้น" ใช่แล้วฉันเคยเจอ เกาหลี ญี่ปุ่น แม้แต่ อิโมจิก็เคยเจอมาแล้ว พวกนี้ web ที่รับ input รับภาษาเหล่านี้ไม่ได้เลย
                     self.cus_name.set(self.translator(re.sub(r'\s{2,}', " ", self.nondistortedData['ชื่อ'].strip().replace('\u200b', ''))))
                 except:
                     # * ถ้าชื่อมันว่างมันจะ strip()
@@ -2690,14 +2691,13 @@ class Bot_POS:
             self.addNormalCustomer(self.cus_search_input)
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
-    def select_cus_name_from_lis(self, target_names_from_li, cb=""):
-        cus_desire_name = self.app.cus_name.get()
+    def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
         cus_desire_name = cus_desire_name.replace("จำกัด", "").replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("บริษัท", "").replace(" ", "")
         cus_desire_name = re.sub(r'^บจก\.?','',cus_desire_name)
     
         # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array
-        names_no_code = target_names_from_li.copy()
-        for i in range(len(target_names_from_li)):
+        names_no_code = cus_name_list.copy()
+        for i in range(len(cus_name_list)):
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
 
@@ -2707,7 +2707,7 @@ class Bot_POS:
                 print("ชื่อที่ต้องการ อยู่ใน li")
                 while True:
                     try:
-                        print("เลือกชื่อลูกค้า", target_names_from_li[i])
+                        print("เลือกชื่อลูกค้า", cus_name_list[i])
                         self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
                         break
 
@@ -2719,7 +2719,7 @@ class Bot_POS:
         try:
             if cb:
                 print("use callback layer1")
-                cb(target_names_from_li)
+                cb(cus_desire_name, cus_name_list)
 
             # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
             # print('ไม่เจอ แอดใหม่ เปลี่ยนชื่อให้ด้วย')
@@ -2737,7 +2737,7 @@ class Bot_POS:
         try:
             if cb:
                 print("use callback layer2")
-                cb(target_names_from_li)
+                cb(cus_name_list)
         except:
             print("cb doesn't works")
 
@@ -3338,9 +3338,9 @@ class Bot_POS:
                 self.enter_cus_name(self.cus_search_input)
                 print("กรอกชื่อเสร็จ")
                 # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
-                self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+                self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
                 # * มันจะได้ Searching...
-                print("มันทำไม", self.wait_condition.text)
+                print("มันทำไม", self.searching_condition.text)
 
                 # ? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
                 # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[24]/div[2]/button[1]"
@@ -3366,13 +3366,13 @@ class Bot_POS:
                     #     (By.XPATH, self.app.cusNameLi1)))
 
                     # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
-                    self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+                    self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
 
                     # * ช่วงรอ ผลลัพของ Searching...
                     try:
-                        if self.wait_condition.text == "Searching...":
+                        if self.searching_condition.text == "Searching...":
                             continue
-                        elif self.wait_condition.text:
+                        elif self.searching_condition.text:
                             print("text element not display Searching...")
                             pass
                     except:
@@ -3380,16 +3380,18 @@ class Bot_POS:
 
                     # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
                     self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
-                    self.wait_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+                    self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
 
                     # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
-                    if self.wait_condition.text == "No results found" and self.customer_added_times == 0:
+                    if self.searching_condition.text == "No results found" and self.customer_added_times == 0:
                         print("No results found and NeverAdd")
                         self.add_new_customer()
                         try:
                             #* กรณี add แล้ว มี popup-duplicate customer
                             self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
                             cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
+                            #* เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
+                            #*-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
                             self.duplicate_cus_name_resolver(cus_code_element)
         
                         except EXCEPTION as err:
@@ -3403,13 +3405,13 @@ class Bot_POS:
                         print(f"Re enter name after add")
                         continue
                     # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
-                    elif self.wait_condition.text == "No results found" and self.customer_name_search_count < 1:
+                    elif self.searching_condition.text == "No results found" and self.customer_name_search_count < 1:
                         self.enter_cus_name(self.cus_search_input)
                         self.customer_name_search_count += 1
                         print(f"Re enter name after add extra times {self.customer_name_search_count}")
                         continue
                     # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
-                    elif self.wait_condition.text == "No results found" and self.customer_added_times == 1:
+                    elif self.searching_condition.text == "No results found" and self.customer_added_times == 1:
                         print("I've already add it, but the element still shows 'No results found', you have to add by yourself")
                         break
                     else:
@@ -3432,8 +3434,8 @@ class Bot_POS:
 
             if len(customer_name_dropdown_lis) > 1:
                 print("มากกว่า 1")
-                li_names = [element.text for element in customer_name_dropdown_lis]
-                self.select_cus_name_from_lis(li_names, self.select_cus_name_from_lis)
+                cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
+                self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
                 print("click แล้ว")
             else:
                 self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
