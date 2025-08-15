@@ -1399,14 +1399,10 @@ class MyApp:
 
             # * ถ้ากลับมาดูไม่ต้องสงสัยว่าแยกทำไม พอเขียนติดกันแล้วมันดูสับสน เลยแยกเฉยๆไม่มีไร (A1/2)
             if "บริษัท" in self.name_match.group():
-                self.branch_match = re.search(
-                    r'สาขา\s*:?\s*(.*)', self.order_note)
-                self.tax_id_match = re.search(
-                    r'Tax id\s*:?\s*(.*)', self.order_note)
-                self.email_match = re.search(
-                    r'email\s*:?\s*(.*)', self.order_note.lower())
-                self.tel_match = re.search(
-                    r'tel\s*:?\s*,?(.*)', self.order_note.lower())
+                self.branch_match = re.search(r'สาขา\s*:?\s*(.*)', self.order_note)
+                self.tax_id_match = re.search(r'Tax id\s*:?\s*(.*)', self.order_note)
+                self.email_match = re.search(r'email\s*:?\s*(.*)', self.order_note.lower())
+                self.tel_match = re.search(r'tel\s*:?\s*,?(.*)', self.order_note.lower())
 
             self.address_match = re.search(r'ที่อยู่\s*:?\s*(.*)', self.order_note)
 
@@ -1424,10 +1420,8 @@ class MyApp:
                 self.cus_tel.set(self.tel_match.group(
                     1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
 
-            self.cus_name.set(self.name_match.group(
-                1)) if self.name_match else self.cus_name.set(self.cus_name.get())
-            self.note_extracted_address = self.address_match.group(
-                1) if self.address_match else "-"
+            self.cus_name.set(self.name_match.group(1)) if self.name_match else self.cus_name.set(self.cus_name.get())
+            self.note_extracted_address = self.address_match.group(1) if self.address_match else "-" 
             self.cus_address = self.note_extracted_address
         else:
             print("no note to be extracted, note_extractor was not used")
