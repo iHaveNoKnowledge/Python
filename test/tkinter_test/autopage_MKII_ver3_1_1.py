@@ -870,108 +870,125 @@ class MyApp:
         self.read_accel_file_to_state(self.accel_file_dir)
 
     def sn_extractor(self, output_excel, target_dir):
-        extracted_txt: str = ""
+        extracted_txt = self._extract_text_from_pdf(target_dir)
+        extracted_txt = self._clean_text(extracted_txt)
+
+        product_codes = self._extract_skus(extracted_txt)
+        serial_numbers = self._extract_serial_numbers(extracted_txt)
+
+        cleaned_serial_numbers = self._clean_serial_numbers(serial_numbers)
+        serial_numbers_grouped = self._group_serial_numbers(cleaned_serial_numbers)
+
+        self._print_debug_info(product_codes, cleaned_serial_numbers, serial_numbers_grouped)
+        self._write_to_excel(output_excel, product_codes, serial_numbers_grouped)
+        
+    def _extract_text_from_pdf(self, target_dir):
         reader = PdfReader(target_dir)
-        # * สกัดเอา ข้อความออกมาจากไฟล์
+        extracted_txt = ""
         for page in reader.pages:
             extracted_txt += page.extract_text()
+        return extracted_txt
 
+    def _clean_text(self, text):
+        # ลบ header
         pattern = r'^.*?(?=No\. Product Code Barcode Product Name Transfer No\. Order Ship Status)'
-        extracted_txt = re.sub(pattern, '', extracted_txt, flags=re.DOTALL)
-        extracted_txt = extracted_txt.lstrip()
+        text = re.sub(pattern, '', text, flags=re.DOTALL).lstrip()
 
+        # ลบข้อมูลผู้ส่ง
         pattern2 = r'ผู้ส่งสินค้า.*?(?:No\. Product Code Barcode Product Name Transfer No\. Order Ship Status|วันที่ _ _ _ / _ _ _ / _ _ _)'
-        extracted_txt = re.sub(pattern2, '', extracted_txt, flags=re.DOTALL)
+        text = re.sub(pattern2, '', text, flags=re.DOTALL)
 
-        pattern_serial = r'Serial\s:'
-        extracted_txt = re.sub(pattern_serial, '', extracted_txt, flags=re.DOTALL)
+        # ลบคำว่า Serial:
+        text = re.sub(r'Serial\s:', '', text, flags=re.DOTALL)
 
-        pattern_sku_no = r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))'
-        extracted_txt = re.sub(pattern_sku_no, '', extracted_txt, flags=re.DOTALL)
+        # ลบเลขนำหน้า SKU
+        text = re.sub(r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))', '', text, flags=re.DOTALL)
 
-        # * สกัดเอาค่าที่จำเป็นออกจากข้อความทั้งหมด
-        # * Regular expression สำหรับการจับ SKU
+        return text
+    
+    def _extract_skus(self, text):
         sku_pattern = r'([A-Z0-9]{3}-[0-9]{6})'
+        return re.findall(sku_pattern, text)
 
-        # *Regular expression สำหรับการจับ serial numbers
-        # serial_pattern = r'Shipped\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
-        # serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
+    def _extract_serial_numbers(self, text):
         serial_pattern = r'(?:Shipped|Confirm)\s*([\w, \n, \/]+)(?=(?:[A-Z0-9]{3}-[0-9]{6}|\nผู้ส่งสินค้า|$))'
-
-        # * สกัด SKU
-        product_codes = re.findall(sku_pattern, extracted_txt)
-        
-        print("Before_find_sn_pattern: ", extracted_txt)
-
-        # * สกัด serial numbers
-        serial_numbers = re.findall(serial_pattern, extracted_txt, re.DOTALL)
-
-        print(serial_numbers)
-
-        cleaned_serial_numbers = []
+        return re.findall(serial_pattern, text, re.DOTALL)
+    
+    def _clean_serial_numbers(self, serial_numbers):
+        cleaned = []
         for serial in serial_numbers:
-            # * ลบช่องว่างและเลขลำดับที่ไม่ต้องการออก
-            # * ลบเลขลำดับที่ท้าย
-            cleaned_serial = re.sub(r'\n', '', serial).strip()
-            # cleaned_serial = re.sub(r'\s+', '', cleaned_serial)  #* ลบช่องว่างทั้งหมด
-            cleaned_serial_numbers.append(cleaned_serial)
+            serial = re.sub(r'\n', '', serial).strip()
+            cleaned.append(serial)
+        return cleaned
 
-        # * แสดงผล
+    def _group_serial_numbers(self, cleaned_serial_numbers):
+        return [serial.replace(" ", "").split(",") for serial in cleaned_serial_numbers]
+    
+    def _print_debug_info(self, product_codes, cleaned_serial_numbers, serial_numbers_grouped):
         print("Product Codes:")
-        code_count = 0
-        for code in product_codes:
-            code_count += 1
-            print(code_count, " ", code)
+        for i, code in enumerate(product_codes, 1):
+            print(i, code)
 
         print("\nSerial Numbers:")
-        code_count = 0
-        for serial in cleaned_serial_numbers:
-            code_count += 1
-            # * ลบช่องว่างและเพิ่มวงเล็บ [] รอบ Serial Numbers
-            serial = serial.replace(" ", "")
-            serial_list = serial.split(",")
-            print(f"{code_count} {len(serial_list)} [{serial}]")
+        for i, serial in enumerate(cleaned_serial_numbers, 1):
+            serial_list = serial.replace(" ", "").split(",")
+            print(f"{i} {len(serial_list)} [{serial}]")
 
-        # * จัดการ serial numbers ให้เป็น list ของแต่ละ SKU
-        # serial_numbers_grouped = [serial.strip().replace('\n', '').replace(' ', '').split(',') for serial in serial_numbers]
-        # serial_numbers_grouped = [re.findall(r'\b[\w]+\b', serial) for serial in cleaned_serial_numbers]
-        serial_numbers_grouped = [serial.replace(" ", "").split(",") for serial in cleaned_serial_numbers]
-
-        #* ตรวจสอบข้อมูลที่ถูกสกัด
-        print("SKU Matches:")
-        print(len(product_codes), product_codes)
-        print("Serial Numbers Grouped:")
-        print(len(serial_numbers_grouped), serial_numbers_grouped)
-
-        # * สร้าง DataFrame ที่แต่ละคอลัมน์เป็น SKU และแต่ละ row เป็น serial number
-        data = {sku: serials for sku, serials in zip(
-            product_codes, serial_numbers_grouped)}
-
-        # ตรวจสอบ DataFrame ก่อนเขียนลงไฟล์
-        # print("DataFrame:")
-
-        # * เอาเข้าตาราง
+        print("SKU Matches:", len(product_codes), product_codes)
+        print("Serial Numbers Grouped:", len(serial_numbers_grouped), serial_numbers_grouped)
+        
+    def _write_to_excel(self, output_excel, product_codes, serial_numbers_grouped):
+        from openpyxl import load_workbook
         try:
-            # โหลด workbook และ sheet ล่าสุด
             book = load_workbook(output_excel)
             sheet = book.active
 
-            # หาคอลัมน์ล่าสุดที่มีข้อมูล
-            last_column = sheet.max_column
+            # mapping SKU -> column
+            existing_skus = {}
+            for col in range(1, sheet.max_column + 1):
+                sku = sheet.cell(row=1, column=col).value
+                if sku:
+                    existing_skus[sku] = col
 
-            # เขียนข้อมูลลงใน Excel
-            for col, (sku, serials) in enumerate(data.items(), start=last_column+1):
-                sheet.cell(row=1, column=col, value=sku)
-                for row, serial in enumerate(serials, start=2):
-                    sheet.cell(row=row, column=col, value=serial)
+            for sku, serials in zip(product_codes, serial_numbers_grouped):
+                if sku in existing_skus:
+                    col = existing_skus[sku]
 
-            # บันทึกไฟล์
+                    # อ่าน serial numbers เดิม
+                    existing_serials = set()
+                    for row in range(2, sheet.max_row + 1):
+                        val = sheet.cell(row=row, column=col).value
+                        if val:
+                            existing_serials.add(val)
+
+                    # รวมกับ serial numbers ใหม่
+                    merged_serials = list(existing_serials.union(serials))
+
+                    # ล้าง column เดิม
+                    for row in range(2, sheet.max_row + 1):
+                        sheet.cell(row=row, column=col, value=None)
+
+                    # เขียน merged serials ใหม่
+                    for row, serial in enumerate(merged_serials, start=2):
+                        sheet.cell(row=row, column=col, value=serial)
+
+                else:
+                    # สร้าง column ใหม่
+                    col = sheet.max_column + 1
+                    sheet.cell(row=1, column=col, value=sku)
+                    for row, serial in enumerate(serials, start=2):
+                        sheet.cell(row=row, column=col, value=serial)
+                    existing_skus[sku] = col
+
             book.save(output_excel)
-            print(f"ข้อมูลถูกเพิ่มลงใน {output_excel} เรียบร้อยแล้ว")
+            print(f"ข้อมูลถูกเพิ่ม/อัปเดตลงใน {output_excel} เรียบร้อยแล้ว")
+
         except Exception as e:
-            print(f"เกิดข้อผิดพลาด: {e}")
             import traceback
+            print(f"เกิดข้อผิดพลาด: {e}")
             traceback.print_exc()
+
+
 
     def select_excel(self):
         self.result = "Excel"
@@ -2732,7 +2749,7 @@ class Bot_POS:
             # * ถ้ามันเจอก็จะ break ไม่เจอค่อย cb
         try:
             if cb:
-                print("use callback layer1")
+                print("use callback layer1: เพื่อ make sure ว่า li มันใช้ไม่ได้")
                 cb(cus_desire_name, cus_name_list)
 
             # * cb ให้รอบนึงแล้วก็ไม่เจอ แอดใหม่ให้
@@ -2750,7 +2767,7 @@ class Bot_POS:
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
         try:
             if cb:
-                print("use callback layer2")
+                print("use callback layer2: for what?")
                 cb(cus_name_list)
         except:
             print("cb doesn't works")
