@@ -2663,6 +2663,9 @@ class Bot_POS:
             self.app.update_log("Operation thread is already set, skipping operation task")
 
     def enter_cus_name(self, cus_search):
+        #* ย้ายไปหน้าหลัก
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+        
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_open = True if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul) else False
         
@@ -2689,6 +2692,17 @@ class Bot_POS:
         else:
             print("no_Tax_needed")
             self.addNormalCustomer(self.cus_search_input)
+            
+        try:
+            #* กรณี add แล้ว มี popup-duplicate customer
+            self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
+            cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
+            #* เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
+            #*-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
+            self.duplicate_cus_name_resolver(cus_code_element)
+
+        except EXCEPTION as err:
+            print("No duplicate!", err)
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
@@ -2727,9 +2741,9 @@ class Bot_POS:
             # self.add_new_customer()
         except:
             print("cb doesn't works")
+            
         #? ไม่แน่ใจ เลือกไม่เจอ add ใหม่ ใช้ได้ป่าวไม่รู้ //refactor ตรงนี้ refator ได้นะ มันมีการ add ลูกค้าแล้วเลือกใหม่สองจุด คือ จุดนี้ และ จุดปกติ
         self.add_new_customer()
-        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         print("ก่อนRe Enter ชื่อลูกค้า")
         self.enter_cus_name(self.cus_search_input)
         print(f"Re enter name after add")
@@ -3386,20 +3400,9 @@ class Bot_POS:
                     if self.searching_condition.text == "No results found" and self.customer_added_times == 0:
                         print("No results found and NeverAdd")
                         self.add_new_customer()
-                        try:
-                            #* กรณี add แล้ว มี popup-duplicate customer
-                            self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
-                            cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
-                            #* เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
-                            #*-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
-                            self.duplicate_cus_name_resolver(cus_code_element)
-        
-                        except EXCEPTION as err:
-                            print("No duplicate!", err)
-
+                        
                         # * เพิ่มจำนวนครั้งที่ add
                         self.customer_added_times += 1
-                        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                         print("ก่อนRe Enter ชื่อลูกค้า")
                         self.enter_cus_name(self.cus_search_input)
                         print(f"Re enter name after add")
