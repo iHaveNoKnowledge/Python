@@ -750,25 +750,6 @@ class MyApp:
             raise ValueError(
                 "Error: Cannot varify the marketplace from this file, check the file you've imported")
 
-    # def read_accel_file(self, accel_file_dir):
-    #     # * accel data frame เราจะใช้แปลงค่า
-    #     self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
-
-    #     # * สองบรรทัดล่างนี้ คือลอง ทำให้ bot มัน auto sn แบบหลาย sku
-    #     accel_file_columns = self.accel_df_state.columns.dropna().tolist()
-    #     self.obj_data_from_accel_file = {
-    #         col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in accel_file_columns
-    #     }
-
-    #     self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
-    #     # self.sn_list = self.accel_df_state['sn'].dropna().tolist()
-    #     self.CP_list = self.accel_df_state['cp'].dropna().tolist()
-    #     print(self.accel_orders_list)
-    #     print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
-    #     # print(self.sn_list)
-    #     print(self.CP_list)
-    #     pass
-
     def select_accel_file(self):
         # * รับ dir ของไฟล์
         self.accel_file_dir = filedialog.askopenfilename(
@@ -955,22 +936,25 @@ class MyApp:
                     col = existing_skus[sku]
 
                     # อ่าน serial numbers เดิม
-                    existing_serials = set()
+                    existing_serials = []
                     for row in range(2, sheet.max_row + 1):
                         val = sheet.cell(row=row, column=col).value
                         if val:
-                            existing_serials.add(val)
+                            existing_serials.append(val)
 
-                    # รวมกับ serial numbers ใหม่
-                    merged_serials = list(existing_serials.union(serials))
+                    # รวมกับ serial numbers ใหม่โดยไม่ซ้ำ
+                    merged_serials = existing_serials.copy()
+                    for s in serials:
+                        if s not in merged_serials:
+                            existing_serials.append(s)
 
-                    # ล้าง column เดิม
-                    for row in range(2, sheet.max_row + 1):
-                        sheet.cell(row=row, column=col, value=None)
+                    # # ล้าง column เดิม
+                    # for row in range(2, sheet.max_row + 1):
+                    #     sheet.cell(row=row, column=col, value=None)
 
-                    # เขียน merged serials ใหม่
-                    for row, serial in enumerate(merged_serials, start=2):
-                        sheet.cell(row=row, column=col, value=serial)
+                    # # เขียน merged serials ใหม่
+                    # for row, serial in enumerate(merged_serials, start=2):
+                    #     sheet.cell(row=row, column=col, value=serial)
 
                 else:
                     # สร้าง column ใหม่
