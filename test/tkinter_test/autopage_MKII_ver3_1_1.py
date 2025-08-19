@@ -3135,11 +3135,9 @@ class Bot_POS:
             #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
                 try:
-                    self.driver.switch_to.window(
-                        self.merged_dict['การจัดการคำสั่งซื้อ - Lazada Seller Center'])
+                    self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Lazada Seller Center'])
                 except:
-                    self.driver.switch_to.window(
-                        self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
+                    self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Seller Center'])
 
                 cur_url = self.driver.current_url
 
