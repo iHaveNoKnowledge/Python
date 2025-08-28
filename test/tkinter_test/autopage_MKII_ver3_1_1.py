@@ -2833,12 +2833,15 @@ class Bot_POS:
         #* use inv_number from pop-up and time to create file name 
         self.pdf_path = f"{inv_number}_{self.th_time}.pdf"
         
+
         #* get base64_str
         self.base64_pdf_data = self.get_base64_from_ui()
         
-        #* แปลง base64 to binary data and write down to pdf
+
+        #* แปลง base64 back to binary data and write down to pdf
         self.base64_to_pdf(self.base64_pdf_data, self.pdf_path)
-        self.bin_pdf_data = base64.b64decode(self.base64_pdf_data)
+        self.bin_pdf_data = base64.b64decode(self.base64_pdf_data) #! ทำไรวะ
+        
         
         #* collect txt from pdf
         self.extracted_txt = self.pdf_to_txt(self.pdf_path)
