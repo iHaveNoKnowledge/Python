@@ -2697,9 +2697,68 @@ class Bot_POS:
 
         except EXCEPTION as err:
             print("No duplicate!", err)
+            
+    def find_selectable_cus_name_li(self):
+        """
+        li ที่จะแสดงใน ul นั้นมันไม่ได้มีแค่ชื่อลูกค้า แต่มันมี สถานะเช่น "กำลังหา" หรือ "หาไม่เจอ" ซึ่งทำให้กดเลือกชื่อลูกค้าจาก li ไม่ได้ทันที จึงต้อง handle ส่วนนี้โดยทำให้ค่าที่โผล่ใน li นั้นเป็น ชื่อลูกค้าแล้วจริงๆแล้วไปยังขั้นตอนต่อไป (functionนี้ยังไม่มีการเลือกliนะ)
+        """
+        self.customer_added_times = 0
+        self.customer_name_search_count = 0
+        print("ทำไมใช้ while ไม่ได้: ", not self.operation_thread.is_set())
+        while not self.operation_thread.is_set():
+            if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
+                time.sleep(0.7)
+                # self.wait50.until(EC.visibility_of_element_located(
+                #     (By.XPATH, self.app.cusNameLi1)))
+
+                # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
+                self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+
+                # * ช่วงรอ ผลลัพของ Searching...
+                try:
+                    if self.searching_condition.text == "Searching...":
+                        continue
+                    elif self.searching_condition.text:
+                        print("text element not display Searching...")
+                        pass
+                except:
+                    pass
+
+                # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
+                self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
+                self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+
+                # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
+                if self.searching_condition.text == "No results found" and self.customer_added_times == 0:
+                    print("No results found and NeverAdd")
+                    self.add_new_customer()
+                    
+                    # * เพิ่มจำนวนครั้งที่ add
+                    self.customer_added_times += 1
+                    print("ก่อนRe Enter ชื่อลูกค้า")
+                    self.enter_cus_name(self.cus_search_input)
+                    print(f"Re enter name after add")
+                    continue
+                # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
+                elif self.searching_condition.text == "No results found" and self.customer_name_search_count < 1:
+                    self.enter_cus_name(self.cus_search_input)
+                    self.customer_name_search_count += 1
+                    print(f"Re enter name after add extra times {self.customer_name_search_count}")
+                    continue
+                # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
+                elif self.searching_condition.text == "No results found" and self.customer_added_times == 1:
+                    print("I've already add it, but the element still shows 'No results found', you have to add by yourself")
+                    break
+                else:
+                    print("Found customer name:", self.searching_condition.text)
+                    self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                    break
+            print("addcustomer and select While end!")
+            break
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
+        #* ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
         cus_desire_name = cus_desire_name.replace("จำกัด", "").replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("บริษัท", "").replace(" ", "")
         cus_desire_name = re.sub(r'^บจก\.?','',cus_desire_name)
     
@@ -2709,6 +2768,7 @@ class Bot_POS:
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
 
+        #* เอา array มาหาดูว่าจะต้องเลือกชื่อไหน เอา idx ที่ได้ไช้ระบุ locator ที่ต้อง click
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
             if cus_desire_name in name:
@@ -2716,7 +2776,7 @@ class Bot_POS:
                 while not self.operation_thread.is_set():
                     try:
                         print("เลือกชื่อลูกค้า", cus_name_list[i])
-                        self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+                        self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click() #* ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
                         break
 
                     except:
@@ -2749,6 +2809,22 @@ class Bot_POS:
             print("cb doesn't works")
 
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+        
+    def insert_emp(self):
+        self.smco_current_emp = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
+        if not self.app.user_id.get() in self.smco_current_emp:
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
+            self.driver.find_element(By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
+            while not self.operation_thread.is_set():
+                time.sleep(0.25)
+                try:
+                    if self.app.user_id.get() in self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text:
+                        self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
+                        print("Found and select")
+                        break
+                    
+                except:
+                    continue
 
     def printtingPage(self):
         time.sleep(1)
@@ -3341,7 +3417,7 @@ class Bot_POS:
                 self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
                 ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-
+            #* start Enter customer name here +++++++++++==================================================
             while True:
                 self.enter_cus_name(self.cus_search_input)
                 print("กรอกชื่อเสร็จ")
@@ -3364,63 +3440,13 @@ class Bot_POS:
                     break
 
             # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
-            self.customer_added_times = 0
-            self.customer_name_search_count = 0
-            print("ทำไมใช้ while ไม่ได้: ", not self.operation_thread.is_set())
-            while not self.operation_thread.is_set():
-                if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
-                    time.sleep(0.7)
-                    # self.wait50.until(EC.visibility_of_element_located(
-                    #     (By.XPATH, self.app.cusNameLi1)))
-
-                    # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
-                    self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
-
-                    # * ช่วงรอ ผลลัพของ Searching...
-                    try:
-                        if self.searching_condition.text == "Searching...":
-                            continue
-                        elif self.searching_condition.text:
-                            print("text element not display Searching...")
-                            pass
-                    except:
-                        pass
-
-                    # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
-                    self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameLi1)))
-                    self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
-
-                    # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
-                    if self.searching_condition.text == "No results found" and self.customer_added_times == 0:
-                        print("No results found and NeverAdd")
-                        self.add_new_customer()
-                        
-                        # * เพิ่มจำนวนครั้งที่ add
-                        self.customer_added_times += 1
-                        print("ก่อนRe Enter ชื่อลูกค้า")
-                        self.enter_cus_name(self.cus_search_input)
-                        print(f"Re enter name after add")
-                        continue
-                    # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
-                    elif self.searching_condition.text == "No results found" and self.customer_name_search_count < 1:
-                        self.enter_cus_name(self.cus_search_input)
-                        self.customer_name_search_count += 1
-                        print(f"Re enter name after add extra times {self.customer_name_search_count}")
-                        continue
-                    # * Add แล้ว รีเสิชให้สองรอบแล้ว ก็ยังไม่เจอ ลองแอดด้วยตัวเองดู
-                    elif self.searching_condition.text == "No results found" and self.customer_added_times == 1:
-                        print("I've already add it, but the element still shows 'No results found', you have to add by yourself")
-                        break
-                    else:
-                        print("Found customer name:", self.searching_condition.text)
-                        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-                        break
-                print("addcustomer and select While end!")
-                break
+            self.find_selectable_cus_name_li() #*เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
 
             # !66 เปลี่ยนวิธีเลือกชื่อลูกค้า
+            #* จะมีการตรวจสอบว่าเลือกไดเหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
             while not self.operation_thread.is_set():
                 try:
+                    #* หา li ไปตรวจสอบว่ามี len เท่าไหร่
                     customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                     customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
                     # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
@@ -3430,6 +3456,7 @@ class Bot_POS:
                     self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
                     continue
 
+            #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
             if len(customer_name_dropdown_lis) > 1:
                 print("มากกว่า 1")
                 cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
@@ -3466,30 +3493,19 @@ class Bot_POS:
             else:
                 print("no tax required, skip address check")
                 
-            #* ใส่ รหัสพนักงาน
-            self.smco_current_emp = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
-            if not self.app.user_id.get() in self.smco_current_emp:
-                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
-                self.driver.find_element(By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
-                while not self.operation_thread.is_set():
-                    time.sleep(0.25)
-                    try:
-                        if self.app.user_id.get() in self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text:
-                            self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                            print("Found and select")
-                            break
-                        
-                    except:
-                        continue
+            #* ใส่ รหัสพนักงาน ===============================================================================
+            self.insert_emp()
             
+            # todo for testing
             # # * Update Accel file //////////////////////
             # self.app.deduct_accel_file_data(
             #     self.app.cus_order,
             #     self.used_serials
             # )
             # return
+            
                     
-            # * ใส่ค่าขนส่ง
+            # * ใส่ค่าขนส่ง ================================================================================
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 if int(self.app.cus_ship_cost.get()) != int(0):
@@ -3664,10 +3680,8 @@ class Bot_POS:
 
                                 # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
                                 time.sleep(0.75)
-                                self.driver.find_element(
-                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
-                                self.driver.find_element(
-                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
+                                self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
+                                self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
                                 # เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
@@ -3687,9 +3701,8 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                                 try:
-                                    self.driver.find_element(
-                                        # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
-                                        By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
+                                    # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
+                                    self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
                                 except:
                                     print("ปุ่ม Brows() ไม่โผล่")
                                     
@@ -4836,7 +4849,7 @@ class Bot_POS:
             print("Customer address has already corrected")
             
     def edit_cus_info(self):
-        while True:
+        while not self.operation_thread.is_set():
             try:
                 self.driver.find_element(By.CSS_SELECTOR, f"div.btn-group.pull-right a.btn.btn-default").click()
                 break
@@ -4849,17 +4862,20 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").send_keys(self.app.tax_num.get())
 
     def duplicate_cus_name_resolver(self, popup_dup_element):
+        #* ระบุตัวตนของ pop-up
         self.cus_code_element = popup_dup_element
         self.dup_popup_content = self.cus_code_element.text
         self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
             return
-        print("close dup popup and dup_popup_content = ",self.dup_popup_content)
+        print("close dup popup = ",self.dup_popup_content)
+        
+        #* เก็บรหัสเพื่อไปเสิชหาว่าdupที่ใคร
         matched_obj = re.search(r'^C.\d*', self.dup_popup_content, re.MULTILINE)
         print("matched_obj:", matched_obj)
         self.cus_code = matched_obj.group()
-        print("cus_code: ", self.cus_code) 
+        print("cus_code: ", self.cus_code)
         self.get_tabs()
         if not 'SMCO :: ลูกค้า' in self.merged_dict:
             self.open_customer_edit_page()
