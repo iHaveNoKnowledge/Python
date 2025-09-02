@@ -2675,3 +2675,534 @@ Stacktrace:
 2025-08-11T17:04:54.130706+0700 INFO Order: 250810F2FXW9UY stop operation
 2025-08-11T17:05:10.405290+0700 INFO Order: 250810F2FXW9UY stop operation
 2025-08-11T17:05:11.796927+0700 INFO Order: 250810F2FXW9UY operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:42:20.297354+0700 INFO Order: 250902EK1N6FXH Not found in the shopee's Export File
+2025-09-02T15:42:20.576608+0700 INFO Order: 250902EK1N6FXH Start!!
+2025-09-02T15:42:26.000131+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:42:27.618395+0700 INFO Order: 250902EK1N6FXH
+ Not found in the shopee's Export File
+2025-09-02T15:42:27.796874+0700 INFO Order: 250902EK1N6FXH Start!!
+2025-09-02T15:42:30.978281+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:43:21.436664+0700 INFO Order: 250902EK1N6FXH
+ Not found in the shopee's Export File
+2025-09-02T15:43:21.609577+0700 INFO Order: 250902EK1N6FXH Start!!
+2025-09-02T15:43:26.754128+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:43:31.489121+0700 INFO Order: 250902EK1N6FXH
+ Not found in the shopee's Export File
+2025-09-02T15:43:31.660680+0700 INFO Order: 250902EK1N6FXH Start!!
+2025-09-02T15:43:37.260024+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:43:41.521661+0700 INFO Order: 250902EK1N6FXH Not found in the shopee's Export File
+2025-09-02T15:43:41.664686+0700 INFO Order: 250902EK1N6FXH Start!!
+2025-09-02T15:43:46.331137+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:44:17.242231+0700 INFO Order: 250902EK1N6FXH Not found in the shopee's Export File
+2025-09-02T15:44:17.684763+0700 INFO Order: 250902EK1N6FXH Start!!
+2025-09-02T15:44:22.578461+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T15:45:05.334075+0700 INFO Order: 250902EK1N6FXH Not found in the shopee's Export File
+2025-09-02T15:45:05.724362+0700 INFO Order: 250902EK1N6FXH operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:45:15.194489+0700 INFO Order: 250825P47GAMFX operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:45:34.248728+0700 INFO Order: 250825PKMQM9VA operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:45:45.369467+0700 INFO Order: 250825PKMQM9VA operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:46:28.196217+0700 INFO Order: 250902EDF6JNUH
+ Not found in the shopee's Export File
+2025-09-02T15:46:28.314049+0700 INFO Order: 250902EDF6JNUH operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:49:25.258762+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:49:39.874958+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:49:59.200079+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:50:24.932422+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8f86b25+79621]
+	GetHandleVerifier [0x0x7ff7b8f86b80+79712]
+	(No symbol) [0x0x7ff7b8d1c0ea]
+	(No symbol) [0x0x7ff7b8d0e472]
+	(No symbol) [0x0x7ff7b8d221f7]
+	(No symbol) [0x0x7ff7b8d26b0c]
+	(No symbol) [0x0x7ff7b8d26bdf]
+	(No symbol) [0x0x7ff7b8dc63da]
+	(No symbol) [0x0x7ff7b8d9b13a]
+	(No symbol) [0x0x7ff7b8dc33d0]
+	(No symbol) [0x0x7ff7b8d9af13]
+	(No symbol) [0x0x7ff7b8d64151]
+	(No symbol) [0x0x7ff7b8d64ee3]
+	GetHandleVerifier [0x0x7ff7b924683d+2962461]
+	GetHandleVerifier [0x0x7ff7b9240b5d+2938685]
+	GetHandleVerifier [0x0x7ff7b925f71d+3064573]
+	GetHandleVerifier [0x0x7ff7b8fa0c6e+186446]
+	GetHandleVerifier [0x0x7ff7b8fa8a3f+218655]
+	GetHandleVerifier [0x0x7ff7b8f8f914+115956]
+	GetHandleVerifier [0x0x7ff7b8f8fac9+116393]
+	GetHandleVerifier [0x0x7ff7b8f75ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:53:01.721883+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6214c6b25+79621]
+	GetHandleVerifier [0x0x7ff6214c6b80+79712]
+	(No symbol) [0x0x7ff62125c0ea]
+	(No symbol) [0x0x7ff62124e472]
+	(No symbol) [0x0x7ff6212621f7]
+	(No symbol) [0x0x7ff621266b0c]
+	(No symbol) [0x0x7ff621266bdf]
+	(No symbol) [0x0x7ff6213063da]
+	(No symbol) [0x0x7ff6212db13a]
+	(No symbol) [0x0x7ff6213033d0]
+	(No symbol) [0x0x7ff6212daf13]
+	(No symbol) [0x0x7ff6212a4151]
+	(No symbol) [0x0x7ff6212a4ee3]
+	GetHandleVerifier [0x0x7ff62178683d+2962461]
+	GetHandleVerifier [0x0x7ff621780b5d+2938685]
+	GetHandleVerifier [0x0x7ff62179f71d+3064573]
+	GetHandleVerifier [0x0x7ff6214e0c6e+186446]
+	GetHandleVerifier [0x0x7ff6214e8a3f+218655]
+	GetHandleVerifier [0x0x7ff6214cf914+115956]
+	GetHandleVerifier [0x0x7ff6214cfac9+116393]
+	GetHandleVerifier [0x0x7ff6214b5ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T15:55:06.171506+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! Message: timeout
+from no such execution context: frame does not have execution context
+  (Session info: chrome=139.0.7258.155)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6214c6b25+79621]
+	GetHandleVerifier [0x0x7ff6214c6b80+79712]
+	(No symbol) [0x0x7ff62125c0ea]
+	(No symbol) [0x0x7ff62124e472]
+	(No symbol) [0x0x7ff6212621f7]
+	(No symbol) [0x0x7ff621266b0c]
+	(No symbol) [0x0x7ff621266bdf]
+	(No symbol) [0x0x7ff6213063da]
+	(No symbol) [0x0x7ff6212db13a]
+	(No symbol) [0x0x7ff6213033d0]
+	(No symbol) [0x0x7ff6212daf13]
+	(No symbol) [0x0x7ff6212a4151]
+	(No symbol) [0x0x7ff6212a4ee3]
+	GetHandleVerifier [0x0x7ff62178683d+2962461]
+	GetHandleVerifier [0x0x7ff621780b5d+2938685]
+	GetHandleVerifier [0x0x7ff62179f71d+3064573]
+	GetHandleVerifier [0x0x7ff6214e0c6e+186446]
+	GetHandleVerifier [0x0x7ff6214e8a3f+218655]
+	GetHandleVerifier [0x0x7ff6214cf914+115956]
+	GetHandleVerifier [0x0x7ff6214cfac9+116393]
+	GetHandleVerifier [0x0x7ff6214b5ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-02T16:13:10.927485+0700 INFO Order: 250902EKD4D0YS Start!!
+2025-09-02T16:13:12.134152+0700 INFO Order: 250902EKD4D0YS operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:13:41.304464+0700 INFO Order: 250902EKD4D0YS Start!!
+2025-09-02T16:14:19.426824+0700 INFO Order: 250902EK6BWYQV operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:14:19.444367+0700 INFO Order: 250902EK6BWYQV Start!!
+2025-09-02T16:17:46.967120+0700 INFO Order: 250825QPF95SMT Start!!
+2025-09-02T16:17:52.878980+0700 INFO Order: 250825QPF95SMT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:18:26.268830+0700 INFO Order: 250825QPF95SMT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:24:59.704399+0700 INFO Order: 250825QPF95SMT Start!!
+2025-09-02T16:25:07.321229+0700 INFO Order: 25082943RB5X8U Start!!
+2025-09-02T16:25:10.733434+0700 INFO Order: 25082943RB5X8U operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:25:11.311107+0700 INFO Order: 2508306DNHQ2UW Start!!
+2025-09-02T16:25:18.668293+0700 INFO Order: 2508306KXTSNRJ Start!!
+2025-09-02T16:25:27.425402+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T16:26:47.801081+0700 INFO Order: 2508307QD0QGDS Start!!
+2025-09-02T16:26:54.854795+0700 INFO Order: 2508307QD0QGDT Start!!
+2025-09-02T16:27:01.909210+0700 INFO Order: 2508317Y2K1DFJ Start!!
+2025-09-02T16:27:08.976843+0700 INFO Order: 2508318CDRYXD5 Start!!
+2025-09-02T16:28:25.747109+0700 INFO Order: 2508318CDRYXD5 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:28:26.331119+0700 INFO Order: 2508318UC2HTX2 Start!!
+2025-09-02T16:28:33.341209+0700 INFO Order: 2508318YDN25JW Start!!
+2025-09-02T16:28:39.399781+0700 INFO Order: 25083193QB331Q Start!!
+2025-09-02T16:28:47.441012+0700 INFO Order: 2508319AFNS1W6 Start!!
+2025-09-02T16:29:15.999862+0700 INFO Order: 2508319AFNS1W6 stop operation
+2025-09-02T16:29:29.358309+0700 INFO Order: 2508319AFNS1W6 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:30:01.459463+0700 INFO Order: 2508319AFNS1W6 Start!!
+2025-09-02T16:31:11.654706+0700 INFO Order: 2508319AFNS1W6 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:36:06.969321+0700 INFO Order: 2508319AFNS1W6 Start!!
+2025-09-02T16:37:17.233626+0700 INFO Order: 2508319AFNS1W6 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:42:14.853320+0700 INFO Order: 2508319AFNS1W6 Start!!
+2025-09-02T16:43:25.620460+0700 INFO Order: 2508319AFNS1W6 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:44:31.131608+0700 INFO Order: 2508319AFNS1W6 Start!!
+2025-09-02T16:44:38.228079+0700 INFO Order: 2508319AFNS1W6 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:56:19.611603+0700 INFO Order: 250825QPF95SMT Start!!
+2025-09-02T16:56:26.990247+0700 INFO Order: 250825QPF95SMT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:57:51.226933+0700 INFO Order: 25082943RB5X8U Start!!
+2025-09-02T16:57:54.556021+0700 INFO Order: 25082943RB5X8U operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:58:03.192242+0700 INFO Order: 2508306DNHQ2UW Start!!
+2025-09-02T16:58:09.605413+0700 INFO Order: 2508306DNHQ2UW operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:58:13.971898+0700 INFO Order: 2508306KXTSNRJ Start!!
+2025-09-02T16:58:20.575811+0700 INFO Order: 2508306KXTSNRJ operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T16:58:34.165892+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T16:59:08.241907+0700 INFO Order: 2508307KP6E0UY operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:00:03.109084+0700 INFO Order: 2508307QD0QGDS Start!!
+2025-09-02T17:00:09.330221+0700 INFO Order: 2508307QD0QGDS operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:00:31.660382+0700 INFO Order: 2508307QD0QGDS Start!!
+2025-09-02T17:00:38.115895+0700 INFO Order: 2508307QD0QGDS operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:05:10.206455+0700 INFO Order: 250902D998HAFQ Start!!
+2025-09-02T17:05:16.538932+0700 INFO Order: 250902D998HAFQ operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:05:49.968296+0700 INFO Order: 250902E00F5U07 Start!!
+2025-09-02T17:06:36.678318+0700 INFO Order: 250902E00F5U07 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:06:43.962771+0700 INFO Order: 250902E00F5U07 Start!!
+2025-09-02T17:06:50.238205+0700 INFO Order: 250902E00F5U07 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:09:01.158095+0700 INFO Order: 250825QPF95SMT Start!!
+2025-09-02T17:09:07.409832+0700 INFO Order: 250825QPF95SMT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:09:08.165142+0700 INFO Order: 25082943RB5X8U Start!!
+2025-09-02T17:09:11.200941+0700 INFO Order: 25082943RB5X8U operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:09:12.267951+0700 INFO Order: 2508306DNHQ2UW Start!!
+2025-09-02T17:09:18.997740+0700 INFO Order: 2508306DNHQ2UW operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:09:19.340237+0700 INFO Order: 2508306KXTSNRJ Start!!
+2025-09-02T17:09:25.909711+0700 INFO Order: 2508306KXTSNRJ operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:09:26.369248+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T17:12:03.908425+0700 INFO Order: 2508307KP6E0UY operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:12:05.264919+0700 INFO Order: 2508307QD0QGDS Start!!
+2025-09-02T17:12:12.241273+0700 INFO Order: 2508307QD0QGDS operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:12:14.607314+0700 INFO Order: 2508307QD0QGDT Start!!
+2025-09-02T17:12:55.093512+0700 INFO Order: 2508307QD0QGDT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:12:55.508033+0700 INFO Order: 2508317Y2K1DFJ Start!!
+2025-09-02T17:13:05.370978+0700 INFO Order: 2508317Y2K1DFJ operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:13:06.598357+0700 INFO Order: 2508318CDRYXD5 Start!!
+2025-09-02T17:15:02.417811+0700 INFO Order: 2508318CDRYXD5 Start!!
+2025-09-02T17:16:12.855506+0700 INFO Order: 2508318CDRYXD5 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:20:16.435166+0700 INFO Order: 2508318CDRYXD5 Start!!
+2025-09-02T17:20:26.331654+0700 INFO Order: 2508318CDRYXD5 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:22:09.309567+0700 INFO Order: 250825QPF95SMT Start!!
+2025-09-02T17:22:16.162010+0700 INFO Order: 250825QPF95SMT operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:22:17.155968+0700 INFO Order: 25082943RB5X8U Start!!
+2025-09-02T17:22:21.022094+0700 INFO Order: 25082943RB5X8U operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:22:22.216807+0700 INFO Order: 2508306DNHQ2UW Start!!
+2025-09-02T17:22:28.492632+0700 INFO Order: 2508306DNHQ2UW operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:22:29.252106+0700 INFO Order: 2508306KXTSNRJ Start!!
+2025-09-02T17:22:35.809539+0700 INFO Order: 2508306KXTSNRJ operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:22:36.406591+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T17:28:36.708121+0700 INFO Order: 2508307KP6E0UY stop operation
+2025-09-02T17:28:38.148654+0700 INFO Order: 2508307KP6E0UY stop operation
+2025-09-02T17:29:12.143044+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T17:29:48.783764+0700 INFO Order: 2508307KP6E0UY operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:31:32.189223+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T17:32:08.932246+0700 INFO Order: 2508307KP6E0UY stop operation
+2025-09-02T17:32:31.841097+0700 INFO Order: 2508307KP6E0UY stop operation
+2025-09-02T17:32:44.515403+0700 INFO Order: 2508307KP6E0UY operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:38:17.503354+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T17:38:55.499405+0700 INFO Order: 2508307KP6E0UY stop operation
+2025-09-02T17:38:55.720279+0700 INFO Order: 2508307KP6E0UY operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:40:26.373459+0700 INFO Order: 250825QPF95SMT Start!!
+2025-09-02T17:40:33.414578+0700 INFO Order: 25082943RB5X8U Start!!
+2025-09-02T17:40:36.395200+0700 INFO Order: 25082943RB5X8U operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:40:37.547156+0700 INFO Order: 2508306DNHQ2UW Start!!
+2025-09-02T17:40:43.604528+0700 INFO Order: 2508306KXTSNRJ Start!!
+2025-09-02T17:40:50.687186+0700 INFO Order: 2508307KP6E0UY Start!!
+2025-09-02T17:41:23.873098+0700 INFO Order: 2508307QD0QGDS Start!!
+2025-09-02T17:41:30.951907+0700 INFO Order: 2508307QD0QGDT Start!!
+2025-09-02T17:41:37.991357+0700 INFO Order: 2508317Y2K1DFJ Start!!
+2025-09-02T17:41:45.126731+0700 INFO Order: 2508318CDRYXD5 Start!!
+2025-09-02T17:41:52.219290+0700 INFO Order: 2508318UC2HTX2 Start!!
+2025-09-02T17:41:59.224941+0700 INFO Order: 2508318YDN25JW Start!!
+2025-09-02T17:42:05.288904+0700 INFO Order: 25083193QB331Q Start!!
+2025-09-02T17:42:12.372368+0700 INFO Order: 2508319AFNS1W6 Start!!
+2025-09-02T17:42:37.658428+0700 INFO Order: 2508319AFNS1W6 operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:42:38.567376+0700 INFO Order: 2508319CYCUA7G Start!!
+2025-09-02T17:42:45.647304+0700 INFO Order: 2508319WAPECTM Start!!
+2025-09-02T17:43:41.476758+0700 INFO Order: 2508319WAPECTM operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:43:41.968802+0700 INFO Order: 250831A2MM914R Start!!
+2025-09-02T17:43:45.202872+0700 INFO Order: 250831A2MM914R stop operation
+2025-09-02T17:43:46.097346+0700 INFO Order: 250831A2MM914R operation_task_thread_outer_Exception_Error!! catching classes that do not inherit from BaseException is not allowed
+2025-09-02T17:43:47.005268+0700 INFO Order: 250831A3RQ804D Start!!
+2025-09-02T17:43:54.219345+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:43:55.055097+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:43:56.059882+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:43:57.097706+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:43:58.110029+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:43:59.149550+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:00.176652+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:01.525765+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:02.403678+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:03.367781+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:04.296189+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:05.273583+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:06.311171+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:07.285205+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:08.323913+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:09.345368+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:10.353935+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:11.351156+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:12.397360+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:13.381376+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:14.438637+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:15.429376+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:16.451641+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:17.453297+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:18.478242+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:19.568180+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:20.551718+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:21.817198+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:22.665295+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:23.719688+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:24.733470+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:25.777225+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:26.803537+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:27.830520+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:28.847069+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:29.875594+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:30.901286+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:31.954257+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:32.942824+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:34.014430+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:34.978373+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:35.993614+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:36.996247+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:38.032479+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:39.067413+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:40.055067+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:41.097343+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:42.138588+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:43.161650+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:44.200141+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:45.200166+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:46.214133+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:47.251845+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:48.254263+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:49.305629+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:50.317717+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:51.353014+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:52.386506+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:53.382207+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:54.430032+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:55.449441+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:56.483388+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:57.501264+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:58.517492+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:44:59.541566+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:00.549858+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:01.618817+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:03.000505+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:03.657783+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:04.651465+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:05.682741+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:06.710403+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:07.758327+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:08.771992+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:09.772608+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:10.834167+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:11.820844+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:12.849785+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:13.880032+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:14.931138+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:15.952169+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:16.962962+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-02T17:45:17.977424+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'

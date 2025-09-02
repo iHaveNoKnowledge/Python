@@ -2612,6 +2612,7 @@ class Bot_POS:
 
             for idx, handle in enumerate(self.driver.window_handles):
                 self.driver.switch_to.window(handle)
+                print("self.driver.title: ", self.driver.title)
                 self.title_list.append(self.driver.title)
                 self.value_list.append(self.driver.current_window_handle)
 
@@ -2759,8 +2760,15 @@ class Bot_POS:
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
         #* ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
-        cus_desire_name = cus_desire_name.replace("จำกัด", "").replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("บริษัท", "").replace(" ", "")
-        cus_desire_name = re.sub(r'^บจก\.?','',cus_desire_name)
+        print("incoming cus_desire_name: ", cus_desire_name)
+        pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
+        pattern2 = r'จำกัด(\s*มหาชน)?$'
+
+        cus_desire_name = re.sub(pattern, '', cus_desire_name)
+        cus_desire_name = re.sub(pattern2, '', cus_desire_name)
+        cus_desire_name = cus_desire_name.strip()
+        
+        cus_desire_name = cus_desire_name.replace(" ", "")
     
         # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array
         names_no_code = cus_name_list.copy()
@@ -2796,10 +2804,10 @@ class Bot_POS:
         except:
             print("cb doesn't works")
 
-        self.add_new_customer()
-        print("ก่อนRe Enter ชื่อลูกค้า")
-        self.enter_cus_name(self.cus_search_input)
-        print(f"Re enter name after add")
+        # self.add_new_customer()
+        # print("ก่อนRe Enter ชื่อลูกค้า")
+        # self.enter_cus_name(self.cus_search_input)
+        # print(f"Re enter name after add")
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
         try:
             if cb:
@@ -3418,7 +3426,7 @@ class Bot_POS:
                 ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
             #* start Enter customer name here +++++++++++==================================================
-            while True:
+            while not self.operation_thread.is_set():
                 self.enter_cus_name(self.cus_search_input)
                 print("กรอกชื่อเสร็จ")
                 # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
@@ -3443,7 +3451,7 @@ class Bot_POS:
             self.find_selectable_cus_name_li() #*เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
 
             # !66 เปลี่ยนวิธีเลือกชื่อลูกค้า
-            #* จะมีการตรวจสอบว่าเลือกไดเหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
+            #* จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
             while not self.operation_thread.is_set():
                 try:
                     #* หา li ไปตรวจสอบว่ามี len เท่าไหร่
@@ -3490,6 +3498,7 @@ class Bot_POS:
                 #* ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี
                 self.text_from_name_span = self.cus_name_span.get_attribute("title") 
                 self.tax_address_corrector(self.text_from_name_span)
+                
             else:
                 print("no tax required, skip address check")
                 
@@ -3498,11 +3507,8 @@ class Bot_POS:
             
             # todo for testing
             # # * Update Accel file //////////////////////
-            # self.app.deduct_accel_file_data(
-            #     self.app.cus_order,
-            #     self.used_serials
-            # )
-            # return
+            self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
+            return
             
                     
             # * ใส่ค่าขนส่ง ================================================================================
@@ -4741,7 +4747,7 @@ class Bot_POS:
         print(self.current_address.replace(' ', ''))
         print(self.desired_full_address.replace(' ', ''))
         
-        if not self.desired_full_address.replace(' ', '') == self.current_address.replace(' ', ''): #* ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
+        if not self.current_address.replace(' ', '') == self.desired_full_address.replace(' ', ''): #* ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
             #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
             print("Customer Address is not correct")
             self.get_tabs()
@@ -4801,12 +4807,12 @@ class Bot_POS:
             time.sleep(1.75)
             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
             
-            while True:
+            while not self.operation_thread.is_set():
                 time.sleep(0.25)
                 try:
                     'SMCO :: ลูกค้า'  in self.merged_dict
                     success_popup_element = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
-                    if success_popup_element.is_displayed():
+                    if success_popup_element.is_displayed() :
                         break
                     continue
                 except:
@@ -4847,6 +4853,8 @@ class Bot_POS:
         
         else:
             print("Customer address has already corrected")
+        
+        print("tax_address_corrector done!")
             
     def edit_cus_info(self):
         while not self.operation_thread.is_set():
