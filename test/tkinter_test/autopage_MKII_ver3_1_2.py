@@ -791,17 +791,23 @@ class MyApp:
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
         print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
+        
+        #* ตัด order ออกจาก file
         # * ใช้ loc ของ df โดยดูว่า column 'orders' == order ที่รับเข้ามาหรือไม่, โดยให้ดึงค่าจาก column orders
         has_order = df.loc[df['orders'] == order, 'orders']
         if not has_order.empty:
+            print(f'remove {order} from state df')
             df.loc[df['orders'] == order, 'orders'] = pd.NA
 
         print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
+        #* ตัด sn ให้เป็นค่าว่าง
         if sku_serials:
             for sn in sku_serials:
                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
-        df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
         
+        print("form state df to new excel")
+        print(f"Check if accesible {os.access(self.accel_file_dir, os.W_OK)}")
+        df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
         self.obj_data_from_accel_file = {
             col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
         }
@@ -1774,7 +1780,7 @@ class MyApp:
                 if self.marketplace_target.get() == 'SHOPEE':
                     try:
                         self.note_extractor()
-                    except EXCEPTION as err:
+                    except Exception as err:
                         print("Cannot Extract Note: ", err)
                     # self.cus_name.set()
                     # self.cus_name_simplifyer(self.name_match.group())
@@ -2066,11 +2072,9 @@ class MyApp:
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_gui_busy.get() == True:
-                self.display_bot_status_label.configure(
-                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
+                self.display_bot_status_label.configure(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
             elif self.is_gui_busy.get() == False:
-                self.display_bot_status_label.configure(
-                    text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+                self.display_bot_status_label.configure(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
         else:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
@@ -2642,7 +2646,7 @@ class Bot_POS:
                     logger.info(f"Order: {self.app.order} Start!!")
                     try:
                         self.operation_start()
-                    except EXCEPTION as err:
+                    except Exception as err:
                         logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
@@ -2697,7 +2701,7 @@ class Bot_POS:
             #*-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
             self.duplicate_cus_name_resolver(cus_code_element)
 
-        except EXCEPTION as err:
+        except Exception as err:
             print("No duplicate!", err)
             
     def find_selectable_cus_name_li(self):
@@ -2885,7 +2889,7 @@ class Bot_POS:
             self.driver.find_element(By().XPATH, '/html/body/span/span/span[1]/input').send_keys(inv_number)
             self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').clear()
             self.driver.find_element(By().XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/textarea').send_keys("Etax")
-            # while True:
+            # while not self.operation_thread.is_set():
             #     # if self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').text == "Searching...":
             #     #     continue
             #     time.sleep(0.75)
@@ -3045,7 +3049,7 @@ class Bot_POS:
                         if self.app.obj_data_from_accel_file[current_sku]:
                             print("มี SN")
                             time.sleep(1)
-                            while True:
+                            while not self.operation_thread.is_set():
                                 try:
                                     # *รอให้ไอนี่ใช้ได้ชัวก่อนค่อยไปทำขั้นตอนต่อไป
                                     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
@@ -3071,7 +3075,7 @@ class Bot_POS:
                             
                             print("fill sn complete")
 
-                            # while True:
+                            # while not self.operation_thread.is_set():
                             skuInput.send_keys(Keys().ENTER)
                             #! wip ต้องมีตรวจสอบผลลัพธ์การกรอก sn ตรงนี้
                             print("pressed Enter at SKU-Input")
@@ -3158,7 +3162,7 @@ class Bot_POS:
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(1)
                 
-                while True:
+                while not self.operation_thread.is_set():
                     #* ใช้ while loop รอดู interface ว่า มันโผล่มายัง
                     try:
                         self.driver.find_element(By.CLASS_NAME, 'status-wrapper').is_displayed()
@@ -3191,7 +3195,6 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div[3]/div/div[1]/span').text)
 
                 # * จะได้ element มา
-                print("realtime_status_text", self.app.cus_cur_status.get())
                 self.app.display_current_status.configure(
                     text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
@@ -3366,9 +3369,9 @@ class Bot_POS:
                     print("หน้าใหม่พร้อมแล้ว")
                 elif self.is_reset == False:
                     print("ไม่ต้องรี")
-            except EXCEPTION as err:
+            except Exception as err:
                 print("Error From SMCO phase1 Resetting", err)
-                while True:
+                while not self.operation_thread.is_set():
                     print("รอ")
                     time.sleep(1)
                     if self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button'):
@@ -3378,7 +3381,7 @@ class Bot_POS:
                         continue
 
             print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
-            # while True:
+            # while not self.operation_thread.is_set():
             #     if self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
             #         print("เจอแล้วออก")
             #         break
@@ -3582,7 +3585,7 @@ class Bot_POS:
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
-            # while True:
+            # while not self.operation_thread.is_set():
             #     self.phase1_net_price = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[2]/div/div/div/div/span[1]')
             #     self.phase1_net_price = float(self.phase1_net_price.text)
             #     if self.app.phase1_sum_price != self.phase1_net_price:
@@ -3608,7 +3611,7 @@ class Bot_POS:
                 print("Waiting for element to appear")
                 while self.parent.winfo_exists() and not self.operation_thread.is_set():
                     time.sleep(0.55)
-                    while True:
+                    while not self.operation_thread.is_set():
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
                             # print("loop หลัก")
@@ -3632,7 +3635,7 @@ class Bot_POS:
                         self.is_input_empty = ""
 
                     # * แก้ bot ดับจาก alert
-                    while True:
+                    while not self.operation_thread.is_set():
                         time.sleep(0.55)
                         try:
 
@@ -3760,7 +3763,7 @@ class Bot_POS:
 
                             # # * สำหรับ prefinal  pop-up (optional by ETAX)
                             # # * > แบบเลือกให้ตาม ข้อมูลลูกค้า
-                            # while True:
+                            # while not self.operation_thread.is_set():
 
                             #     try:
                             #         self.etax_radio_printout = self.driver.find_element(
@@ -3785,7 +3788,7 @@ class Bot_POS:
 
                             # # * > แบบเลือกemail เป็น default
                             # ใช้ได้หรือป่าวไม่แน่ใจ
-                            # while True:
+                            # while not self.operation_thread.is_set():
                             #     self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]')
 
                             #     print("Radio while loop")
@@ -3817,7 +3820,7 @@ class Bot_POS:
                             # * สำหรับรอ final pop-up after click the green btn
                             self.app.is_gui_busy.set(False)
                             auto_radio_times = 0
-                            while True:
+                            while not self.operation_thread.is_set():
 
                                 time.sleep(1)
                                 try:
@@ -4056,7 +4059,7 @@ class Bot_POS:
 
 
                 # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
-                while True:
+                while not self.operation_thread.is_set():
                     
                     try:
                         choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
@@ -4132,8 +4135,6 @@ class Bot_POS:
         name = self.app.cus_name.get()
         # * เติมสาขาให้เรียบร้อย
         if self.app.branch_type == 'สำนักงานใหญ่':
-            # ! self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา']) ใช้ทำไมวะรอลบ
-            # ! name = f"""{name} ({self.app.tax_branch.get()})""" รอลบ
             name = f"""{name} ({self.app.branch_type})"""
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch_num.get()})"""
@@ -4152,7 +4153,7 @@ class Bot_POS:
 
 
             # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
-            while True:
+            while not self.operation_thread.is_set():
                 try:
                     choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
                     print("choice_found: ", choice_found)
@@ -4318,7 +4319,7 @@ class Bot_POS:
 
 
             # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
-            while True:
+            while not self.operation_thread.is_set():
                 try:
                     choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
                     print("choice_found: ", choice_found)
@@ -4644,7 +4645,7 @@ class Bot_POS:
         customer_popup_input.send_keys(self.cus_code)
         
         #* หา li 
-        while True:
+        while not self.operation_thread.is_set():
             time.sleep(0.25)
             # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
@@ -4660,7 +4661,7 @@ class Bot_POS:
         exit_popup_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[2]/div/div/div[1]/span')
         exit_popup_btn.click()
         #* wait until pop up disappear
-        while True:
+        while not self.operation_thread.is_set():
             time.sleep(0.25)
             # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
@@ -4676,7 +4677,7 @@ class Bot_POS:
         find_customer_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[3]/center/button[1]')
         find_customer_btn.click()
         
-        while True:
+        while not self.operation_thread.is_set():
             time.sleep(0.25)
             # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
@@ -4706,7 +4707,7 @@ class Bot_POS:
         self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             
         #* รอดูว่า element โผล่ยัง
-        while True:
+        while not self.operation_thread.is_set():
             time.sleep(0.25)
             # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
@@ -4717,7 +4718,7 @@ class Bot_POS:
             except:
                 continue
     def wait_element(self, xpath, text=None):
-        while True:
+        while not self.operation_thread.is_set():
             try:
                 element = self.driver.find_element(By.XPATH, xpath)
                 pass
@@ -4836,12 +4837,14 @@ class Bot_POS:
             time.sleep(1.75)
             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
             
+            self.app.display_bot_status_label.configure(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
             while not self.operation_thread.is_set():
                 time.sleep(0.25)
                 try:
                     'SMCO :: ลูกค้า'  in self.merged_dict
                     success_popup_element = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
                     if success_popup_element.is_displayed() :
+                        self.app.display_bot_status_label.configure(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
                         break
                     continue
                 except:
@@ -4852,7 +4855,7 @@ class Bot_POS:
             # revised_submit.click()
             
             #? กดปิดหน้าลูกค้า ใช้ดีไหม ปิดไว้ก่อน
-            # while True:
+            # while not self.operation_thread.is_set():
             #     try:
             #         cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
             #         cancel_btn.click()
@@ -4870,7 +4873,7 @@ class Bot_POS:
             # self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
             # self.enter_cus_name(self.cus_code) #* ใส่ customer code ลง input ช่องค้นหา
             
-            # while True: #* รอกด li อันที่1 จาก dropdown ให้มันแสดงผลออกมา
+            # while not self.operation_thread.is_set(): #* รอกด li อันที่1 จาก dropdown ให้มันแสดงผลออกมา
             #     time.sleep(0.25)
             #     try:
             #         if self.cus_code in self.driver.find_element(By.XPATH, self.app.cusNameLi1).text:
@@ -5024,7 +5027,7 @@ class Bot_POS:
             'lname': 'null',
         }
 
-        while True:
+        while not self.operation_thread.is_set():
             if times == 1:
                 print("times = 1")
                 response = session.post(
