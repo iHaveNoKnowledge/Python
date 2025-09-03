@@ -806,7 +806,7 @@ class MyApp:
                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
         
         print("form state df to new excel")
-        print(f"Check if accesible {os.access(self.accel_file_dir, os.W_OK)}")
+        print(f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
         df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
         self.obj_data_from_accel_file = {
             col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
