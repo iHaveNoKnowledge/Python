@@ -1399,8 +1399,7 @@ class MyApp:
     def note_extractor(self):
         if self.order_note != 'nan':
             try:
-                self.name_match = re.search(
-                    r'ชื่อ\s*:?\s*(.*)', self.order_note)
+                self.name_match = re.search(r'ชื่อ\s*:?\s*(.*)', self.order_note)
             except:
                 self.name_match = re.search(r'บริษัท.*', self.order_note)
 
@@ -1999,40 +1998,85 @@ class MyApp:
         print("name:", name)
         return name
 
-    def tax_name_standardizer(self, name):
-        name_edited = name.replace('\u200b', '')
-        name_edited = name_edited.strip()
-        # name_edited = name_edited.replace(
-        #     "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
-        # print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
+    # def tax_name_standardizer(self, name):
+    #     name_edited = name.replace('\u200b', '')
+    #     name_edited = name_edited.strip()
+    #     # name_edited = name_edited.replace(
+    #     #     "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
+    #     # print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
 
-        if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
-            print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
-            name_edited = name_edited.replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
-            name_edited = f"""ห้างหุ้นส่วนจำกัด {name_edited}"""
+    #     if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
+    #         print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
+    #         name_edited = name_edited.replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
+    #         name_edited = f"""ห้างหุ้นส่วนจำกัด {name_edited}"""
 
-        elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
-            print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
-            name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
-            name_edited = f"""บริษัท {name_edited} จำกัด"""
+    #     elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
+    #         print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
+    #         name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
+    #         name_edited = f"""บริษัท {name_edited} จำกัด"""
 
-        # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ (ส่วนท้ายของ code)
-        # * >> สร้าง patterns ก่อน
+    #     # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ (ส่วนท้ายของ code)
+    #     # * >> สร้าง patterns ก่อน
+    #     head_office_patterns = [
+    #         r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
+    #         r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
+    #         r'\(สนญ\.\)', r'\(สนญ\)', r'สนญ\.', r'สนญ',
+    #     ]
+
+    #     # * >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
+    #     if any(pattern in name_edited for pattern in head_office_patterns):
+    #         # * r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
+    #         name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
+    #     elif '(สาขา' in name_edited or 'สาขา' in name_edited:
+    #         name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
+    #         name_edited = re.sub(r'สาขา\d*', '', name_edited)
+
+    #     name_edited = re.sub(r"\s{2,}", ' ', name_edited)
+    #     return name_edited
+    
+    def tax_name_standardizer(self, name: str) -> str:
+        # ลบ zero-width space และ trim
+        name_edited = name.replace('\u200b', '').strip()
+
+        # --- ปรับรูปแบบประเภทบริษัท ---
+        if name_edited.startswith(("หจก", "ห้างหุ้นส่วนจำกัด", "ห.")):
+            name_edited = re.sub(r'^(หจก\.?|ห้างหุ้นส่วนจำกัด|ห\.)', '', name_edited).strip()
+            if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
+                name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
+
+        elif name_edited.startswith(("บจก", "บริษัท", "บ.")) and "จำกัด" in name_edited:
+            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.?|จก\.)', '', name_edited).strip()
+            # ถ้าไม่มี "บริษัท" หรือ "จำกัด" อยู่แล้ว ให้เพิ่ม
+            if not name_edited.startswith("บริษัท"):
+                name_edited = f"บริษัท {name_edited}"
+            if not name_edited.endswith("จำกัด"):
+                name_edited = f"{name_edited} จำกัด"
+
+        # --- patterns สำหรับสำนักงานใหญ่ ---
         head_office_patterns = [
             r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
             r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
-            r'\(สนญ\.\)', r'\(สนญ\)', r'สนญ\.', r'สนญ',
+            r'\(สนญ\.?\)', r'สนญ\.?',
+            r'\(00000\)',  # เพิ่ม case ของเลข 00000
         ]
 
-        # * >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
-        if any(pattern in name_edited for pattern in head_office_patterns):
-            # * r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
-            name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
-        elif '(สาขา' in name_edited or 'สาขา' in name_edited:
-            name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
-            name_edited = re.sub(r'สาขา\d*', '', name_edited)
+        # --- patterns สำหรับสาขา ---
+        branch_patterns = [
+            r'\(สาขา.*?\)',   # (สาขาxxx)
+            r'สาขา\d*'        # สาขา + ตัวเลข
+        ]
 
+        # --- ลบคำสำนักงานใหญ่ ---
+        for pattern in head_office_patterns:
+            name_edited = re.sub(pattern, '', name_edited).strip()
+
+        # --- ลบคำสาขา ---
+        for pattern in branch_patterns:
+            name_edited = re.sub(pattern, '', name_edited).strip()
+
+        # --- ลบช่องว่างเกิน ---
         name_edited = re.sub(r"\s{2,}", ' ', name_edited)
+
         return name_edited
 
     def on_thread_done(self):
@@ -4837,6 +4881,7 @@ class Bot_POS:
             time.sleep(1.75)
             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
             
+            #! Bug ตรงนี้ มันเขียวแป้บเดียวแล้วแดงทั้งๆที่ยังไม่โผล่ออกมา
             self.app.display_bot_status_label.configure(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
             while not self.operation_thread.is_set():
                 time.sleep(0.25)
