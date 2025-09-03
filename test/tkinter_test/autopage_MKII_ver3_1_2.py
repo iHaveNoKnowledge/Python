@@ -2690,6 +2690,7 @@ class Bot_POS:
             
         try:
             #* กรณี add แล้ว มี popup-duplicate customer
+            print("Duplicated customer found!!")
             self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
             cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
             #* เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
@@ -2944,8 +2945,10 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
         
     def get_base64_from_ui(self):
-        # self.pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') ของ reprint
-        pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
+        try:
+            pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div/div[2]/div[2]/div/embed").get_attribute('src') #*ของ reprint
+        except:
+            pdf_src = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed").get_attribute('src') #* ของ smco
         proc = re.search("(?<=,).*", pdf_src)
         base64_str = proc.group(0)
         return base64_str
@@ -4556,11 +4559,12 @@ class Bot_POS:
                     'zip_code': ''
                 }
                 
-    def direct_to_customer_info(self):
+    def direct_to_customer_info(self, incoming_cus_code:int=None):
         #* เนื่องจาก หน้าลูกค้ามันมีสองชั้น ตรวจสอบว่า หน้าที่กำลังแสดงผลเป็นหน้าในหรือนอก ถ้าในต้องปรับเป็นนอกก่อน
-        while True:
+        while not self.operation_thread.is_set():
             is_outer_page_on = False
             is_inner_page_on = False
+            is_inner_info_page_on = False
             self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
                 'SMCO :: ลูกค้า'  in self.merged_dict
@@ -4568,11 +4572,16 @@ class Bot_POS:
                 is_outer_page_on = True
                 
             except:
+                if self.driver.find_element(By.CSS_SELECTOR, '#vendorFormReal div:nth-child(1) > div:nth-child(2) > div > input').is_displayed():
+                    is_inner_info_page_on = True
+
                 self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[1]/div')
                 is_inner_page_on = True
                 
             finally:
-                if is_inner_page_on:
+                if is_inner_page_on and is_inner_info_page_on:
+                    break
+                elif is_inner_page_on:
                     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[1]/div[1]/div[1]/a').click()
                     break
                 elif is_outer_page_on:
@@ -4580,17 +4589,37 @@ class Bot_POS:
                 else:
                     time.sleep(0.25)
             
-            
+        is_already_in_info_edit_page = False
+        is_correct_cus_code = False
+        is_already_in_edit_page = False
         #* รอดูว่าelement โผล่ยัง
-        while True:  
+        while not self.operation_thread.is_set():
+            print("ก่อนเข้า try")
             time.sleep(0.25)
             # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
                 'SMCO :: ลูกค้า'  in self.merged_dict
-                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
+                print("เข้ามาใน try")
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button') #* มมันถูกซ่อนไว้เฉยๆ webDriverสามารถเข้าถึงได้ แต่ว่ามันจะมี attribute display = false
+                print("ปุ่มหน้า SMCO :: ลูกค้า ไม่โดนดักได้ไง: ", self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button'), self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button').is_displayed())
+                print("we are in the outer page, kinda customer searching page")
                 break
             except:
+                try: 
+                    print("we are already in the deepest part")
+                    is_already_in_info_edit_page = self.driver.find_element(By.CSS_SELECTOR, '#vendorFormReal div:nth-child(1) > div:nth-child(2) > div > input').is_displayed()
+                    current_cus_code = self.driver.find_element(By.CSS_SELECTOR, f"#vendorFormReal div:nth-child(1) > div:nth-child(2) > div > input").get_attribute('title')
+                    is_correct_cus_code = incoming_cus_code == current_cus_code
+                    break
+                
+                except:
+                    print("we are in some selected customer edit page")
+                    is_already_in_edit_page = self.driver.find_element(By.CSS_SELECTOR, 'div#editBtnDiv > div.btn-group:nth-child(2) > a#editBtn').is_displayed()
                 continue
+        
+        if is_already_in_info_edit_page and is_correct_cus_code:
+            print("อยู่หน้าในอยู๋ละ")
+            return
 
         #* ปุ่มลูกค้า
         customer_code_btn = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
@@ -4856,17 +4885,25 @@ class Bot_POS:
         
         print("tax_address_corrector done!")
             
-    def edit_cus_info(self):
+    def edit_cus_info(self, incoming_cus_code:int=None):
         while not self.operation_thread.is_set():
             try:
-                self.driver.find_element(By.CSS_SELECTOR, f"div.btn-group.pull-right a.btn.btn-default").click()
-                break
+                if self.driver.find_element(By.CSS_SELECTOR, f"div.btn-group.pull-right a.btn.btn-default").is_displayed():
+                    self.driver.find_element(By.CSS_SELECTOR, f"div.btn-group.pull-right a.btn.btn-default").click()
+                    break
+                elif self.driver.find_element(By.CSS_SELECTOR, f"#vendorFormReal div:nth-child(1) > div:nth-child(2) > div > input").is_displayed():
+                    current_cus_code = self.driver.find_element(By.CSS_SELECTOR, f"#vendorFormReal div:nth-child(1) > div:nth-child(2) > div > input").get_attribute('title')
+                    if current_cus_code == incoming_cus_code:
+                        break
+                    else:
+                        raise ValueError("current_cus_code != incoming_cus_code, u r going to edit a wrong customer")
             except:
                 time.sleep(1)
                 continue
         # WebDriverWait(driver, 12).until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched")))
         # driver.find_element(By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched").send_keys(self.app.tax_num.get())
         WebDriverWait(self.driver, 12).until(EC.element_to_be_clickable((By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input")))
+        self.driver.find_element(By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").clear()
         self.driver.find_element(By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").send_keys(self.app.tax_num.get())
 
     def duplicate_cus_name_resolver(self, popup_dup_element):
@@ -4887,8 +4924,8 @@ class Bot_POS:
         self.get_tabs()
         if not 'SMCO :: ลูกค้า' in self.merged_dict:
             self.open_customer_edit_page()
-        self.direct_to_customer_info()
-        self.edit_cus_info()
+        self.direct_to_customer_info(self.cus_code)
+        self.edit_cus_info(self.cus_code)
         
         #* press the upper right conor save btn
         self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[1]/div[2]/div[2]/a').click()
