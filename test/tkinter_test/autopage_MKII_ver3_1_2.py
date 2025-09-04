@@ -121,7 +121,7 @@ class MyApp:
         self.cus_arrow_btn = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
         self.cusNameInput = '/html/body/span/span/span[1]/input'
         self.cusSearchSMCO = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
-        self.cusCreateBtn = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[13]/button[1]'
+        self.cusCreateBtn = 'button#newMember'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
         self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
         # self.bot_state = BooleanVar(value=False)
@@ -3275,8 +3275,7 @@ class Bot_POS:
                     self.driver.find_element(
                         By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[2]/div/div[1]/div/div/div/ul/li[1]/div').click()
                     time.sleep(0.75)
-                    self.wait50.until(EC.element_to_be_clickable(
-                        (By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div[1]/div[1]/div[2]/div[2]/span[1]/span[2]/span/a')))
+                    self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div[1]/div[1]/div[2]/div[2]/span[1]/span[2]/span/a')))
                 # else:
                 #     pass
 
@@ -4087,20 +4086,38 @@ class Bot_POS:
     def addNormalCustomer(self, cusname_fixed):
         is_functionworking = False
         is_functionworking = True
-        while is_functionworking:
-            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-
-            self.element = self.driver.find_element(By.XPATH, self.app.cusCreateBtn)
-            self.element.click()  # * กดแว่นขยาย
-
+        customer_form_dialog_element = False
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+        self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
+        #todo เช็ค dialog form โหลดเสร็จยัง
+        while is_functionworking and not self.operation_thread.is_set():
+            try:
+                customer_form_dialog_element = self.driver.find_element(By.CSS_SELECTOR, 'body > div.modal-backdrop.fade.in')
+                customer_class_input = self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
+                if customer_form_dialog_element.is_displayed() and customer_class_input.is_displayed():
+                    print(f"customer_form_dialog_element: {customer_form_dialog_element.is_displayed()}")
+                    print(f"customer_class_input: {customer_class_input.is_displayed()}")
+                    break
+            except:
+                time.sleep(0.55)
+                continue
+        
+        #* มีตัว Customer Class ให้กรอกไหม
+        while is_functionworking and not self.operation_thread.is_set():
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
             try:
-                self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[3]/div[1]/div/span/span[1]/span/span[1]')))
-                print("เจอแล้ว customer class")
-                time.sleep(0.55)
                 # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
-                self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]').click()
-
+                while not self.operation_thread.is_set():
+                    try:
+                        #! ไอ้ตัวนี้ไม่รู้เปนไร คลิกไม่ได้หลายรอบละเจ๊กแม่ ทั้งๆที่ข้างบนตรวจการมีอยู๋ของมันจนหมดแล้วแท้ๆ
+                        self.driver.find_element(By.CSS_SELECTOR, '#select2-memberClass-container').click()
+                        print(f"dropdown clicked")
+                        break
+                    except:
+                        time.sleep(0.55)
+                        continue
+                    
+                
 
                 # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
                 while not self.operation_thread.is_set():
@@ -4109,55 +4126,44 @@ class Bot_POS:
                         choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
                         print("choice_found: ", choice_found)
                         if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
+                            print("the corrected choice is found")
                             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-                            time.sleep(0.75)
+                            time.sleep(0.55)
                             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
+                            print(f"Click the choice")
                             break
                     except Exception as err:
                         time.sleep(1)
                         # print("except: ", err) # for develop inspection
                         continue
-
                 
-            except:
-                print("No customer category, Pass")
+            except Exception as err:
+                time.sleep(1)
+                print("except: ", err) # for develop inspection   
+                print("No Customer Class input")
                 
-            
-
-            
+                            
             #* Name TH
-            self.wait50.until(EC.visibility_of_element_located(
-                (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')
-            ))
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(cusname_fixed)
+            self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')))
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(cusname_fixed)
 
             #* Name ENG
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(cusname_fixed)
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(cusname_fixed)
 
             #* Address
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
 
             #* Contact No
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(1)
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(1)
 
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 
             #* รอปุ่ม save หยุดแสดงผล
-            self.wait50.until(EC.invisibility_of_element_located(
-                (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
+            self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
             is_functionworking = False
 
             # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
@@ -4184,7 +4190,7 @@ class Bot_POS:
             name = f"""{name} (สาขา{self.app.tax_branch_num.get()})"""
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+        self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()
 
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
@@ -4350,7 +4356,7 @@ class Bot_POS:
             name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.XPATH, self.app.cusCreateBtn).click()
+        self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()
 
 
         # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024

@@ -3656,3 +3656,350 @@ Stacktrace:
 2025-09-03T17:48:56.497758+0700 INFO Order: 250901AB9973R9 Start!!
 2025-09-03T17:49:45.970039+0700 INFO Order: 250901ACN44S1E Start!!
 2025-09-03T17:51:38.816683+0700 INFO Order: 250901AHBANQRP Start!!
+2025-09-04T14:13:52.014078+0700 INFO Order: 250904KF2RQNG3 Start!!
+2025-09-04T14:14:08.926523+0700 INFO Order: 250904KF2RQNG3 outer_Exception_Error!! 'dict' object has no attribute 'loc'
+2025-09-04T16:08:26.544086+0700 INFO Order: 250904KETKF8FX Start!!
+2025-09-04T16:08:37.936778+0700 INFO Order: 250904KETKF8FX outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1791, 426). Other element would receive the click: <div class="container-fluid" ng-show="(createSwicth == true)">...</div>
+  (Session info: chrome=140.0.7339.81)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff786976b25+79621]
+	GetHandleVerifier [0x0x7ff786976b80+79712]
+	(No symbol) [0x0x7ff78670c0ea]
+	(No symbol) [0x0x7ff78676af69]
+	(No symbol) [0x0x7ff786768902]
+	(No symbol) [0x0x7ff786765941]
+	(No symbol) [0x0x7ff786764831]
+	(No symbol) [0x0x7ff786756078]
+	(No symbol) [0x0x7ff78678b13a]
+	(No symbol) [0x0x7ff786755926]
+	(No symbol) [0x0x7ff78678b350]
+	(No symbol) [0x0x7ff7867b33d0]
+	(No symbol) [0x0x7ff78678af13]
+	(No symbol) [0x0x7ff786754151]
+	(No symbol) [0x0x7ff786754ee3]
+	GetHandleVerifier [0x0x7ff786c3683d+2962461]
+	GetHandleVerifier [0x0x7ff786c30b5d+2938685]
+	GetHandleVerifier [0x0x7ff786c4f71d+3064573]
+	GetHandleVerifier [0x0x7ff786990c6e+186446]
+	GetHandleVerifier [0x0x7ff786998a3f+218655]
+	GetHandleVerifier [0x0x7ff78697f914+115956]
+	GetHandleVerifier [0x0x7ff78697fac9+116393]
+	GetHandleVerifier [0x0x7ff786965ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T16:10:44.596977+0700 INFO Order: 250904KETKF8FX Start!!
+2025-09-04T16:10:57.612618+0700 INFO Order: 250904KETKF8FX outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1791, 426). Other element would receive the click: <div class="container-fluid" ng-show="(createSwicth == true)">...</div>
+  (Session info: chrome=140.0.7339.81)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff786976b25+79621]
+	GetHandleVerifier [0x0x7ff786976b80+79712]
+	(No symbol) [0x0x7ff78670c0ea]
+	(No symbol) [0x0x7ff78676af69]
+	(No symbol) [0x0x7ff786768902]
+	(No symbol) [0x0x7ff786765941]
+	(No symbol) [0x0x7ff786764831]
+	(No symbol) [0x0x7ff786756078]
+	(No symbol) [0x0x7ff78678b13a]
+	(No symbol) [0x0x7ff786755926]
+	(No symbol) [0x0x7ff78678b350]
+	(No symbol) [0x0x7ff7867b33d0]
+	(No symbol) [0x0x7ff78678af13]
+	(No symbol) [0x0x7ff786754151]
+	(No symbol) [0x0x7ff786754ee3]
+	GetHandleVerifier [0x0x7ff786c3683d+2962461]
+	GetHandleVerifier [0x0x7ff786c30b5d+2938685]
+	GetHandleVerifier [0x0x7ff786c4f71d+3064573]
+	GetHandleVerifier [0x0x7ff786990c6e+186446]
+	GetHandleVerifier [0x0x7ff786998a3f+218655]
+	GetHandleVerifier [0x0x7ff78697f914+115956]
+	GetHandleVerifier [0x0x7ff78697fac9+116393]
+	GetHandleVerifier [0x0x7ff786965ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T16:14:12.835876+0700 INFO Order: 250904KETKF8FX Start!!
+2025-09-04T16:14:35.727031+0700 INFO Order: 250904KETKF8FX outer_Exception_Error!! 'dict' object has no attribute 'loc'
+2025-09-04T16:16:06.600106+0700 INFO Order: 250904KCNUBXX4 Start!!
+2025-09-04T16:16:26.711253+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T16:17:01.202343+0700 INFO Order: 250904KCR2WDAY stop operation
+2025-09-04T16:17:09.582965+0700 INFO Order: 250904KCR2WDAY stop operation
+2025-09-04T16:17:12.449665+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:17:13.168307+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:14.155113+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:14.926423+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:15.994510+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:17.157673+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:18.087898+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:19.142339+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:20.292717+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:17:21.093760+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:31:51.405524+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T16:32:53.857172+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! Message: 
+
+2025-09-04T16:32:55.554483+0700 INFO Order: 250904KD1XJHGK Start!!
+2025-09-04T16:32:56.853970+0700 INFO Order: 250904KD1XJHGK stop operation
+2025-09-04T16:33:00.224184+0700 INFO Order: 250904KD1XJHGK outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:33:01.005150+0700 INFO Order: 250904KD5D5A1H Start!!
+2025-09-04T16:33:02.375754+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T16:33:02.683629+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T16:33:02.887355+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T16:33:03.089545+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T16:33:05.675846+0700 INFO Order: 250904KD5D5A1H outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:33:06.014864+0700 INFO Order: 250904KD8DE772 Start!!
+2025-09-04T16:33:13.735254+0700 INFO Order: 250904KD8DE772 stop operation
+2025-09-04T16:33:13.957192+0700 INFO Order: 250904KD8DE772 outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:33:15.214498+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:33:16.113748+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:33:17.123835+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:33:18.166718+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:33:19.223326+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:33:20.179399+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:35:32.665792+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T16:35:50.304735+0700 INFO Order: 250904KCR2WDAY stop operation
+2025-09-04T16:36:34.707322+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! Message: 
+
+2025-09-04T16:36:35.588900+0700 INFO Order: 250904KD1XJHGK Start!!
+2025-09-04T16:36:37.381945+0700 INFO Order: 250904KD1XJHGK stop operation
+2025-09-04T16:36:39.834785+0700 INFO Order: 250904KD1XJHGK outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:36:40.401380+0700 INFO Order: 250904KD5D5A1H Start!!
+2025-09-04T16:36:47.001880+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T16:36:47.375789+0700 INFO Order: 250904KD5D5A1H outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:36:47.738306+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T16:36:48.453826+0700 INFO Order: 250904KD8DE772 Start!!
+2025-09-04T16:36:57.488438+0700 INFO Order: 250904KD8DE772 stop operation
+2025-09-04T16:36:59.307390+0700 INFO Order: 250904KD8DE772 outer_Exception_Error!! Message: element not interactable
+  (Session info: chrome=140.0.7339.81)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff748a76b25+79621]
+	GetHandleVerifier [0x0x7ff748a76b80+79712]
+	(No symbol) [0x0x7ff74880bf1c]
+	(No symbol) [0x0x7ff74885c622]
+	(No symbol) [0x0x7ff74885a496]
+	(No symbol) [0x0x7ff74888b13a]
+	(No symbol) [0x0x7ff748855926]
+	(No symbol) [0x0x7ff74888b350]
+	(No symbol) [0x0x7ff7488b33d0]
+	(No symbol) [0x0x7ff74888af13]
+	(No symbol) [0x0x7ff748854151]
+	(No symbol) [0x0x7ff748854ee3]
+	GetHandleVerifier [0x0x7ff748d3683d+2962461]
+	GetHandleVerifier [0x0x7ff748d30b5d+2938685]
+	GetHandleVerifier [0x0x7ff748d4f71d+3064573]
+	GetHandleVerifier [0x0x7ff748a90c6e+186446]
+	GetHandleVerifier [0x0x7ff748a98a3f+218655]
+	GetHandleVerifier [0x0x7ff748a7f914+115956]
+	GetHandleVerifier [0x0x7ff748a7fac9+116393]
+	GetHandleVerifier [0x0x7ff748a65ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T16:37:00.598446+0700 INFO Order: 250904KDKK4Q8Y stop operation
+2025-09-04T16:37:01.389472+0700 INFO Order: 250904KDKK4Q8Y operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:37:02.673944+0700 INFO Order: 250904KDVAJE9E Start!!
+2025-09-04T16:37:35.695678+0700 INFO Order: 250904KDVAJE9E stop operation
+2025-09-04T16:37:53.541614+0700 INFO Order: 250904KDVAJE9E stop operation
+2025-09-04T16:37:53.735918+0700 INFO Order: 250904KDVAJE9E stop operation
+2025-09-04T16:37:53.953641+0700 INFO Order: 250904KDVAJE9E stop operation
+2025-09-04T16:37:54.214960+0700 INFO Order: 250904KDVAJE9E stop operation
+2025-09-04T16:38:08.141763+0700 INFO Order: 250904KDVAJE9E outer_Exception_Error!! 'NoneType' object has no attribute 'is_displayed'
+2025-09-04T16:38:13.695235+0700 INFO Order: 250904KEPNK7GC Start!!
+2025-09-04T16:38:15.842223+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:16.025870+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:16.359657+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:16.625097+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:16.831021+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:17.041240+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:17.263541+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:17.512141+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:17.752797+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:18.024390+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:18.266885+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:18.513479+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:18.639083+0700 INFO Order: 250904KEPNK7GC outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T16:38:18.743139+0700 INFO Order: 250904KEPNK7GC stop operation
+2025-09-04T16:38:19.003959+0700 INFO Order: 250904KERW4E4J stop operation
+2025-09-04T16:38:19.113834+0700 INFO Order: 250904KERW4E4J operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:38:19.218423+0700 INFO Order: 250904KERW4E4J stop operation
+2025-09-04T16:38:19.431091+0700 INFO Order: 250904KERW4E4J stop operation
+2025-09-04T16:38:19.650404+0700 INFO Order: 250904KERW4E4J stop operation
+2025-09-04T16:38:19.934050+0700 INFO Order: 250904KETKF8FX stop operation
+2025-09-04T16:38:20.110444+0700 INFO Order: 250904KETKF8FX stop operation
+2025-09-04T16:38:20.137027+0700 INFO Order: 250904KETKF8FX operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:38:20.366743+0700 INFO Order: 250904KETKF8FX stop operation
+2025-09-04T16:38:20.584073+0700 INFO Order: 250904KETKF8FX stop operation
+2025-09-04T16:38:20.835374+0700 INFO Order: 250904KETKF8FX stop operation
+2025-09-04T16:38:21.117147+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:21.164378+0700 INFO Order: 250904KF2RQNG3 operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T16:38:21.312120+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:21.577936+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:21.795317+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:22.032638+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:22.273124+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:22.543595+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:22.800000+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:23.278739+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T16:38:24.440379+0700 INFO Order: 250904KF2RQNG3 stop operation
+2025-09-04T17:05:39.314156+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:06:11.885875+0700 INFO Order: 250904KCR2WDAY stop operation
+2025-09-04T17:06:35.594884+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! [Errno 13] Permission denied: 'C:/Users/BCP_27/Documents/GitHub/Python/test/tkinter_test/Accel_mode.xlsx'
+2025-09-04T17:06:36.375992+0700 INFO Order: 250904KD1XJHGK Start!!
+2025-09-04T17:06:41.351938+0700 INFO Order: 250904KD1XJHGK outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-outline-secondary dropdown-toggle ng-binding" style="border-radius: 0px 4px 4px 0px;padding: 4px 10px;background-color: antiquewhite;" type="button" data-toggle="dropdown" aria-expanded="false" title="">...</button> is not clickable at point (1517, 338). Other element would receive the click: <li class="select2-results__option select2-results__option--highlighted" role="treeitem" aria-selected="false" data-select2-id="197">...</li>
+  (Session info: chrome=140.0.7339.81)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff748a76b25+79621]
+	GetHandleVerifier [0x0x7ff748a76b80+79712]
+	(No symbol) [0x0x7ff74880c0ea]
+	(No symbol) [0x0x7ff74886af69]
+	(No symbol) [0x0x7ff748868902]
+	(No symbol) [0x0x7ff748865941]
+	(No symbol) [0x0x7ff748864831]
+	(No symbol) [0x0x7ff748856078]
+	(No symbol) [0x0x7ff74888b13a]
+	(No symbol) [0x0x7ff748855926]
+	(No symbol) [0x0x7ff74888b350]
+	(No symbol) [0x0x7ff7488b33d0]
+	(No symbol) [0x0x7ff74888af13]
+	(No symbol) [0x0x7ff748854151]
+	(No symbol) [0x0x7ff748854ee3]
+	GetHandleVerifier [0x0x7ff748d3683d+2962461]
+	GetHandleVerifier [0x0x7ff748d30b5d+2938685]
+	GetHandleVerifier [0x0x7ff748d4f71d+3064573]
+	GetHandleVerifier [0x0x7ff748a90c6e+186446]
+	GetHandleVerifier [0x0x7ff748a98a3f+218655]
+	GetHandleVerifier [0x0x7ff748a7f914+115956]
+	GetHandleVerifier [0x0x7ff748a7fac9+116393]
+	GetHandleVerifier [0x0x7ff748a65ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T17:06:42.522741+0700 INFO Order: 250904KD5D5A1H Start!!
+2025-09-04T17:06:47.921341+0700 INFO Order: 250904KD5D5A1H outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-outline-secondary dropdown-toggle ng-binding" style="border-radius: 0px 4px 4px 0px;padding: 4px 10px;background-color: antiquewhite;" type="button" data-toggle="dropdown" aria-expanded="false" title="">...</button> is not clickable at point (1517, 338). Other element would receive the click: <li class="select2-results__option select2-results__option--highlighted" role="treeitem" aria-selected="false" data-select2-id="197">...</li>
+  (Session info: chrome=140.0.7339.81)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff748a76b25+79621]
+	GetHandleVerifier [0x0x7ff748a76b80+79712]
+	(No symbol) [0x0x7ff74880c0ea]
+	(No symbol) [0x0x7ff74886af69]
+	(No symbol) [0x0x7ff748868902]
+	(No symbol) [0x0x7ff748865941]
+	(No symbol) [0x0x7ff748864831]
+	(No symbol) [0x0x7ff748856078]
+	(No symbol) [0x0x7ff74888b13a]
+	(No symbol) [0x0x7ff748855926]
+	(No symbol) [0x0x7ff74888b350]
+	(No symbol) [0x0x7ff7488b33d0]
+	(No symbol) [0x0x7ff74888af13]
+	(No symbol) [0x0x7ff748854151]
+	(No symbol) [0x0x7ff748854ee3]
+	GetHandleVerifier [0x0x7ff748d3683d+2962461]
+	GetHandleVerifier [0x0x7ff748d30b5d+2938685]
+	GetHandleVerifier [0x0x7ff748d4f71d+3064573]
+	GetHandleVerifier [0x0x7ff748a90c6e+186446]
+	GetHandleVerifier [0x0x7ff748a98a3f+218655]
+	GetHandleVerifier [0x0x7ff748a7f914+115956]
+	GetHandleVerifier [0x0x7ff748a7fac9+116393]
+	GetHandleVerifier [0x0x7ff748a65ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T17:06:48.487701+0700 INFO Order: 250904KD8DE772 Start!!
+2025-09-04T17:08:04.034949+0700 INFO Order: 250904KD8DE772 outer_Exception_Error!! [Errno 13] Permission denied: 'C:/Users/BCP_27/Documents/GitHub/Python/test/tkinter_test/Accel_mode.xlsx'
+2025-09-04T17:08:04.874565+0700 INFO Order: 250904KDKK4Q8Y Start!!
+2025-09-04T17:08:09.072814+0700 INFO Order: 250904KDKK4Q8Y outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-04T17:08:10.007497+0700 INFO Order: 250904KDVAJE9E Start!!
+2025-09-04T17:08:20.380614+0700 INFO Order: 250904KDVAJE9E outer_Exception_Error!! Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: Unable to receive message from renderer
+  (Session info: chrome=140.0.7339.81)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff748a76b25+79621]
+	GetHandleVerifier [0x0x7ff748a76b80+79712]
+	(No symbol) [0x0x7ff74880c0ea]
+	(No symbol) [0x0x7ff7487f9a0c]
+	(No symbol) [0x0x7ff7487f96fa]
+	(No symbol) [0x0x7ff7487f72c8]
+	(No symbol) [0x0x7ff7487f7d2f]
+	(No symbol) [0x0x7ff74880694e]
+	(No symbol) [0x0x7ff74881c911]
+	(No symbol) [0x0x7ff748823a6a]
+	(No symbol) [0x0x7ff7487f84cd]
+	(No symbol) [0x0x7ff74881c101]
+	(No symbol) [0x0x7ff7488b32a9]
+	(No symbol) [0x0x7ff74888af13]
+	(No symbol) [0x0x7ff748854151]
+	(No symbol) [0x0x7ff748854ee3]
+	GetHandleVerifier [0x0x7ff748d3683d+2962461]
+	GetHandleVerifier [0x0x7ff748d30b5d+2938685]
+	GetHandleVerifier [0x0x7ff748d4f71d+3064573]
+	GetHandleVerifier [0x0x7ff748a90c6e+186446]
+	GetHandleVerifier [0x0x7ff748a98a3f+218655]
+	GetHandleVerifier [0x0x7ff748a7f914+115956]
+	GetHandleVerifier [0x0x7ff748a7fac9+116393]
+	GetHandleVerifier [0x0x7ff748a65ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T17:08:29.188562+0700 INFO Order: 250904KEPNK7GC Start!!
+2025-09-04T17:08:30.286139+0700 INFO Order: 250904KEPNK7GC outer_Exception_Error!! main thread is not in main loop
+2025-09-04T17:11:35.293190+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:12:50.511391+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! Message: 
+
+2025-09-04T17:13:15.349229+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:14:14.476112+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+2025-09-04T17:17:36.162092+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:17:54.608881+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/span/span/span[2]/ul"}
+  (Session info: chrome=140.0.7339.81); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6dfd66b25+79621]
+	GetHandleVerifier [0x0x7ff6dfd66b80+79712]
+	(No symbol) [0x0x7ff6dfafc0ea]
+	(No symbol) [0x0x7ff6dfb52f56]
+	(No symbol) [0x0x7ff6dfb5320c]
+	(No symbol) [0x0x7ff6dfba65b7]
+	(No symbol) [0x0x7ff6dfb7b17f]
+	(No symbol) [0x0x7ff6dfba33d0]
+	(No symbol) [0x0x7ff6dfb7af13]
+	(No symbol) [0x0x7ff6dfb44151]
+	(No symbol) [0x0x7ff6dfb44ee3]
+	GetHandleVerifier [0x0x7ff6e002683d+2962461]
+	GetHandleVerifier [0x0x7ff6e0020b5d+2938685]
+	GetHandleVerifier [0x0x7ff6e003f71d+3064573]
+	GetHandleVerifier [0x0x7ff6dfd80c6e+186446]
+	GetHandleVerifier [0x0x7ff6dfd88a3f+218655]
+	GetHandleVerifier [0x0x7ff6dfd6f914+115956]
+	GetHandleVerifier [0x0x7ff6dfd6fac9+116393]
+	GetHandleVerifier [0x0x7ff6dfd55ef8+10968]
+	BaseThreadInitThunk [0x0x7fffd93ee8d7+23]
+	RtlUserThreadStart [0x0x7fffda93c34c+44]
+
+2025-09-04T17:17:57.058058+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:18:26.786146+0700 INFO Order: 250904KCR2WDAY stop operation
+2025-09-04T17:18:30.058663+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! 'dict' object has no attribute 'loc'
+2025-09-04T17:18:36.893355+0700 INFO Order: 250904KD1XJHGK Start!!
+2025-09-04T17:19:27.272392+0700 INFO Order: 250904KD1XJHGK outer_Exception_Error!! 'dict' object has no attribute 'loc'
+2025-09-04T17:30:03.611350+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:30:23.956336+0700 INFO Order: 250904KCR2WDAY outer_Exception_Error!! [Errno 13] Permission denied: 'C:/Users/BCP_27/Documents/GitHub/Python/test/tkinter_test/Accel_mode.xlsx'
+2025-09-04T17:30:24.468459+0700 INFO Order: 250904KD1XJHGK Start!!
+2025-09-04T17:31:24.500403+0700 INFO Order: 250904KD1XJHGK outer_Exception_Error!! Message: 
+
+2025-09-04T17:31:25.100878+0700 INFO Order: 250904KD5D5A1H Start!!
+2025-09-04T17:31:29.623416+0700 INFO Order: 250904KD5D5A1H stop operation
+2025-09-04T17:31:30.283253+0700 INFO Order: 250904KD5D5A1H outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-04T17:31:31.016019+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:31:32.127129+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:31:32.942362+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:31:33.929158+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:31:34.940673+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:31:36.059882+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:31:37.055302+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-04T17:35:32.141183+0700 INFO Order: 250904KCR2WDAY Start!!
+2025-09-04T17:35:41.021349+0700 INFO Order: 250904KD1XJHGK Start!!
+2025-09-04T17:36:01.127140+0700 INFO Order: 250904KD5D5A1H Start!!
+2025-09-04T17:36:22.382217+0700 INFO Order: 250904KD8DE772 Start!!
+2025-09-04T17:36:43.901063+0700 INFO Order: 250904KDKK4Q8Y Start!!
+2025-09-04T17:36:48.642913+0700 INFO Order: 250904KDKK4Q8Y outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-04T17:36:49.539078+0700 INFO Order: 250904KDVAJE9E Start!!
+2025-09-04T17:37:08.480407+0700 INFO Order: 250904KEPNK7GC Start!!
+2025-09-04T17:37:16.667281+0700 INFO Order: 250904KERW4E4J Start!!
+2025-09-04T17:37:41.772871+0700 INFO Order: 250904KETKF8FX Start!!
+2025-09-04T17:37:50.826625+0700 INFO Order: 250904KF2RQNG3 Start!!
