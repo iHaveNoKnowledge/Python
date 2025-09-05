@@ -101,7 +101,7 @@ class MyApp:
         self.cus_order = StringVar(value="")
         self.tax_bool = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
-        self.is_tax = StringVar(value="")
+        self.cus_tax_status = StringVar(value="")
         self.tax_branch_num = StringVar(value="")
         self.cus_name = StringVar(value="")
         self.cus_account_name = StringVar(value="")
@@ -128,7 +128,7 @@ class MyApp:
         self.cookies = {'vatinfo': {
             'JSESSIONID': '',
         }}
-        self.is_gui_busy = BooleanVar(value=False)
+        self.is_bot_browser_busy = BooleanVar(value=False)
         self.mimic_list_item_states = []
         
         #* เราจะใช้สอง obj หลักๆ UI กับ BOT WEBDRIVER ###################################################################
@@ -584,7 +584,7 @@ class MyApp:
         self.label_is_tax = CTkLabel(self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew', columnspan=1)
         # >> Value display
-        self.display_is_tax = CTkLabel(self.order_details_frame, textvariable=self.is_tax, fg_color="#fff", corner_radius=4)
+        self.display_is_tax = CTkLabel(self.order_details_frame, textvariable=self.cus_tax_status, fg_color="#fff", corner_radius=4)
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Tax Number display component
@@ -705,7 +705,7 @@ class MyApp:
         self.tax_bool.set(False)
         self.tax_num.set("")
         self.cus_email.set("")
-        self.is_tax.set("")
+        self.cus_tax_status.set("")
         self.cus_name.set("")
         self.cus_address = ""
         self.cus_remark = ""
@@ -1379,8 +1379,7 @@ class MyApp:
 
         for part in parts:
             # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword)
-                                  for keyword in ["ต.", "อ.", "จ."])
+            is_abbreviation = any(part.startswith(keyword) for keyword in ["ต.", "อ.", "จ."])
             if not is_abbreviation:
                 cleaned_parts.append(part)
 
@@ -1729,16 +1728,16 @@ class MyApp:
                 # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
                 if tax_num_only == "ไม่มีเลข":
                     self.tax_bool.set(False)
-                    self.is_tax.set("ไม่ขอใบกำกับ")
+                    self.cus_tax_status.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.configure(fg_color="#6ec7ff", text_color="#000", font=("Chiller", 10, "normal"))
                     self.tax_num.set("")
                 elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
                     if len(tax_num_only) > 13:
                         self.tax_bool.set(False)
-                        self.is_tax.set("ขอ//เลขเกิน")
+                        self.cus_tax_status.set("ขอ//เลขเกิน")
                     elif len(tax_num_only) < 13:
                         self.tax_bool.set(False)
-                        self.is_tax.set("ขอ//เลขไม่ครบ")
+                        self.cus_tax_status.set("ขอ//เลขไม่ครบ")
 
                     self.display_is_tax.configure(fg_color="#8502d1", text_color ="#FFF", font=("Chiller", 10, "normal"))
                     self.tax_num.set(tax_num_only)
@@ -1746,17 +1745,17 @@ class MyApp:
                 else:
                     if "สำนักงานใหญ่" in self.branch_type:
                         self.tax_bool.set(True)
-                        self.is_tax.set("ขอใบกำกับ สนงใหญ่")
+                        self.cus_tax_status.set("ขอใบกำกับ สนงใหญ่")
                         self.display_is_tax.configure(fg_color="#ff0000", text_color ="#FFF", font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
                         self.tax_bool.set(True)
-                        self.is_tax.set("ขอใบกำกับ สาขาย่อย")
+                        self.cus_tax_status.set("ขอใบกำกับ สาขาย่อย")
                         self.display_is_tax.configure(fg_color="#ff0055", text_color ="#FFF", font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
                         self.tax_bool.set(True)
-                        self.is_tax.set("ไม่ขอแต่มีเลข")
+                        self.cus_tax_status.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF", font=("Chiller", 12, "bold"))
                         self.tax_num.set(tax_num_only)
 
@@ -2115,9 +2114,9 @@ class MyApp:
                 shorter_thread_cycle, longer_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
-            if self.is_gui_busy.get() == True:
+            if self.is_bot_browser_busy.get() == True:
                 self.display_bot_status_label.configure(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
-            elif self.is_gui_busy.get() == False:
+            elif self.is_bot_browser_busy.get() == False:
                 self.display_bot_status_label.configure(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
         else:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
@@ -2252,14 +2251,11 @@ class DataSourceSelector:
     def select_excel(self):
         self.app.result = "Excel"
         print("Select Excel")
-        self.app.table_location = filedialog.askopenfilename(
-            title="Select Shopee order toship file")
+        self.app.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
         self.app.display_location_result.configure(text=f"{self.app.table_location.split('/')[-1]}")
-        # target should come before get dataframe
+        # target should come before getting dataframe
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
-        print("ต้องตีเว็บไหน", result)
-        # self.canvas.config(fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]})
         self.app.entry_frame.configure(fg_color=f'{self.app.bg_by_market_place[str(result)]}')
         self.app.marketplace_label.configure(
             fg_color=f'{self.app.bg_by_market_place[str(result)]}',
@@ -2275,9 +2271,7 @@ class DataSourceSelector:
 
     def on_close(self):
         self.app.marketplace_target.set("")
-        self.app.marketplace_label.configure(
-            width=70 if self.app.marketplace_target.get() == "" else 0
-        )
+        self.app.marketplace_label.configure(width=70 if self.app.marketplace_target.get() == "" else 0)
         self.subwindow.destroy()
 
 
@@ -2704,6 +2698,87 @@ class Bot_POS:
         else:
             print("Operation thread is already set, skipping operation task")
             self.app.update_log("Operation thread is already set, skipping operation task")
+            
+    def set_cus_name_search_type(self):
+        self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
+        if self.app.tax_bool.get() == True:
+            # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
+            if self.app.marketplace_target.get() == "SHOPEE":
+                print("ขอใบกำกับSHOPEE ใช้ T:")
+                self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+            elif self.app.marketplace_target.get() == "LAZADA":
+                print("ขอใบกำกับLazada ใช้ T:")
+                self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+        elif self.app.tax_bool.get() == False:
+            # ไม่ขอใบกำกับ
+            print("ไม่ขอใบกำกับใช้ N:")
+            self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
+        
+    def get_customer_name_ready(self, cus_search_input):
+        #* start Enter customer name here +++++++++++==================================================
+        while not self.operation_thread.is_set():
+            self.enter_cus_name(cus_search_input)
+            print("กรอกชื่อเสร็จ")
+            # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
+            self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
+            # * มันจะได้ Searching...
+            print("มันทำไม", self.searching_condition.text)
+
+            # ? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
+            # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[24]/div[2]/button[1]"
+            try:
+                # * มี pop-upไหม
+                if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
+                    # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
+                    self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
+                    continue
+                # * ไม่มี pop-up ให้ break
+                break
+            except:
+                break
+
+        # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
+        self.find_selectable_cus_name_li() #*เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
+
+        #* is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
+        while not self.operation_thread.is_set():
+            try:
+                #* หา li ไปตรวจสอบว่ามี len เท่าไหร่
+                customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
+                customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
+                # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
+                break
+
+            except:
+                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+                continue
+
+        #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
+        if len(customer_name_dropdown_lis) > 1:
+            print("มากกว่า 1")
+            cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
+            self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
+            print("click แล้ว")
+        else:
+            self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+            print("Click the cusname li result")
+
+        # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
+        if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
+            try:
+                self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
+                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+                self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+            except:
+                print("Skip, Alert Element is appear but can not perform actions.")
+        else:
+            print("Skip, Alert Element is Not appear")
+            print("No customer name input found")
+            pass
+
+        print("search หายไปแล้ว")
+        self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+
 
     def enter_cus_name(self, cus_search):
         #* ย้ายไปหน้าหลัก
@@ -2721,7 +2796,7 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
         self.driver.find_element(By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
-    def add_new_customer(self):
+    def add_new_customer(self, cb=None):
         # * ขอใบกำกับป่าว
         if self.app.tax_bool.get():
             print("Tax_needed")
@@ -2744,6 +2819,7 @@ class Bot_POS:
             #* เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
             #*-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
             self.duplicate_cus_name_resolver(cus_code_element)
+            cb()
 
         except Exception as err:
             print("No duplicate!", err)
@@ -2754,13 +2830,9 @@ class Bot_POS:
         """
         self.customer_added_times = 0
         self.customer_name_search_count = 0
-        print("ทำไมใช้ while ไม่ได้: ", not self.operation_thread.is_set())
         while not self.operation_thread.is_set():
             if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
                 time.sleep(0.7)
-                # self.wait50.until(EC.visibility_of_element_located(
-                #     (By.XPATH, self.app.cusNameLi1)))
-
                 # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
                 self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
 
@@ -2853,7 +2925,7 @@ class Bot_POS:
         except:
             print("cb doesn't works")
 
-        # self.add_new_customer()
+        self.add_new_customer(lambda: self.get_customer_name_ready(self.cus_search_input))
         # print("ก่อนRe Enter ชื่อลูกค้า")
         # self.enter_cus_name(self.cus_search_input)
         # print(f"Re enter name after add")
@@ -3144,7 +3216,7 @@ class Bot_POS:
             return
 
     def operation_start(self):      
-        self.app.is_gui_busy.set(True)
+        self.app.is_bot_browser_busy.set(True)
         self.is_forbid = False
         is_etax = False
         inv_number = ""
@@ -3424,34 +3496,16 @@ class Bot_POS:
                         continue
 
             print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
-            # while not self.operation_thread.is_set():
-            #     if self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button'):
-            #         print("เจอแล้วออก")
-            #         break
-            #     else:
-            #         continue
 
             self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
-
             time.sleep(1)
+            
             # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click()
             print("self.app.tax_bool: ", self.app.tax_bool.get())
 
             # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ search
-            self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
-            if self.app.tax_bool.get() == True:
-                # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
-                if self.app.marketplace_target.get() == "SHOPEE":
-                    print("ขอใบกำกับSHOPEE ใช้ T:")
-                    self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
-                elif self.app.marketplace_target.get() == "LAZADA":
-                    print("ขอใบกำกับLazada ใช้ T:")
-                    self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
-            elif self.app.tax_bool.get() == False:
-                # ไม่ขอใบกำกับ
-                print("ไม่ขอใบกำกับใช้ N:")
-                self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
+            self.set_cus_name_search_type()
 
             # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
             # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
@@ -3468,75 +3522,12 @@ class Bot_POS:
             # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
             if self.app.marketplace_target.get() == "SHOPEE":
-                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-                ) else self.app.cusNameFixer5(self.app.cus_name.get())
+                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
             elif self.app.marketplace_target.get() == "LAZADA":
-                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-                ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            #* start Enter customer name here +++++++++++==================================================
-            while not self.operation_thread.is_set():
-                self.enter_cus_name(self.cus_search_input)
-                print("กรอกชื่อเสร็จ")
-                # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
-                self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
-                # * มันจะได้ Searching...
-                print("มันทำไม", self.searching_condition.text)
-
-                # ? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
-                # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[24]/div[2]/button[1]"
-                try:
-                    # * มี pop-upไหม
-                    if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
-                        # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
-                        self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
-                        continue
-                    # * ไม่มี pop-up ให้ break
-                    break
-                except:
-                    break
-
-            # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
-            self.find_selectable_cus_name_li() #*เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
-
-            #* is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
-            while not self.operation_thread.is_set():
-                try:
-                    #* หา li ไปตรวจสอบว่ามี len เท่าไหร่
-                    customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
-                    customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
-                    # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
-                    break
-
-                except:
-                    self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-                    continue
-
-            #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
-            if len(customer_name_dropdown_lis) > 1:
-                print("มากกว่า 1")
-                cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
-                self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
-                print("click แล้ว")
-            else:
-                self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-                print("Click the cusname li result")
-
-            # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
-            if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
-                try:
-                    self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
-                    self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-                    self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
-                except:
-                    print("Skip, Alert Element is appear but can not perform actions.")
-            else:
-                print("Skip, Alert Element is Not appear")
-                print("No customer name input found")
-                pass
-
-            print("search หายไปแล้ว")
-            self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+            #* เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
+            self.get_customer_name_ready(self.cus_search_input)
             
             #* ใส่ตัวเช็คที่อยู่ลูกค้า
             if self.app.tax_bool.get():
@@ -3554,9 +3545,9 @@ class Bot_POS:
             self.insert_emp()
             
             # todo for testing
-            # # * Update Accel file //////////////////////
-            self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
-            return
+            # * Update Accel file //////////////////////
+            # self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
+            # return
             
                     
             # * ใส่ค่าขนส่ง ================================================================================
@@ -3648,7 +3639,7 @@ class Bot_POS:
 
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
-                self.app.is_gui_busy.set(False)
+                self.app.is_bot_browser_busy.set(False)
                 print("Enter final loop")
                 print("Waiting for element to appear")
                 while self.parent.winfo_exists() and not self.operation_thread.is_set():
@@ -3711,7 +3702,7 @@ class Bot_POS:
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
                         continue
                     elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
-                        self.app.is_gui_busy.set(True)
+                        self.app.is_bot_browser_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
                         self.is_final_page2 = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
@@ -3860,7 +3851,7 @@ class Bot_POS:
                             #             break
 
                             # * สำหรับรอ final pop-up after click the green btn
-                            self.app.is_gui_busy.set(False)
+                            self.app.is_bot_browser_busy.set(False)
                             auto_radio_times = 0
                             while not self.operation_thread.is_set():
 
@@ -3916,7 +3907,7 @@ class Bot_POS:
                                         pass
 
                                 if self.final_popup.is_displayed() == True:
-                                    self.app.is_gui_busy.set(True)
+                                    self.app.is_bot_browser_busy.set(True)
                                     print("final pop-up has finally displayed!")
                                     try:
                                         self.final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
@@ -4886,15 +4877,14 @@ class Bot_POS:
             time.sleep(1.75)
             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
             
-            #! Bug ตรงนี้ มันเขียวแป้บเดียวแล้วแดงทั้งๆที่ยังไม่โผล่ออกมา
-            self.app.display_bot_status_label.configure(text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+            self.app.is_bot_browser_busy.set(False)
             while not self.operation_thread.is_set():
                 time.sleep(0.25)
                 try:
                     'SMCO :: ลูกค้า'  in self.merged_dict
                     success_popup_element = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
                     if success_popup_element.is_displayed() :
-                        self.app.display_bot_status_label.configure(text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
+                        self.app.is_bot_browser_busy.set(True)
                         break
                     continue
                 except:
