@@ -4102,6 +4102,7 @@ class Bot_POS:
                         #! ไอ้ตัวนี้ไม่รู้เปนไร คลิกไม่ได้หลายรอบละเจ๊กแม่ ทั้งๆที่ข้างบนตรวจการมีอยู๋ของมันจนหมดแล้วแท้ๆ
                         self.driver.find_element(By.CSS_SELECTOR, '#select2-memberClass-container').click()
                         print(f"dropdown clicked")
+                        # ! ต้องเช็ค ul ที่โผล่มาหลังจาก click ก่อน บางที click แล้วหาย
                         break
                     except:
                         time.sleep(0.55)
