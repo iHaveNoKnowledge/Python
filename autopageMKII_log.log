@@ -4517,3 +4517,987 @@ Stacktrace:
 	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
 	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
 
+2025-09-11T11:02:56.739834+0700 INFO Order: 2509117H7V6AWY Start!!
+2025-09-11T11:03:59.595373+0700 INFO Order: 2509117H7V6AWY outer_Exception_Error!! Message: 
+
+2025-09-11T11:07:47.071345+0700 INFO Order: 2509117H416AFK Start!!
+2025-09-11T11:08:50.300250+0700 INFO Order: 2509117H416AFK outer_Exception_Error!! Message: 
+
+2025-09-11T11:11:01.021438+0700 INFO Order: 2509117H416AFK Start!!
+2025-09-11T11:11:22.470061+0700 INFO Order: 2509117H20AXXB Start!!
+2025-09-11T11:11:22.506544+0700 INFO Order: 2509117H20AXXB outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:11:45.049515+0700 INFO Order: 2509117H0U5BWC outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:11:45.319111+0700 INFO Order: 2509117H0U5BWC Start!!
+2025-09-11T11:12:47.062459+0700 INFO Order: 2509117H0U5BWC outer_Exception_Error!! Message: 
+
+2025-09-11T11:15:13.422841+0700 INFO Order: 2509117H0U5BWC Start!!
+2025-09-11T11:15:53.288863+0700 INFO Order: 2509117GX781NB outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:15:53.692662+0700 INFO Order: 2509117GX781NB Start!!
+2025-09-11T11:16:38.651874+0700 INFO Order: 2509117GPPUJ2A outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b2f3295]
+	(No symbol) [0x0x7ff72b2f1d83]
+	(No symbol) [0x0x7ff72b2e5377]
+	(No symbol) [0x0x7ff72b2e54f1]
+	(No symbol) [0x0x7ff72b2e3230]
+	(No symbol) [0x0x7ff72b2e7a51]
+	(No symbol) [0x0x7ff72b38630b]
+	(No symbol) [0x0x7ff72b35cada]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:16:39.006974+0700 INFO Order: 2509117GPPUJ2A Start!!
+2025-09-11T11:17:09.049659+0700 INFO Order: 2509117GEAWN21 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:17:09.386198+0700 INFO Order: 2509117GEAWN21 Start!!
+2025-09-11T11:17:35.879151+0700 INFO Order: 2509117G8TH26P outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:17:36.221923+0700 INFO Order: 2509117G8TH26P Start!!
+2025-09-11T11:17:53.756983+0700 INFO Order: 2509117G8PNTXX outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:17:53.771865+0700 INFO Order: 2509117G8PNTXX Start!!
+2025-09-11T11:18:24.896377+0700 INFO Order: 2509117G44QY6P outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:18:25.052886+0700 INFO Order: 2509117G44QY6P Start!!
+2025-09-11T11:18:45.357094+0700 INFO Order: 2509117FUF6TXJ Start!!
+2025-09-11T11:19:01.359910+0700 INFO Order: 2509117FUF6TXJ outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T11:20:38.457361+0700 INFO Order: 2509117FUF6TXJ Start!!
+2025-09-11T11:21:06.549809+0700 INFO Order: 2509117FSP0QA8 Start!!
+2025-09-11T11:21:12.304379+0700 INFO Order: 2509117FSP0QA8 outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T11:21:20.734144+0700 INFO Order: 2509117FSP0QA8 Start!!
+2025-09-11T11:22:16.526871+0700 INFO Order: 2509117FSP0QA8 outer_Exception_Error!! main thread is not in main loop
+2025-09-11T11:22:52.578949+0700 INFO Order: 2509117FHW4WDJ Start!!
+2025-09-11T11:23:08.520784+0700 INFO Order: 2509117FBRKR1N Start!!
+2025-09-11T11:23:39.854265+0700 INFO Order: 2509117FBRKR1N outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T11:24:01.266558+0700 INFO Order: 2509117FBRKR1N Start!!
+2025-09-11T11:24:53.373583+0700 INFO Order: 2509117F8V5YT9 Start!!
+2025-09-11T11:29:20.133826+0700 INFO Order: 2509117F8V5YT9 Start!!
+2025-09-11T11:29:50.751569+0700 INFO Order: 2509117ETTXM38 Start!!
+2025-09-11T11:29:50.885936+0700 INFO Order: 2509117ETTXM38 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:30:40.458574+0700 INFO Order: 2509117ETTXM38 outer_Exception_Error!! main thread is not in main loop
+2025-09-11T11:31:04.689964+0700 INFO Order: 2509117E7GY15Q Start!!
+2025-09-11T11:31:29.191795+0700 INFO Order: 2509117E2W6XKK Start!!
+2025-09-11T11:31:37.053037+0700 INFO Order: 2509117E2W6XKK outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T11:31:40.308222+0700 INFO Order: 2509117E2W6XKK Start!!
+2025-09-11T11:32:05.349563+0700 INFO Order: 2509117E1SUT2X Start!!
+2025-09-11T11:32:22.172157+0700 INFO Order: 2509117DVE6B85 Start!!
+2025-09-11T11:32:22.326606+0700 INFO Order: 2509117DVE6B85 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:33:22.858188+0700 INFO Order: 2509117DVE6B85 outer_Exception_Error!! Message: 
+
+2025-09-11T11:35:20.724800+0700 INFO Order: 2509117DVE6B85 Start!!
+2025-09-11T11:36:00.464950+0700 INFO Order: 2509117DVE6B85 stop operation
+2025-09-11T11:36:00.532805+0700 INFO Order: 2509117DVE6B85 outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T11:36:05.590483+0700 INFO Order: 2509117DVE6B85 Start!!
+2025-09-11T11:36:29.458590+0700 INFO Order: 2509117DPGCXVR Start!!
+2025-09-11T11:36:29.574911+0700 INFO Order: 2509117DPGCXVR outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T11:36:55.502755+0700 INFO Order: 2509117DPCMS7Q Start!!
+2025-09-11T11:37:56.485946+0700 INFO Order: 2509117DPCMS7Q outer_Exception_Error!! Message: 
+
+2025-09-11T14:39:39.526743+0700 INFO Order: 2509118059421C
+ Not found in the shopee's Export File
+2025-09-11T14:39:39.729702+0700 INFO Order: 2509118059421C Start!!
+2025-09-11T14:40:00.779887+0700 INFO Order: 2509118059421C Start!!
+2025-09-11T14:43:29.557727+0700 INFO Order: 250911803W6VU4 Start!!
+2025-09-11T14:43:52.426654+0700 INFO Order: 2509117YYMV7C9 Start!!
+2025-09-11T14:43:53.259122+0700 INFO Order: 2509117YYMV7C9 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b334457]
+	(No symbol) [0x0x7ff72b33471c]
+	(No symbol) [0x0x7ff72b388217]
+	(No symbol) [0x0x7ff72b35cb1f]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T14:45:53.816889+0700 INFO Order: 2509117YV4B673 Start!!
+2025-09-11T14:46:03.461992+0700 INFO Order: 2509117YV4B673 outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff72b55fca5+79861]
+	GetHandleVerifier [0x0x7ff72b55fd00+79952]
+	(No symbol) [0x0x7ff72b2dcada]
+	(No symbol) [0x0x7ff72b2f3295]
+	(No symbol) [0x0x7ff72b2f1d83]
+	(No symbol) [0x0x7ff72b2e5377]
+	(No symbol) [0x0x7ff72b2e3230]
+	(No symbol) [0x0x7ff72b2e770f]
+	(No symbol) [0x0x7ff72b2e77cf]
+	(No symbol) [0x0x7ff72b32de36]
+	(No symbol) [0x0x7ff72b35cada]
+	(No symbol) [0x0x7ff72b326bc6]
+	(No symbol) [0x0x7ff72b35ccf0]
+	(No symbol) [0x0x7ff72b384f8b]
+	(No symbol) [0x0x7ff72b35c8b3]
+	(No symbol) [0x0x7ff72b325272]
+	(No symbol) [0x0x7ff72b326043]
+	GetHandleVerifier [0x0x7ff72b81b9dd+2946349]
+	GetHandleVerifier [0x0x7ff72b815c5a+2922410]
+	GetHandleVerifier [0x0x7ff72b8359e7+3052855]
+	GetHandleVerifier [0x0x7ff72b57aa8e+189918]
+	GetHandleVerifier [0x0x7ff72b582a2f+222591]
+	GetHandleVerifier [0x0x7ff72b568ac4+116244]
+	GetHandleVerifier [0x0x7ff72b568c79+116681]
+	GetHandleVerifier [0x0x7ff72b54f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:15:05.222608+0700 INFO Order: 2509117YV4B673 Start!!
+2025-09-11T15:15:24.918325+0700 INFO Order: 2509117YNEP6WX Start!!
+2025-09-11T15:15:40.618260+0700 INFO Order: 2509117YNEP6WX outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T15:21:45.672230+0700 INFO Order: 2509117YNEP6WX Start!!
+2025-09-11T15:22:25.813755+0700 INFO Order: 2509117Y24QT41 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:22:25.826373+0700 INFO Order: 2509117Y24QT41 Start!!
+2025-09-11T15:22:53.555079+0700 INFO Order: 2509117XF677N5 Start!!
+2025-09-11T15:22:53.831602+0700 INFO Order: 2509117XF677N5 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:23:19.610286+0700 INFO Order: 2509117WWRANN5 Start!!
+2025-09-11T15:24:20.094266+0700 INFO Order: 2509117WWRANN5 outer_Exception_Error!! Message: 
+
+2025-09-11T15:28:41.855103+0700 INFO Order: 2509117WWRANN5 Start!!
+2025-09-11T15:29:07.054881+0700 INFO Order: 2509117WSVBSEG Start!!
+2025-09-11T15:29:12.395456+0700 INFO Order: 2509117WSVBSEG outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T15:29:24.191226+0700 INFO Order: 2509117WSVBSEG Start!!
+2025-09-11T15:29:52.701778+0700 INFO Order: 2509117W6XSD5U Start!!
+2025-09-11T15:30:53.531454+0700 INFO Order: 2509117W6XSD5U outer_Exception_Error!! Message: 
+
+2025-09-11T15:32:42.391990+0700 INFO Order: 2509117W6XSD5U Start!!
+2025-09-11T15:33:10.960308+0700 INFO Order: 2509117VSPAK5Q Start!!
+2025-09-11T15:33:11.518058+0700 INFO Order: 2509117VSPAK5Q outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:33:34.423198+0700 INFO Order: 2509117VMM68CU outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:33:34.427251+0700 INFO Order: 2509117VMM68CU Start!!
+2025-09-11T15:34:01.769693+0700 INFO Order: 2509117VCX7BHP Start!!
+2025-09-11T15:34:02.172642+0700 INFO Order: 2509117VCX7BHP outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:34:23.427831+0700 INFO Order: 2509117VA2KUUF Start!!
+2025-09-11T15:34:32.815346+0700 INFO Order: 2509117VA2KUUF outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff758fc3295]
+	(No symbol) [0x0x7ff758fc1d83]
+	(No symbol) [0x0x7ff758fb5377]
+	(No symbol) [0x0x7ff758fb3230]
+	(No symbol) [0x0x7ff758fb770f]
+	(No symbol) [0x0x7ff758fb77cf]
+	(No symbol) [0x0x7ff758ffde36]
+	(No symbol) [0x0x7ff75902cada]
+	(No symbol) [0x0x7ff758ff6bc6]
+	(No symbol) [0x0x7ff75902ccf0]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:34:51.723875+0700 INFO Order: 2509117V763QTF Start!!
+2025-09-11T15:34:57.109180+0700 INFO Order: 2509117V763QTF outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T15:35:06.757171+0700 INFO Order: 2509117V763QTF Start!!
+2025-09-11T15:35:22.302585+0700 INFO Order: 2509117V50EY92 Start!!
+2025-09-11T15:35:22.856923+0700 INFO Order: 2509117V50EY92 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:35:45.077311+0700 INFO Order: 2509117V43VVXD outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff758fc3295]
+	(No symbol) [0x0x7ff758fc1d83]
+	(No symbol) [0x0x7ff758fb5377]
+	(No symbol) [0x0x7ff758fb3230]
+	(No symbol) [0x0x7ff758fb770f]
+	(No symbol) [0x0x7ff758fb77cf]
+	(No symbol) [0x0x7ff758ffde36]
+	(No symbol) [0x0x7ff75902cada]
+	(No symbol) [0x0x7ff758ff6bc6]
+	(No symbol) [0x0x7ff75902ccf0]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:35:45.096604+0700 INFO Order: 2509117V43VVXD Start!!
+2025-09-11T15:36:07.426801+0700 INFO Order: 2509117UYXC64N Start!!
+2025-09-11T15:36:08.039426+0700 INFO Order: 2509117UYXC64N outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:36:22.379077+0700 INFO Order: 2509117UXAU267 Start!!
+2025-09-11T15:36:22.712752+0700 INFO Order: 2509117UXAU267 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff75922fca5+79861]
+	GetHandleVerifier [0x0x7ff75922fd00+79952]
+	(No symbol) [0x0x7ff758facada]
+	(No symbol) [0x0x7ff759004457]
+	(No symbol) [0x0x7ff75900471c]
+	(No symbol) [0x0x7ff759058217]
+	(No symbol) [0x0x7ff75902cb1f]
+	(No symbol) [0x0x7ff759054f8b]
+	(No symbol) [0x0x7ff75902c8b3]
+	(No symbol) [0x0x7ff758ff5272]
+	(No symbol) [0x0x7ff758ff6043]
+	GetHandleVerifier [0x0x7ff7594eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7594e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7595059e7+3052855]
+	GetHandleVerifier [0x0x7ff75924aa8e+189918]
+	GetHandleVerifier [0x0x7ff759252a2f+222591]
+	GetHandleVerifier [0x0x7ff759238ac4+116244]
+	GetHandleVerifier [0x0x7ff759238c79+116681]
+	GetHandleVerifier [0x0x7ff75921f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:36:50.629063+0700 INFO Order: 2509117USS0N03 Start!!
+2025-09-11T15:37:51.099350+0700 INFO Order: 2509117USS0N03 outer_Exception_Error!! Message: 
+
+2025-09-11T15:45:13.725324+0700 INFO Order: 2509117URKT306 Start!!
+2025-09-11T15:45:44.774217+0700 INFO Order: 2509117UR1KS2X Start!!
+2025-09-11T15:45:54.239052+0700 INFO Order: 2509117UR1KS2X outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4b3295]
+	(No symbol) [0x0x7ff67a4b1d83]
+	(No symbol) [0x0x7ff67a4a5377]
+	(No symbol) [0x0x7ff67a4a3230]
+	(No symbol) [0x0x7ff67a4a770f]
+	(No symbol) [0x0x7ff67a4a77cf]
+	(No symbol) [0x0x7ff67a4ede36]
+	(No symbol) [0x0x7ff67a51cada]
+	(No symbol) [0x0x7ff67a4e6bc6]
+	(No symbol) [0x0x7ff67a51ccf0]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:46:09.261424+0700 INFO Order: 2509117UJG963P Start!!
+2025-09-11T15:46:09.302043+0700 INFO Order: 2509117UJG963P outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4f4457]
+	(No symbol) [0x0x7ff67a4f471c]
+	(No symbol) [0x0x7ff67a548217]
+	(No symbol) [0x0x7ff67a51cb1f]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:46:35.805908+0700 INFO Order: 2509117UFGWEHS Start!!
+2025-09-11T15:46:36.114266+0700 INFO Order: 2509117UFGWEHS outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4f4457]
+	(No symbol) [0x0x7ff67a4f471c]
+	(No symbol) [0x0x7ff67a548217]
+	(No symbol) [0x0x7ff67a51cb1f]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:47:04.211279+0700 INFO Order: 2509117U98NDAD Start!!
+2025-09-11T15:47:12.449535+0700 INFO Order: 2509117U98NDAD outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4b3295]
+	(No symbol) [0x0x7ff67a4b1d83]
+	(No symbol) [0x0x7ff67a4a5377]
+	(No symbol) [0x0x7ff67a4a3230]
+	(No symbol) [0x0x7ff67a4a770f]
+	(No symbol) [0x0x7ff67a4a77cf]
+	(No symbol) [0x0x7ff67a4ede36]
+	(No symbol) [0x0x7ff67a51cada]
+	(No symbol) [0x0x7ff67a4e6bc6]
+	(No symbol) [0x0x7ff67a51ccf0]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:47:28.957717+0700 INFO Order: 2509117U8KMNH0 Start!!
+2025-09-11T15:47:29.239704+0700 INFO Order: 2509117U8KMNH0 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4f4457]
+	(No symbol) [0x0x7ff67a4f471c]
+	(No symbol) [0x0x7ff67a548217]
+	(No symbol) [0x0x7ff67a51cb1f]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:48:02.297297+0700 INFO Order: 2509117TFCV1JN Start!!
+2025-09-11T15:48:10.350485+0700 INFO Order: 2509117TFCV1JN outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4b3295]
+	(No symbol) [0x0x7ff67a4b1d83]
+	(No symbol) [0x0x7ff67a4a5377]
+	(No symbol) [0x0x7ff67a4a3230]
+	(No symbol) [0x0x7ff67a4a770f]
+	(No symbol) [0x0x7ff67a4a77cf]
+	(No symbol) [0x0x7ff67a4ede36]
+	(No symbol) [0x0x7ff67a51cada]
+	(No symbol) [0x0x7ff67a4e6bc6]
+	(No symbol) [0x0x7ff67a51ccf0]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:48:28.579740+0700 INFO Order: 2509117T79FA4Q Start!!
+2025-09-11T15:48:37.674039+0700 INFO Order: 2509117T79FA4Q outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4b3295]
+	(No symbol) [0x0x7ff67a4b1d83]
+	(No symbol) [0x0x7ff67a4a5377]
+	(No symbol) [0x0x7ff67a4a3230]
+	(No symbol) [0x0x7ff67a4a770f]
+	(No symbol) [0x0x7ff67a4a77cf]
+	(No symbol) [0x0x7ff67a4ede36]
+	(No symbol) [0x0x7ff67a51cada]
+	(No symbol) [0x0x7ff67a4e6bc6]
+	(No symbol) [0x0x7ff67a51ccf0]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:48:57.193267+0700 INFO Order: 2509117T6PBM7U Start!!
+2025-09-11T15:49:05.401594+0700 INFO Order: 2509117T6PBM7U outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4b3295]
+	(No symbol) [0x0x7ff67a4b1d83]
+	(No symbol) [0x0x7ff67a4a5377]
+	(No symbol) [0x0x7ff67a4a3230]
+	(No symbol) [0x0x7ff67a4a770f]
+	(No symbol) [0x0x7ff67a4a77cf]
+	(No symbol) [0x0x7ff67a4ede36]
+	(No symbol) [0x0x7ff67a51cada]
+	(No symbol) [0x0x7ff67a4e6bc6]
+	(No symbol) [0x0x7ff67a51ccf0]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:49:22.615829+0700 INFO Order: 2509117T5M13PB Start!!
+2025-09-11T15:49:37.514472+0700 INFO Order: 2509117T5M13PB outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T15:49:58.961569+0700 INFO Order: 2509117T3TUQAR Start!!
+2025-09-11T15:50:31.294744+0700 INFO Order: 2509117SVAEJWY Start!!
+2025-09-11T15:50:46.557628+0700 INFO Order: 2509117SVAEJWY outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T15:51:10.989420+0700 INFO Order: 2509117SVAEJWY Start!!
+2025-09-11T15:51:57.962419+0700 INFO Order: 2509117SPT2NB8 Start!!
+2025-09-11T15:51:58.066449+0700 INFO Order: 2509117SPT2NB8 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4f4457]
+	(No symbol) [0x0x7ff67a4f471c]
+	(No symbol) [0x0x7ff67a548217]
+	(No symbol) [0x0x7ff67a51cb1f]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:52:19.058589+0700 INFO Order: 2509117SNXDE26 Start!!
+2025-09-11T15:53:05.444584+0700 INFO Order: 2509117SM2APSA Start!!
+2025-09-11T15:53:05.566682+0700 INFO Order: 2509117SM2APSA outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff67a71fca5+79861]
+	GetHandleVerifier [0x0x7ff67a71fd00+79952]
+	(No symbol) [0x0x7ff67a49cada]
+	(No symbol) [0x0x7ff67a4f4457]
+	(No symbol) [0x0x7ff67a4f471c]
+	(No symbol) [0x0x7ff67a548217]
+	(No symbol) [0x0x7ff67a51cb1f]
+	(No symbol) [0x0x7ff67a544f8b]
+	(No symbol) [0x0x7ff67a51c8b3]
+	(No symbol) [0x0x7ff67a4e5272]
+	(No symbol) [0x0x7ff67a4e6043]
+	GetHandleVerifier [0x0x7ff67a9db9dd+2946349]
+	GetHandleVerifier [0x0x7ff67a9d5c5a+2922410]
+	GetHandleVerifier [0x0x7ff67a9f59e7+3052855]
+	GetHandleVerifier [0x0x7ff67a73aa8e+189918]
+	GetHandleVerifier [0x0x7ff67a742a2f+222591]
+	GetHandleVerifier [0x0x7ff67a728ac4+116244]
+	GetHandleVerifier [0x0x7ff67a728c79+116681]
+	GetHandleVerifier [0x0x7ff67a70f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-11T15:53:18.013850+0700 INFO Order: 2509117SM2APSA outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
+2025-09-11T15:53:27.104646+0700 INFO Order: 2509117SM2APSA Start!!

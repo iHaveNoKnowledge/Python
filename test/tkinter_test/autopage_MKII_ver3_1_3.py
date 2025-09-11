@@ -1334,7 +1334,7 @@ class MyApp:
             truncated_address = cus_address
 
         print("get_pure_address result: ", truncated_address.strip())
-        return truncated_address.strip()
+        return truncated_address.strip().replace('\u200b', '')
 
     def clean_duplicate_parts(self, address):
         # ใช้ regex เพื่อค้นหาและลบคำย่อที่มีส่วนที่มากกว่าคำเต็ม
@@ -1765,11 +1765,9 @@ class MyApp:
                 # * ส่วนสำหรับการแสดงผล UI ------------------------------------------------------
                 # self.address = self.filter_data.iat[0, 59]
                 self.address = self.nondistortedData['รายละเอียดที่อยู่']
-                self.cus_remark: str = str(
-                    self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
+                self.cus_remark: str = str(self.nondistortedData['หมายเหตุจากผู้ซื้อ'])
                 self.order_note: str = str(self.nondistortedData['บันทึก'])
-                self.cus_email.set(
-                    str(self.nondistortedData['อีเมลสำหรับรับใบกำกับภาษี']))
+                self.cus_email.set(str(self.nondistortedData['อีเมลสำหรับรับใบกำกับภาษี']))
 
                 print("ตรวจหมายเหตุ: ", self.cus_remark)
                 print("ตรวจบันทึก: ", self.order_note, "type: ", type(self.order_note))
@@ -1811,8 +1809,7 @@ class MyApp:
                     self.cleaned_address = ""
                     # * ถ้าขอใบกำกับค่อยใส่ ถ้าไม่ ก็ "" ไป
                     if self.tax_bool.get():
-                        self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
-                            self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
+                        self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
                     if "กรุงเทพ" in self.cleaned_address:
                         self.cleaned_address = self.cleaned_address.replace("จังหวัด", '')
@@ -1859,11 +1856,7 @@ class MyApp:
                             )
                         else:
                             print("update gui address else")
-                            self.update_gui(
-                                re.sub(r'\s{2,}', " ", self.cleaned_address.replace(
-                                    '\u200b', '')).strip(),
-                                self.display_cus_address
-                            )
+                            self.update_gui(re.sub(r'\s{2,}', " ", self.cleaned_address.replace('\u200b', '')).strip(), self.display_cus_address)
                     else:
                         print("ถ้ามี nan")
                         self.update_gui(
@@ -1886,13 +1879,10 @@ class MyApp:
 
                 # * เก็บค่ารายละเอียดที่อยู่
                 if self.tax_bool.get():
-                    self.cus_province.set(
-                        self.nondistortedData['จังหวัด.1'].strip())
-                    self.cus_district.set(
-                        self.nondistortedData['เขต/อำเภอ.1'].strip())
+                    self.cus_province.set(self.nondistortedData['จังหวัด.1'].strip())
+                    self.cus_district.set(self.nondistortedData['เขต/อำเภอ.1'].strip())
                 if self.cus_sub_district != "":
-                    self.cus_sub_district.set(
-                        self.nondistortedData['แขวง/ตำบล'])
+                    self.cus_sub_district.set(self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
                 print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ", self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
@@ -1924,15 +1914,11 @@ class MyApp:
 
                 self.sum_price = sum(self.net_prices_list)
                 self.show_products(self.items)
-                print("จำนวนเงิน", self.f(
-                    self.nondistortedData['จำนวนเงินทั้งหมด']))
-                print('สินค้ารวมค่าส่ง: ', self.f(
-                    self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
+                print("จำนวนเงิน", self.f(self.nondistortedData['จำนวนเงินทั้งหมด']))
+                print('สินค้ารวมค่าส่ง: ', self.f(self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
                 self.update_log(f"เวลาที่สั่ง: {self.cus_purchase_time.get()}")
-                self.update_log(
-                    f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
-                self.update_log(f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(
-                    float(self.sum_price) + float(self.cus_ship_cost.get()))}")
+                self.update_log(f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
+                self.update_log(f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(float(self.sum_price) + float(self.cus_ship_cost.get()))}")
 
                 self.update_log(f" ")
                 self.update_log(f"-↓↓↓↓↓↓-หน้าสุดท้าย-↓↓↓↓↓↓-")
@@ -1940,14 +1926,11 @@ class MyApp:
 
                 # * จากปัญหาข้อที่ 37 // การอัพเดท LOG เนื่องจาก LAZ กับ Shopee มีเงื่อนไข การใส่ค่าขนส่งในการออกบิลไม่เหมือนกัน SHOPEE ใส่หมด แต่ LAZ ใส่เป็นบาง ORDER ขึ้นอยู่กับว่า ลูกค้า จะ inbox มาขอให้ใส่หรือไม่
                 if self.marketplace_target.get() == "SHOPEE":
-                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f(
-                        (self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
                 elif self.marketplace_target.get() == "LAZADA":
-                    self.update_log(f"สินค้าเฉยๆ หักseller: {self.f(
-                        (self.sum_price)-self.cus_seller_voucher.get())}")
+                    self.update_log(f"สินค้าเฉยๆ หักseller: {self.f((self.sum_price)-self.cus_seller_voucher.get())}")
                     self.update_log(f"---------------------------------")
-                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f(
-                        (self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
+                    self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f((self.sum_price+self.cus_ship_cost.get())-self.cus_seller_voucher.get())}")
 
             else:
                 print(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
@@ -2741,27 +2724,37 @@ class Bot_POS:
         self.find_selectable_cus_name_li() #*เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
 
         #* is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
-        while not self.operation_thread.is_set():
+        while True:
             try:
                 #* หา li ไปตรวจสอบว่ามี len เท่าไหร่
                 customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                 customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
+                #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
+                if len(customer_name_dropdown_lis) > 1:
+                    print("มากกว่า 1")
+                    cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
+                    self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
+                    print("click แล้ว")
+                else:
+                    self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+                    print("Click the cusname li result")
+                    
                 break
 
             except:
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
                 continue
 
-        #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
-        if len(customer_name_dropdown_lis) > 1:
-            print("มากกว่า 1")
-            cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
-            self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
-            print("click แล้ว")
-        else:
-            self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-            print("Click the cusname li result")
+        # #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2 ย้ายไปไว้ใน while เพราะ customer_name_dropdown_lis มันหายได้หากไว้นอก while มันจะพัง
+        # if len(customer_name_dropdown_lis) > 1:
+        #     print("มากกว่า 1")
+        #     cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
+        #     self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
+        #     print("click แล้ว")
+        # else:
+        #     self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+        #     print("Click the cusname li result")
 
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
         if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
@@ -2812,12 +2805,12 @@ class Bot_POS:
             self.addNormalCustomer(self.cus_search_input)
             
         try:
-            #* กรณี add แล้ว มี popup-duplicate customer
-            print("Duplicated customer found!!")
             self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
             cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
             #* เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
             #*-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
+            #* กรณี add แล้ว มี popup-duplicate customer
+            print("Duplicated customer found!!")
             self.duplicate_cus_name_resolver(cus_code_element)
             cb()
 
@@ -4094,30 +4087,43 @@ class Bot_POS:
         
         #* มีตัว Customer Class ให้กรอกไหม
         while is_functionworking and not self.operation_thread.is_set():
+            print("start finding customer class dropdown")
             # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
             try:
                 # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
-                while not self.operation_thread.is_set():
+                while True:
+                    print("customer class handler while start")
+                    time.sleep(0.30)
                     try:
-                        self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer"
+                        self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").is_displayed()
+                        print(f"dropdown target has been already displaying")
                         break
                     except:
-                        if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").is_displayed():
+                        try:
+                            self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").is_displayed()
+                            print(f"dropdown target choice is now displaying")
                             continue
-                        #! ไอ้ตัวนี้ไม่รู้เปนไร คลิกไม่ได้หลายรอบละเจ๊กแม่ ทั้งๆที่ข้างบนตรวจการมีอยู๋ของมันจนหมดแล้วแท้ๆ
-                        dropdown_input = self.driver.find_element(By.CSS_SELECTOR, '#select2-memberClass-container')
-                        dropdown_input.click()
-                        print(f"dropdown clicked {dropdown_input.text}")
-                        # ! ต้องเช็ค ul ที่โผล่มาหลังจาก click ก่อน บางที click แล้วหาย
-                        time.sleep(0.55)
-                        continue
-                    
+                        except:
+                            #! ไอ้ตัวนี้ไม่รู้เปนไร คลิกไม่ได้หลายรอบละเจ๊กแม่ ทั้งๆที่ข้างบนตรวจการมีอยู๋ของมันจนหมดแล้วแท้ๆ
+                            try:
+                                dropdown_input = self.driver.find_element(By.CSS_SELECTOR, '#select2-memberClass-container')
+                                dropdown_input.click()
+                                print(f"dropdown clicked {dropdown_input.text}")
+                                # ! ต้องเช็ค ul ที่โผล่มาหลังจาก click ก่อน บางที click แล้วหาย
+                                time.sleep(0.30)
+                                continue
+                            except:
+                                print(f"driver cannot see the element")
+                                continue
+                        
                 
 
                 # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
-                while not self.operation_thread.is_set():
-                    
+                while True:
+                    print("let's click the target li")
+                    time.sleep(0.55)
                     try:
+                        print("click choice li")
                         choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
                         print("choice_found: ", choice_found)
                         if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
@@ -4133,9 +4139,10 @@ class Bot_POS:
                         continue
                 
             except Exception as err:
+                print("No Customer Class input")
                 time.sleep(1)
                 print("except: ", err) # for develop inspection   
-                print("No Customer Class input")
+                
                 
                             
             #* Name TH
@@ -4170,6 +4177,8 @@ class Bot_POS:
             #         By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
             # except:
             #     pass
+        
+        print("addnormalCustomer end")
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
@@ -4244,8 +4253,7 @@ class Bot_POS:
             By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(self.app.tax_num.get())
 
         # * กรอก Address
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
         # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
         # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
         # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
