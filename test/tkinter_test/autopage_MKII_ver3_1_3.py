@@ -2093,8 +2093,7 @@ class MyApp:
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
-            self.root.after(1000, lambda: self.check_threads(
-                shorter_thread_cycle, longer_thread_cycle, callback))
+            self.root.after(1000, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_bot_browser_busy.get() == True:
@@ -2107,14 +2106,14 @@ class MyApp:
             longer_thread_cycle.join()
             print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
             print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
-            self.display_bot_status_label.configure(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+            self.display_bot_status_label.configure(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
             print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
 
             if callback:
                 callback()
 
     def search_order(self, accel_order=None, callback=None):
+        self.is_bot_running.set(False)
         self.is_bot_running.set(True)
         self.autofinal = False
         # * ลบ result products list เก่า
@@ -2140,6 +2139,8 @@ class MyApp:
 
         self.operation_thread = threading.Event()
         self.order_Search_thread = threading.Event()
+        self.operation_thread.set()
+        self.order_Search_thread.set()
         self.operation_thread.clear()
         print("self.operation_thread: ", self.operation_thread.is_set())
 
@@ -2166,16 +2167,14 @@ class MyApp:
             self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
             if count < self.accel_orders_len:
                 if self.is_accel_mode_activated.get():
-                    self.search_order(
-                        self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                    self.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
                     raise ValueError("Accel mode has been destroyed")
             else:
                 pass
 
         # * search รอบแรกใช้ตรงนี้
-        self.search_order(
-            self.accel_orders_list[0], lambda: start_next_cycle(1))
+        self.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
     def stop_operation(self):
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
@@ -2724,7 +2723,7 @@ class Bot_POS:
         self.find_selectable_cus_name_li() #*เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
 
         #* is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
-        while True:
+        while not self.operation_thread.is_set():
             try:
                 #* หา li ไปตรวจสอบว่ามี len เท่าไหร่
                 customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
@@ -2736,11 +2735,12 @@ class Bot_POS:
                     cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
                     self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
                     print("click แล้ว")
+                    break
                 else:
                     self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
                     print("Click the cusname li result")
+                    break
                     
-                break
 
             except:
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
@@ -3539,8 +3539,8 @@ class Bot_POS:
             
             # todo for testing
             # * Update Accel file //////////////////////
-            # self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
-            # return
+            self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
+            return
             
                     
             # * ใส่ค่าขนส่ง ================================================================================
@@ -4065,16 +4065,13 @@ class Bot_POS:
         # else:
         #     print("'MyApp' object has no attribute 'accel_search_thread'")
         #     pass
-
-    def addNormalCustomer(self, cusname_fixed):
-        is_functionworking = False
-        is_functionworking = True
+        
+    def customer_class_selector(self, is_functionworking):
         customer_form_dialog_element = False
-        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
         #todo เช็ค dialog form โหลดเสร็จยัง
         while is_functionworking and not self.operation_thread.is_set():
             try:
+                #* ไม่เจอ faded backdrop แปลว่ายังไม่เปิดnew cus form มันเลยจะไปเปิดใน except แล้วกลับมา 
                 customer_form_dialog_element = self.driver.find_element(By.CSS_SELECTOR, 'body > div.modal-backdrop.fade.in')
                 customer_class_input = self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
                 if customer_form_dialog_element.is_displayed() and customer_class_input.is_displayed():
@@ -4082,6 +4079,7 @@ class Bot_POS:
                     print(f"customer_class_input: {customer_class_input.is_displayed()}")
                     break
             except:
+                self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
                 time.sleep(0.55)
                 continue
         
@@ -4095,12 +4093,12 @@ class Bot_POS:
                     print("customer class handler while start")
                     time.sleep(0.30)
                     try:
-                        self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").is_displayed()
+                        self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").is_displayed()
                         print(f"dropdown target has been already displaying")
                         break
                     except:
                         try:
-                            self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").is_displayed()
+                            self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").is_displayed()
                             print(f"dropdown target choice is now displaying")
                             continue
                         except:
@@ -4124,27 +4122,40 @@ class Bot_POS:
                     time.sleep(0.55)
                     try:
                         print("click choice li")
-                        choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
+                        choice_found = self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").text
                         print("choice_found: ", choice_found)
-                        if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
+                        if self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").text == "CM1-Domestic Customer":
                             print("the corrected choice is found")
-                            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+                            self.driver.find_element(By.CSS_SELECTOR, '#customerNewModal > span > span > span.select2-search.select2-search--dropdown > input').clear()
                             time.sleep(0.55)
-                            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
+                            self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").click()
                             print(f"Click the choice")
                             break
                     except Exception as err:
                         time.sleep(1)
-                        # print("except: ", err) # for develop inspection
-                        continue
+                        print("except cannot click li: ", err) # for develop inspection
+                        break
+                try:
+                    if self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-container").get_attribute('title') == "CM1-Domestic Customer":
+                        print("li name selection complete")
+                        break
+                except:
+                    print("back to call li again")
+                    continue
+                
                 
             except Exception as err:
                 print("No Customer Class input")
                 time.sleep(1)
                 print("except: ", err) # for develop inspection   
+
+    def addNormalCustomer(self, cusname_fixed):
+        is_functionworking = False
+        is_functionworking = True
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+        self.customer_class_selector(is_functionworking)
                 
-                
-                            
+        while is_functionworking and not self.operation_thread.is_set():
             #* Name TH
             self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')))
             self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
@@ -4193,152 +4204,107 @@ class Bot_POS:
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch_num.get()})"""
 
+        is_functionworking = False
+        is_functionworking = True
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()
+        self.customer_class_selector(is_functionworking)
 
+        while is_functionworking and not self.operation_thread.is_set():
+            try:
+                # * > nameTH clear
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
+                # # * >nameTH fill input better style ปิดการใช้งาน
+                # self.driver.find_element( By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+                # * >nameTH SMCO style
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(f'{name}')
 
-        # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-        try:
-            self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[3]/div[1]/div/span/span[1]/span/span[1]')))
-            print("เจอแล้ว customer class")
-            time.sleep(0.55)
-            # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
-            self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]').click()
+                # * >nameEN clear
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
+                # * >nameEN fill input better style ปิดการใช้งาน
+                # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
+                # * >nameEN SMCO style
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(f'{name}')
 
+                # ! เปิดใช้การออกใบกำกับ ตาม SMCO style (ถ้าไม่เปิดจะถือว่าเป็นการใช้ Better style)
+                # * clear Identity ID
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
+                # * Identity ID
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(self.app.tax_num.get())
 
-            # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
-            while not self.operation_thread.is_set():
-                try:
-                    choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
-                    print("choice_found: ", choice_found)
-                    if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
-                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-                        time.sleep(0.75)
-                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
-                        break
-                except Exception as err:
-                    time.sleep(0.75)
-                    # print("except: ", err) # for develop inspection
-                    continue
+                # * กรอก Address
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
+                # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
+                # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
+                # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
+                address = self.app.address
+                if self.app.tax_bool.get():
+                    address = self.app.get_pure_address(self.app.address)
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(address)
 
-        except:
-            print("No customer category, Pass")
+                # * กรอก email
+                self.email_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
+                self.email_input.clear()
+                self.email_input.send_keys(self.app.cus_email.get())
+
+                # * tel.
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(self.app.cus_tel.get())
+
+                ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
+                # dropdown Country
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
+                time.sleep(1.55)
+                # select thailand in dropdown
+                # self.driver.find_element(By.XPATH, "//*[text()='Thailand']").click()
+                self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li[2]").click()
+
+                # province dropdown
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
                 
+                # province input
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()    
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
+                time.sleep(1.55)
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+                #* District dropdown
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+                # *> District fill input
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("อ.", ""))  
+                time.sleep(1.75)
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+                #* SubDistrict dropdown
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+                #* SubDistrict fill input
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
+                time.sleep(1.75)
+                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+                # # * กด Save
+                # self.driver.find_element(
+                #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
+                
+                # รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
+                self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
+                is_functionworking = False
+                # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
+                # self.wait50.until(EC.visibility_of_element_located(
+                #     (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+                #! smco 7.0.0 เลิกใช้เพราะมันจะไม่มีในยามปกติละ 
+                # try:
+                #     self.driver.find_element(
+                #         By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+                # except:
+                #     pass
+                break
             
-
-        # * > nameTH clear
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
-        # # * >nameTH fill input better style ปิดการใช้งาน
-        # self.driver.find_element( By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
-        # * >nameTH SMCO style
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(f'{name}')
-
-        # * >nameEN clear
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
-        # * >nameEN fill input better style ปิดการใช้งาน
-        # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(f'{name} Tax ID: {self.app.tax_num.get()}')
-        # * >nameEN SMCO style
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(f'{name}')
-
-        # ! เปิดใช้การออกใบกำกับ ตาม SMCO style (ถ้าไม่เปิดจะถือว่าเป็นการใช้ Better style)
-        # * clear Identity ID
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
-        # * Identity ID
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(self.app.tax_num.get())
-
-        # * กรอก Address
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
-        # ! > การกรอก address แบบโกง bypass เขตแขวง SMCO แต่กลัวว่า สรรพากรจะกำหมัด
-        # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(self.app.cus_address)
-        # ! > การกรอก address แบบทำตามกฎเลือก เขตแขวง ตามระบบ SMCO แต่กลัวว่า สรรพากรจะกำหมัด
-        address = self.app.address
-        if self.app.tax_bool.get():
-            address = self.app.get_pure_address(self.app.address)
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(address)
-
-        # * กรอก email
-        self.email_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
-        self.email_input.clear()
-        self.email_input.send_keys(self.app.cus_email.get())
-
-        # * tel.
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(self.app.cus_tel.get())
-
-        ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
-        # dropdown Country
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
-        time.sleep(1.55)
-        # select thailand in dropdown
-        # self.driver.find_element(By.XPATH, "//*[text()='Thailand']").click()
-        self.driver.find_element(By.XPATH, "/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li[2]").click()
-
-        # province dropdown
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            # province input
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))  # province input
-        time.sleep(1.55)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # District drop
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            # *> District clear
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-            # *> District fill input
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
-            self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("อ.", ""))  # District
-        time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # SubDistrict drop
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-        # SubDistrict
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
-            self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-        time.sleep(1.75)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-        # # * กด Save
-        # self.driver.find_element(
-        #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
-        
-        # รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป
-        self.wait50.until(EC.invisibility_of_element_located(
-            (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
-
-        # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
-        # self.wait50.until(EC.visibility_of_element_located(
-        #     (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
-        #! smco 7.0.0 เลิกใช้เพราะมันจะไม่มีในยามปกติละ 
-        # try:
-        #     self.driver.find_element(
-        #         By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
-        # except:
-        #     pass
+            except:
+                continue
 
     def addTaxInvCustomerLaz(self):
         tax_info = self.get_vatinfo_data(
@@ -4358,133 +4324,81 @@ class Bot_POS:
         elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
             name = f"""{name} (สาขา{self.app.tax_branch.get()})"""
 
+        is_functionworking = False
+        is_functionworking = True
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-        self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()
-
-
-        # * > เลือกหมวดลูกค้า  เพิ่มมาตอน 6.3.1 24/04/2024
-        try:
-            self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[3]/div[1]/div/span/span[1]/span/span[1]')))
-            print("เจอแล้ว customer class")
-            time.sleep(0.55)
-            # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
-            self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]').click()
-
-
-            # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
-            while not self.operation_thread.is_set():
-                try:
-                    choice_found = self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text
-                    print("choice_found: ", choice_found)
-                    if self.driver.find_element(By.XPATH, "//*[text()='CM1-Domestic Customer']").text == "CM1-Domestic Customer":
-                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-                        time.sleep(0.75)
-                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li').click()
-                        break
-                except Exception as err:
-                    time.sleep(1)
-                    # print("except: ", err) # for develop inspection
-                    continue
-
-        except:
-            print("No customer category, Pass")
-
+        self.customer_class_selector(is_functionworking)
+        
         # * clear nameTH
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
 
         # * nameTH
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
 
         # * clear nameEN
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
         # * nameEN
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(name)
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(name)
 
         # * clear Identity ID
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
         # * Identity ID
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(tax_info['tax_num'])
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(tax_info['tax_num'])
 
         # * กรอก Address
-
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(tax_info['address_shortened'])
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(tax_info['address_shortened'])
 
         # * กรอก email
-        self.email_input = self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
+        self.email_input = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
         self.email_input.clear()
         self.email_input.send_keys(self.app.cus_email.get())
 
         ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
         # * dropdown Country
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
         time.sleep(1)
         # * > select thailand in dropdown
-        self.driver.find_element(
-            By.XPATH, "//*[text()='Thailand']").click()
+        self.driver.find_element(By.XPATH, "//*[text()='Thailand']").click()
 
         # * province dropdown
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            # * > province input
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
-            tax_info['province'].replace("จังหวัด", ""))  # province input
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        # * > province input
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(tax_info['province'].replace("จังหวัด", ""))  
         time.sleep(1.55)
         self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # *> District drop
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
         # *> District clear
         self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
         # *> District fill input
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
-            tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))
         time.sleep(1.55)
         # *> District Enter to submit District from the dropdown
         self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # * SubDistrict drop
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(
-            # > SubDistrict
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(
-            tax_info['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
+        # > SubDistrict
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(tax_info['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))
         time.sleep(1.55)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
         # * tel.
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(self.app.cus_tel.get())
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(self.app.cus_tel.get())
 
         # # * กด Save
         # self.driver.find_element(
         #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 
         # #* รอมันหายก่อนแล้วค่อยจบ function เพื่อไม่ให้ขั้นตอนต่อไปทำงานเร็วเกินไป ใช้ได้
-        self.wait50.until(EC.invisibility_of_element_located(
-            (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
+        self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
 
         # *  24/04/2023: กลับมาอีกแล้วทำให้เป็น try except ละกัน// 09/11/2023: partนี้ ทาง SMCO ลบออกไปแล้ว
         # self.wait50.until(EC.visibility_of_element_located(

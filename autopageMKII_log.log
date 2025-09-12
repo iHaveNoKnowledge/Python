@@ -5501,3 +5501,359 @@ Stacktrace:
 
 2025-09-11T15:53:18.013850+0700 INFO Order: 2509117SM2APSA outer_Exception_Error!! cannot access local variable 'customer_name_dropdown_lis' where it is not associated with a value
 2025-09-11T15:53:27.104646+0700 INFO Order: 2509117SM2APSA Start!!
+2025-09-12T16:52:25.609169+0700 INFO Order: 2509118TM8HYS8 Start!!
+2025-09-12T16:52:33.237899+0700 INFO Order: 2509118TM8HYS8 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1150, 418). Other element would receive the click: <textarea class="form-control validate ng-pristine ng-untouched ng-valid ng-empty ng-valid-maxlength" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=140.0.7339.128)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff60137c5d9]
+	(No symbol) [0x0x7ff601379f5e]
+	(No symbol) [0x0x7ff601376eb1]
+	(No symbol) [0x0x7ff601375da0]
+	(No symbol) [0x0x7ff601367338]
+	(No symbol) [0x0x7ff60139cada]
+	(No symbol) [0x0x7ff601366bc6]
+	(No symbol) [0x0x7ff60139ccf0]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:52:35.392800+0700 INFO Order: 2509118UEBYTGU Start!!
+2025-09-12T16:52:47.159845+0700 INFO Order: 2509118UEBYTGU stop operation
+2025-09-12T16:52:49.513616+0700 INFO Order: 2509118V1BFN09 Start!!
+2025-09-12T16:52:57.319808+0700 INFO Order: 2509118V1BFN09 stop operation
+2025-09-12T16:52:59.470557+0700 INFO Order: 2509128VT232J0 Start!!
+2025-09-12T16:53:31.143734+0700 INFO Order: 2509128VT232J0 outer_Exception_Error!! main thread is not in main loop
+2025-09-12T16:53:57.780923+0700 INFO Order: 250912AJGGRYQ6 Start!!
+2025-09-12T16:54:09.972757+0700 INFO Order: 250912AJCMUU0U Start!!
+2025-09-12T16:54:15.922831+0700 INFO Order: 250912AJCMUU0U outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff601333295]
+	(No symbol) [0x0x7ff601331d83]
+	(No symbol) [0x0x7ff601325377]
+	(No symbol) [0x0x7ff601323230]
+	(No symbol) [0x0x7ff60132770f]
+	(No symbol) [0x0x7ff6013277cf]
+	(No symbol) [0x0x7ff60136de36]
+	(No symbol) [0x0x7ff60139cada]
+	(No symbol) [0x0x7ff601366bc6]
+	(No symbol) [0x0x7ff60139ccf0]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:54:36.835488+0700 INFO Order: 250912AGT4CXFG Start!!
+2025-09-12T16:54:36.958684+0700 INFO Order: 250912AGT4CXFG outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff601374457]
+	(No symbol) [0x0x7ff60137471c]
+	(No symbol) [0x0x7ff6013c8217]
+	(No symbol) [0x0x7ff60139cb1f]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:55:05.608796+0700 INFO Order: 250912AGT4CXFG stop operation
+2025-09-12T16:55:11.173601+0700 INFO Order: 250912AGCKBVKH Start!!
+2025-09-12T16:56:20.100039+0700 INFO Order: 250912AG181V6J Start!!
+2025-09-12T16:56:32.546064+0700 INFO Order: 250912AFX7PW1H Start!!
+2025-09-12T16:56:33.262755+0700 INFO Order: 250912AFX7PW1H outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff601374457]
+	(No symbol) [0x0x7ff60137471c]
+	(No symbol) [0x0x7ff6013c8217]
+	(No symbol) [0x0x7ff60139cb1f]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:56:38.392812+0700 INFO Order: 250912AFX7PW1H outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff601333295]
+	(No symbol) [0x0x7ff601331d83]
+	(No symbol) [0x0x7ff601325377]
+	(No symbol) [0x0x7ff601323230]
+	(No symbol) [0x0x7ff60132770f]
+	(No symbol) [0x0x7ff6013277cf]
+	(No symbol) [0x0x7ff60136de36]
+	(No symbol) [0x0x7ff60139cada]
+	(No symbol) [0x0x7ff601366bc6]
+	(No symbol) [0x0x7ff60139ccf0]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:57:05.934348+0700 INFO Order: 250912AF2A3J2V outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff601374457]
+	(No symbol) [0x0x7ff60137471c]
+	(No symbol) [0x0x7ff6013c8217]
+	(No symbol) [0x0x7ff60139cb1f]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:57:05.945031+0700 INFO Order: 250912AF2A3J2V Start!!
+2025-09-12T16:57:48.030051+0700 INFO Order: 250912AD0FF39Q Start!!
+2025-09-12T16:58:02.108035+0700 INFO Order: 250912AD0FF39Q outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff601374457]
+	(No symbol) [0x0x7ff60137471c]
+	(No symbol) [0x0x7ff6013c8217]
+	(No symbol) [0x0x7ff60139cb1f]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T16:58:44.044391+0700 INFO Order: 250912ACSQX2DV Start!!
+2025-09-12T17:02:19.876488+0700 INFO Order: 250912ACSQX2DV outer_Exception_Error!! main thread is not in main loop
+2025-09-12T17:02:20.491923+0700 INFO Order: 250912ACSQX2DV outer_Exception_Error!! main thread is not in main loop
+2025-09-12T17:03:34.320501+0700 INFO Order: 2509118TM8HYS8 Start!!
+2025-09-12T17:04:03.354877+0700 INFO Order: 2509118UEBYTGU Start!!
+2025-09-12T17:04:10.555572+0700 INFO Order: 2509118V1BFN09 Start!!
+2025-09-12T17:04:17.627205+0700 INFO Order: 2509128VT232J0 Start!!
+2025-09-12T17:04:24.824648+0700 INFO Order: 2509128W304UFQ Start!!
+2025-09-12T17:05:16.131047+0700 INFO Order: 2509128W6T66E5 Start!!
+2025-09-12T17:05:27.688890+0700 INFO Order: 2509128WMPMH5B Start!!
+2025-09-12T17:05:35.392400+0700 INFO Order: 2509128X5ASH7N Start!!
+2025-09-12T17:05:45.417177+0700 INFO Order: 2509128XNFMYXN Start!!
+2025-09-12T17:06:31.753880+0700 INFO Order: 2509128XNFMYXP Start!!
+2025-09-12T17:06:43.981106+0700 INFO Order: 2509128XNFMYXQ Start!!
+2025-09-12T17:07:30.180881+0700 INFO Order: 2509128XUEEUCU Start!!
+2025-09-12T17:08:23.538850+0700 INFO Order: 2509128XUEEUCV Start!!
+2025-09-12T17:09:29.953554+0700 INFO Order: 2509128XUEEUCW Start!!
+2025-09-12T17:10:05.107225+0700 INFO Order: 2509128XUEEUCW outer_Exception_Error!! Message: element click intercepted: Element <a href="" class="btn btn-default" id="editAddressBtn" ng-click="openAddressModal...(row)" ng-disabled="chkFlagOpenModalAddress()" disabled="disabled">Edit</a> is not clickable at point (1262, 584). Other element would receive the click: <div class="col-xs-1">...</div>
+  (Session info: chrome=140.0.7339.128)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff60137c5d9]
+	(No symbol) [0x0x7ff601379f5e]
+	(No symbol) [0x0x7ff601376eb1]
+	(No symbol) [0x0x7ff601375da0]
+	(No symbol) [0x0x7ff601367338]
+	(No symbol) [0x0x7ff60139cada]
+	(No symbol) [0x0x7ff601366bc6]
+	(No symbol) [0x0x7ff60139ccf0]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T17:10:06.137157+0700 INFO Order: 2509128XYMW9K5 Start!!
+2025-09-12T17:10:50.495356+0700 INFO Order: 2509128Y61VYX3 Start!!
+2025-09-12T17:12:01.029657+0700 INFO Order: 2509128YFYENAA Start!!
+2025-09-12T17:12:12.411282+0700 INFO Order: 2509128YK5G0BU Start!!
+2025-09-12T17:12:56.444716+0700 INFO Order: 2509128YM06BAQ Start!!
+2025-09-12T17:13:35.089191+0700 INFO Order: 2509128YPBJMAN Start!!
+2025-09-12T17:15:24.302954+0700 INFO Order: 2509128YQT9FNR Start!!
+2025-09-12T17:15:36.033248+0700 INFO Order: 2509128YSNFHVE Start!!
+2025-09-12T17:16:17.878997+0700 INFO Order: 2509128YUFKYJF Start!!
+2025-09-12T17:17:07.116335+0700 INFO Order: 25091290Q4KEYR Start!!
+2025-09-12T17:17:17.944193+0700 INFO Order: 25091292U7T892 Start!!
+2025-09-12T17:17:25.350289+0700 INFO Order: 2509129M279DK5 Start!!
+2025-09-12T17:17:34.464591+0700 INFO Order: 2509129UH8Q51J Start!!
+2025-09-12T17:17:41.577300+0700 INFO Order: 2509129XPWR62Y Start!!
+2025-09-12T17:18:21.938988+0700 INFO Order: 2509129YDW0BXH Start!!
+2025-09-12T17:18:33.407364+0700 INFO Order: 250912A04V8EQ9 Start!!
+2025-09-12T17:18:40.748766+0700 INFO Order: 250912A04V8EQ9 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1150, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=140.0.7339.128)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff60159fca5+79861]
+	GetHandleVerifier [0x0x7ff60159fd00+79952]
+	(No symbol) [0x0x7ff60131cada]
+	(No symbol) [0x0x7ff60137c5d9]
+	(No symbol) [0x0x7ff601379f5e]
+	(No symbol) [0x0x7ff601376eb1]
+	(No symbol) [0x0x7ff601375da0]
+	(No symbol) [0x0x7ff601367338]
+	(No symbol) [0x0x7ff60139cada]
+	(No symbol) [0x0x7ff601366bc6]
+	(No symbol) [0x0x7ff60139ccf0]
+	(No symbol) [0x0x7ff6013c4f8b]
+	(No symbol) [0x0x7ff60139c8b3]
+	(No symbol) [0x0x7ff601365272]
+	(No symbol) [0x0x7ff601366043]
+	GetHandleVerifier [0x0x7ff60185b9dd+2946349]
+	GetHandleVerifier [0x0x7ff601855c5a+2922410]
+	GetHandleVerifier [0x0x7ff6018759e7+3052855]
+	GetHandleVerifier [0x0x7ff6015baa8e+189918]
+	GetHandleVerifier [0x0x7ff6015c2a2f+222591]
+	GetHandleVerifier [0x0x7ff6015a8ac4+116244]
+	GetHandleVerifier [0x0x7ff6015a8c79+116681]
+	GetHandleVerifier [0x0x7ff60158f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-12T17:18:41.165114+0700 INFO Order: 250912A0VWV8VH Start!!
+2025-09-12T17:19:15.952947+0700 INFO Order: 250912A0VWV8VH outer_Exception_Error!! main thread is not in main loop
+2025-09-12T17:29:37.176248+0700 INFO Order: 2509128XUEEUCW Start!!
+2025-09-12T17:30:25.638840+0700 INFO Order: 250912A04V8EQ9 Start!!
+2025-09-12T17:30:52.502831+0700 INFO Order: 250912A0VWV8VH Start!!
+2025-09-12T17:31:40.928896+0700 INFO Order: 250912A21UGPEE Start!!
+2025-09-12T17:32:52.402545+0700 INFO Order: 250912A2BKB22A Start!!
+2025-09-12T17:33:54.908860+0700 INFO Order: 250912A2QNJ3NF Start!!
+2025-09-12T17:34:07.950874+0700 INFO Order: 250912AA6J66SJ Start!!
+2025-09-12T17:34:39.715801+0700 INFO Order: 250912ACSQX2DV Start!!
+2025-09-12T17:34:49.392975+0700 INFO Order: 250912AD0FF39Q Start!!
+2025-09-12T17:34:57.261795+0700 INFO Order: 250912AF2A3J2V Start!!
+2025-09-12T17:35:05.779708+0700 INFO Order: 250912AFX7PW1H Start!!
+2025-09-12T17:35:13.689764+0700 INFO Order: 250912AG181V6J Start!!
+2025-09-12T17:35:21.725485+0700 INFO Order: 250912AGCKBVKH Start!!
+2025-09-12T17:36:17.149411+0700 INFO Order: 250912AGT4CXFG Start!!
+2025-09-12T17:36:29.798110+0700 INFO Order: 250912AJCMUU0U Start!!
+2025-09-12T17:36:38.392420+0700 INFO Order: 250912AJGGRYQ6 Start!!
+2025-09-12T17:36:47.346106+0700 INFO Order: 2509092CM8BAMR Not found in the shopee's Export File
+2025-09-12T17:36:47.614360+0700 INFO Order: 2509092CM8BAMR Start!!
+2025-09-12T17:37:03.688340+0700 INFO Order: 2509092CP78VPS Start!!
+2025-09-12T17:37:17.701822+0700 INFO Order: 2509092D5JG0M9 Start!!
+2025-09-12T17:37:38.212848+0700 INFO Order: 2509092D9N2VA8 Start!!
+2025-09-12T17:37:48.044698+0700 INFO Order: 2509092E24YQBV Not found in the shopee's Export File
+2025-09-12T17:37:48.388977+0700 INFO Order: 2509092E24YQBV Start!!
+2025-09-12T17:38:02.395015+0700 INFO Order: 2509092ENF10QR Start!!
+2025-09-12T17:38:23.760267+0700 INFO Order: 2509092EU45RJF Start!!
+2025-09-12T17:38:44.670415+0700 INFO Order: 2509092EUKGFPA Not found in the shopee's Export File
+2025-09-12T17:38:44.919767+0700 INFO Order: 2509092EUKGFPA Start!!
+2025-09-12T17:38:59.212603+0700 INFO Order: 2509092FFUXD96 Start!!
+2025-09-12T17:39:10.220176+0700 INFO Order: 2509092FKFAQHD Start!!
+2025-09-12T17:39:20.724351+0700 INFO Order: 2509092FQH3C63 Start!!
+2025-09-12T17:39:30.514266+0700 INFO Order: 2509092G1P8GDM Start!!
+2025-09-12T17:39:39.757423+0700 INFO Order: 2509092G37VWPU Start!!
+2025-09-12T17:39:59.601089+0700 INFO Order: 2509092G8Q9F97 Not found in the shopee's Export File
+2025-09-12T17:39:59.894228+0700 INFO Order: 2509092G8Q9F97 Start!!
+2025-09-12T17:40:20.527480+0700 INFO Order: 2509092GDQK5DQ Start!!
+2025-09-12T17:40:30.947639+0700 INFO Order: 2509092GS1VU35 Not found in the shopee's Export File
+2025-09-12T17:40:31.318863+0700 INFO Order: 2509092GS1VU35 Start!!
+2025-09-12T17:40:36.024505+0700 INFO Order: 2509092GS1VU35 outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-12T17:40:37.046926+0700 INFO Order: 2509092H9YM4US Not found in the shopee's Export File
+2025-09-12T17:40:37.443645+0700 INFO Order: 2509092H9YM4US Start!!
+2025-09-12T17:40:41.657336+0700 INFO Order: 2509092H9YM4US outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-12T17:40:42.567573+0700 INFO Order: 2509092HB4TPMR Start!!
+2025-09-12T17:41:01.565366+0700 INFO Order: 2509092HHTF74C Start!!
+2025-09-12T17:41:12.498681+0700 INFO Order: 2509092HU5UXC5 Not found in the shopee's Export File
+2025-09-12T17:41:13.090941+0700 INFO Order: 2509092HU5UXC5 Start!!
+2025-09-12T17:41:17.289067+0700 INFO Order: 2509092HU5UXC5 outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-12T17:41:18.762434+0700 INFO Order: 2509092HUFEN9C Start!!
+2025-09-12T17:41:30.804106+0700 INFO Order: 2509092J92A7F6 Not found in the shopee's Export File
+2025-09-12T17:41:31.105028+0700 INFO Order: 2509092J92A7F6 Start!!
+2025-09-12T17:41:35.223742+0700 INFO Order: 2509092J92A7F6 outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-12T17:41:36.055629+0700 INFO Order: 2509092JJXXE4R Start!!
+2025-09-12T17:41:55.628574+0700 INFO Order: 2509092JX6EJU3 Start!!
+2025-09-12T17:42:06.800992+0700 INFO Order: 2509092K3SSQMF Start!!
+2025-09-12T17:42:16.697736+0700 INFO Order: 2509092K7WAVE3 Start!!
+2025-09-12T17:42:26.870412+0700 INFO Order: 2509092KDYWDD9 Start!!
+2025-09-12T17:42:37.572432+0700 INFO Order: 2509092KDYWDD9 outer_Exception_Error!! main thread is not in main loop
