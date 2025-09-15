@@ -1,0 +1,16 @@
+{
+    "soap:Envelope": {
+        "@xmlns:soap": "http://schemas.xmlsoap.org/soap/envelope/",
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "@xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+        "soap:Body": {
+            "ServiceResponse": {
+                "@xmlns": "https://rdws.rd.go.th/JserviceRD3/vatserviceRD3",
+                "ServiceResult": {
+                    "@xsi:type": "xsd:string",
+                    "#text": "{\"NID\":[\"0115564014781\"],\"TIN\":[],\"TitleName\":[\"\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\"],\"Name\":[\"\u0e0b\u0e31\u0e19\u0e40\u0e14\u0e22\u0e4c \u0e21\u0e2d\u0e25\u0e25\u0e4c \u0e08\u0e33\u0e01\u0e31\u0e14\"],\"Surname\":[\"-\"],\"BranchTitleName\":[\"\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\"],\"BranchName\":[\"\u0e0b\u0e31\u0e19\u0e40\u0e14\u0e22\u0e4c \u0e21\u0e2d\u0e25\u0e25\u0e4c \u0e08\u0e33\u0e01\u0e31\u0e14\"],\"BranchNumber\":[0],\"BuildingName\":[\"-\"],\"FloorNumber\":[\"-\"],\"VillageName\":[\"-\"],\"RoomNumber\":[\"-\"],\"HouseNumber\":[\"55/55\"],\"MooNumber\":[\"10\"],\"SoiName\":[\"-\"],\"StreetName\":[\"-\"],\"Thambol\":[\"\u0e2a\u0e33\u0e42\u0e23\u0e07\u0e40\u0e2b\u0e19\u0e37\u0e2d\"],\"Amphur\":[\"\u0e40\u0e21\u0e37\u0e2d\u0e07\u0e2a\u0e21\u0e38\u0e17\u0e23\u0e1b\u0e23\u0e32\u0e01\u0e32\u0e23\"],\"Province\":[\"\u0e2a\u0e21\u0e38\u0e17\u0e23\u0e1b\u0e23\u0e32\u0e01\u0e32\u0e23\"],\"PostCode\":[\"10270\"],\"BusinessFirstDate\":[\"-\"],\"Yaek\":[\"-\"],\"msgerr\":[],\"vNID\":[\"0115564014781\"],\"vtin\":[],\"vtitleName\":[\"\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\"],\"vName\":[\"\u0e0b\u0e31\u0e19\u0e40\u0e14\u0e22\u0e4c \u0e21\u0e2d\u0e25\u0e25\u0e4c \u0e08\u0e33\u0e01\u0e31\u0e14\"],\"vSurname\":[\"-\"],\"vBranchTitleName\":[\"\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\"],\"vBranchName\":[\"\u0e0b\u0e31\u0e19\u0e40\u0e14\u0e22\u0e4c \u0e21\u0e2d\u0e25\u0e25\u0e4c \u0e08\u0e33\u0e01\u0e31\u0e14\"],\"vBranchNumber\":[0],\"vBuildingName\":[\"-\"],\"vFloorNumber\":[\"-\"],\"vVillageName\":[\"-\"],\"vRoomNumber\":[\"-\"],\"vHouseNumber\":[\"55/55\"],\"vMooNumber\":[\"10\"],\"vSoiName\":[\"-\"],\"vStreetName\":[\"-\"],\"vThambol\":[\"\u0e2a\u0e33\u0e42\u0e23\u0e07\u0e40\u0e2b\u0e19\u0e37\u0e2d\"],\"vAmphur\":[\"\u0e40\u0e21\u0e37\u0e2d\u0e07\u0e2a\u0e21\u0e38\u0e17\u0e23\u0e1b\u0e23\u0e32\u0e01\u0e32\u0e23\"],\"vProvince\":[\"\u0e2a\u0e21\u0e38\u0e17\u0e23\u0e1b\u0e23\u0e32\u0e01\u0e32\u0e23\"],\"vPostCode\":[\"10270\"],\"vBusinessFirstDate\":[\"-\"],\"vYaek\":[\"-\"],\"vmsgerr\":[]}"
+                }
+            }
+        }
+    }
+}
