@@ -4997,8 +4997,7 @@ class Bot_POS:
         while not self.operation_thread.is_set():
             if times == 1:
                 print("times = 1")
-                response = session.post(
-                    'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet', cookies=self.app.cookies['vatinfo'], params=params, headers=headers, data=data)
+                response = session.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet', cookies=self.app.cookies['vatinfo'], params=params, headers=headers, data=data)
 
                 # Todo มันมีการตรวจสอบ cookies ตลอดเวลา แต่ครั้งแรกreqไปมันจะตรวจสอบก่อน ถ้าไม่มีมันจะ return มาให้  ครั้งถัดไปมันจะตรวจอีกถ้ามี"แล้วยังใช้ได้" มันจะไม่ return ให้ ถ้าใช้ไม่ได้มันจะ return ตัวใหม่ให้
                 try:
@@ -5006,8 +5005,7 @@ class Bot_POS:
                     print("response cookies ไรมา", response.cookies)
                     # * > เก็บค่า cookies จาก response เข้าไปใน cookies ที่มีอยู่แล้ว
                     jsession_id = response.cookies['JSESSIONID']
-                    print(
-                        "we never have usable cookies before that why the response has cookies. We'll use it like a state in app.cookies")
+                    print("we never have usable cookies before that why the response has cookies. We'll use it like a state in app.cookies")
                     self.app.cookies['vatinfo']['JSESSIONID'] = f"""{jsession_id}"""
                 except Exception as err:
                     # * กรณี ที่ ไม่มี cookies returns กลับมา เพราะอันเก่าใช้ได้อยู่ ใช้ cookies เดิมได้เลย
@@ -5018,8 +5016,7 @@ class Bot_POS:
                 # รอบสองเราเอา cookies มาประกอบ request โดย data ที่ใช้ request รอบนี้เป็นอีกแบบนึงจะต้องมี cookie เป็นตัวยืนยันว่าเคย login มาแล้ว ถ้าไม่มี cookie จะผ่านไม่ได้ เหมือนจะเป็น authen
 
                 data2['goto_page'] = f'{times}'
-                response = session.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?',
-                                        params=params, cookies=self.app.cookies['vatinfo'], headers=headers, data=data2)
+                response = session.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet?', params=params, cookies=self.app.cookies['vatinfo'], headers=headers, data=data2)
 
             try:
                 response.raise_for_status()

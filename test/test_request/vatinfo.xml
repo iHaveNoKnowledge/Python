@@ -1,0 +1,866 @@
+Provide common information such as Business Type , Street Name , Province Name of the taxpayers in Thailand. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ข้อมูลพื้นฐานของร้านค้าที่ได้รับสิทธิ์คืนภาษีมูลค่าเพิ่มให้นักท่องเที่ยว รหัสประเภทธุรกิจ ชื่อประเภทธุรกิจ รหัสถนน ชื่อถนน รหัสจังหวัด ชื่อจังหวัด ข้อมูลพื้นฐานของผู้ประกอบการที่ต้องเสียภาษีมูลค่าเพิ่ม รหัสอำเภอ รหัสจังหวัด ชื่อจังหวัด/อำเภอ Provide a check for validation and existing of Tax Identification Number (TIN) ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ข้อมูลที่ผู้ใช้จะได้รับ เลขประจำตัวฯ ที่นำเข้าเพื่อตรวจสอบ ผลการตรวจสอบ ถูกต้อง หรือ ไม่ถูกต้อง มี หรือ ไม่มี อยู่ในฐานข้อมูลกรมสรรพากร (เฉพาะเลขประจำตัวผู้เสียภาษีอากร) Provide an information of VAT (Value Added Tax) registered person and status whether this person can issue legal VAT invoice. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ชื่อของผู้ประกอบการ รหัสจังหวัด เลขที่สาขา รหัสอำเภอ ข้อมูลที่ผู้ใช้จะได้รับ เลขที่สาขา คำนำหน้าชื่อของผู้ประกอบการสาขา ชื่อของผู้ประกอบการสาขา วันที่กรมสรรพากรอนุมัติให้เป็นผู้ประกอบการจดทะเบียนภาษีมูลค่าเพิ่ม ซึ่งมีสิทธิ์ออกใบกำกับภาษีซื้อ Provide an information of business who imported sold of jewell Platinum , Silver and Paradium and has registered to Revenue Department to get right of Value Added Tax omitted. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ชื่อของผู้เสียภาษีอากร ชื่อสมาคมที่เป็นสมาชิก รหัสจังหวัด ข้อมูลที่ผู้ใช้จะได้รับ วันเดือนปีที่กรมสรรพากรอนุมัติให้ใช้สิทธิ์ได้ Provide an information of business who get a right which foreigner tourists can get VAT refund after buying goods. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ชื่อร้านค้า รหัสประเภทธุรกิจ รหัสจังหวัด รหัสถนน ข้อมูลที่ผู้ใช้จะได้รับ ชื่อสถานประกอบการ ชื่อร้าน เลขที่ตั้งของสถานประกอบการ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์ ชื่อประเภทธุรกิจ Provide a basic information of company who is subject to CIT. Company are classified by 5 main industry which have received promotion from Board of Investment (BOI) of Thai Government. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ชื่อประเภทธุรกิจหลักที่รัฐบาลไทยให้การส่งเสริม รหัสจังหวัด ชื่อของผู้เสียภาษีอากร ข้อมูลที่ผู้ใช้จะได้รับ The system do not display TotalDirectRevenue and TaxComputeAmount if the selection is less than 10 taxpayers . ปีภาษี ชื่อประเภทธุรกิจหลักที่รัฐบาลไทยให้การส่งเสริม ยอดรวมรายได้โดยตรงจากการประกอบกิจการ ทั้งจากกิจการที่ได้รับการยกเว้นภาษีเงินได้และที่ต้องเสียภาษีเงินได้ ยอดรวมจำนวนเงินภาษีที่คำนวณได้ Provide an information of joint venture company and juristic body incorporated under a foreign law company. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ foreigncompany or jointventure ชื่อของผู้เสียภาษีอากร foreigncompany or JointVenture ข้อมูลที่ผู้ใช้จะได้รับ ชื่อประเภทกิจการ Provide an information of tax collection which collected by Revenue Department and summary into tax type and tax collection form. ข้อมูลนำเข้าเพื่อเรียกใช้บริการ ReceiveDate must be in the A.D. year. The format is yyyy/mm/dd (Ex. 2005/05/30) . รหัสหน่วยงานที่รับแบบแสดงรายการภาษี รหัสแบบแสดงรายการภาษี ที่มาของข้อมูล ข้อมูลที่ผู้ใช้จะได้รับ วันที่รับแบบแสดงรายการภาษี ชื่อหน่วยงานที่รับแบบแสดงรายการภาษี รหัสแบบแสดงรายการภาษี ที่มาของข้อมูล จำนวนเงินที่ได้รับชำระ ชื่ออาคาร ห้องเลขที่ ชั้นที่ หมู่บ้าน บ้านเลขที่ หมู่ที่ ซอย ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์ คำนำหน้าชื่อ ชื่อของผู้ประกอบการ นามสกุลของผู้ประกอบการ Tax Identification Number 13 digits
+This XML file does not appear to have any style information associated with it. The document tree is shown below.
+
+
+<!-- edited with XML Spy v4.4 U (http://www.xmlspy.com) by Evaluation (BST) -->
+<!-- Schema version: 3.0 Schema date: 01 February 2012 Copyright (C) The Revenue Department. All rights reserved. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- CommonService///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+	<xs:element name="CommonService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide common information such as Business Type , Street Name , Province Name of the taxpayers in Thailand.</xs:documentation>
+		</xs:annotation>
+
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InCommonServiceData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Header"/>
+							<xs:element name="ServiceName">
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="VRTCommonService"/>
+										<xs:enumeration value="VATCommonService"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+
+				<xs:element name="OutVRTCommonServiceData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลพื้นฐานของร้านค้าที่ได้รับสิทธิ์คืนภาษีมูลค่าเพิ่มให้นักท่องเที่ยว</xs:documentation>
+					</xs:annotation>
+
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="VRTBusinessTypeCodeInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="BusinessTypeCode" type="xs:int">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสประเภทธุรกิจ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="BusinessTypeName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อประเภทธุรกิจ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="VRTStreetCodeInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="StreetCode" type="xs:int">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสถนน</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="StreetName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อถนน</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="VRTProvinceCodeInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ProvinceCode" type="xs:int">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสจังหวัด</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ProvinceName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อจังหวัด</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+
+				<xs:element name="OutVATCommonServiceData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลพื้นฐานของผู้ประกอบการที่ต้องเสียภาษีมูลค่าเพิ่ม</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="VATProvinceCodeInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="AmphurCode" type="xs:int">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสอำเภอ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ProvinceCode" type="xs:int">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสจังหวัด</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Description" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อจังหวัด/อำเภอ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- CheckTINPINService ////////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+	<xs:element name="CheckTINPINService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide a check for validation and existing of Tax Identification Number (TIN) </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InTINPINData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element ref="TIN"/>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutTINPINData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="CheckingResult">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ID" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">เลขประจำตัวฯ ที่นำเข้าเพื่อตรวจสอบ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DigitOK" type="xs:boolean">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ผลการตรวจสอบ ถูกต้อง หรือ ไม่ถูกต้อง</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="IsExist" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">มี หรือ ไม่มี อยู่ในฐานข้อมูลกรมสรรพากร (เฉพาะเลขประจำตัวผู้เสียภาษีอากร) </xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="Yes|No|yes|no"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="VATService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide an information of VAT (Value Added Tax) registered person and status whether this person can issue legal VAT invoice.</xs:documentation>
+		</xs:annotation>
+        
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InVATData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element ref="TIN"/>
+								<xs:element name="Name" type="xs:string">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">ชื่อของผู้ประกอบการ</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="ProvinceCode" type="xs:int">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">รหัสจังหวัด</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="BranchNumber" type="xs:int">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">เลขที่สาขา</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="AmphurCode" type="xs:int">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">รหัสอำเภอ</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element name="TINs" type="TINType"/>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutVATData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="VATInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element ref="TIN"/>
+										<xs:element ref="FullName"/>
+										<xs:element name="BranchInfo">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="BranchNumber" type="xs:int">
+														<xs:annotation>
+															<xs:documentation xml:lang="th">เลขที่สาขา</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="BranchTitle" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation xml:lang="th">คำนำหน้าชื่อของผู้ประกอบการสาขา</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="BranchName" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation xml:lang="th">ชื่อของผู้ประกอบการสาขา</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element ref="Address"/>
+													<xs:element name="BusinessFirstDate" type="xs:string">
+														<xs:annotation>
+															<xs:documentation xml:lang="th">วันที่กรมสรรพากรอนุมัติให้เป็นผู้ประกอบการจดทะเบียนภาษีมูลค่าเพิ่ม ซึ่งมีสิทธิ์ออกใบกำกับภาษีซื้อ</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="GemService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide an information of business who imported sold of jewell Platinum , Silver and Paradium and has registered to Revenue Department to get right of Value Added Tax omitted.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InGemData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element ref="TIN"/>
+								<xs:element name="VATTaxPayerName" type="xs:string">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">ชื่อของผู้เสียภาษีอากร</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="GuildName">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">ชื่อสมาคมที่เป็นสมาชิก</xs:documentation>
+									</xs:annotation>
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:enumeration value="สมาคมผู้ค้าอัญมณีไทยและเครื่องประดับ"/>
+											<xs:enumeration value="สมาคมการค้าเพชรและพลอยอินเดียน-ไทย"/>
+											<xs:enumeration value="สมาคมเครื่องถมและเครื่องเงินไทย"/>
+											<xs:enumeration value="สมาคมผู้ผลิตอัญมณีและเครื่องประดับไทย"/>
+											<xs:enumeration value="สมาคมเพชรพลอยเงินทอง"/>
+											<xs:enumeration value="สมาคมผู้ประกอบการเจียระไนเพชร"/>
+											<xs:enumeration value="สมาคมผู้ค้าอัญมณีและเครื่องประดับจันทบุรี"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:element>
+								<xs:element name="ProvinceCode" type="xs:int">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">รหัสจังหวัด</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element name="TINs" type="TINType"/>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutGemData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="GemInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element ref="TIN"/>
+										<xs:element ref="FullName"/>
+										<xs:element ref="Address"/>
+										<xs:element name="GuildName" type="xs:string"/>
+										<xs:element name="PrivilegeDate" type="xs:string">
+											<xs:annotation>
+												<xs:documentation>วันเดือนปีที่กรมสรรพากรอนุมัติให้ใช้สิทธิ์ได้</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="VRTService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide an information of business who get a right which foreigner tourists can get VAT refund after buying goods.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InVRTData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Header"/>
+							<xs:element name="ShopName" type="xs:string">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">ชื่อร้านค้า</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="BusinessTypeCode" type="xs:string">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">รหัสประเภทธุรกิจ</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="ProvinceCode" type="xs:int">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">รหัสจังหวัด</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="StreetCode" type="xs:int">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">รหัสถนน</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutVRTData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="VRTInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="BusinessName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อสถานประกอบการ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ShopName" type="xs:string" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อร้าน</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="HouseNumber" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">เลขที่ตั้งของสถานประกอบการ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="StreetName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ถนน</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ThambolName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ตำบล</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="AmphurName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">อำเภอ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ProvinceName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">จังหวัด</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="PostCode" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสไปรษณีย์</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="BusinessTypeName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อประเภทธุรกิจ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="CITService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide a basic information of company who is subject to CIT. Company are classified by 5 main industry which have received promotion from Board of Investment (BOI) of Thai Government.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InCITData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Header"/>
+							<xs:element ref="TIN"/>
+							<xs:element name="ISICGroup">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">ชื่อประเภทธุรกิจหลักที่รัฐบาลไทยให้การส่งเสริม</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="Food"/>
+										<xs:enumeration value="Fashion"/>
+										<xs:enumeration value="SoftwareElectronics"/>
+										<xs:enumeration value="Vehicle"/>
+										<xs:enumeration value="Tour"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="ProvinceCode" type="xs:int">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">รหัสจังหวัด</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="TaxPayerName" type="xs:string">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">ชื่อของผู้เสียภาษีอากร</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutCITData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:sequence maxOccurs="unbounded">
+								<xs:element ref="Message"/>
+								<xs:element name="CITInfo">
+									<xs:annotation>
+										<xs:documentation xml:lang="en">The system do not display TotalDirectRevenue and TaxComputeAmount if the selection is less than 10 taxpayers .</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="TaxYear" type="xs:string">
+												<xs:annotation>
+													<xs:documentation xml:lang="th">ปีภาษี</xs:documentation>
+												</xs:annotation>
+											</xs:element>
+											<xs:element name="ISICGroup" type="xs:string">
+												<xs:annotation>
+													<xs:documentation xml:lang="th">ชื่อประเภทธุรกิจหลักที่รัฐบาลไทยให้การส่งเสริม</xs:documentation>
+												</xs:annotation>
+											</xs:element>
+											<xs:element ref="TIN"/>
+											<xs:element ref="FullName"/>
+											<xs:element ref="Address"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+							<xs:element name="CITSum">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="TotalDirectRevenue" type="xs:decimal">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ยอดรวมรายได้โดยตรงจากการประกอบกิจการ ทั้งจากกิจการที่ได้รับการยกเว้นภาษีเงินได้และที่ต้องเสียภาษีเงินได้</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="TaxComputeAmount" type="xs:decimal">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ยอดรวมจำนวนเงินภาษีที่คำนวณได้</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="JointService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide an information of joint venture company and juristic body incorporated under a foreign law company.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InJointServiceData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element name="TypeOfService">
+									<xs:annotation>
+										<xs:documentation xml:lang="en">foreigncompany or jointventure</xs:documentation>
+									</xs:annotation>
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:enumeration value="foreigncompany"/>
+											<xs:enumeration value="jointventure"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:element>
+								<xs:element ref="TIN"/>
+								<xs:element name="TaxpayerName" type="xs:string">
+									<xs:annotation>
+										<xs:documentation xml:lang="th">ชื่อของผู้เสียภาษีอากร</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+							<xs:sequence>
+								<xs:element ref="Header"/>
+								<xs:element name="TypeOfService">
+									<xs:annotation>
+										<xs:documentation xml:lang="en">foreigncompany or JointVenture</xs:documentation>
+									</xs:annotation>
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:enumeration value="foreigncompany"/>
+											<xs:enumeration value="jointventure"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:element>
+								<xs:element name="TINs" type="TINType"/>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutInJointServiceData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="JointServiceInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element ref="TIN"/>
+										<xs:element ref="FullName"/>
+										<xs:element ref="Address"/>
+										<xs:element name="ISICDescription" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อประเภทกิจการ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="TCLService">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Provide an information of tax collection which collected by Revenue Department and summary into tax type and tax collection form.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="InTCLData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลนำเข้าเพื่อเรียกใช้บริการ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Header"/>
+							<xs:element name="ReceiveDate">
+								<xs:annotation>
+									<xs:documentation xml:lang="en">ReceiveDate must be in the A.D. year. The format is yyyy/mm/dd (Ex. 2005/05/30) .</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:pattern value="[0-9]{4}[/][0-9]{2}[/][0-9]{2}"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="OfficeCode">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">รหัสหน่วยงานที่รับแบบแสดงรายการภาษี</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:length value="8"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="FormCode">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">รหัสแบบแสดงรายการภาษี</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:length value="5"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Source_Data">
+								<xs:annotation>
+									<xs:documentation xml:lang="th">ที่มาของข้อมูล</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:length value="2"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="OutTCLData">
+					<xs:annotation>
+						<xs:documentation xml:lang="th">ข้อมูลที่ผู้ใช้จะได้รับ</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence maxOccurs="unbounded">
+							<xs:element ref="Message"/>
+							<xs:element name="TCLInfo">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ReceiveDate" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">วันที่รับแบบแสดงรายการภาษี</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="OfficeName" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ชื่อหน่วยงานที่รับแบบแสดงรายการภาษี</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="FormCode" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">รหัสแบบแสดงรายการภาษี</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Source_Data" type="xs:string">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">ที่มาของข้อมูล</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ReceiveAmount" type="xs:decimal">
+											<xs:annotation>
+												<xs:documentation xml:lang="th">จำนวนเงินที่ได้รับชำระ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="Message" type="MessageType"/>
+	<xs:complexType name="MessageType">
+		<xs:sequence maxOccurs="unbounded">
+			<xs:element name="Code" type="xs:string"/>
+			<xs:element name="Description" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="Address" type="AddressType"/>
+	<xs:complexType name="AddressType">
+		<xs:sequence>
+			<xs:element name="BuildingName" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ชื่ออาคาร</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="RoomNumber" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ห้องเลขที่</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FloorNumber" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ชั้นที่</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="VillageName" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">หมู่บ้าน</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="HouseNumber" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">บ้านเลขที่</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="MooNumber" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">หมู่ที่</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="SoiName" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ซอย</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="StreetName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ถนน</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ThambolName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ตำบล</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="AmphurName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">อำเภอ</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ProvinceName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">จังหวัด</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="PostCode" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">รหัสไปรษณีย์</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="FullName" type="NameType"/>
+	<xs:complexType name="NameType">
+		<xs:sequence>
+			<xs:element name="TitleName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">คำนำหน้าชื่อ</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TaxPayerName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">ชื่อของผู้ประกอบการ</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="SurName" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation xml:lang="th">นามสกุลของผู้ประกอบการ</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="Header" type="HeaderType"/>
+	<xs:complexType name="HeaderType">
+		<xs:sequence>
+			<xs:element ref="username"/>
+			<xs:element ref="password"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="username" type="UsernameType"/>
+	<xs:simpleType name="UsernameType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-z0-9]*"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="password" type="PasswordType"/>
+	<xs:simpleType name="PasswordType">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="8"/>
+			<xs:pattern value="[a-z0-9]*"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="TIN" type="TINType">
+		<xs:annotation>
+			<xs:documentation xml:lang="en">Tax Identification Number 13 digits</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+
+	<xs:simpleType name="TINType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]{13}"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>
