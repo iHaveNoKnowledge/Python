@@ -5203,8 +5203,7 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                PopUp(
-                    "Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
+                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
@@ -5228,8 +5227,7 @@ class Bot_POS:
     def get_vatinfo_data(self, tax_num, branch):
         if branch == "":
             branch = "สำนักงานใหญ่"
-        print(
-            f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
+        print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
 
         # * หาชื่อใบกำกับจาก vatinfo
         result = self.get_res_vatinfo(str(tax_num), str(branch))
