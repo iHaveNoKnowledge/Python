@@ -5857,3 +5857,88 @@ Stacktrace:
 2025-09-12T17:42:16.697736+0700 INFO Order: 2509092K7WAVE3 Start!!
 2025-09-12T17:42:26.870412+0700 INFO Order: 2509092KDYWDD9 Start!!
 2025-09-12T17:42:37.572432+0700 INFO Order: 2509092KDYWDD9 outer_Exception_Error!! main thread is not in main loop
+2025-09-17T14:02:33.012046+0700 INFO Order: 250916MVYFRD8D Start!!
+2025-09-17T14:03:30.158162+0700 INFO Order: 250916MVYFRD8D stop operation
+2025-09-17T14:03:37.426914+0700 INFO Order: 250916MVYFRD8D stop operation
+2025-09-17T14:03:45.475537+0700 INFO Order: 250916MVYFRD8D outer_Exception_Error!! 'NoneType' object has no attribute 'group'
+2025-09-17T14:04:51.126386+0700 INFO Order: 250916MVYFRD8D Start!!
+2025-09-17T14:05:53.209718+0700 INFO Order: 250916MVYFRD8D outer_Exception_Error!! 'NoneType' object has no attribute 'group'
+2025-09-17T14:06:08.645234+0700 INFO Order: 250916MVYFRD8D Start!!
+2025-09-17T14:50:22.383945+0700 INFO Order: 250916MVYFRD8D outer_Exception_Error!! main thread is not in main loop
+2025-09-17T15:20:41.918535+0700 INFO Order: 250915JH07Y5B1 Start!!
+2025-09-17T15:21:11.205875+0700 INFO Order: 250915JH07Y5B1 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff635116b25+79621]
+	GetHandleVerifier [0x0x7ff635116b80+79712]
+	(No symbol) [0x0x7ff634eac0ea]
+	(No symbol) [0x0x7ff634f02f56]
+	(No symbol) [0x0x7ff634f0320c]
+	(No symbol) [0x0x7ff634f565b7]
+	(No symbol) [0x0x7ff634f2b17f]
+	(No symbol) [0x0x7ff634f533d0]
+	(No symbol) [0x0x7ff634f2af13]
+	(No symbol) [0x0x7ff634ef4151]
+	(No symbol) [0x0x7ff634ef4ee3]
+	GetHandleVerifier [0x0x7ff6353d683d+2962461]
+	GetHandleVerifier [0x0x7ff6353d0b5d+2938685]
+	GetHandleVerifier [0x0x7ff6353ef71d+3064573]
+	GetHandleVerifier [0x0x7ff635130c6e+186446]
+	GetHandleVerifier [0x0x7ff635138a3f+218655]
+	GetHandleVerifier [0x0x7ff63511f914+115956]
+	GetHandleVerifier [0x0x7ff63511fac9+116393]
+	GetHandleVerifier [0x0x7ff635105ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+2025-09-17T15:23:43.968847+0700 INFO Order: 250916K137EDQF Start!!
+2025-09-17T15:24:56.849894+0700 INFO Order: 250916K137EDQF stop operation
+2025-09-17T15:48:32.587157+0700 INFO Order: 250917Q1NPQCNP
+ Not found in the shopee's Export File
+2025-09-17T15:48:32.767315+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T15:51:03.152334+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T15:52:03.215252+0700 INFO Order: 250917Q1NPQCNP stop operation
+2025-09-17T15:52:12.345682+0700 INFO Order: 250917Q1NPQCNP stop operation
+2025-09-17T15:52:14.469645+0700 INFO Order: 250917Q1NPQCNP outer_Exception_Error!! 'NoneType' object has no attribute 'group'
+2025-09-17T15:52:22.615616+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T15:58:26.671812+0700 INFO Order: 250917Q1NPQCNP stop operation
+2025-09-17T15:58:35.763883+0700 INFO Order: 250917Q1NPQCNP stop operation
+2025-09-17T15:58:36.752829+0700 INFO Order: 250917Q1NPQCNP outer_Exception_Error!! 'NoneType' object has no attribute 'group'
+2025-09-17T16:32:15.797642+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:31:40.919217+0700 INFO Order: 250917Q1NPQCNP outer_Exception_Error!! 'NoneType' object has no attribute 'group'
+2025-09-17T17:34:27.716145+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:49:01.501157+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:49:58.416351+0700 INFO Order: 250917Q1NPQCNP outer_Exception_Error!! Message: 
+
+2025-09-17T17:53:35.032558+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:53:59.976715+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:54:06.464014+0700 INFO Order: 250917Q1NPQCNP outer_Exception_Error!! 'NoneType' object has no attribute 'group'
+2025-09-17T17:55:36.216849+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:56:02.738312+0700 INFO Order: 250917Q1NPQCNP Start!!
+2025-09-17T17:56:03.510244+0700 INFO Order: 250917Q1NPQCNP outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.128); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6b10d6b25+79621]
+	GetHandleVerifier [0x0x7ff6b10d6b80+79712]
+	(No symbol) [0x0x7ff6b0e6c0ea]
+	(No symbol) [0x0x7ff6b0ec2f56]
+	(No symbol) [0x0x7ff6b0ec320c]
+	(No symbol) [0x0x7ff6b0f165b7]
+	(No symbol) [0x0x7ff6b0eeb17f]
+	(No symbol) [0x0x7ff6b0f133d0]
+	(No symbol) [0x0x7ff6b0eeaf13]
+	(No symbol) [0x0x7ff6b0eb4151]
+	(No symbol) [0x0x7ff6b0eb4ee3]
+	GetHandleVerifier [0x0x7ff6b139683d+2962461]
+	GetHandleVerifier [0x0x7ff6b1390b5d+2938685]
+	GetHandleVerifier [0x0x7ff6b13af71d+3064573]
+	GetHandleVerifier [0x0x7ff6b10f0c6e+186446]
+	GetHandleVerifier [0x0x7ff6b10f8a3f+218655]
+	GetHandleVerifier [0x0x7ff6b10df914+115956]
+	GetHandleVerifier [0x0x7ff6b10dfac9+116393]
+	GetHandleVerifier [0x0x7ff6b10c5ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+2025-09-17T17:56:24.023879+0700 INFO Order: 250917Q1NPQCNP stop operation
+2025-09-17T17:56:34.745648+0700 INFO Order: 250916MN9MWW5T Start!!
