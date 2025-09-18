@@ -1557,6 +1557,7 @@ class MyApp:
             self.cus_name.set(re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
 
             # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
+            print("name.get()ก่อนทำการ standardized", self.cus_name.get())
             self.cus_name.set(self.tax_name_standardizer(self.cus_name.get()))
             print("name.get()หลังจากทำการ standardized", self.cus_name.get())
         else:
@@ -1863,9 +1864,7 @@ class MyApp:
                             re.sub(
                                 r'\s{2,}',
                                 " ",
-                                self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace(
-                                    '\u200b', ''
-                                )
+                                self.nondistortedData['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].strip().replace('\u200b', '')
                             ),
                             self.display_cus_address
                         )
@@ -1947,8 +1946,7 @@ class MyApp:
                 self.update_log(
                     "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
                 self.reset_all_display()
-                logger.info(
-                    f"Order: {self.search_query} Not found in the shopee's Export File")
+                logger.info(f"Order: {self.search_query} Not found in the shopee's Export File")
 
         else:
             self.reset_all_display()
@@ -1979,60 +1977,10 @@ class MyApp:
         name += " "+account_name if len(name.split()) == 1 else ""
         print("name:", name)
         return name
-
-    # def tax_name_standardizer(self, name):
-    #     name_edited = name.replace('\u200b', '')
-    #     name_edited = name_edited.strip()
-    #     # name_edited = name_edited.replace(
-    #     #     "สำนักงานใหญ่", "").replace("(สำนักงานใหญ่)", "")
-    #     # print("name_editedทำไมมันเหมือนเดิมวะ", name_edited)
-
-    #     if name_edited.startswith("หจก") or name_edited.startswith("ห้างหุ้นส่วนจำกัด") or name_edited.startswith("ห."):
-    #         print("เงื่อนไขชื่อใบกำกับใน if", name_edited)
-    #         name_edited = name_edited.replace("หจก.", "").replace("ห้างหุ้นส่วนจำกัด", "").replace("ห.", "").strip()
-    #         name_edited = f"""ห้างหุ้นส่วนจำกัด {name_edited}"""
-
-    #     elif name_edited.startswith("บจก") or (name_edited.startswith("บริษัท") and "จำกัด" in name_edited) or name_edited.startswith("บ."):
-    #         print("เงื่อนไขชื่อใบกำกับใน elif", name_edited)
-    #         name_edited = name_edited.replace("บจก.", "").replace("บริษัท", "").replace("จำกัด", "").replace("บ.", "").replace("จก.", "").strip()
-    #         name_edited = f"""บริษัท {name_edited} จำกัด"""
-
-    #     # * > ลบประเภทสาขาแล้วส่งค่าออก ค่าที่ออกจะไม่มี สำนักงาน สาขา เดี๋ยวไป add ทีหลังในขั้นตอน add ชื่อ (ส่วนท้ายของ code)
-    #     # * >> สร้าง patterns ก่อน
-    #     head_office_patterns = [
-    #         r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
-    #         r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
-    #         r'\(สนญ\.\)', r'\(สนญ\)', r'สนญ\.', r'สนญ',
-    #     ]
-
-    #     # * >> ใช้ for-loop ดูว่า มีสัก pattern ไหม ที่อยู่ในชื่อลูกค้า แล้ว any จะจับค่า boolean ที่ได้ ว่ารอบไหนของ for-loop คืนค่า True บ้าง
-    #     if any(pattern in name_edited for pattern in head_office_patterns):
-    #         # * r'|'.join(head_office_patterns) เป็นการ เอาคำทั้งหมดใน head_office_patterns มาต่อกันด้วยเครื่องหมาย "|" จะได้ r'x|y|z' ประมาณนี้
-    #         name_edited = re.sub(r'|'.join(head_office_patterns), '', name_edited).strip()
-    #     elif '(สาขา' in name_edited or 'สาขา' in name_edited:
-    #         name_edited = re.sub(r'\(สาขา.*\)', '', name_edited)
-    #         name_edited = re.sub(r'สาขา\d*', '', name_edited)
-
-    #     name_edited = re.sub(r"\s{2,}", ' ', name_edited)
-    #     return name_edited
     
     def tax_name_standardizer(self, name: str) -> str:
         # ลบ zero-width space และ trim
         name_edited = name.replace('\u200b', '').strip()
-
-        # --- ปรับรูปแบบประเภทบริษัท ---
-        if name_edited.startswith(("หจก", "ห้างหุ้นส่วนจำกัด", "ห.")):
-            name_edited = re.sub(r'^(หจก\.?|ห้างหุ้นส่วนจำกัด|ห\.)', '', name_edited).strip()
-            if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
-                name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
-
-        elif name_edited.startswith(("บจก", "บริษัท", "บ.")) and "จำกัด" in name_edited:
-            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.?|จก\.)', '', name_edited).strip()
-            # ถ้าไม่มี "บริษัท" หรือ "จำกัด" อยู่แล้ว ให้เพิ่ม
-            if not name_edited.startswith("บริษัท"):
-                name_edited = f"บริษัท {name_edited}"
-            if not name_edited.endswith("จำกัด"):
-                name_edited = f"{name_edited} จำกัด"
 
         # --- patterns สำหรับสำนักงานใหญ่ ---
         head_office_patterns = [
@@ -2055,6 +2003,19 @@ class MyApp:
         # --- ลบคำสาขา ---
         for pattern in branch_patterns:
             name_edited = re.sub(pattern, '', name_edited).strip()
+
+        # --- ปรับรูปแบบประเภทบริษัท ---
+        if name_edited.startswith(("หจก", "ห้างหุ้นส่วนจำกัด", "ห.")):
+            name_edited = re.sub(r'^(หจก\.?|ห้างหุ้นส่วนจำกัด|ห\.)', '', name_edited).strip()
+            if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
+                name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
+        elif name_edited.startswith(("บจก", "บริษัท", "บ.")) or name_edited.endswith("จำกัด"):
+            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.?|จก\.)', '', name_edited).strip()
+            # ถ้าไม่มี "บริษัท" หรือ "จำกัด" อยู่แล้ว ให้เพิ่ม
+            if not name_edited.startswith("บริษัท"):
+                name_edited = f"บริษัท {name_edited}"
+            if not name_edited.endswith("จำกัด"):
+                name_edited = f"{name_edited} จำกัด"
 
         # --- ลบช่องว่างเกิน ---
         name_edited = re.sub(r"\s{2,}", ' ', name_edited)
@@ -3550,8 +3511,8 @@ class Bot_POS:
             
             # todo for testing
             # * Update Accel file //////////////////////
-            # self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
-            # return
+            self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
+            return
             
                     
             # * ใส่ค่าขนส่ง ================================================================================
@@ -4169,6 +4130,13 @@ class Bot_POS:
         """
         is_functionworking = True
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+        try:
+            self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+            logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
+            print(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
+        except:
+            print(f"{self.app.cus_order.get()}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
+            
         self.customer_class_selector(is_functionworking)
 
         # Prepare customer data based on type
@@ -4646,7 +4614,11 @@ class Bot_POS:
         
         if not self.current_address.replace(' ', '') == self.desired_full_address.replace(' ', ''): #* ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
             #* เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
+            logger.info(f"{self.app.cus_order.get()}: compare self.current_address & self.desired_full_address")
+            logger.info(self.current_address.replace(' ', ''))
+            logger.info(self.desired_full_address.replace(' ', ''))
             print("Customer Address is not correct")
+            
             self.get_tabs()
             if not 'SMCO :: ลูกค้า' in self.merged_dict:
                 self.open_customer_edit_page()
@@ -4783,6 +4755,7 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
+            logger.info(f"{self.app.cus_order.get()}: cusname is Not Duplicated")
             return
         print("close dup popup = ",self.dup_popup_content)
         
