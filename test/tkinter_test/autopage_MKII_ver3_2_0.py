@@ -149,6 +149,49 @@ class MyApp:
     def demonic_cp_selection(self):
         self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
 
+    def reset_browser_memory(self):
+        """Callback สำหรับปุ่ม Reset Memory"""
+        try:
+            if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
+                self.bot.reset_all_tabs_memory()
+                print("Browser memory reset completed")
+            else:
+                print("Browser not initialized yet")
+        except Exception as e:
+            print(f"Error resetting browser memory: {e}")
+
+    def check_browser_memory(self):
+        """Callback สำหรับปุ่ม Check Memory"""
+        try:
+            if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
+                current_handle = self.bot.driver.current_window_handle
+                all_handles = self.bot.driver.window_handles
+
+                print(f"\n=== Browser Memory Report ===")
+                print(f"Total tabs: {len(all_handles)}")
+
+                total_memory = 0
+                for i, handle in enumerate(all_handles):
+                    try:
+                        self.bot.driver.switch_to.window(handle)
+                        tab_title = self.bot.driver.title[:30]
+                        memory_usage = self.bot.get_tab_memory_usage()
+                        total_memory += memory_usage
+                        print(f"Tab {i+1}: {tab_title} - {memory_usage:.1f}MB")
+                    except Exception as e:
+                        print(f"Tab {i+1}: Error checking - {e}")
+
+                print(f"Total memory usage: {total_memory:.1f}MB")
+                print(f"Operations completed: {self.bot.operation_count}")
+                print("="*30)
+
+                # กลับไป tab เดิม
+                self.bot.driver.switch_to.window(current_handle)
+            else:
+                print("Browser not initialized yet")
+        except Exception as e:
+            print(f"Error checking browser memory: {e}")
+
     def validate_input(self, value):
         pattern = r'[A-z]'
         if re.fullmatch(pattern, value) is None:
@@ -563,6 +606,13 @@ class MyApp:
         # >> bot status
         self.display_bot_status_label = CTkLabel(self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", fg_color="#1f242e", text_color="#ffec1f", padx=5)
         self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0), )
+
+        # >> Memory management buttons
+        self.memory_reset_btn = CTkButton(self.import_file_frame, text="Reset Memory", command=self.reset_browser_memory, fg_color="#ff6b35", text_color="white", width=100, height=28)
+        self.memory_reset_btn.grid(row=0, column=4, padx=(5, 0))
+
+        self.memory_check_btn = CTkButton(self.import_file_frame, text="Check Memory", command=self.check_browser_memory, fg_color="#4a90e2", text_color="white", width=100, height=28)
+        self.memory_check_btn.grid(row=0, column=5, padx=(5, 0))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Current Order display component
@@ -1853,6 +1903,10 @@ class MyApp:
         self.is_bot_running.set(False)
         self.is_bot_running.set(True)
         self.autofinal = False
+
+        # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
+        if hasattr(self, 'bot') and hasattr(self.bot, 'manage_browser_memory'):
+            self.bot.manage_browser_memory("search_order")
         # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
@@ -2193,6 +2247,15 @@ class Bot_POS:
             'itcity':'SHOPEE',
             'shp_wisegadget_master':'SHOPEE Wise Gadget',
         }
+
+        # Memory management tracking
+        self.operation_count = 0
+        self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
+        self.max_memory_mb = 800  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+
+        # คำอธิบาย:
+        # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
+        # - max_memory_mb: ขึ้นกับสเปคคอม และความต้องการ (แนะนำ 500-1000MB)
         
 
     def setup_chrome(self):
@@ -2272,6 +2335,129 @@ class Bot_POS:
             result.append(product_code)
 
         return result
+
+    def get_tab_memory_usage(self):
+        """ตรวจสอบการใช้หน่วยความจำของแต่ละ tab"""
+        try:
+            # ใช้ Chrome DevTools Protocol เพื่อดู memory usage
+            memory_info = self.driver.execute_script(
+                "return {'usedJSHeapSize': performance.memory.usedJSHeapSize, "
+                "'totalJSHeapSize': performance.memory.totalJSHeapSize}"
+            )
+            used_mb = memory_info['usedJSHeapSize'] / 1024 / 1024
+            total_mb = memory_info['totalJSHeapSize'] / 1024 / 1024
+
+            print(f"Tab Memory Usage: {used_mb:.1f}MB / {total_mb:.1f}MB")
+            return used_mb
+        except Exception as e:
+            print(f"Error checking memory usage: {e}")
+            return 0
+
+    def refresh_tab_if_memory_high(self, tab_name=None):
+        """Refresh tab ถ้าใช้ memory เกินกำหนด"""
+        try:
+            current_url = self.driver.current_url
+            memory_usage = self.get_tab_memory_usage()
+
+            if memory_usage > self.max_memory_mb:
+                print(f"Memory usage ({memory_usage:.1f}MB) exceeds limit ({self.max_memory_mb}MB)")
+                print(f"Refreshing tab: {tab_name or current_url}")
+
+                # เก็บ scroll position และ form data (ถ้าจำเป็น)
+                scroll_position = self.driver.execute_script("return window.pageYOffset;")
+
+                # Refresh page
+                self.driver.refresh()
+
+                # รอให้หน้าโหลดเสร็จ
+                time.sleep(3)
+
+                # กลับไปยัง scroll position เดิม
+                self.driver.execute_script(f"window.scrollTo(0, {scroll_position});")
+
+                print(f"Tab refreshed successfully")
+                return True
+            return False
+        except Exception as e:
+            print(f"Error refreshing tab: {e}")
+            return False
+
+    def force_garbage_collection(self):
+        """บังคับให้ browser ทำ garbage collection"""
+        try:
+            # ทำ garbage collection ใน JavaScript
+            self.driver.execute_script(
+                "if (window.gc) { window.gc(); } "
+                "else if (window.CollectGarbage) { window.CollectGarbage(); }"
+            )
+
+            # ล้าง cache และ unused objects
+            self.driver.execute_script(
+                "if (typeof window.caches !== 'undefined') {"
+                "  caches.keys().then(names => {"
+                "    names.forEach(name => caches.delete(name));"
+                "  });"
+                "}"
+            )
+            print("Forced garbage collection completed")
+        except Exception as e:
+            print(f"Error during garbage collection: {e}")
+
+    def manage_browser_memory(self, operation_name="operation"):
+        """หลัก method สำหรับจัดการ memory ของ browser"""
+        self.operation_count += 1
+
+        # ตรวจสอบ memory ทุก N operations
+        if self.operation_count % self.memory_check_interval == 0:
+            print(f"Memory check after {self.operation_count} operations")
+
+            # ตรวจสอบ memory ของ tab ปัจจุบัน
+            current_tab = None
+            try:
+                current_tab = self.driver.current_window_handle
+                tab_title = self.driver.title
+
+                # Refresh tab ถ้า memory สูงเกินไป
+                if self.refresh_tab_if_memory_high(tab_title):
+                    # ถ้า refresh แล้ว ให้บังคับ garbage collection
+                    self.force_garbage_collection()
+                else:
+                    # ถ้าไม่ refresh ก็ทำ garbage collection ปกติ
+                    if self.operation_count % (self.memory_check_interval * 2) == 0:
+                        self.force_garbage_collection()
+
+            except Exception as e:
+                print(f"Error in memory management: {e}")
+
+    def reset_all_tabs_memory(self):
+        """Reset memory ของทุก tabs ที่เปิดอยู่"""
+        try:
+            current_handle = self.driver.current_window_handle
+            all_handles = self.driver.window_handles
+
+            print(f"Resetting memory for {len(all_handles)} tabs")
+
+            for handle in all_handles:
+                try:
+                    self.driver.switch_to.window(handle)
+                    tab_title = self.driver.title[:50]  # แค่ 50 ตัวอักษรแรก
+
+                    # ตรวจสอบ memory และ refresh ถ้าจำเป็น
+                    self.refresh_tab_if_memory_high(tab_title)
+
+                except Exception as e:
+                    print(f"Error resetting tab {handle}: {e}")
+
+            # กลับไป tab เดิม
+            self.driver.switch_to.window(current_handle)
+
+            # ทำ garbage collection รวม
+            self.force_garbage_collection()
+
+            print("Memory reset completed for all tabs")
+
+        except Exception as e:
+            print(f"Error in reset_all_tabs_memory: {e}")
 
     def demonic_cp_bot(self, item_no, cp_no):
         self.item_no = int(item_no)-1
@@ -2870,10 +3056,17 @@ class Bot_POS:
             raise ValueError("Sumatra was not found")
 
 
-    def operation_start(self):      
+    def operation_start(self):
         self.app.is_bot_browser_busy.set(True)
         self.is_forbid = False
         is_etax = False
+
+        # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation
+        try:
+            self.manage_browser_memory("operation_start")
+        except Exception as e:
+            print(f"Memory management error: {e}")
+
         inv_number = ""
         self.operation_states = {"purchase_channel":None}
         if self.app.order != "" and not self.operation_thread.is_set():
@@ -3108,7 +3301,7 @@ class Bot_POS:
                     items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
                     if len(items_list) == 0:
                         #* คลิกเพื่อให้ปิด droprdown
-                        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]').click()
+                        self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
                         print("ปิด dropwdown กรณีไม่มีสินค้า")
                     else:
                         # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
@@ -3141,6 +3334,7 @@ class Bot_POS:
                     print("ไม่ต้องรี")
             except Exception as err:
                 print("Error From SMCO phase1 Resetting", err)
+                logger.info("Error From SMCO phase1 Resetting", err)
                 while not self.operation_thread.is_set():
                     print("รอ")
                     time.sleep(1)
