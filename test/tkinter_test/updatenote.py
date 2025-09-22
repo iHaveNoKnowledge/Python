@@ -171,7 +171,9 @@
 # * 167 patch 3.1.4 /Fixed/ ใส่ while ให้ 50 วิมันนใน while จนกว่าจะกดปุ่มถึงจะจบหน้านั้น /Bug/ หน้า add ลูกค้ามันกรอกค่าใหม่ทุกๆ 50 วิ อันนี้ผมอยากลองของเองมันเลยพัง
 # * 168 patch 3.1.4 /Refactor/ ปรับรวม function Add ลูกค้าของ ใบกำกับ ธรรมดา และ ใบกำกับLaz เข้าเป็น 1เดียว
 # ? 169 patch 3.1.4 /Not sure/ ไม่เจออาการนี้ตอน Debug /Bug/ มันมีการวนมา Add ชื่อซ้ำหลังจาก Add ไปแล้ว
-
+# Todo 170 minor 3.2.0 /addnew/ Accel mode for some A-zone products (Ink, memory card)
+# * 171 patch 3.2.0 /Fixed/ ใส่ try except ในจุดที่คลิกปุ่ม 'create new customer' ให้กลับไปใช้ is_displayed() ใหม่ก็หายละ /Bug/ function ที่ใช้ จัดการ 'Customer Class' ยังมีปัญหาอยู่, function มันเรียกหาelement เร็วไป มันหาตำแหน่งเจอ แต่ element ดันใช้ method is_displayed() ไม่ได้ มันเลย error แล้วด้านล่างใน except ฉันดันเรียกปุ่ม create customer ที่อยู่ข้างนอกทันที เพราะคิดแค่ว่าถ้าใช้ is_displayed()ไม่ได้เลยตัดสินไปเลยว่าไม่มีหน้า form แต่ก็เรียกไม่ได้เพราะ form ในการ crate new customer มันบังอยู่ก็เลยพัง
+# ! 172 patch 3.2.0 /Bug/ no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"} หลาย order อยู่ ต้องเช็คละ
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 

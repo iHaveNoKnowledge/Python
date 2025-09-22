@@ -3511,8 +3511,8 @@ class Bot_POS:
             
             # todo for testing
             # * Update Accel file //////////////////////
-            self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
-            return
+            # self.app.deduct_accel_file_data(self.app.cus_order, getattr(self, "used_serials", []))
+            # return
             
                     
             # * ใส่ค่าขนส่ง ================================================================================
