@@ -49,7 +49,7 @@ from googletrans import Translator
 import requests
 session = requests.Session()
 
-from accel_mode import AccelMode
+from modules.accel_mode import AccelMode
 
 
 # * images
@@ -70,7 +70,7 @@ locale.setlocale(locale.LC_ALL, 'en_us')
 
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
-address_file = "Addresscleaner_TambonData.xlsx"
+address_file = r"tables\Addresscleaner_TambonData.xlsx"
 file_path = os.path.join(current_directory, address_file)
 directory_of_file = os.path.dirname(file_path)
 print("file located:", directory_of_file)
@@ -141,7 +141,10 @@ class MyApp:
         self.create_main_window()
         self.scale_widget(self.root, self.scale_factor)
         #! self.get_dataframe() สร้างไว้ไมวะ
-        logger.add("autopageMKII_log.log", format="{time} {level} {message}", level="INFO")
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        time_name = datetime.datetime.now()
+        log_path = os.path.join(current_dir, f"""logs\\autopageMKII_log_{time_name.strftime('%Y_%m_%d')}.log""")
+        logger.add(log_path, format="{time} {level} {message}", level="INFO")
         
         #* 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
         self.bot = Bot_POS(self.root, self)
@@ -1905,8 +1908,8 @@ class MyApp:
         self.autofinal = False
 
         # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
-        if hasattr(self, 'bot') and hasattr(self.bot, 'manage_browser_memory'):
-            self.bot.manage_browser_memory("search_order")
+        if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
+            self.bot.pre_operation_memory_cleanup("search_order")
         # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
@@ -2251,7 +2254,7 @@ class Bot_POS:
         # Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
-        self.max_memory_mb = 800  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.max_memory_mb = 300  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -2347,40 +2350,79 @@ class Bot_POS:
             used_mb = memory_info['usedJSHeapSize'] / 1024 / 1024
             total_mb = memory_info['totalJSHeapSize'] / 1024 / 1024
 
-            print(f"Tab Memory Usage: {used_mb:.1f}MB / {total_mb:.1f}MB")
+            print(f"Memory: {used_mb:.1f}MB used / {total_mb:.1f}MB allocated (Threshold: {self.max_memory_mb}MB)")
+            print(f"  Current URL: {self.driver.current_url[:60]}...")
+
+            if used_mb > self.max_memory_mb:
+                print(f"  ⚠️  MEMORY EXCEEDED! {used_mb:.1f}MB > {self.max_memory_mb}MB")
+
             return used_mb
         except Exception as e:
             print(f"Error checking memory usage: {e}")
             return 0
 
-    def refresh_tab_if_memory_high(self, tab_name=None):
-        """Refresh tab ถ้าใช้ memory เกินกำหนด"""
+    def close_and_reopen_tab_if_memory_high(self, tab_name=None):
+        """ปิด tab เก่าแล้วเปิด tab ใหม่ ถ้าใช้ memory เกินกำหนด"""
         try:
             current_url = self.driver.current_url
+            current_handle = self.driver.current_window_handle
             memory_usage = self.get_tab_memory_usage()
 
             if memory_usage > self.max_memory_mb:
                 print(f"Memory usage ({memory_usage:.1f}MB) exceeds limit ({self.max_memory_mb}MB)")
-                print(f"Refreshing tab: {tab_name or current_url}")
+                print(f"Closing and reopening tab: {tab_name or current_url}")
 
-                # เก็บ scroll position และ form data (ถ้าจำเป็น)
-                scroll_position = self.driver.execute_script("return window.pageYOffset;")
+                # เก็บ scroll position (ถ้าต้องการ)
+                try:
+                    scroll_position = self.driver.execute_script("return window.pageYOffset;")
+                except:
+                    scroll_position = 0
 
-                # Refresh page
-                self.driver.refresh()
+                # เปิด tab ใหม่ก่อน
+                self.driver.execute_script("window.open('');")
+                all_handles = self.driver.window_handles
+                new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
+
+                # ย้ายไป tab ใหม่
+                self.driver.switch_to.window(new_handle)
+
+                # โหลด URL เดิม
+                self.driver.get(current_url)
 
                 # รอให้หน้าโหลดเสร็จ
                 time.sleep(3)
 
-                # กลับไปยัง scroll position เดิม
-                self.driver.execute_script(f"window.scrollTo(0, {scroll_position});")
+                # กลับไปยัง scroll position เดิม (ถ้าต้องการ)
+                try:
+                    self.driver.execute_script(f"window.scrollTo(0, {scroll_position});")
+                except:
+                    pass
 
-                print(f"Tab refreshed successfully")
+                # ปิด tab เก่า
+                self.driver.switch_to.window(current_handle)
+                self.driver.close()
+
+                # กลับไป tab ใหม่
+                self.driver.switch_to.window(new_handle)
+
+                # อัพเดท merged_dict ให้ชี้ไป handle ใหม่
+                for key, value in self.merged_dict.items():
+                    if value == current_handle:
+                        self.merged_dict[key] = new_handle
+                        print(f"Updated {key} handle to new tab")
+                        break
+
+                print(f"Tab closed and reopened successfully - Memory should be cleaned")
                 return True
             return False
         except Exception as e:
-            print(f"Error refreshing tab: {e}")
+            print(f"Error closing/reopening tab: {e}")
             return False
+
+    # เก็บฟังก์ชันเก่าไว้เป็น backup
+    def refresh_tab_if_memory_high(self, tab_name=None):
+        """Refresh tab ถ้าใช้ memory เกินกำหนด (backup method)"""
+        return self.close_and_reopen_tab_if_memory_high(tab_name)
 
     def force_garbage_collection(self):
         """บังคับให้ browser ทำ garbage collection"""
@@ -2403,31 +2445,56 @@ class Bot_POS:
         except Exception as e:
             print(f"Error during garbage collection: {e}")
 
-    def manage_browser_memory(self, operation_name="operation"):
-        """หลัก method สำหรับจัดการ memory ของ browser"""
-        self.operation_count += 1
+    def pre_operation_memory_cleanup(self, operation_name="operation"):
+        """ตรวจสอบและจัดการ memory ก่อนเริ่ม operation สำคัญ"""
+        print(f"\n=== Pre-operation Memory Cleanup: {operation_name} ===")
 
-        # ตรวจสอบ memory ทุก N operations
-        if self.operation_count % self.memory_check_interval == 0:
-            print(f"Memory check after {self.operation_count} operations")
+        try:
+            current_handle = self.driver.current_window_handle
+            all_handles = self.driver.window_handles
 
-            # ตรวจสอบ memory ของ tab ปัจจุบัน
-            current_tab = None
+            print(f"Checking memory for {len(all_handles)} tabs before {operation_name}")
+
+            # ตรวจสอบ memory ของทุก tab
+            tabs_cleaned = 0
+            for i, handle in enumerate(all_handles):
+                try:
+                    self.driver.switch_to.window(handle)
+                    tab_title = self.driver.title[:50]
+                    memory_usage = self.get_tab_memory_usage()
+
+                    print(f"Tab {i+1}: {tab_title} - {memory_usage:.1f}MB")
+
+                    # ถ้า memory เกินกำหนด ให้ปิดแล้วเปิดใหม่
+                    if memory_usage > self.max_memory_mb:
+                        print(f"  → Cleaning tab {i+1} (memory too high)")
+                        if self.close_and_reopen_tab_if_memory_high(tab_title):
+                            tabs_cleaned += 1
+
+                except Exception as e:
+                    print(f"  → Error checking tab {i+1}: {e}")
+
+            # กลับไป tab เดิม
             try:
-                current_tab = self.driver.current_window_handle
-                tab_title = self.driver.title
+                self.driver.switch_to.window(current_handle)
+            except:
+                # ถ้า tab เดิมถูกปิดไป ให้ไปที่ tab แรก
+                if self.driver.window_handles:
+                    self.driver.switch_to.window(self.driver.window_handles[0])
 
-                # Refresh tab ถ้า memory สูงเกินไป
-                if self.refresh_tab_if_memory_high(tab_title):
-                    # ถ้า refresh แล้ว ให้บังคับ garbage collection
-                    self.force_garbage_collection()
-                else:
-                    # ถ้าไม่ refresh ก็ทำ garbage collection ปกติ
-                    if self.operation_count % (self.memory_check_interval * 2) == 0:
-                        self.force_garbage_collection()
+            # ทำ garbage collection รวม
+            self.force_garbage_collection()
 
-            except Exception as e:
-                print(f"Error in memory management: {e}")
+            print(f"Memory cleanup completed: {tabs_cleaned} tabs cleaned")
+            print("="*50)
+
+        except Exception as e:
+            print(f"Error in pre-operation memory cleanup: {e}")
+
+    def manage_browser_memory(self, operation_name="operation"):
+        """หลัก method สำหรับจัดการ memory ของ browser (ใช้แค่สำหรับการนับ operation)"""
+        self.operation_count += 1
+        print(f"Operation count: {self.operation_count} ({operation_name})")
 
     def reset_all_tabs_memory(self):
         """Reset memory ของทุก tabs ที่เปิดอยู่"""
@@ -2527,8 +2594,7 @@ class Bot_POS:
             except:
                 # * driver หลุดก็ออก seesion เก่า
                 try:
-                    print(
-                        "Quit old driver, not sure if this process is auto or not")
+                    print("Quit old driver, not sure if this process is auto or not")
                     self.driver.quit()
                 except:
                     print("No need to quit old driver, no driver found")
@@ -2797,6 +2863,15 @@ class Bot_POS:
         
         print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} and self.cus_name_span_elmt.text: {self.cus_name_span_elmt.text}")
         if cus_desire_name in self.cus_name_span_elmt.text:
+            while not self.operation_thread.is_set():
+                try:
+                    self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
+                    self.driver.find_element(By.CSS_SELECTOR, "#select2-memberSearch-container").click()
+                    break
+                except:
+                    time.sleep(0.5)
+                    continue
+                    
             print(f"cus_desire_name in self.cus_name_span_elmt.text")
             return
         
@@ -3063,7 +3138,7 @@ class Bot_POS:
 
         # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation
         try:
-            self.manage_browser_memory("operation_start")
+            self.pre_operation_memory_cleanup("main_operation")
         except Exception as e:
             print(f"Memory management error: {e}")
 
@@ -3162,8 +3237,7 @@ class Bot_POS:
                 self.app.display_current_status.configure(
                     text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.configure(
-                        fg_color="#00ff11", text_color="#000000")
+                    self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
                     PopUp("Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
@@ -4520,51 +4594,64 @@ class Bot_POS:
             self.wait_element('/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
             address_revise_input_popup = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
             
-            #* กรอก Address
-            address_revise_input_popup.clear()
-            self.desired_address = self.app.get_pure_address(self.desired_address)
-            address_revise_input_popup.send_keys(self.desired_address)
+            is_address_revice_end = False
+            while not is_address_revice_end:
+                try:
+                    #* กรอก Address
+                    address_revise_input_popup.clear()
+                    self.desired_address = self.app.get_pure_address(self.desired_address)
+                    address_revise_input_popup.send_keys(self.desired_address)
 
-            # * tel.
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').clear()
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys(self.app.cus_tel.get())
+                    # * tel.
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').clear()
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys(self.app.cus_tel.get())
 
-            ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
-            #* dropdown Country
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[2]/div/span/span[1]/span/span[1]').click()
-            time.sleep(1.55)
-            #* select thailand in dropdown
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]').click()
+                    ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
+                    #* dropdown Country
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[2]/div/span/span[1]/span/span[1]').click()
+                    time.sleep(1.55)
+                    #* select thailand in dropdown
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]').click()
 
-            #* province dropdown
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[4]/div/span/span[1]/span/span[1]').click()
-            
-            #* province input
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))
-            time.sleep(1.75)
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    #* province dropdown
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[4]/div/span/span[1]/span/span[1]').click()
+                    
+                    #* province input
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_province.get().replace("จังหวัด", ""))
+                    time.sleep(1.75)
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-            #* District drop
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element( By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-            
-            #* District fill and enter
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
-            time.sleep(1.75)
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    #* District drop
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]').click()
+                    self.driver.find_element( By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+                    
+                    #* District fill and enter
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
+                    time.sleep(1.75)
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-            #* SubDistrict drop
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-            
-            #* SubDistrict fill and enter
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
-            self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-            time.sleep(1.75)
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    #* SubDistrict drop
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+                    
+                    #* SubDistrict fill and enter
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
+                    self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
+                    time.sleep(1.75)
+                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    
+                    print(f"""{self.app.cus_order.get()}: Address Revise Complete""")
+                    is_address_revice_end = True
+                    break
+                except Exception as err:
+                    print(f"Address Revise Error1 : {traceback.format_exc()}")
+                    print(f"Address Revise Error2 : {err}")
+                    logger.info(f"""{self.app.cus_order.get()}: Address Revise Error1 : {traceback.format_exc()}""")
+                    logger.info(f"""{self.app.cus_order.get()}: Address Revise Error2 : {err}""")
+                    continue
             
             self.app.is_bot_browser_busy.set(False)
             while not self.operation_thread.is_set():
@@ -4645,7 +4732,7 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
-            logger.info(f"{self.app.cus_order.get()}: cusname is Not Duplicated")
+            logger.info(f"{self.app.cus_order.get()}: After adding cusname, the cusname is Not Duplicated")
             return
         print("close dup popup = ",self.dup_popup_content)
         
@@ -4920,7 +5007,7 @@ class Bot_POS:
             # จัวนี้ต้องผูกกับ exe
             # tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
 
-            tambon_data_address = self.resource_path("Addresscleaner_TambonData.xlsx")
+            tambon_data_address = self.resource_path(r"tables\Addresscleaner_TambonData.xlsx")
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
                 str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]

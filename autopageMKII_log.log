@@ -1619,3 +1619,377 @@ Stacktrace:
 2025-09-22T17:58:58.944906+0700 INFO Order: 2509226E14MMB8 Start!!
 2025-09-22T17:59:18.900215+0700 INFO 2509226E14MMB8: cusname is Not Duplicated
 2025-09-22T17:59:35.199264+0700 INFO Order: 2509226E14MMB8 outer_Exception_Error!! main thread is not in main loop
+2025-09-23T10:22:00.238103+0700 INFO Order: 2509225R9RH5CJ Start!!
+2025-09-23T10:22:02.543300+0700 INFO Order: 2509225R9RH5CJ outer_Exception_Error!! method operation_start Error : Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\auto_page\autopageMKII\autopage_MKII_ver3_2_0.py", line 3121, in operation_start
+    self.searchBtn.click()
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 94, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button data-v-ff857689="" data-v-2df5d49d="" type="button" class="eds-button eds-button--primary eds-button--normal eds-button--outline search-btn" data-testid="order-list-search">...</button> is not clickable at point (1094, 230). Other element would receive the click: <span data-v-270d4c37="" class="eds-table__cell-label">...</span>
+  (Session info: chrome=140.0.7339.185)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff613c56b25+79621]
+	GetHandleVerifier [0x0x7ff613c56b80+79712]
+	(No symbol) [0x0x7ff6139ec0ea]
+	(No symbol) [0x0x7ff613a4af69]
+	(No symbol) [0x0x7ff613a48902]
+	(No symbol) [0x0x7ff613a45941]
+	(No symbol) [0x0x7ff613a44831]
+	(No symbol) [0x0x7ff613a36078]
+	(No symbol) [0x0x7ff613a6b13a]
+	(No symbol) [0x0x7ff613a35926]
+	(No symbol) [0x0x7ff613a6b350]
+	(No symbol) [0x0x7ff613a933d0]
+	(No symbol) [0x0x7ff613a6af13]
+	(No symbol) [0x0x7ff613a34151]
+	(No symbol) [0x0x7ff613a34ee3]
+	GetHandleVerifier [0x0x7ff613f1683d+2962461]
+	GetHandleVerifier [0x0x7ff613f10b5d+2938685]
+	GetHandleVerifier [0x0x7ff613f2f71d+3064573]
+	GetHandleVerifier [0x0x7ff613c70c6e+186446]
+	GetHandleVerifier [0x0x7ff613c78a3f+218655]
+	GetHandleVerifier [0x0x7ff613c5f914+115956]
+	GetHandleVerifier [0x0x7ff613c5fac9+116393]
+	GetHandleVerifier [0x0x7ff613c45ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+
+2025-09-23T10:22:03.232274+0700 INFO Order: 2509225UT30EJR Start!!
+2025-09-23T10:22:05.389473+0700 INFO Order: 2509225UT30EJR outer_Exception_Error!! method operation_start Error : Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\auto_page\autopageMKII\autopage_MKII_ver3_2_0.py", line 3121, in operation_start
+    self.searchBtn.click()
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 94, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button data-v-ff857689="" data-v-2df5d49d="" type="button" class="eds-button eds-button--primary eds-button--normal eds-button--outline search-btn" data-testid="order-list-search">...</button> is not clickable at point (1094, 230). Other element would receive the click: <span data-v-270d4c37="" class="eds-table__cell-label">...</span>
+  (Session info: chrome=140.0.7339.185)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff613c56b25+79621]
+	GetHandleVerifier [0x0x7ff613c56b80+79712]
+	(No symbol) [0x0x7ff6139ec0ea]
+	(No symbol) [0x0x7ff613a4af69]
+	(No symbol) [0x0x7ff613a48902]
+	(No symbol) [0x0x7ff613a45941]
+	(No symbol) [0x0x7ff613a44831]
+	(No symbol) [0x0x7ff613a36078]
+	(No symbol) [0x0x7ff613a6b13a]
+	(No symbol) [0x0x7ff613a35926]
+	(No symbol) [0x0x7ff613a6b350]
+	(No symbol) [0x0x7ff613a933d0]
+	(No symbol) [0x0x7ff613a6af13]
+	(No symbol) [0x0x7ff613a34151]
+	(No symbol) [0x0x7ff613a34ee3]
+	GetHandleVerifier [0x0x7ff613f1683d+2962461]
+	GetHandleVerifier [0x0x7ff613f10b5d+2938685]
+	GetHandleVerifier [0x0x7ff613f2f71d+3064573]
+	GetHandleVerifier [0x0x7ff613c70c6e+186446]
+	GetHandleVerifier [0x0x7ff613c78a3f+218655]
+	GetHandleVerifier [0x0x7ff613c5f914+115956]
+	GetHandleVerifier [0x0x7ff613c5fac9+116393]
+	GetHandleVerifier [0x0x7ff613c45ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+
+2025-09-23T10:22:06.313345+0700 INFO Order: 2509225WD3MXTF Start!!
+2025-09-23T10:22:08.448492+0700 INFO Order: 2509225WD3MXTF outer_Exception_Error!! method operation_start Error : Traceback (most recent call last):
+  File "c:\Users\BCP_27\Documents\GitHub\Python\projects\auto_page\autopageMKII\autopage_MKII_ver3_2_0.py", line 3121, in operation_start
+    self.searchBtn.click()
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 94, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\BCP_27\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button data-v-ff857689="" data-v-2df5d49d="" type="button" class="eds-button eds-button--primary eds-button--normal eds-button--outline search-btn" data-testid="order-list-search">...</button> is not clickable at point (1094, 230). Other element would receive the click: <span data-v-270d4c37="" class="eds-table__cell-label">...</span>
+  (Session info: chrome=140.0.7339.185)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff613c56b25+79621]
+	GetHandleVerifier [0x0x7ff613c56b80+79712]
+	(No symbol) [0x0x7ff6139ec0ea]
+	(No symbol) [0x0x7ff613a4af69]
+	(No symbol) [0x0x7ff613a48902]
+	(No symbol) [0x0x7ff613a45941]
+	(No symbol) [0x0x7ff613a44831]
+	(No symbol) [0x0x7ff613a36078]
+	(No symbol) [0x0x7ff613a6b13a]
+	(No symbol) [0x0x7ff613a35926]
+	(No symbol) [0x0x7ff613a6b350]
+	(No symbol) [0x0x7ff613a933d0]
+	(No symbol) [0x0x7ff613a6af13]
+	(No symbol) [0x0x7ff613a34151]
+	(No symbol) [0x0x7ff613a34ee3]
+	GetHandleVerifier [0x0x7ff613f1683d+2962461]
+	GetHandleVerifier [0x0x7ff613f10b5d+2938685]
+	GetHandleVerifier [0x0x7ff613f2f71d+3064573]
+	GetHandleVerifier [0x0x7ff613c70c6e+186446]
+	GetHandleVerifier [0x0x7ff613c78a3f+218655]
+	GetHandleVerifier [0x0x7ff613c5f914+115956]
+	GetHandleVerifier [0x0x7ff613c5fac9+116393]
+	GetHandleVerifier [0x0x7ff613c45ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+
+2025-09-23T10:22:09.349199+0700 INFO Order: 250922600WCX2B Start!!
+2025-09-23T10:22:18.323723+0700 INFO Order: 25092260W1M1XN Start!!
+2025-09-23T10:22:26.403143+0700 INFO Order: 2509226181GW56 Start!!
+2025-09-23T10:22:35.545191+0700 INFO Order: 25092261RUFCWW Start!!
+2025-09-23T10:22:44.710754+0700 INFO Order: 25092261S3Y9VY Start!!
+2025-09-23T10:22:52.697235+0700 INFO Order: 25092261TQJ3WV Start!!
+2025-09-23T10:23:03.799341+0700 INFO Order: 25092261V3DQX3 Start!!
+2025-09-23T10:23:13.887204+0700 INFO Order: 25092262UJDR2N Start!!
+2025-09-23T10:23:26.974754+0700 INFO Order: 25092262VHWCQY Start!!
+2025-09-23T10:23:44.049905+0700 INFO Order: 2509226354JUH0 Start!!
+2025-09-23T10:23:53.144581+0700 INFO Order: 2509226395C7R9 Start!!
+2025-09-23T10:24:02.211989+0700 INFO Order: 25092264MB77C1 Start!!
+2025-09-23T10:24:11.287770+0700 INFO Order: 25092264P69PN2 Start!!
+2025-09-23T10:24:19.394635+0700 INFO Order: 250922658FV9TQ Start!!
+2025-09-23T10:24:28.491943+0700 INFO Order: 25092265R2NTB0 Start!!
+2025-09-23T10:24:36.587687+0700 INFO Order: 25092265RVEFY1 Start!!
+2025-09-23T10:24:43.671436+0700 INFO 25092265RVEFY1: compare self.current_address & self.desired_full_address
+2025-09-23T10:24:43.672803+0700 INFO ที่อยู่.97ซอยสวนมะลิ3ถนนบำรุงเมืองวัดเทพศิรินทร์ป้อมปราบศัตรูพ่ายกรุงเทพมหานคร10100
+2025-09-23T10:24:43.673812+0700 INFO 43อาคารไทยซีซีทาวเวอร์ชั้นที่15ห้องเลขที่A154-A155ถ.สาทรใต้ยานนาวาสาทรกรุงเทพมหานคร10120
+2025-09-23T10:24:58.885540+0700 INFO Order: 25092265RVEFY1 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]"}
+  (Session info: chrome=140.0.7339.185); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff613c56b25+79621]
+	GetHandleVerifier [0x0x7ff613c56b80+79712]
+	(No symbol) [0x0x7ff6139ec0ea]
+	(No symbol) [0x0x7ff613a42f56]
+	(No symbol) [0x0x7ff613a4320c]
+	(No symbol) [0x0x7ff613a965b7]
+	(No symbol) [0x0x7ff613a6b17f]
+	(No symbol) [0x0x7ff613a933d0]
+	(No symbol) [0x0x7ff613a6af13]
+	(No symbol) [0x0x7ff613a34151]
+	(No symbol) [0x0x7ff613a34ee3]
+	GetHandleVerifier [0x0x7ff613f1683d+2962461]
+	GetHandleVerifier [0x0x7ff613f10b5d+2938685]
+	GetHandleVerifier [0x0x7ff613f2f71d+3064573]
+	GetHandleVerifier [0x0x7ff613c70c6e+186446]
+	GetHandleVerifier [0x0x7ff613c78a3f+218655]
+	GetHandleVerifier [0x0x7ff613c5f914+115956]
+	GetHandleVerifier [0x0x7ff613c5fac9+116393]
+	GetHandleVerifier [0x0x7ff613c45ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+2025-09-23T10:24:59.803455+0700 INFO Order: 25092265X56B83 Start!!
+2025-09-23T10:25:09.853095+0700 INFO Order: 25092265X83PSG Start!!
+2025-09-23T10:25:19.105599+0700 INFO Order: 25092265X83PSG outer_Exception_Error!! main thread is not in main loop
+2025-09-23T10:34:12.791631+0700 INFO Order: 2509225R9RH5CJ Start!!
+2025-09-23T10:34:23.687906+0700 INFO Order: 2509225UT30EJR Start!!
+2025-09-23T10:34:40.595442+0700 INFO 2509225UT30EJR: cusname is Not Duplicated
+2025-09-23T10:35:08.690611+0700 INFO Order: 2509225WD3MXTF Start!!
+2025-09-23T10:35:20.766717+0700 INFO Order: 250922600WCX2B Start!!
+2025-09-23T10:35:27.843909+0700 INFO Order: 25092260W1M1XN Start!!
+2025-09-23T10:35:34.848639+0700 INFO Order: 2509226181GW56 Start!!
+2025-09-23T10:35:42.986276+0700 INFO Order: 25092261RUFCWW Start!!
+2025-09-23T10:35:55.026158+0700 INFO Order: 25092261S3Y9VY Start!!
+2025-09-23T10:36:02.069046+0700 INFO Order: 25092261TQJ3WV Start!!
+2025-09-23T10:36:10.194284+0700 INFO Order: 25092261V3DQX3 Start!!
+2025-09-23T10:36:19.232948+0700 INFO Order: 25092262UJDR2N Start!!
+2025-09-23T10:36:29.267986+0700 INFO Order: 25092262VHWCQY Start!!
+2025-09-23T10:36:38.331303+0700 INFO Order: 2509226354JUH0 Start!!
+2025-09-23T10:36:47.441299+0700 INFO Order: 2509226395C7R9 Start!!
+2025-09-23T10:36:55.542492+0700 INFO Order: 25092264MB77C1 Start!!
+2025-09-23T10:37:04.605317+0700 INFO Order: 25092264P69PN2 Start!!
+2025-09-23T10:37:14.737677+0700 INFO Order: 250922658FV9TQ Start!!
+2025-09-23T10:37:23.796693+0700 INFO Order: 25092265R2NTB0 Start!!
+2025-09-23T10:37:30.890968+0700 INFO Order: 25092265RVEFY1 Start!!
+2025-09-23T10:37:37.987981+0700 INFO Order: 25092265X56B83 Start!!
+2025-09-23T10:37:48.114458+0700 INFO Order: 25092265X83PSG Start!!
+2025-09-23T10:37:57.298380+0700 INFO Order: 25092266BVTDVW Start!!
+2025-09-23T10:38:04.293883+0700 INFO Order: 25092266RXKWB7 Start!!
+2025-09-23T10:38:11.710968+0700 INFO 25092266RXKWB7: compare self.current_address & self.desired_full_address
+2025-09-23T10:38:11.712102+0700 INFO 
+2025-09-23T10:38:11.713095+0700 INFO 99/38ม.5สำโรงพระประแดงสมุทรปราการ10130
+2025-09-23T10:38:48.652944+0700 INFO Order: 25092266VAASB1 Start!!
+2025-09-23T10:39:51.124767+0700 INFO Order: 25092266VAASB1 outer_Exception_Error!! HTTPConnectionPool(host='localhost', port=49540): Max retries exceeded with url: /session/3b9c11357b8970eb2edcb58e167f3ffb/element (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000027E45D8CAD0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-09-23T10:53:56.066203+0700 INFO Order: 25092266VAASB1 Start!!
+2025-09-23T10:54:05.812460+0700 INFO Order: 25092266VNSSK4 Start!!
+2025-09-23T10:54:39.083059+0700 INFO Order: 25092267ESMHTR Start!!
+2025-09-23T10:54:51.110063+0700 INFO Order: 25092267NF6F2Q Start!!
+2025-09-23T10:55:01.701286+0700 INFO Order: 250922690QYFPR Start!!
+2025-09-23T10:55:12.728168+0700 INFO Order: 250922694K03Q4 Start!!
+2025-09-23T10:55:22.730005+0700 INFO Order: 2509226A74AFXF Start!!
+2025-09-23T10:55:33.861611+0700 INFO Order: 2509226A9R75BB Start!!
+2025-09-23T10:55:44.903136+0700 INFO Order: 2509226AT9J2BQ Start!!
+2025-09-23T10:55:55.037976+0700 INFO Order: 2509226BBET1NN Start!!
+2025-09-23T10:56:06.265330+0700 INFO Order: 2509226BC4SGHH Start!!
+2025-09-23T10:56:16.294166+0700 INFO Order: 2509226BH5W470 Start!!
+2025-09-23T10:56:24.516840+0700 INFO 2509226BH5W470: compare self.current_address & self.desired_full_address
+2025-09-23T10:56:24.518105+0700 INFO เลขที่5ซอย3ถนนมูลเมืองพระสิงห์เมืองเชียงใหม่เชียงใหม่50200
+2025-09-23T10:56:24.518105+0700 INFO เลขที่5ซอย3ถนนมูลเมืองพระสิงห์เมืองเชียงใหม่เชียงใหม่50100
+2025-09-23T10:57:14.414673+0700 INFO Order: 2509226C0WE61C Start!!
+2025-09-23T10:57:27.782308+0700 INFO Order: 2509226C70YY3P Start!!
+2025-09-23T10:57:46.373065+0700 INFO Order: 2509226CQDF21T Start!!
+2025-09-23T10:58:02.322754+0700 INFO Order: 2509226E14MMB8 Start!!
+2025-09-23T10:58:14.272049+0700 INFO Order: 2509226EA7HF26 Start!!
+2025-09-23T10:58:31.491233+0700 INFO 2509226EA7HF26: cusname is Not Duplicated
+2025-09-23T10:59:01.527732+0700 INFO Order: 2509226EARPAS7 Start!!
+2025-09-23T10:59:11.648620+0700 INFO Order: 2509226ET3THR5 Start!!
+2025-09-23T10:59:21.863672+0700 INFO Order: 2509226EUFNG62 Start!!
+2025-09-23T10:59:40.259935+0700 INFO 2509226EUFNG62: cusname is Not Duplicated
+2025-09-23T10:59:45.978419+0700 INFO Order: 2509226EYFG247 Start!!
+2025-09-23T10:59:57.042823+0700 INFO Order: 2509226F6CRBJG Start!!
+2025-09-23T11:00:08.192398+0700 INFO Order: 2509226F8UV4HS Start!!
+2025-09-23T11:00:19.292696+0700 INFO Order: 2509226FCG9636 Start!!
+2025-09-23T11:00:35.015982+0700 INFO 2509226FCG9636: cusname is Not Duplicated
+2025-09-23T11:00:40.514405+0700 INFO Order: 2509226FQQSEFM Start!!
+2025-09-23T11:00:49.557229+0700 INFO Order: 2509226FWEW9HG Start!!
+2025-09-23T11:01:00.911600+0700 INFO Order: 2509226GPF1G9T Start!!
+2025-09-23T11:01:19.702516+0700 INFO 2509226GPF1G9T: cusname is Not Duplicated
+2025-09-23T11:01:35.187628+0700 INFO Order: 2509226H1MP52H Start!!
+2025-09-23T11:01:55.105707+0700 INFO 2509226H1MP52H: cusname is Not Duplicated
+2025-09-23T11:02:35.568678+0700 INFO Order: 2509226H3V4WEW Start!!
+2025-09-23T11:02:46.640299+0700 INFO Order: 2509226H4KYEEA Start!!
+2025-09-23T11:02:55.129260+0700 INFO 2509226H4KYEEA: compare self.current_address & self.desired_full_address
+2025-09-23T11:02:55.130478+0700 INFO บ้านโนนสมบูรณ์191หมู่5(ร้านน้ำNTTeaCoffee)โนนสมบูรณ์เดชอุดมอุบลราชธานี34160
+2025-09-23T11:02:55.131501+0700 INFO บ้านโนนสมบูรณ์191หมู่5(ร้านน้ำNTTea&Coffee)โนนสมบูรณ์เดชอุดมอุบลราชธานี34160
+2025-09-23T11:03:30.104744+0700 INFO Order: 2509226H7WTP1A Start!!
+2025-09-23T11:03:42.896929+0700 INFO Order: 2509226HPWJ2PA Start!!
+2025-09-23T11:03:56.061586+0700 INFO Order: 2509226J2HGP6H Start!!
+2025-09-23T11:04:12.143039+0700 INFO 2509226J2HGP6H: cusname is Not Duplicated
+2025-09-23T11:04:54.520605+0700 INFO Order: 2509226J2S506N Start!!
+2025-09-23T11:05:06.501316+0700 INFO Order: 2509226JB551N3 Start!!
+2025-09-23T11:05:10.515871+0700 INFO Order: 2509226JB551N3 outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-23T11:05:11.527649+0700 INFO Order: 2509226JHF8D9E Start!!
+2025-09-23T11:05:22.539335+0700 INFO Order: 2509226JN6H7T9 Start!!
+2025-09-23T11:05:36.017647+0700 INFO Order: 2509226JXD5V78 Start!!
+2025-09-23T11:05:49.351122+0700 INFO Order: 2509226K671RHM Start!!
+2025-09-23T11:05:59.499043+0700 INFO Order: 2509226K92K321 Start!!
+2025-09-23T11:06:18.432338+0700 INFO 2509226K92K321: cusname is Not Duplicated
+2025-09-23T11:06:55.336678+0700 INFO Order: 2509226KS6JX63 Start!!
+2025-09-23T11:07:08.938085+0700 INFO Order: 2509226KXYJP36 Start!!
+2025-09-23T11:07:21.293745+0700 INFO Order: 2509226MTCVPQB Start!!
+2025-09-23T11:07:35.235630+0700 INFO Order: 2509226N50DK6S Start!!
+2025-09-23T11:07:46.193576+0700 INFO Order: 2509226N7S5XWW Start!!
+2025-09-23T11:08:03.723486+0700 INFO 2509226N7S5XWW: cusname is Not Duplicated
+2025-09-23T11:08:10.808168+0700 INFO Order: 2509226NEAXR20 Start!!
+2025-09-23T11:08:28.324432+0700 INFO 2509226NEAXR20: cusname is Not Duplicated
+2025-09-23T11:09:02.624150+0700 INFO Order: 2509226NP10FGW Start!!
+2025-09-23T11:09:14.734791+0700 INFO Order: 2509226NVY5WF5 Start!!
+2025-09-23T11:09:54.591603+0700 INFO Order: 2509226NVY5WF5 stop operation
+2025-09-23T11:10:25.549037+0700 INFO Order: 2509226NVY5WF5 outer_Exception_Error!! Message: 
+Stacktrace:
+	GetHandleVerifier [0x0x7ff614b66b25+79621]
+	GetHandleVerifier [0x0x7ff614b66b80+79712]
+	(No symbol) [0x0x7ff6148fc0ea]
+	(No symbol) [0x0x7ff614952f56]
+	(No symbol) [0x0x7ff61495320c]
+	(No symbol) [0x0x7ff6149a65b7]
+	(No symbol) [0x0x7ff61497b17f]
+	(No symbol) [0x0x7ff6149a33d0]
+	(No symbol) [0x0x7ff61497af13]
+	(No symbol) [0x0x7ff614944151]
+	(No symbol) [0x0x7ff614944ee3]
+	GetHandleVerifier [0x0x7ff614e2683d+2962461]
+	GetHandleVerifier [0x0x7ff614e20b5d+2938685]
+	GetHandleVerifier [0x0x7ff614e3f71d+3064573]
+	GetHandleVerifier [0x0x7ff614b80c6e+186446]
+	GetHandleVerifier [0x0x7ff614b88a3f+218655]
+	GetHandleVerifier [0x0x7ff614b6f914+115956]
+	GetHandleVerifier [0x0x7ff614b6fac9+116393]
+	GetHandleVerifier [0x0x7ff614b55ef8+10968]
+	BaseThreadInitThunk [0x0x7ffb5d7be8d7+23]
+	RtlUserThreadStart [0x0x7ffb5e068d9c+44]
+
+2025-09-23T11:10:26.874172+0700 INFO Order: 2509226NXD07SX Start!!
+2025-09-23T11:10:39.264687+0700 INFO Order: 2509226NXT957E Start!!
+2025-09-23T11:10:50.283172+0700 INFO Order: 2509226P0FR9Q8 Start!!
+2025-09-23T11:11:06.586617+0700 INFO 2509226P0FR9Q8: cusname is Not Duplicated
+2025-09-23T11:11:29.469431+0700 INFO Order: 2509226P1MY4SF Start!!
+2025-09-23T11:11:50.500320+0700 INFO 2509226P1MY4SF: cusname is Not Duplicated
+2025-09-23T11:12:02.293842+0700 INFO Order: 2509226P32NQ5Q Start!!
+2025-09-23T11:12:28.038207+0700 INFO 2509226P32NQ5Q: cusname is Not Duplicated
+2025-09-23T11:12:36.335885+0700 INFO Order: 2509226P5D2MW0 Start!!
+2025-09-23T11:12:45.074264+0700 INFO Order: 2509226Q0RGR6V Start!!
+2025-09-23T11:12:57.711897+0700 INFO 2509226Q0RGR6V: compare self.current_address & self.desired_full_address
+2025-09-23T11:12:57.711897+0700 INFO เลขที่137หมู่ที่5ทุ่งสมอเขาค้อเพชรบูรณ์67270
+2025-09-23T11:12:57.712998+0700 INFO 137หมู่ที่5ทุ่งสมอเขาค้อเพชรบูรณ์67270
+2025-09-23T11:13:30.362805+0700 INFO Order: 2509226Q1WR5N4 Start!!
+2025-09-23T11:13:40.539724+0700 INFO Order: 2509226Q2RFM19 Start!!
+2025-09-23T11:13:57.181635+0700 INFO 2509226Q2RFM19: cusname is Not Duplicated
+2025-09-23T11:14:25.938779+0700 INFO Order: 2509226RDE38FU Start!!
+2025-09-23T11:14:41.927067+0700 INFO 2509226RDE38FU: cusname is Not Duplicated
+2025-09-23T11:14:51.929330+0700 INFO Order: 2509226RMG5CH2 Start!!
+2025-09-23T11:15:10.854250+0700 INFO 2509226RMG5CH2: cusname is Not Duplicated
+2025-09-23T11:15:21.411860+0700 INFO Order: 2509226RUVNW6W Start!!
+2025-09-23T11:15:36.687869+0700 INFO Order: 2509226S6VGXX0 Start!!
+2025-09-23T11:15:52.748709+0700 INFO Order: 2509226SCMKV8Q Start!!
+2025-09-23T11:16:10.854489+0700 INFO 2509226SCMKV8Q: cusname is Not Duplicated
+2025-09-23T11:16:17.762530+0700 INFO Order: 2509226SEMGE6J Start!!
+2025-09-23T11:16:55.263651+0700 INFO Order: 2509226SFBCC4Q Start!!
+2025-09-23T11:17:07.330479+0700 INFO Order: 2509226SUN8HV3 Start!!
+2025-09-23T11:17:16.528292+0700 INFO Order: 2509226TNRNTMX Start!!
+2025-09-23T11:17:27.636877+0700 INFO Order: 2509226TRUUTAG Start!!
+2025-09-23T11:17:38.770385+0700 INFO Order: 2509226TV107JY Start!!
+2025-09-23T11:17:59.402084+0700 INFO 2509226TV107JY: cusname is Not Duplicated
+2025-09-23T11:18:06.383279+0700 INFO Order: 2509226UB2HM9M Start!!
+2025-09-23T11:18:34.138453+0700 INFO 2509226UB2HM9M: cusname is Not Duplicated
+2025-09-23T11:18:49.551752+0700 INFO Order: 2509226UR49RQQ Start!!
+2025-09-23T11:19:18.081709+0700 INFO 2509226UR49RQQ: cusname is Not Duplicated
+2025-09-23T11:19:25.163478+0700 INFO Order: 2509226V9H6GEV Start!!
+2025-09-23T11:19:37.637653+0700 INFO Order: 2509226VBVGJEA Start!!
+2025-09-23T11:20:44.546333+0700 INFO 2509226VBVGJEA: cusname is Not Duplicated
+2025-09-23T11:20:56.834558+0700 INFO Order: 2509226VJ1Y0EA Start!!
+2025-09-23T11:21:12.390296+0700 INFO Order: 2509226VQJDT26 Start!!
+2025-09-23T11:22:07.710879+0700 INFO 2509226VQJDT26: cusname is Not Duplicated
+2025-09-23T11:22:33.237701+0700 INFO Order: 2509226VV666US Start!!
+2025-09-23T11:22:44.352269+0700 INFO Order: 2509226W64R906 Start!!
+2025-09-23T11:22:52.974908+0700 INFO 2509226W64R906: compare self.current_address & self.desired_full_address
+2025-09-23T11:22:52.980891+0700 INFO 247/22หมู่9ถ.ชุมพร-ระนองต.ตากแดดอ.เมืองชุมพรจ.ชุมพร86000ตากแดดเมืองชุมพรชุมพร86000
+2025-09-23T11:22:52.983061+0700 INFO 247/22ม.9ตากแดดเมืองชุมพรชุมพร86000
+2025-09-23T11:23:22.728806+0700 INFO Order: 2509226X1WH93R Start!!
+2025-09-23T11:23:40.459489+0700 INFO Order: 2509226XF15F2U Start!!
+2025-09-23T11:24:17.703314+0700 INFO 2509226XF15F2U: cusname is Not Duplicated
+2025-09-23T11:24:42.246201+0700 INFO Order: 2509226XFEG29K Start!!
+2025-09-23T11:25:07.187404+0700 INFO 2509226XFEG29K: cusname is Not Duplicated
+2025-09-23T11:25:41.605641+0700 INFO Order: 2509226XFQ3J9E Start!!
+2025-09-23T11:25:56.808783+0700 INFO Order: 2509226XJPFYJN Start!!
+2025-09-23T11:26:13.789628+0700 INFO 2509226XJPFYJN: cusname is Not Duplicated
+2025-09-23T11:26:46.531624+0700 INFO Order: 2509226XYQ8YC8 Start!!
+2025-09-23T11:27:03.820290+0700 INFO 2509226XYQ8YC8: cusname is Not Duplicated
+2025-09-23T11:27:39.346503+0700 INFO Order: 2509226Y58M5XP Start!!
+2025-09-23T11:27:54.846803+0700 INFO 2509226Y58M5XP: cusname is Not Duplicated
+2025-09-23T11:28:02.058655+0700 INFO Order: 2509226Y5TRWNP Start!!
+2025-09-23T11:28:12.133710+0700 INFO Order: 2509226YHMBST7 Start!!
+2025-09-23T11:28:22.476907+0700 INFO 2509226YHMBST7: compare self.current_address & self.desired_full_address
+2025-09-23T11:28:22.477921+0700 INFO อาคารเอ็มไพร์ทาวเวอร์ห้องเลขที่ยูนิต4703(ริเวอร์10)ชั้นที่47เลขที่1ถนนสาทรใต้ยานนาวาสาทรกรุงเทพมหานคร10120
+2025-09-23T11:28:22.479307+0700 INFO เลขที่1อาคารเอ็มไพร์ทาวเวอร์ชั้น47ถนนสาทรใต้ยานนาวาสาทรกรุงเทพมหานคร10120
+2025-09-23T11:29:17.430088+0700 INFO Order: 250922700G8PC9 Start!!
+2025-09-23T11:29:39.412414+0700 INFO 250922700G8PC9: cusname is Not Duplicated
+2025-09-23T11:29:47.728959+0700 INFO Order: 250922707EEEVB Start!!
+2025-09-23T11:30:16.010845+0700 INFO 250922707EEEVB: cusname is Not Duplicated
+2025-09-23T11:30:27.744659+0700 INFO Order: 250922708EWFH0 Start!!
+2025-09-23T11:30:53.838108+0700 INFO Order: 25092270ACUR9M Start!!
+2025-09-23T11:31:19.395104+0700 INFO Order: 25092270FQN3K5 Start!!
+2025-09-23T11:31:44.206762+0700 INFO 25092270FQN3K5: cusname is Not Duplicated
+2025-09-23T11:31:54.538642+0700 INFO Order: 25092270R2KMPE Start!!
+2025-09-23T11:32:47.451885+0700 INFO Order: 25092270SDHTWE Start!!
+2025-09-23T11:33:09.657783+0700 INFO Order: 25092270TA44TS Start!!
+2025-09-23T11:34:02.406239+0700 INFO 25092270TA44TS: cusname is Not Duplicated
+2025-09-23T11:34:09.395022+0700 INFO Order: 25092271CB5EQC Start!!
+2025-09-23T11:34:26.377080+0700 INFO 25092271CB5EQC: cusname is Not Duplicated
+2025-09-23T11:35:12.265029+0700 INFO Order: 25092271H9DRP7 Start!!
+2025-09-23T11:35:31.472074+0700 INFO 25092271H9DRP7: cusname is Not Duplicated
+2025-09-23T11:36:33.697386+0700 INFO Order: 25092271H9DRP7 outer_Exception_Error!! main thread is not in main loop
