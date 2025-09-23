@@ -2254,7 +2254,7 @@ class Bot_POS:
         # Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
-        self.max_memory_mb = 300  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -2446,7 +2446,7 @@ class Bot_POS:
             print(f"Error during garbage collection: {e}")
 
     def pre_operation_memory_cleanup(self, operation_name="operation"):
-        """ตรวจสอบและจัดการ memory ก่อนเริ่ม operation สำคัญ"""
+        """ตรวจสอบและจัดการ memory ก่อนเริ่ม operation สำคัญ (เฉพาะ SMCO tabs)"""
         print(f"\n=== Pre-operation Memory Cleanup: {operation_name} ===")
 
         try:
@@ -2455,21 +2455,32 @@ class Bot_POS:
 
             print(f"Checking memory for {len(all_handles)} tabs before {operation_name}")
 
-            # ตรวจสอบ memory ของทุก tab
+            # ตรวจสอบ memory ของ SMCO tabs เท่านั้น
             tabs_cleaned = 0
+            smco_tabs_found = 0
+
             for i, handle in enumerate(all_handles):
                 try:
                     self.driver.switch_to.window(handle)
-                    tab_title = self.driver.title[:50]
-                    memory_usage = self.get_tab_memory_usage()
+                    tab_title = self.driver.title
 
-                    print(f"Tab {i+1}: {tab_title} - {memory_usage:.1f}MB")
+                    # จัดการเฉพาะ tabs ที่มี "SMCO :: " ในชื่อ
+                    if "SMCO :: " in tab_title:
+                        smco_tabs_found += 1
+                        memory_usage = self.get_tab_memory_usage()
 
-                    # ถ้า memory เกินกำหนด ให้ปิดแล้วเปิดใหม่
-                    if memory_usage > self.max_memory_mb:
-                        print(f"  → Cleaning tab {i+1} (memory too high)")
-                        if self.close_and_reopen_tab_if_memory_high(tab_title):
-                            tabs_cleaned += 1
+                        print(f"SMCO Tab {smco_tabs_found}: {tab_title[:50]} - {memory_usage:.1f}MB")
+
+                        # ถ้า memory เกินกำหนด ให้ปิดแล้วเปิดใหม่
+                        if memory_usage > self.max_memory_mb:
+                            print(f"  → Cleaning SMCO tab (memory too high)")
+                            if self.close_and_reopen_tab_if_memory_high(tab_title):
+                                tabs_cleaned += 1
+                        else:
+                            print(f"  → Memory OK")
+                    else:
+                        # แสดงข้อมูล tab อื่น แต่ไม่จัดการ
+                        print(f"Other Tab {i+1}: {tab_title[:30]} - Skipped (not SMCO)")
 
                 except Exception as e:
                     print(f"  → Error checking tab {i+1}: {e}")
@@ -2478,14 +2489,20 @@ class Bot_POS:
             try:
                 self.driver.switch_to.window(current_handle)
             except:
-                # ถ้า tab เดิมถูกปิดไป ให้ไปที่ tab แรก
-                if self.driver.window_handles:
-                    self.driver.switch_to.window(self.driver.window_handles[0])
+                # ถ้า tab เดิมถูกปิดไป ให้หา SMCO tab แรกที่เจอ
+                for handle in self.driver.window_handles:
+                    try:
+                        self.driver.switch_to.window(handle)
+                        if "SMCO :: " in self.driver.title:
+                            print("Switched to first available SMCO tab")
+                            break
+                    except:
+                        continue
 
             # ทำ garbage collection รวม
             self.force_garbage_collection()
 
-            print(f"Memory cleanup completed: {tabs_cleaned} tabs cleaned")
+            print(f"Memory cleanup completed: {tabs_cleaned}/{smco_tabs_found} SMCO tabs cleaned")
             print("="*50)
 
         except Exception as e:
