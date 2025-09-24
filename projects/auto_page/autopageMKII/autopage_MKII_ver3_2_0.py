@@ -151,7 +151,7 @@ class MyApp:
         self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
 
     def reset_browser_memory(self):
-        """Callback สำหรับปุ่ม Reset Memory"""
+        """Callback สำหรับปุ่ม 'Reset Memory' Button"""
         try:
             if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
                 self.bot.reset_all_tabs_memory()
@@ -162,7 +162,7 @@ class MyApp:
             print(f"Error resetting browser memory: {e}")
 
     def check_browser_memory(self):
-        """Callback สำหรับปุ่ม Check Memory"""
+        """Callback สำหรับปุ่ม 'Check Memory' Button"""
         try:
             if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
                 current_handle = self.bot.driver.current_window_handle
@@ -176,7 +176,7 @@ class MyApp:
                     try:
                         self.bot.driver.switch_to.window(handle)
                         tab_title = self.bot.driver.title[:30]
-                        memory_usage = self.bot.get_tab_memory_usage()
+                        memory_usage = self.bot.get_current_tab_memory_usage()
                         total_memory += memory_usage
                         print(f"Tab {i+1}: {tab_title} - {memory_usage:.1f}MB")
                     except Exception as e:
@@ -2337,10 +2337,10 @@ class Bot_POS:
 
         return result
 
-    def get_tab_memory_usage(self):
-        """ตรวจสอบการใช้หน่วยความจำของแต่ละ tab"""
+    def get_current_tab_memory_usage(self):
+        """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
         try:
-            # ใช้ Chrome DevTools Protocol เพื่อดู memory usage
+            #* ใช้ Chrome DevTools Protocol เพื่อดู memory usage
             memory_info = self.driver.execute_script(
                 "return {'usedJSHeapSize': performance.memory.usedJSHeapSize, "
                 "'totalJSHeapSize': performance.memory.totalJSHeapSize}"
@@ -2364,7 +2364,7 @@ class Bot_POS:
         try:
             current_url = self.driver.current_url
             current_handle = self.driver.current_window_handle
-            memory_usage = self.get_tab_memory_usage()
+            memory_usage = self.get_current_tab_memory_usage()
 
             if memory_usage > self.max_memory_mb:
                 print(f"Memory usage ({memory_usage:.1f}MB) exceeds limit ({self.max_memory_mb}MB)")
@@ -2375,8 +2375,13 @@ class Bot_POS:
                     scroll_position = self.driver.execute_script("return window.pageYOffset;")
                 except:
                     scroll_position = 0
+                    
+                # ปิด tab เก่า
+                self.driver.switch_to.window(current_handle)
+                self.driver.close()
+                print("closse the exceeded mem tab")
 
-                # เปิด tab ใหม่ก่อน
+                # เปิด tab ใหม่
                 self.driver.execute_script("window.open('');")
                 all_handles = self.driver.window_handles
                 new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
@@ -2396,12 +2401,10 @@ class Bot_POS:
                 except:
                     pass
 
-                # ปิด tab เก่า
-                self.driver.switch_to.window(current_handle)
-                self.driver.close()
+                
 
-                # กลับไป tab ใหม่
-                self.driver.switch_to.window(new_handle)
+                # # กลับไป tab ใหม่
+                # self.driver.switch_to.window(new_handle)
 
                 # อัพเดท merged_dict ให้ชี้ไป handle ใหม่
                 for key, value in self.merged_dict.items():
@@ -2465,7 +2468,7 @@ class Bot_POS:
                     # จัดการเฉพาะ tabs ที่มี "SMCO :: " ในชื่อ
                     if "SMCO :: " in tab_title:
                         smco_tabs_found += 1
-                        memory_usage = self.get_tab_memory_usage()
+                        memory_usage = self.get_current_tab_memory_usage()
 
                         print(f"SMCO Tab {smco_tabs_found}: {tab_title[:50]} - {memory_usage:.1f}MB")
 
