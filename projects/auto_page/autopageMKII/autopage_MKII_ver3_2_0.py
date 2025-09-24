@@ -3154,11 +3154,11 @@ class Bot_POS:
         self.is_forbid = False
         is_etax = False
 
-        # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation
-        try:
-            self.pre_operation_memory_cleanup("main_operation")
-        except Exception as e:
-            print(f"Memory management error: {e}")
+        #! Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation อาจจะไม่ต้องใช้ก็ได้ เพราะใช้ใน
+        # try:
+        #     self.pre_operation_memory_cleanup("main_operation")
+        # except Exception as e:
+        #     print(f"Memory management error: {e}")
 
         inv_number = ""
         self.operation_states = {"purchase_channel":None}
