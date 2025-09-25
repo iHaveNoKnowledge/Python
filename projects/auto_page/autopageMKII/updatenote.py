@@ -177,6 +177,7 @@
 # ! 173 /req/ ตัวpop up seller voucher มให้ default เป็น true if accel mode {pop-up ไม่ทำงาน} else {pop-up ทำงาน}
 # * 174 patch 3.2.1 /Fixed/ ทำตัวเช็คให้เปิดหน้า เปิดการขายก่อนเริ่ม operations ใน smco
 # * 175 patch 3.2.1 /fix/ ไอClaudeมันแก้codeแต่ไม่เก็บค่าไปตัด excel เหลือแต่ตัวแปรเปล่าๆ ไม่มี array list tuple ไรเลย /bug/ bug array used_serials มันหายไป ทำให้ตัวตัดค่า sn ที่ใช้แล้วไม่ได้  แถมไม่ตัด order ด้วย
+#! 176 /bug/ ตัว clear memory ยังไม่ยอมเปิดหน้าใหม่
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
