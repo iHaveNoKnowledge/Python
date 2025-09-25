@@ -235,7 +235,7 @@ class AccelMode:
         from loguru import logger
 
         available_sn_skus_list = list(self.obj_data_from_accel_file.keys())
-        used_serials = []
+        self.used_serials = []
         ordered_items = self.main_app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_items)
 
@@ -284,7 +284,8 @@ class AccelMode:
                             print("pressed Enter at SKU-Input")
                             print(f'to_sent_dict = sku: {current_sku}, sn: {sn} ')
                             to_sent_dict = {'sku': current_sku, 'sn': sn}
-                            used_serials.append(to_sent_dict)
+                            self.used_serials.append(to_sent_dict)
+                            print("current self.used_serials = ", self.used_serials)
                             time.sleep(2)
 
                         else:

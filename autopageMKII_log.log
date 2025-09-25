@@ -1993,3 +1993,94 @@ Stacktrace:
 2025-09-23T11:35:12.265029+0700 INFO Order: 25092271H9DRP7 Start!!
 2025-09-23T11:35:31.472074+0700 INFO 25092271H9DRP7: cusname is Not Duplicated
 2025-09-23T11:36:33.697386+0700 INFO Order: 25092271H9DRP7 outer_Exception_Error!! main thread is not in main loop
+2025-09-25T14:50:51.682264+0700 INFO Order: 250925DE4F8BKT Start!!
+2025-09-25T14:51:33.935762+0700 INFO Order: 250925CMRS0E99 Start!!
+2025-09-25T14:51:42.009624+0700 INFO Order: 250925CMRS0E99 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff70576fca5+79861]
+	GetHandleVerifier [0x0x7ff70576fd00+79952]
+	(No symbol) [0x0x7ff7054ecada]
+	(No symbol) [0x0x7ff705544457]
+	(No symbol) [0x0x7ff70554471c]
+	(No symbol) [0x0x7ff705598217]
+	(No symbol) [0x0x7ff70556cb1f]
+	(No symbol) [0x0x7ff705594f8b]
+	(No symbol) [0x0x7ff70556c8b3]
+	(No symbol) [0x0x7ff705535272]
+	(No symbol) [0x0x7ff705536043]
+	GetHandleVerifier [0x0x7ff705a2b9dd+2946349]
+	GetHandleVerifier [0x0x7ff705a25c5a+2922410]
+	GetHandleVerifier [0x0x7ff705a459e7+3052855]
+	GetHandleVerifier [0x0x7ff70578aa8e+189918]
+	GetHandleVerifier [0x0x7ff705792a2f+222591]
+	GetHandleVerifier [0x0x7ff705778ac4+116244]
+	GetHandleVerifier [0x0x7ff705778c79+116681]
+	GetHandleVerifier [0x0x7ff70575f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-25T14:51:43.102930+0700 INFO Order: 250925D904QK2V Start!!
+2025-09-25T14:51:57.237281+0700 INFO 250925D904QK2V: cusname is Not Duplicated
+2025-09-25T14:53:57.084201+0700 INFO Order: 250925D904QK2V outer_Exception_Error!! main thread is not in main loop
+2025-09-25T14:54:44.449896+0700 INFO Order: 250925CMRS0E99 Start!!
+2025-09-25T14:55:39.296882+0700 INFO Order: 250925D904QK2V Start!!
+2025-09-25T14:56:44.798470+0700 INFO Order: 250924AXD53EU7 Start!!
+2025-09-25T14:56:59.111408+0700 INFO 250924AXD53EU7: cusname is Not Duplicated
+2025-09-25T14:57:55.592234+0700 INFO Order: 250925CKRBF6AW Start!!
+2025-09-25T14:58:01.824979+0700 INFO 250925CKRBF6AW: compare self.current_address & self.desired_full_address
+2025-09-25T14:58:01.824979+0700 INFO เลขที่1ซ.รามคำแหง119ถ.สุขาภิบาล3หัวหมากบางกะปิกรุงเทพมหานคร10240
+2025-09-25T14:58:01.825974+0700 INFO 1ซ.รามคำแหง119ถ.สุขาภิบาล3หัวหมากบางกะปิกรุงเทพมหานคร10240
+2025-09-25T14:59:12.376250+0700 INFO Order: 250925D8S1QM6X Start!!
+2025-09-25T15:00:18.621718+0700 INFO Order: 250925D8S1QM6X outer_Exception_Error!! Message: stale element reference: stale element not found
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#stale-element-reference-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff70576fca5+79861]
+	GetHandleVerifier [0x0x7ff70576fd00+79952]
+	(No symbol) [0x0x7ff7054ecada]
+	(No symbol) [0x0x7ff705503295]
+	(No symbol) [0x0x7ff705501d83]
+	(No symbol) [0x0x7ff7054f5377]
+	(No symbol) [0x0x7ff7054f3230]
+	(No symbol) [0x0x7ff7054f770f]
+	(No symbol) [0x0x7ff7054f77cf]
+	(No symbol) [0x0x7ff70553de36]
+	(No symbol) [0x0x7ff70556cada]
+	(No symbol) [0x0x7ff705536bc6]
+	(No symbol) [0x0x7ff70556ccf0]
+	(No symbol) [0x0x7ff705594f8b]
+	(No symbol) [0x0x7ff70556c8b3]
+	(No symbol) [0x0x7ff705535272]
+	(No symbol) [0x0x7ff705536043]
+	GetHandleVerifier [0x0x7ff705a2b9dd+2946349]
+	GetHandleVerifier [0x0x7ff705a25c5a+2922410]
+	GetHandleVerifier [0x0x7ff705a459e7+3052855]
+	GetHandleVerifier [0x0x7ff70578aa8e+189918]
+	GetHandleVerifier [0x0x7ff705792a2f+222591]
+	GetHandleVerifier [0x0x7ff705778ac4+116244]
+	GetHandleVerifier [0x0x7ff705778c79+116681]
+	GetHandleVerifier [0x0x7ff70575f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-25T15:00:28.419487+0700 INFO Order: 250925D8S1QM6X Start!!
+2025-09-25T15:01:17.604033+0700 INFO Order: 250925CK0S359X Start!!
+2025-09-25T15:02:09.653252+0700 INFO Order: 250924B69B5BYR Start!!
+2025-09-25T15:02:32.380766+0700 INFO 250924B69B5BYR: cusname is Not Duplicated
+2025-09-25T15:03:12.831788+0700 INFO Order: 250924B606B7KR Start!!
+2025-09-25T15:03:27.964392+0700 INFO 250924B606B7KR: cusname is Not Duplicated
+2025-09-25T15:04:23.124137+0700 INFO Order: 250924B5NKS4UP Start!!
+2025-09-25T15:04:26.492445+0700 INFO Order: 250924B5NKS4UP outer_Exception_Error!! 'Bot_POS' object has no attribute 'display_bot_status_label'
+2025-09-25T15:04:47.934257+0700 INFO Order: 250924BEDBWU2Y Start!!
+2025-09-25T15:05:11.642072+0700 INFO 250924BEDBWU2Y: cusname is Not Duplicated
+2025-09-25T15:06:43.542878+0700 INFO Order: 250924BT6QB358 Start!!
+2025-09-25T15:06:49.254130+0700 INFO 250924BT6QB358: compare self.current_address & self.desired_full_address
+2025-09-25T15:06:49.255128+0700 INFO เลขที่29ตรอก/ซอยสุดประเสริฐ(ฝั่งซ้าย)บางโคล่บางคอแหลมกรุงเทพมหานคร10120
+2025-09-25T15:06:49.255128+0700 INFO 29ซอยสุดประเสริฐ(ฝั่งซ้าย)บางโคล่บางคอแหลมกรุงเทพมหานคร10120
+2025-09-25T15:08:16.409158+0700 INFO Order: 250925CJVA16AJ operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-09-25T15:08:37.027073+0700 INFO Order: 250925CJVA16AJ Start!!
+2025-09-25T15:09:00.820342+0700 INFO 250925CJVA16AJ: cusname is Not Duplicated
+2025-09-25T15:09:58.296659+0700 INFO Order: 250925D2YCCJDM Start!!
+2025-09-25T15:10:10.472211+0700 INFO 250925D2YCCJDM: cusname is Not Duplicated
+2025-09-25T15:11:00.732173+0700 INFO Order: 250925CFNTB8KK Start!!
+2025-09-25T15:12:19.237685+0700 INFO Order: 250924C2K53DDJ Start!!

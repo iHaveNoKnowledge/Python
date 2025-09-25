@@ -174,6 +174,9 @@
 # Todo 170 minor 3.2.0 /addnew/ Accel mode for some A-zone products (Ink, memory card)
 # * 171 patch 3.2.0 /Fixed/ ใส่ try except ในจุดที่คลิกปุ่ม 'create new customer' ให้กลับไปใช้ is_displayed() ใหม่ก็หายละ /Bug/ function ที่ใช้ จัดการ 'Customer Class' ยังมีปัญหาอยู่, function มันเรียกหาelement เร็วไป มันหาตำแหน่งเจอ แต่ element ดันใช้ method is_displayed() ไม่ได้ มันเลย error แล้วด้านล่างใน except ฉันดันเรียกปุ่ม create customer ที่อยู่ข้างนอกทันที เพราะคิดแค่ว่าถ้าใช้ is_displayed()ไม่ได้เลยตัดสินไปเลยว่าไม่มีหน้า form แต่ก็เรียกไม่ได้เพราะ form ในการ crate new customer มันบังอยู่ก็เลยพัง
 # ! 172 patch 3.2.0 /Bug/ no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"} หลาย order อยู่ ต้องเช็คละ
+# ! 173 /req/ ตัวpop up seller voucher มให้ default เป็น true if accel mode {pop-up ไม่ทำงาน} else {pop-up ทำงาน}
+# * 174 patch 3.2.1 /Fixed/ ทำตัวเช็คให้เปิดหน้า เปิดการขายก่อนเริ่ม operations ใน smco
+# * 175 patch 3.2.1 /fix/ ไอClaudeมันแก้codeแต่ไม่เก็บค่าไปตัด excel เหลือแต่ตัวแปรเปล่าๆ ไม่มี array list tuple ไรเลย /bug/ bug array used_serials มันหายไป ทำให้ตัวตัดค่า sn ที่ใช้แล้วไม่ได้  แถมไม่ตัด order ด้วย
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
