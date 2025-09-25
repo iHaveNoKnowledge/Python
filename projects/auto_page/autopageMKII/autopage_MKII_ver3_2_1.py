@@ -2252,7 +2252,7 @@ class Bot_POS:
         # Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
-        self.max_memory_mb = 150  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -3373,7 +3373,9 @@ class Bot_POS:
             # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
             try:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                print("SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
             except: #* กรณีหน้าเปิดการขายมันหายไป
+                print("SMCO :: เปิดการขาย หายไป เปิดใหม่")
                 self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/pointofsales/posmainv3.htm")
                 self.get_tabs()
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
@@ -3583,8 +3585,8 @@ class Bot_POS:
                 
             # todo for testing
             # * Update Accel file //////////////////////
-            # self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            # return    
+            self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            return    
 
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
@@ -4121,11 +4123,13 @@ class Bot_POS:
         """
         is_functionworking = True
         try:
-                self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+            print("SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
         except:
             self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/pointofsales/posmainv3.htm")
             self.get_tabs()
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+            print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่")
         try:
             self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
