@@ -2084,3 +2084,519 @@ Stacktrace:
 2025-09-25T15:10:10.472211+0700 INFO 250925D2YCCJDM: cusname is Not Duplicated
 2025-09-25T15:11:00.732173+0700 INFO Order: 250925CFNTB8KK Start!!
 2025-09-25T15:12:19.237685+0700 INFO Order: 250924C2K53DDJ Start!!
+2025-09-26T11:08:45.663442+0700 INFO Order: 250925E15DPNCC Start!!
+2025-09-26T11:08:59.787175+0700 INFO 250925E15DPNCC: cusname is Not Duplicated
+2025-09-26T11:09:49.219636+0700 INFO Order: 250925DV848C6B Start!!
+2025-09-26T11:09:57.461499+0700 INFO Order: 250925DV848C6B outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d04457]
+	(No symbol) [0x0x7ff652d0471c]
+	(No symbol) [0x0x7ff652d58217]
+	(No symbol) [0x0x7ff652d2cb1f]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T11:09:58.015607+0700 INFO Order: 250925DXTMYAWX Start!!
+2025-09-26T11:10:10.806007+0700 INFO 250925DXTMYAWX: cusname is Not Duplicated
+2025-09-26T11:10:58.537415+0700 INFO Order: 250925DKXE7VAP Start!!
+2025-09-26T11:11:31.779777+0700 INFO Order: 250925DKXE7VAP stop operation
+2025-09-26T11:11:32.471758+0700 INFO Order: 250925DRXTWF1X Start!!
+2025-09-26T11:11:45.403844+0700 INFO 250925DRXTWF1X: cusname is Not Duplicated
+2025-09-26T11:13:04.804403+0700 INFO Order: 250925DRXTWF1X stop operation
+2025-09-26T11:13:05.842344+0700 INFO Order: 250925DQB3AV1R Start!!
+2025-09-26T11:13:09.622711+0700 INFO Order: 250925DQB3AV1R outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d04457]
+	(No symbol) [0x0x7ff652d0471c]
+	(No symbol) [0x0x7ff652d58217]
+	(No symbol) [0x0x7ff652d2cb1f]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T11:13:09.829257+0700 INFO Order: 250925DRD2HBAE Start!!
+2025-09-26T11:13:13.488866+0700 INFO Order: 250925DRD2HBAE outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d04457]
+	(No symbol) [0x0x7ff652d0471c]
+	(No symbol) [0x0x7ff652d58217]
+	(No symbol) [0x0x7ff652d2cb1f]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T11:13:13.894249+0700 INFO Order: 250925DMCGC9KC Start!!
+2025-09-26T11:13:35.241626+0700 INFO 250925DMCGC9KC: cusname is Not Duplicated
+2025-09-26T11:14:31.214722+0700 INFO Order: 250925CK3EVF9T Start!!
+2025-09-26T11:15:19.015698+0700 INFO Order: 250925CK3EVF9T stop operation
+2025-09-26T11:15:20.382877+0700 INFO Order: 250925DR2D4NXR Start!!
+2025-09-26T11:15:27.027881+0700 INFO 250925DR2D4NXR: compare self.current_address & self.desired_full_address
+2025-09-26T11:15:27.027881+0700 INFO 
+2025-09-26T11:15:27.028658+0700 INFO 221หมู่6วังเหนือวังเหนือลำปาง52140
+2025-09-26T11:18:44.554710+0700 INFO Order: 250925DV848C6B Start!!
+2025-09-26T11:18:58.376583+0700 INFO 250925DV848C6B: cusname is Not Duplicated
+2025-09-26T11:20:00.461513+0700 INFO Order: 250925DRD2HBAE Start!!
+2025-09-26T11:28:30.613347+0700 INFO Order: 250925DRD2HBAE stop operation
+2025-09-26T11:28:57.029121+0700 INFO Order: 250925E8QBNYP9 Start!!
+2025-09-26T11:30:05.746576+0700 INFO Order: 250925E95JJTUT Start!!
+2025-09-26T11:30:19.218359+0700 INFO 250925E95JJTUT: cusname is Not Duplicated
+2025-09-26T11:31:13.853417+0700 INFO Order: 250925EK0TFRV1 Start!!
+2025-09-26T11:31:59.382272+0700 INFO Order: 250925EP9QDFY4 Start!!
+2025-09-26T11:32:05.137855+0700 INFO 250925EP9QDFY4: compare self.current_address & self.desired_full_address
+2025-09-26T11:32:05.138865+0700 INFO เลขที่201ซ.ลาดพร้าว122ถ.ลาดพร้าวพลับพลาวังทองหลางกรุงเทพมหานคร10310
+2025-09-26T11:32:05.138865+0700 INFO เลขที่201พลับพลาวังทองหลางกรุงเทพมหานคร10310
+2025-09-26T11:35:14.479327+0700 INFO Order: 250926F4TWC4TX Start!!
+2025-09-26T11:35:20.364787+0700 INFO 250926F4TWC4TX: compare self.current_address & self.desired_full_address
+2025-09-26T11:35:20.365317+0700 INFO 559/3ซอยพหลโยธิน58แยก31สายไหมสายไหมกรุงเทพมหานคร10220
+2025-09-26T11:35:20.366347+0700 INFO 559/3ซอยพหลโยธิน58แยก31สายไหมกทมสายไหมสายไหมกรุงเทพมหานคร10220
+2025-09-26T11:36:31.580732+0700 INFO Order: 250926G22JWYF4 Start!!
+2025-09-26T11:36:51.631265+0700 INFO 250926G22JWYF4: cusname is Not Duplicated
+2025-09-26T11:44:44.822037+0700 INFO Order: 250926G13QTNFR Start!!
+2025-09-26T11:44:57.980411+0700 INFO 250926G13QTNFR: cusname is Not Duplicated
+2025-09-26T11:45:45.103033+0700 INFO Order: 250925E8H86795 Start!!
+2025-09-26T11:45:57.205962+0700 INFO 250925E8H86795: cusname is Not Duplicated
+2025-09-26T11:46:40.528539+0700 INFO Order: 250925ECCJDKWY Start!!
+2025-09-26T11:46:53.009839+0700 INFO 250925ECCJDKWY: cusname is Not Duplicated
+2025-09-26T11:47:36.485162+0700 INFO Order: 250925EN5QF1BP Start!!
+2025-09-26T11:47:48.698641+0700 INFO 250925EN5QF1BP: cusname is Not Duplicated
+2025-09-26T11:48:30.732610+0700 INFO Order: 250926F8NB3BNR Start!!
+2025-09-26T11:48:43.799314+0700 INFO 250926F8NB3BNR: cusname is Not Duplicated
+2025-09-26T11:49:15.092102+0700 INFO Order: 250926F8NB3BNR outer_Exception_Error!! 'NoneType' object has no attribute 'is_displayed'
+2025-09-26T11:49:15.793665+0700 INFO Order: 250926FNF17CM3 Start!!
+2025-09-26T11:49:28.464713+0700 INFO 250926FNF17CM3: cusname is Not Duplicated
+2025-09-26T11:50:16.692318+0700 INFO Order: 250926F415B4ET Start!!
+2025-09-26T11:50:33.573102+0700 INFO 250926F415B4ET: cusname is Not Duplicated
+2025-09-26T11:51:26.416259+0700 INFO Order: 250926F415B4ET stop operation
+2025-09-26T11:51:26.727011+0700 INFO Order: 250925EB3WNFGD Start!!
+2025-09-26T11:52:22.095762+0700 INFO Order: 250925E7YKKAG6 Start!!
+2025-09-26T11:52:35.193758+0700 INFO 250925E7YKKAG6: cusname is Not Duplicated
+2025-09-26T11:53:42.793807+0700 INFO Order: 250925E931GBNP Start!!
+2025-09-26T11:53:49.182946+0700 INFO 250925E931GBNP: compare self.current_address & self.desired_full_address
+2025-09-26T11:53:49.182946+0700 INFO 
+2025-09-26T11:53:49.183961+0700 INFO สำนักงานใหญ่75/1ซอยร่มเกล้า1แสนแสบมีนบุรีกรุงเทพมหานคร10510
+2025-09-26T11:58:02.422399+0700 INFO Order: 250925EQDEV9QQ Start!!
+2025-09-26T11:58:16.417114+0700 INFO 250925EQDEV9QQ: cusname is Not Duplicated
+2025-09-26T11:59:07.156691+0700 INFO Order: 250925EQDEV9QQ stop operation
+2025-09-26T11:59:08.396509+0700 INFO Order: 250925ED6SPMQG Start!!
+2025-09-26T12:00:33.180353+0700 INFO Order: 250925E5YAET8S Start!!
+2025-09-26T12:00:47.323235+0700 INFO 250925E5YAET8S: cusname is Not Duplicated
+2025-09-26T12:02:14.457698+0700 INFO Order: 250926F607BDNP Start!!
+2025-09-26T12:02:26.816843+0700 INFO 250926F607BDNP: cusname is Not Duplicated
+2025-09-26T12:03:16.427695+0700 INFO Order: 250926FCUARRRE Start!!
+2025-09-26T12:03:28.978984+0700 INFO 250926FCUARRRE: cusname is Not Duplicated
+2025-09-26T12:04:17.420086+0700 INFO Order: 250925EG3XUNQ9 Start!!
+2025-09-26T12:04:29.779182+0700 INFO 250925EG3XUNQ9: cusname is Not Duplicated
+2025-09-26T12:05:47.003848+0700 INFO Order: 250925EME19EBN Start!!
+2025-09-26T12:06:00.379228+0700 INFO 250925EME19EBN: cusname is Not Duplicated
+2025-09-26T12:06:58.490705+0700 INFO Order: 250925EQ3XPXGP Start!!
+2025-09-26T12:07:11.397914+0700 INFO 250925EQ3XPXGP: cusname is Not Duplicated
+2025-09-26T12:08:03.026629+0700 INFO Order: 250925ER8EXT9N Start!!
+2025-09-26T12:08:16.805819+0700 INFO 250925ER8EXT9N: cusname is Not Duplicated
+2025-09-26T12:09:13.891203+0700 INFO Order: 250926F9TPX6TA Start!!
+2025-09-26T12:09:28.804150+0700 INFO 250926F9TPX6TA: cusname is Not Duplicated
+2025-09-26T12:10:50.342554+0700 INFO Order: 250926F9TPX6TA stop operation
+2025-09-26T12:11:09.917464+0700 INFO Order: 250926F9TPX6TA outer_Exception_Error!! HTTPConnectionPool(host='localhost', port=59619): Max retries exceeded with url: /session/56a6acfacd6b46eb4e5814c6b0bd7717/element/f.5BE2065706A7B91A781B81736A03300C.d.7B39F1303C635CEA13250D9F8409226A.e.14041/text (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000018CDAFB98E0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-09-26T12:12:03.146247+0700 INFO Order: 250926FYHMS2QF Start!!
+2025-09-26T12:12:30.187741+0700 INFO 250926FYHMS2QF: cusname is Not Duplicated
+2025-09-26T12:13:22.076191+0700 INFO Order: 250925EGB4QXQD Start!!
+2025-09-26T12:13:30.334519+0700 INFO Order: 250925EGB4QXQD outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d04457]
+	(No symbol) [0x0x7ff652d0471c]
+	(No symbol) [0x0x7ff652d58217]
+	(No symbol) [0x0x7ff652d2cb1f]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T12:13:30.958389+0700 INFO Order: 250925DY5UG0M6 Start!!
+2025-09-26T12:14:19.256150+0700 INFO Order: 250925E8B8FM3Q Start!!
+2025-09-26T12:14:31.878125+0700 INFO 250925E8B8FM3Q: cusname is Not Duplicated
+2025-09-26T12:15:21.838370+0700 INFO Order: 250925E5JGCBC9 Start!!
+2025-09-26T12:21:57.724775+0700 INFO Order: 250925E77VDETD Start!!
+2025-09-26T12:23:05.879446+0700 INFO Order: 250925E77VDETD stop operation
+2025-09-26T12:23:07.377610+0700 INFO Order: 250925ED0FFVWC Start!!
+2025-09-26T12:23:59.934117+0700 INFO Order: 250925EJW0F1YU Start!!
+2025-09-26T12:24:05.616232+0700 INFO 250925EJW0F1YU: compare self.current_address & self.desired_full_address
+2025-09-26T12:24:05.616232+0700 INFO 62/139หมู่ที่5วัดชลอบางกรวยนนทบุรี11130
+2025-09-26T12:24:05.616232+0700 INFO เลขที่80/106อ่อนนุช53ประเวศประเวศกรุงเทพมหานคร10250
+2025-09-26T12:25:07.266428+0700 INFO Order: 250925EMM6NY1T operation_task_thread_outer_Exception_Error!! Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=140.0.7339.186)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652c84b91]
+	(No symbol) [0x0x7ff652d340fe]
+	(No symbol) [0x0x7ff652d548c2]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T12:25:12.941330+0700 INFO Order: 250926FWMDW513 Start!!
+2025-09-26T12:25:25.665357+0700 INFO 250926FWMDW513: cusname is Not Duplicated
+2025-09-26T12:26:13.854751+0700 INFO Order: 250926G05RFR1K Start!!
+2025-09-26T12:26:19.851265+0700 INFO 250926G05RFR1K: compare self.current_address & self.desired_full_address
+2025-09-26T12:26:19.851265+0700 INFO 1/785ม.17คูคตลำลูกกาปทุมธานี12130
+2025-09-26T12:26:19.852280+0700 INFO ซีบีเมดดิคอลแอนด์แล็บบริษัททรัพย์เจริญก้าวหน้า1/785ม.17ซ.พหลโยธิน60คูคตลำลูกกาปทุมธานี12130
+2025-09-26T12:27:41.525600+0700 INFO Order: 250925EES1M4SD Start!!
+2025-09-26T12:28:02.574966+0700 INFO 250925EES1M4SD: cusname is Not Duplicated
+2025-09-26T12:28:42.933159+0700 INFO Order: 250925EV8KR8P2 Start!!
+2025-09-26T12:29:13.797764+0700 INFO 250925EV8KR8P2: cusname is Not Duplicated
+2025-09-26T12:29:53.617231+0700 INFO Order: 250925EVPUMFQ8 Start!!
+2025-09-26T12:30:05.711633+0700 INFO 250925EVPUMFQ8: cusname is Not Duplicated
+2025-09-26T12:30:50.835343+0700 INFO Order: 250925EW8DB3XJ Start!!
+2025-09-26T12:31:05.804644+0700 INFO 250925EW8DB3XJ: cusname is Not Duplicated
+2025-09-26T12:31:44.045878+0700 INFO Order: 250926F102BBFP Start!!
+2025-09-26T12:31:56.136679+0700 INFO 250926F102BBFP: cusname is Not Duplicated
+2025-09-26T12:33:04.006919+0700 INFO Order: 250926F102BBFP outer_Exception_Error!! 'NoneType' object has no attribute 'is_displayed'
+2025-09-26T12:33:04.495961+0700 INFO Order: 250926F1J2AQ1R Start!!
+2025-09-26T12:33:25.493546+0700 INFO 250926F1J2AQ1R: cusname is Not Duplicated
+2025-09-26T14:35:38.509640+0700 INFO Order: 250926F31XUHJ5 Start!!
+2025-09-26T14:35:52.352797+0700 INFO 250926F31XUHJ5: cusname is Not Duplicated
+2025-09-26T14:36:38.915111+0700 INFO Order: 250925EW7QD8QF Start!!
+2025-09-26T14:37:49.263822+0700 INFO Order: 250926F0ST199F Start!!
+2025-09-26T14:38:02.563776+0700 INFO 250926F0ST199F: cusname is Not Duplicated
+2025-09-26T14:38:58.677048+0700 INFO Order: 250925EBPB215C Start!!
+2025-09-26T14:40:41.417482+0700 INFO Order: 250925EBPB215C stop operation
+2025-09-26T14:40:43.105976+0700 INFO Order: 250925ETQPSKQT Start!!
+2025-09-26T14:40:53.943156+0700 INFO Order: 250925ETQPSKQT outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1172, 418). Other element would receive the click: <div class="col-sm-12">...</div>
+  (Session info: chrome=140.0.7339.186)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d0c5d9]
+	(No symbol) [0x0x7ff652d09f5e]
+	(No symbol) [0x0x7ff652d06eb1]
+	(No symbol) [0x0x7ff652d05da0]
+	(No symbol) [0x0x7ff652cf7338]
+	(No symbol) [0x0x7ff652d2cada]
+	(No symbol) [0x0x7ff652cf6bc6]
+	(No symbol) [0x0x7ff652d2ccf0]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T14:40:55.411204+0700 INFO Order: 250925EX31WBTD Start!!
+2025-09-26T14:41:07.797667+0700 INFO 250925EX31WBTD: cusname is Not Duplicated
+2025-09-26T14:41:47.595754+0700 INFO Order: 250926F2V9NXXN Start!!
+2025-09-26T14:42:50.053063+0700 INFO Order: 250925EDDTS8K1 Start!!
+2025-09-26T14:43:02.116048+0700 INFO 250925EDDTS8K1: cusname is Not Duplicated
+2025-09-26T14:44:28.736054+0700 INFO Order: 250926F0QJG5F3 Start!!
+2025-09-26T14:45:24.860299+0700 INFO Order: 250926F2EMX0GV Start!!
+2025-09-26T14:46:26.128333+0700 INFO Order: 250925EGK4AT22 Start!!
+2025-09-26T14:46:38.724681+0700 INFO 250925EGK4AT22: cusname is Not Duplicated
+2025-09-26T14:47:21.432926+0700 INFO Order: 250925ERP1TMRU Start!!
+2025-09-26T14:47:34.498982+0700 INFO 250925ERP1TMRU: cusname is Not Duplicated
+2025-09-26T14:48:14.749074+0700 INFO Order: 250925ES2S12J3 Start!!
+2025-09-26T14:49:33.295942+0700 INFO Order: 250925ES2S12J3 stop operation
+2025-09-26T14:49:34.041733+0700 INFO Order: 250925EYS1WSWG Start!!
+2025-09-26T14:49:46.402059+0700 INFO 250925EYS1WSWG: cusname is Not Duplicated
+2025-09-26T14:50:27.650320+0700 INFO Order: 250926FDU0FTUA Start!!
+2025-09-26T14:50:48.353416+0700 INFO 250926FDU0FTUA: cusname is Not Duplicated
+2025-09-26T14:50:50.305471+0700 INFO 250926FDU0FTUA: compare self.current_address & self.desired_full_address
+2025-09-26T14:50:50.306639+0700 INFO 77/79ม.3เสม็ด เมืองชลบุรีชลบุรี20130
+2025-09-26T14:50:50.307646+0700 INFO 77/79ม.3เสม็ดเมืองชลบุรีชลบุรี20000
+2025-09-26T14:52:39.062372+0700 INFO Order: 250926F415B4ET Start!!
+2025-09-26T14:53:10.536529+0700 INFO Order: 250926F415B4ET stop operation
+2025-09-26T14:53:11.234579+0700 INFO Order: 250925EQDEV9QQ Start!!
+2025-09-26T14:54:04.655579+0700 INFO Order: 250925EQDEV9QQ stop operation
+2025-09-26T15:00:46.420230+0700 INFO Order: 250925EGB4QXQD Start!!
+2025-09-26T15:01:00.637296+0700 INFO 250925EGB4QXQD: cusname is Not Duplicated
+2025-09-26T15:02:12.850509+0700 INFO Order: 250925EMM6NY1T Start!!
+2025-09-26T15:02:25.247223+0700 INFO 250925EMM6NY1T: cusname is Not Duplicated
+2025-09-26T15:03:10.062935+0700 INFO Order: 250925ETQPSKQT Start!!
+2025-09-26T15:03:22.195663+0700 INFO 250925ETQPSKQT: cusname is Not Duplicated
+2025-09-26T15:05:58.016353+0700 INFO Order: 250925DRXTWF1X Start!!
+2025-09-26T15:11:14.258367+0700 INFO Order: 250925DKXE7VAP Start!!
+2025-09-26T15:11:16.487853+0700 INFO Order: 250925DKXE7VAP outer_Exception_Error!! method operation_start Error : Traceback (most recent call last):
+  File "c:\Users\ONLINE_MIS\Desktop\Trans-am 31-01-2022\Projects\python\Python\projects\auto_page\autopageMKII\autopage_MKII_ver3_1_4.py", line 3238, in operation_start
+    self.searchBtn.click()
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 94, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button data-v-ff857689="" data-v-2df5d49d="" type="button" class="eds-button eds-button--primary eds-button--normal eds-button--outline search-btn" data-testid="order-list-search">...</button> is not clickable at point (1072, 286). Other element would receive the click: <div data-v-3aa22e21="" class="panel-item-container shopee-cs-chat-scope-style shopee-chat-scope-style">...</div>
+  (Session info: chrome=140.0.7339.186)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d0c5d9]
+	(No symbol) [0x0x7ff652d09f5e]
+	(No symbol) [0x0x7ff652d06eb1]
+	(No symbol) [0x0x7ff652d05da0]
+	(No symbol) [0x0x7ff652cf7338]
+	(No symbol) [0x0x7ff652d2cada]
+	(No symbol) [0x0x7ff652cf6bc6]
+	(No symbol) [0x0x7ff652d2ccf0]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+
+2025-09-26T15:11:35.918730+0700 INFO Order: 250925DKXE7VAP stop operation
+2025-09-26T15:11:35.940587+0700 INFO Order: 250925DKXE7VAP outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652cc3295]
+	(No symbol) [0x0x7ff652cc1d83]
+	(No symbol) [0x0x7ff652cb5377]
+	(No symbol) [0x0x7ff652cb3230]
+	(No symbol) [0x0x7ff652cb770f]
+	(No symbol) [0x0x7ff652cb77cf]
+	(No symbol) [0x0x7ff652cfde36]
+	(No symbol) [0x0x7ff652d2cada]
+	(No symbol) [0x0x7ff652cf6bc6]
+	(No symbol) [0x0x7ff652d2ccf0]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T15:11:50.393405+0700 INFO Order: 250925DKXE7VAP Start!!
+2025-09-26T15:11:52.453581+0700 INFO Order: 250925DKXE7VAP outer_Exception_Error!! method operation_start Error : Traceback (most recent call last):
+  File "c:\Users\ONLINE_MIS\Desktop\Trans-am 31-01-2022\Projects\python\Python\projects\auto_page\autopageMKII\autopage_MKII_ver3_1_4.py", line 3238, in operation_start
+    self.searchBtn.click()
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 94, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button data-v-ff857689="" data-v-2df5d49d="" type="button" class="eds-button eds-button--primary eds-button--normal eds-button--outline search-btn" data-testid="order-list-search">...</button> is not clickable at point (1072, 286). Other element would receive the click: <div data-v-3aa22e21="" class="panel-item-container shopee-cs-chat-scope-style shopee-chat-scope-style">...</div>
+  (Session info: chrome=140.0.7339.186)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d0c5d9]
+	(No symbol) [0x0x7ff652d09f5e]
+	(No symbol) [0x0x7ff652d06eb1]
+	(No symbol) [0x0x7ff652d05da0]
+	(No symbol) [0x0x7ff652cf7338]
+	(No symbol) [0x0x7ff652d2cada]
+	(No symbol) [0x0x7ff652cf6bc6]
+	(No symbol) [0x0x7ff652d2ccf0]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+
+2025-09-26T15:12:20.759742+0700 INFO Order: 250925DKXE7VAP Start!!
+2025-09-26T15:13:36.354734+0700 INFO Order: 250925DRXTWF1X Start!!
+2025-09-26T15:23:15.902689+0700 INFO Order: 250925ES2S12J3 Start!!
+2025-09-26T15:27:47.214236+0700 INFO Order: 250925EBPB215C Start!!
+2025-09-26T15:27:51.272566+0700 INFO Order: 250925EBPB215C outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d04457]
+	(No symbol) [0x0x7ff652d0471c]
+	(No symbol) [0x0x7ff652d58217]
+	(No symbol) [0x0x7ff652d2cb1f]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T15:29:30.744361+0700 INFO Order: 250925EBPB215C outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652cc3295]
+	(No symbol) [0x0x7ff652cc1d83]
+	(No symbol) [0x0x7ff652cb5377]
+	(No symbol) [0x0x7ff652cb54f1]
+	(No symbol) [0x0x7ff652cb3230]
+	(No symbol) [0x0x7ff652cb7a51]
+	(No symbol) [0x0x7ff652d5630b]
+	(No symbol) [0x0x7ff652d2cada]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T15:29:30.962759+0700 INFO Order: 250925EBPB215C Start!!
+2025-09-26T15:33:19.378348+0700 INFO Order: 250925E77VDETD Start!!
+2025-09-26T17:15:49.635596+0700 INFO Order: 2509238JCCPN35 Not found in the shopee's Export File
+2025-09-26T17:15:50.012152+0700 INFO Order: 2509238JCCPN35 Start!!
+2025-09-26T17:15:57.275811+0700 INFO Order: 2509238JCCPN35 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/span/span/span[2]/ul/li"}
+  (Session info: chrome=140.0.7339.186); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff652f2fca5+79861]
+	GetHandleVerifier [0x0x7ff652f2fd00+79952]
+	(No symbol) [0x0x7ff652cacada]
+	(No symbol) [0x0x7ff652d04457]
+	(No symbol) [0x0x7ff652d0471c]
+	(No symbol) [0x0x7ff652d58217]
+	(No symbol) [0x0x7ff652d2cb1f]
+	(No symbol) [0x0x7ff652d54f8b]
+	(No symbol) [0x0x7ff652d2c8b3]
+	(No symbol) [0x0x7ff652cf5272]
+	(No symbol) [0x0x7ff652cf6043]
+	GetHandleVerifier [0x0x7ff6531eb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6531e5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6532059e7+3052855]
+	GetHandleVerifier [0x0x7ff652f4aa8e+189918]
+	GetHandleVerifier [0x0x7ff652f52a2f+222591]
+	GetHandleVerifier [0x0x7ff652f38ac4+116244]
+	GetHandleVerifier [0x0x7ff652f38c79+116681]
+	GetHandleVerifier [0x0x7ff652f1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-09-26T17:21:39.720937+0700 INFO Order: 2509238JCCPN35 Not found in the shopee's Export File
+2025-09-26T17:21:39.936093+0700 INFO Order: 2509238JCCPN35 Start!!
+2025-09-26T17:21:50.111543+0700 INFO Order: 2509238JCCPN35 stop operation

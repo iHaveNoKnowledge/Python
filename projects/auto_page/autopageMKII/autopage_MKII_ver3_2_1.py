@@ -3882,9 +3882,9 @@ class Bot_POS:
                                             self.etax_reprint(inv_number)
                                             # * Update Accel file //////////////////////
                                             try:
-                                                self.used_serials
+                                                self.app.accel_mode.used_serials
                                                 print("Accel mode used")
-                                                self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", [])) #* ใช้ getattr() แทน self.used_serialsโดยตรง เพราะ ค่า self.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                                                self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", [])) #* ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
                                             except:
                                                 print("Accel mode not used")
                                                 pass
@@ -3918,9 +3918,9 @@ class Bot_POS:
                                         
                                         # * Update Accel file //////////////////////
                                         try:
-                                            self.used_serials
+                                            self.app.accel_mode.used_serials
                                             print("Accel mode used")
-                                            self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", [])) #* ใช้ getattr() แทน self.used_serialsโดยตรง เพราะ ค่า self.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                                            self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", [])) #* ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
                                             
                                         except:
                                             print("Accel mode not used")
