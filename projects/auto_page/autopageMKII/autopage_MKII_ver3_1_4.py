@@ -4131,12 +4131,14 @@ class Bot_POS:
         is_functionworking = True
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
         try:
+            time.sleep(0.75)
             self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
             print(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
         except:
             print(f"{self.app.cus_order.get()}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
-            
+        
+        print("customer_class_selector()")
         self.customer_class_selector(is_functionworking)
 
         # Prepare customer data based on type
