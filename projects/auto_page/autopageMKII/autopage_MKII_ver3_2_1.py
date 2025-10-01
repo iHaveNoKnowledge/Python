@@ -2252,7 +2252,7 @@ class Bot_POS:
         # Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
-        self.max_memory_mb = 100  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -2322,7 +2322,7 @@ class Bot_POS:
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-
+            
     def convert_text(self, text):
         result = []
         elements = text.split("+")
@@ -2361,6 +2361,7 @@ class Bot_POS:
 
     def close_and_reopen_tab_if_memory_high(self, tab_name=None):
         """ปิด tab เก่าแล้วเปิด tab ใหม่ ถ้าใช้ memory เกินกำหนด"""
+        logger.info(f"{self.app.cus_order.get()}: Close and reopen tab if memory high check for '{tab_name or self.driver.current_url}'")
         try:
             current_url = self.driver.current_url
             current_handle = self.driver.current_window_handle
@@ -2376,24 +2377,28 @@ class Bot_POS:
                 except:
                     scroll_position = 0
                     
-                # ปิด tab เก่า
-                self.driver.switch_to.window(current_handle)
-                self.driver.close()
-                print("closse the exceeded mem tab")
-
+                    
                 # เปิด tab ใหม่
                 self.driver.execute_script("window.open('');")
                 all_handles = self.driver.window_handles
                 new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
+                logger.info(f"{self.app.cus_order.get()}: opened new tab to reset memory for '{tab_name or current_url}'")
 
                 # ย้ายไป tab ใหม่
                 self.driver.switch_to.window(new_handle)
 
                 # โหลด URL เดิม
                 self.driver.get(current_url)
+                logger.info(f"{self.app.cus_order.get()}: reloaded URL in new tab to reset memory for '{tab_name or current_url}'")
 
                 # รอให้หน้าโหลดเสร็จ
                 time.sleep(3)
+                
+                # ปิด tab เก่า
+                self.driver.switch_to.window(current_handle)
+                self.driver.close()
+                print("close the exceeded mem tab")
+                logger.info(f"{self.app.cus_order.get()}: closed old tab to reset memory for '{tab_name or current_url}'")
 
                 # กลับไปยัง scroll position เดิม (ถ้าต้องการ)
                 try:
@@ -2475,6 +2480,7 @@ class Bot_POS:
                         # ถ้า memory เกินกำหนด ให้ปิดแล้วเปิดใหม่
                         if memory_usage > self.max_memory_mb:
                             print(f"  → Cleaning SMCO tab (memory too high)")
+                            logger.info(f"{self.app.cus_order.get()}: Pre-operation cleanup: Closing and reopening tab '{tab_title}' due to high memory ({memory_usage:.1f}MB)")
                             if self.close_and_reopen_tab_if_memory_high(tab_title):
                                 tabs_cleaned += 1
                         else:
@@ -2994,7 +3000,7 @@ class Bot_POS:
         except:
             # * สลับไม่ได้เปิด reprint ใหม่
             print("ไม่มีหน้าให้สลับ เปิดใหม่")
-            self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
+            self.driver.get(f"{self.origin}/smartcore/smartpos/payment/reprint_invoice.htm?mc=POS2050")
             all_window_handles = self.driver.window_handles
             latest_window_handle = all_window_handles[-1]
             self.driver.switch_to.window(latest_window_handle)
@@ -3374,11 +3380,21 @@ class Bot_POS:
             try:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                 print("SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
+                logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
             except: #* กรณีหน้าเปิดการขายมันหายไป
                 print("SMCO :: เปิดการขาย หายไป เปิดใหม่")
-                self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/pointofsales/posmainv3.htm")
+                logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย หายไป เปิดใหม่")
+                self.driver.execute_script("window.open('');")
+                all_handles = self.driver.window_handles
+                new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
+                self.driver.switch_to.window(new_handle)
+                self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
                 self.get_tabs()
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                
+            # # todo for testing เปิด "SMCO :: เปิดการขาย" ใหม่
+            # print(f"""testing เปิด "SMCO :: เปิดการขาย" ใหม่")
+            # return
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
             self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
@@ -4038,7 +4054,7 @@ class Bot_POS:
                     print(f"customer_class_input: {customer_class_input.is_displayed()}") #* element นี้มันมาไม่ทัน จึงทำให้ต้องเขียน except และมี try except ซ้อนข้างล่างอีกชั้น
                     break
             except Exception as err:
-                print(f"customer_class_selector error: {err}")
+                # print(f"customer_class_selector error: {err}") #* handle ได้ละ
                 try:
                     self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
                     print(f"No create customer form click 'create customer' button")
@@ -4125,11 +4141,17 @@ class Bot_POS:
         try:
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
             print("SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
+            logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
         except:
-            self.driver.get("http://115.31.167.28:8080/smartcore/smartpos/pointofsales/posmainv3.htm")
+            print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่")
+            logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่")
+            self.driver.execute_script("window.open('');")
+            all_handles = self.driver.window_handles
+            new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
+            self.driver.switch_to.window(new_handle)
+            self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
             self.get_tabs()
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
-            print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่")
         try:
             self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
@@ -4291,20 +4313,20 @@ class Bot_POS:
         cookies = self.get_cookies_from_driver()
         current_url = self.driver.current_url
         matched_str = re.search(r'\/[A-z].*', current_url).group()
-        origin = current_url.replace(matched_str, '')
+        self.origin = current_url.replace(matched_str, '')
         
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Origin': f'{origin}',
+            'Origin': f'{self.origin}',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
             'X-Requested-With': 'XMLHttpRequest',
         }
 
         response = requests.post(
-            f'{origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm',
+            f'{self.origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm',
             cookies=cookies,
             headers=headers,
             data=payload,
@@ -4552,6 +4574,7 @@ class Bot_POS:
                 
             except:
                 continue
+            
     def wait_element(self, xpath, text=None):
         while not self.operation_thread.is_set():
             try:
