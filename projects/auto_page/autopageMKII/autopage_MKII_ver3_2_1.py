@@ -2264,7 +2264,7 @@ class Bot_POS:
         # * ใช้เพื่อเก็บที่อยู่ของไฟล์ที่ถูก execute ด้วย Python ผ่าน command line arguments ในตัวแปร exepath ซึ่ง sys.argv[0] คือชื่อของไฟล์ Python script ที่ถูกเรียกใช้งาน
         exepath = sys.argv[0]
 
-        Dir_path = os.path.dirname(os.path.abspath(exepath))
+        # Dir_path = os.path.dirname(os.path.abspath(exepath))
         self.custom_path = r'D:\\bin\\'
 
         os.environ["WDM_LOCAL"] = self.custom_path
