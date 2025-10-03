@@ -50,6 +50,7 @@ import requests
 session = requests.Session()
 
 from modules.accel_mode import AccelMode
+from modules.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 
 
 # * images
@@ -66,7 +67,6 @@ stop_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'stop.jpg')
 
 
 locale.setlocale(locale.LC_ALL, 'en_us')
-
 
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
@@ -2248,6 +2248,7 @@ class Bot_POS:
             'itcity':'SHOPEE',
             'shp_wisegadget_master':'SHOPEE Wise Gadget',
         }
+        self.origin = BaseUrlFinder().check_available_ip()
 
         # Memory management tracking
         self.operation_count = 0
@@ -2380,6 +2381,7 @@ class Bot_POS:
                     
                 # เปิด tab ใหม่
                 self.driver.execute_script("window.open('');")
+                time.sleep(3)
                 all_handles = self.driver.window_handles
                 new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
                 logger.info(f"{self.app.cus_order.get()}: opened new tab to reset memory for '{tab_name or current_url}'")
@@ -2399,6 +2401,9 @@ class Bot_POS:
                 self.driver.close()
                 print("close the exceeded mem tab")
                 logger.info(f"{self.app.cus_order.get()}: closed old tab to reset memory for '{tab_name or current_url}'")
+                
+                # # กลับไป tab ใหม่
+                self.driver.switch_to.window(new_handle)
 
                 # กลับไปยัง scroll position เดิม (ถ้าต้องการ)
                 try:
@@ -2406,17 +2411,13 @@ class Bot_POS:
                 except:
                     pass
 
-                
-
-                # # กลับไป tab ใหม่
-                # self.driver.switch_to.window(new_handle)
-
                 # อัพเดท merged_dict ให้ชี้ไป handle ใหม่
                 for key, value in self.merged_dict.items():
                     if value == current_handle:
                         self.merged_dict[key] = new_handle
                         print(f"Updated {key} handle to new tab")
                         break
+                # self.get_tabs()
 
                 print(f"Tab closed and reopened successfully - Memory should be cleaned")
                 return True
@@ -3397,9 +3398,18 @@ class Bot_POS:
             # return
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
-            self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
-            self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir)
-            self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
+            while not self.operation_thread.is_set():
+                try:
+                    self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
+                    self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir)
+                    self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
+                    print("เจอ element cus_name_span_elmt")
+                    break
+                except:
+                    print("ยังไม่เจอ element cus_name_span_elmt")
+                    time.sleep(0.5)
+                    continue
+            
             if self.cus_name_span_x_btn_text == 'Please select':
                 self.is_reset = False
             elif self.cus_name_span_x_btn_text == 'กรุณาเลือก':
@@ -4958,7 +4968,7 @@ class Bot_POS:
                         for idx, key in enumerate(result_data):
                             b = tds[idx].find('b')
                             result = b.find('font').text.strip()
-                            result = re.sub("\s{2,}", " ", result)
+                            result = re.sub(r"\s{2,}", " ", result)
 
                             # * ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
                             if idx == 1 and len(result) > 13:
@@ -5163,7 +5173,7 @@ class Bot_POS:
         else:
             result['name']
             # * ตรวจสอบดูว่า ค่าที่ response กลับมา มีช่องว่างตามเงื่อนไขหรือไม่
-            x = re.search("^ห้างหุ้นส่วนจำกัด\s|^บริษัท\s", result['name'])
+            x = re.search(r"^ห้างหุ้นส่วนจำกัด\s|^บริษัท\s", result['name'])
 
             if x:
                 # * มีช่องว่าง แปลว่าดี
@@ -5227,6 +5237,7 @@ if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
+    print("Program closed")
     
 
 # เก็บข้อมูล

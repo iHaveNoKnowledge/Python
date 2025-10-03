@@ -1,14 +1,17 @@
 import requests
 import json
 from requests.exceptions import RequestException, ConnectionError, Timeout
+import os
+
 
 
 
 class BaseUrlFinder:
     """Finds an available base URL from a list of IPs."""
 
-    def __init__(self, file_path: str = "./json/urls.json"):
-        self.file_path = file_path
+    def __init__(self, file_path: str = r".\json\urls.json"):
+        self.base_dir = os.path.dirname(__file__)
+        self.file_path = os.path.join(self.base_dir, file_path)
         self.ips_json = self._load_json_file(self.file_path)
 
     def _load_json_file(self, file_path: str):
