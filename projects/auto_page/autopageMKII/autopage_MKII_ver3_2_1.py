@@ -2381,7 +2381,6 @@ class Bot_POS:
                     
                 # เปิด tab ใหม่
                 self.driver.execute_script("window.open('');")
-                time.sleep(3)
                 all_handles = self.driver.window_handles
                 new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
                 logger.info(f"{self.app.cus_order.get()}: opened new tab to reset memory for '{tab_name or current_url}'")
@@ -2394,7 +2393,7 @@ class Bot_POS:
                 logger.info(f"{self.app.cus_order.get()}: reloaded URL in new tab to reset memory for '{tab_name or current_url}'")
 
                 # รอให้หน้าโหลดเสร็จ
-                time.sleep(3)
+                time.sleep(1)
                 
                 # ปิด tab เก่า
                 self.driver.switch_to.window(current_handle)
@@ -2511,6 +2510,22 @@ class Bot_POS:
             self.force_garbage_collection()
 
             print(f"Memory cleanup completed: {tabs_cleaned}/{smco_tabs_found} SMCO tabs cleaned")
+            #! กำลังทดลองยังไม่พร้อมใช้ testing ลองดูอันนี้ก่อนนะ เพราะแม่งเปิดใหม่ไม่ติดไม่รู้เปนไรเปิดข้างนอกแม่งเลยดูดิจะเจอเบาะแสไรไหม
+            print("Testing")
+            for i in enumerate(tabs_cleaned):
+                target_url = f'{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm'
+                # เปิด tab ใหม่
+                self.driver.execute_script(f"window.open('{target_url}');")
+                all_handles = self.driver.window_handles
+                new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
+                
+
+                # ย้ายไป tab ใหม่
+                self.driver.switch_to.window(new_handle)
+
+                # โหลด URL เดิม
+                self.driver.get(target_url)
+            
             print("="*50)
 
         except Exception as e:
@@ -3373,7 +3388,7 @@ class Bot_POS:
             # * ถ้าสถานะยกเลิก ก็หยุดเลย
             if self.is_forbid:
                 print("This order was forbidden.")
-                self.display_bot_status_label.configure(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+                self.app.display_bot_status_label.configure(text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 return
 
             ### * SMCO PART ############################################################################
@@ -3398,9 +3413,11 @@ class Bot_POS:
             # return
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
+            self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
+            self.cus_name_span_x_btn_text = ""
+            self.is_reset = False
             while not self.operation_thread.is_set():
                 try:
-                    self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
                     self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir)
                     self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
                     print("เจอ element cus_name_span_elmt")
@@ -3518,9 +3535,6 @@ class Bot_POS:
             #* ใส่ รหัสพนักงาน ===============================================================================
             self.insert_emp()
             
-            
-            
-                    
             # * ใส่ค่าขนส่ง ================================================================================
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
