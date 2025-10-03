@@ -4152,16 +4152,22 @@ class Bot_POS:
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
             print("SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
             logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
-        except:
-            print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่")
-            logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่")
+        except Exception as err:
+            print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
+            logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
             self.driver.execute_script("window.open('');")
             all_handles = self.driver.window_handles
             new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
             self.driver.switch_to.window(new_handle)
             self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
             self.get_tabs()
-            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+            try:
+                self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
+                print(f"หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' มีอยู่จริง ")
+            except Exception as err:
+                print(f"หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
+                logger.error(f"{self.app.cus_order.get()}: หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
+                self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         try:
             self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
