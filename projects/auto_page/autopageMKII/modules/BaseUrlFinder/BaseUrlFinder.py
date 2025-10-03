@@ -3,10 +3,11 @@ import json
 from requests.exceptions import RequestException, ConnectionError, Timeout
 
 
+
 class BaseUrlFinder:
     """Finds an available base URL from a list of IPs."""
 
-    def __init__(self, file_path: str = "./json/autopage_data.json"):
+    def __init__(self, file_path: str = "./json/urls.json"):
         self.file_path = file_path
         self.ips_json = self._load_json_file(self.file_path)
 
