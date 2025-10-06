@@ -175,13 +175,15 @@ class AccelMode:
             book = load_workbook(output_excel)
             sheet = book.active
 
+            # * Map existing SKUs to their columns to avoid duplicates
             existing_skus = {}
             for col in range(1, sheet.max_column + 1):
                 sku = sheet.cell(row=1, column=col).value
                 if sku:
                     existing_skus[sku] = col
 
-            for sku, serials in zip(product_codes, serial_numbers_grouped):
+            # * Add new SKUs and their serial numbers, avoiding duplicates
+            for sku, serials in zip(product_codes, serial_numbers_grouped):  # *the incoming new data from PDF
                 if sku in existing_skus:
                     col = existing_skus[sku]
 
@@ -197,6 +199,7 @@ class AccelMode:
                             existing_serials.append(s)
 
                 else:
+                    # * ถ้าเป็น SKU ใหม่ ให้เพิ่มคอลัมน์ใหม่ แล้วใส่ serials ลงไปเรื่อยๆจนหมด
                     col = sheet.max_column + 1
                     sheet.cell(row=1, column=col, value=sku)
                     for row, serial in enumerate(serials, start=2):
@@ -214,6 +217,7 @@ class AccelMode:
             print(f"เกิดข้อผิดพลาด: {e}")
             traceback.print_exc()
 
+    # * start searching orders from accel file to check if order needed to be processed
     def accel_search(self):
         self.main_app.is_accel_mode_activated.set(True)
         self.accel_orders_count = len(self.accel_orders_list)
