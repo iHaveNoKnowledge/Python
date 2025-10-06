@@ -17,7 +17,7 @@ class AccelMode:
         self.obj_data_from_accel_file = {}
         self.accel_orders_list = []
         self.CP_list = []
-        self.accel_orders_len = 0
+        self.accel_orders_count = 0
 
     def select_accel_file(self):
         self.accel_file_dir = filedialog.askopenfilename(title="Select Accel File")
@@ -216,11 +216,11 @@ class AccelMode:
 
     def accel_search(self):
         self.main_app.is_accel_mode_activated.set(True)
-        self.accel_orders_len = len(self.accel_orders_list)
+        self.accel_orders_count = len(self.accel_orders_list)
 
         def start_next_cycle(count):
             self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
-            if count < self.accel_orders_len:
+            if count < self.accel_orders_count:
                 if self.main_app.is_accel_mode_activated.get():
                     self.main_app.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
@@ -230,6 +230,7 @@ class AccelMode:
 
         self.main_app.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
+    # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco
     def accel_fill_sku(self, driver, operation_thread):
         from selenium.webdriver.common.keys import Keys
         from loguru import logger
@@ -249,7 +250,8 @@ class AccelMode:
 
                 if len(is_sku_ready_to_pick) > 0:
                     for item in range(sku_qtys):
-                        print("self.obj_data_from_accel_file[current_sku]: ", self.obj_data_from_accel_file[current_sku])
+                        print("self.obj_data_from_accel_file[current_sku]: ",
+                              self.obj_data_from_accel_file[current_sku])
                         self.obj_data_from_accel_file[current_sku]
 
                         if self.obj_data_from_accel_file[current_sku]:
@@ -257,13 +259,17 @@ class AccelMode:
                             time.sleep(1)
                             while not operation_thread.is_set():
                                 try:
-                                    driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                                    driver.find_element(
+                                        By.XPATH,
+                                        '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                                     break
                                 except:
                                     continue
 
                             sn = self.obj_data_from_accel_file[current_sku][0]
-                            skuInput = driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                            skuInput = driver.find_element(
+                                By.XPATH,
+                                '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                             skuInput.clear()
                             attempts = 10
                             while attempts > 0:
@@ -275,7 +281,8 @@ class AccelMode:
                                     time.sleep(0.5)
                                     attempts -= 1
                             else:
-                                logger.error('sku input in smco cannot be interact from order: ', self.main_app.cus_order.get())
+                                logger.error('sku input in smco cannot be interact from order: ',
+                                             self.main_app.cus_order.get())
                                 raise ValueError('sku input in smco cannot be interact')
 
                             print("fill sn complete")
@@ -292,9 +299,9 @@ class AccelMode:
                             print("ไม่มี SN, there are no functions available at this moment")
                             pass
                 else:
-                    print("ไม่ได้เลือก sn:",current_sku in self.obj_data_from_accel_file)
-                    print("ไม่ได้เลือก sn:", current_sku,self.obj_data_from_accel_file)
-                    print("ไม่ได้เลือก sn:", type(current_sku),type(self.obj_data_from_accel_file))
+                    print("ไม่ได้เลือก sn:", current_sku in self.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:", current_sku, self.obj_data_from_accel_file)
+                    print("ไม่ได้เลือก sn:", type(current_sku), type(self.obj_data_from_accel_file))
         else:
             print("No items, return!!")
             return
