@@ -1480,7 +1480,7 @@ class MyApp:
                     self.idx += 1
 
                     self.product_col_name_value_widget = CTkEntry(self.mp_products_list_frame, width=int(self.cols_width[1]), height=14)
-                    self.product_col_name_value_widget.insert(0, f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
+                    self.product_col_name_value_widget.insert(0, f"{" ".join(self.convert_text(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
                     self.widgets_product_col_lst.append(self.product_col_name_value_widget)
                     self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
@@ -1956,16 +1956,15 @@ class MyApp:
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
-    def convert_text(self, text):
+    def convert_text(self, text:str): 
         result = []
         text = text.replace(" ", "")
         elements = text.split("+")
 
         for element in elements:
-            prefix = element.split("-")[0]
-            code = element.split("-")[1]
+            prefix, code = element.split("-")
             code = code.zfill(6)
-            result.append(prefix + "-00" + code)
+            result.append(prefix + "-" + code)
 
         return result
 
@@ -2324,19 +2323,7 @@ class Bot_POS:
                 options=self.opt
             )
             
-    def convert_text(self, text):
-        result = []
-        elements = text.split("+")
-
-        for element in elements:
-            prefix, code = element.split("-")
-            code = code.zfill(6)
-            raw_product_code = prefix + "-" + code
-            matched_obj = re.search(r'^\w.*-\d{6}', raw_product_code)
-            product_code = matched_obj.group()
-            result.append(product_code)
-
-        return result
+    
 
     def get_current_tab_memory_usage(self):
         """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
@@ -2570,9 +2557,9 @@ class Bot_POS:
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_ordered_items_list = self.convert_text(self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        print(self.demonic_ordered_items_list)
-        print(self.cp_no)
+        self.demonic_ordered_items_list = self.app.convert_text(self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        print(f"self.demonic_ordered_items_list: {self.demonic_ordered_items_list}")
+        print(f"self.cp_no: {self.cp_no}")
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         # *>  element location

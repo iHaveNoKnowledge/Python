@@ -177,9 +177,10 @@
 # ! 173 /req/ ตัวpop up seller voucher มให้ default เป็น true if accel mode {pop-up ไม่ทำงาน} else {pop-up ทำงาน}
 # * 174 patch 3.2.1 /Fixed/ ทำตัวเช็คให้เปิดหน้า เปิดการขายก่อนเริ่ม operations ใน smco
 # * 175 patch 3.2.1 /fix/ ไอClaudeมันแก้codeแต่ไม่เก็บค่าไปตัด excel เหลือแต่ตัวแปรเปล่าๆ ไม่มี array list tuple ไรเลย /bug/ bug array used_serials มันหายไป ทำให้ตัวตัดค่า sn ที่ใช้แล้วไม่ได้  แถมไม่ตัด order ด้วย
-#! 176 /bug/ ตัว clear memory ยังไม่ยอมเปิดหน้าใหม่ hint เปิดใหม่แล้วค่อยปิดเก่า ค่อนข้าง work มันเหมือนมันจะใช้ memory session ใหม่ แต่ถ้าปิดก่อนแล้วเปิดเหมือนมันจะใช้ session เดิม
-#! 177 /bug/ กรุงเทพ วัฒนา พระโขนง เวลาเอาไป create customer 
-#! 178 /bug/ state ของ sn หายไปด้วย เวลาที่ order ที่แล้ว ยังไม่ได้ใช้ พอไป order ถัดไป sn ที่ไม่ได้ใช้ดันหายไปด้วย state มีนอิงจาก obj_data_from_accel_file (มาจากไฟล์ excel) ต้อง test ด้วยการใช้ order1, order2 แล้วใช้ sn1 แค่อันเดียว ให้มันใส่ sn1 ที่ order1 แล้วกดข้าม order1 แล้วไป order2 แล้วดูว่ามันจะเอา sn1 มาใช้ได้ไหม
+# ! 176 /bug/ ตัว clear memory ยังไม่ยอมเปิดหน้าใหม่ hint เปิดใหม่แล้วค่อยปิดเก่า ค่อนข้าง work มันเหมือนมันจะใช้ memory session ใหม่ แต่ถ้าปิดก่อนแล้วเปิดเหมือนมันจะใช้ session เดิม
+# ! 177 /bug/ กรุงเทพ วัฒนา พระโขนง เวลาเอาไป create customer
+# ! 178 /bug/ state ของ sn หายไปด้วย เวลาที่ order ที่แล้ว ยังไม่ได้ใช้ พอไป order ถัดไป sn ที่ไม่ได้ใช้ดันหายไปด้วย state มีนอิงจาก obj_data_from_accel_file (มาจากไฟล์ excel) ต้อง test ด้วยการใช้ order1, order2 แล้วใช้ sn1 แค่อันเดียว ให้มันใส่ sn1 ที่ order1 แล้วกดข้าม order1 แล้วไป order2 แล้วดูว่ามันจะเอา sn1 มาใช้ได้ไหม
+# * 179 /Fixed/ ข้อความแสดง sku ของ shopee mimic gui ของหมึก มันไม่มี 00 นำหน้า
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
@@ -198,5 +199,5 @@
 # * ACP3 แต่ CPs แต่ละอันมันจะมีมูลค่า CP ไม่เท่ากัน ถึงแม้ปลายทางมันจะเหมือนกัน ผลรวมลด เท่ากัน
 
 #!--------------------- Auto Export Data --------------------------------
-# * AED1.1 ดึง Data จาก Marketplace อัตโนมัติ โดย ต้องใช้ (xpath, '//div//div[@class="tab-label"]//span[contains(text(),"ที่ต้องจัดส่ง")]') 
+# * AED1.1 ดึง Data จาก Marketplace อัตโนมัติ โดย ต้องใช้ (xpath, '//div//div[@class="tab-label"]//span[contains(text(),"ที่ต้องจัดส่ง")]')
 # * AED1.2 ดึง Data จาก Marketplace อัตโนมัติ โดย ต้องใช้ automation workflow
