@@ -3574,11 +3574,11 @@ class Bot_POS:
 
                         self.driver.find_element(
                             By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
-                        try:
-                            print("Waiting for element to disappear")
-                            self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
-                        except:
-                            print("No need to wait")
+                        # try:
+                        #     print("Waiting for element to disappear")
+                        #     self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
+                        # except:
+                        #     print("No need to wait")
                     except Exception as err:
                         print("Shipment cost skipped")
                         print(err)
