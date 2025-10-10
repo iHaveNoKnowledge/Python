@@ -1881,7 +1881,7 @@ class MyApp:
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
-            self.root.after(1000, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
+            self.root.after(750, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_bot_browser_busy.get() == True:
@@ -1904,6 +1904,8 @@ class MyApp:
         self.is_bot_running.set(False)
         self.is_bot_running.set(True)
         self.autofinal = False
+        
+
 
         # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
         if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
@@ -2252,7 +2254,7 @@ class Bot_POS:
         # Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
-        self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.max_memory_mb = 120  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -3612,8 +3614,8 @@ class Bot_POS:
                 
             # todo for testing
             # * Update Accel file //////////////////////
-            self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            return    
+            # self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            # return    
 
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
@@ -4070,10 +4072,11 @@ class Bot_POS:
                     self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
                     print(f"No create customer form click 'create customer' button")
                 except:
-                    pass
-                time.sleep(0.55)
-                continue
+                    time.sleep(0.55)
+                    continue
+                
         
+        print("finding customer class dropdown initializing")
         #* มีตัว Customer Class ให้กรอกไหม
         while is_functionworking and not self.operation_thread.is_set():
             print("start finding customer class dropdown")
@@ -4169,6 +4172,7 @@ class Bot_POS:
                 print(f"หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
                 logger.error(f"{self.app.cus_order.get()}: หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                
         try:
             self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
@@ -4310,7 +4314,7 @@ class Bot_POS:
                 else:
                     break
 
-        print(f"add{customer_type}Customer end")
+        print(f"add {customer_type} Customer end")
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")

@@ -2054,7 +2054,7 @@ class MyApp:
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
-            self.root.after(1000, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
+            self.root.after(750, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if self.is_bot_browser_busy.get() == True:

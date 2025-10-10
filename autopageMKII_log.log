@@ -3126,3 +3126,406 @@ Stacktrace:
 2025-09-27T17:01:57.692479+0700 INFO Order: 250926H66H1HH7 Start!!
 2025-09-27T17:07:46.796280+0700 INFO Order: 250926HCDNHWCG Start!!
 2025-09-27T17:14:51.184202+0700 INFO Order: 250926G7BTSN3T Start!!
+2025-10-10T14:45:50.869466+0700 INFO Order: 251010N8D5BKQU Start!!
+2025-10-10T14:46:02.119905+0700 INFO Order: 251010N8D5BKQU outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1230, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=140.0.7339.208)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6dc5d9]
+	(No symbol) [0x0x7ff6ff6d9f5e]
+	(No symbol) [0x0x7ff6ff6d6eb1]
+	(No symbol) [0x0x7ff6ff6d5da0]
+	(No symbol) [0x0x7ff6ff6c7338]
+	(No symbol) [0x0x7ff6ff6fcada]
+	(No symbol) [0x0x7ff6ff6c6bc6]
+	(No symbol) [0x0x7ff6ff6fccf0]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T14:46:02.900514+0700 INFO Order: 251010N7Q4KWF1 Start!!
+2025-10-10T14:46:16.218989+0700 INFO 251010N7Q4KWF1: cusname is Not Duplicated
+2025-10-10T14:46:57.730938+0700 INFO Order: 251010N6VTGK24 Start!!
+2025-10-10T14:47:11.691098+0700 INFO 251010N6VTGK24: cusname is Not Duplicated
+2025-10-10T14:47:48.841735+0700 INFO Order: 251010N6JBRFXH Start!!
+2025-10-10T14:48:02.854659+0700 INFO 251010N6JBRFXH: cusname is Not Duplicated
+2025-10-10T14:48:38.596898+0700 INFO Order: 251010N6F7KKGS Start!!
+2025-10-10T14:48:52.104681+0700 INFO 251010N6F7KKGS: cusname is Not Duplicated
+2025-10-10T14:49:31.407850+0700 INFO Order: 251010NVK46E7K Start!!
+2025-10-10T14:49:56.560680+0700 INFO 251010NVK46E7K: cusname is Not Duplicated
+2025-10-10T14:50:29.547470+0700 INFO Order: 251010NKRS41W3 Start!!
+2025-10-10T14:50:45.224172+0700 INFO 251010NKRS41W3: cusname is Not Duplicated
+2025-10-10T14:53:59.098354+0700 INFO Order: 251010N7T3VXXD Start!!
+2025-10-10T14:54:12.957572+0700 INFO 251010N7T3VXXD: cusname is Not Duplicated
+2025-10-10T14:56:16.999527+0700 INFO Order: 251010N76321RW Start!!
+2025-10-10T14:56:32.056224+0700 INFO 251010N76321RW: cusname is Not Duplicated
+2025-10-10T14:57:18.028993+0700 INFO Order: 251010N9K2ED3F Start!!
+2025-10-10T14:57:33.156282+0700 INFO 251010N9K2ED3F: cusname is Not Duplicated
+2025-10-10T15:02:16.574236+0700 INFO Order: 251010N7K0XY4P Start!!
+2025-10-10T15:02:30.532312+0700 INFO 251010N7K0XY4P: cusname is Not Duplicated
+2025-10-10T15:03:40.385889+0700 INFO Order: 251010N79GQJQ8 Start!!
+2025-10-10T15:03:54.525710+0700 INFO 251010N79GQJQ8: cusname is Not Duplicated
+2025-10-10T15:06:18.807094+0700 INFO Order: 251010N72MDJW5 Start!!
+2025-10-10T15:06:49.702865+0700 INFO 251010N72MDJW5: cusname is Not Duplicated
+2025-10-10T15:07:47.946584+0700 INFO Order: 251010N6YH7P8G Start!!
+2025-10-10T15:08:01.884644+0700 INFO 251010N6YH7P8G: cusname is Not Duplicated
+2025-10-10T15:08:46.065100+0700 INFO Order: 251010N6WRYXFQ Start!!
+2025-10-10T15:08:59.651482+0700 INFO 251010N6WRYXFQ: cusname is Not Duplicated
+2025-10-10T15:09:54.071690+0700 INFO Order: 251010N6WQ3S64 Start!!
+2025-10-10T15:10:09.126995+0700 INFO 251010N6WQ3S64: cusname is Not Duplicated
+2025-10-10T15:10:52.347731+0700 INFO Order: 251010N6R00NSE Start!!
+2025-10-10T15:11:06.138424+0700 INFO 251010N6R00NSE: cusname is Not Duplicated
+2025-10-10T15:12:01.155610+0700 INFO Order: 251010N6FF8708 Start!!
+2025-10-10T15:12:15.031756+0700 INFO 251010N6FF8708: cusname is Not Duplicated
+2025-10-10T15:25:18.691909+0700 INFO Order: 251010P2MGJTGM Start!!
+2025-10-10T15:25:33.506872+0700 INFO 251010P2MGJTGM: cusname is Not Duplicated
+2025-10-10T15:26:20.435404+0700 INFO Order: 251010NTEGWB4W Start!!
+2025-10-10T15:26:43.062099+0700 INFO 251010NTEGWB4W: cusname is Not Duplicated
+2025-10-10T15:27:23.247890+0700 INFO Order: 251010N7V4TDTJ Start!!
+2025-10-10T15:27:38.596065+0700 INFO 251010N7V4TDTJ: cusname is Not Duplicated
+2025-10-10T15:28:31.879573+0700 INFO Order: 251010NCNP4G5G Start!!
+2025-10-10T15:28:47.171506+0700 INFO 251010NCNP4G5G: cusname is Not Duplicated
+2025-10-10T15:29:27.373285+0700 INFO Order: 251010NF8K87U5 Start!!
+2025-10-10T15:29:43.438929+0700 INFO 251010NF8K87U5: cusname is Not Duplicated
+2025-10-10T15:30:39.728788+0700 INFO Order: 251010NMN5YX9M Start!!
+2025-10-10T15:30:54.082652+0700 INFO 251010NMN5YX9M: cusname is Not Duplicated
+2025-10-10T15:31:47.041370+0700 INFO Order: 251010P08KN494 Start!!
+2025-10-10T15:32:01.258006+0700 INFO 251010P08KN494: cusname is Not Duplicated
+2025-10-10T15:32:38.326435+0700 INFO Order: 251010P0B8EV4J Start!!
+2025-10-10T15:32:52.036001+0700 INFO 251010P0B8EV4J: cusname is Not Duplicated
+2025-10-10T15:33:31.196630+0700 INFO Order: 251010N6JJCX9S Start!!
+2025-10-10T15:34:19.591383+0700 INFO Order: 251010N894JMW4 Start!!
+2025-10-10T15:34:39.067034+0700 INFO 251010N894JMW4: cusname is Not Duplicated
+2025-10-10T15:35:22.179406+0700 INFO Order: 251010N8P85H6U Start!!
+2025-10-10T15:35:36.327905+0700 INFO 251010N8P85H6U: cusname is Not Duplicated
+2025-10-10T15:36:14.596687+0700 INFO Order: 251010N8QDC1WA Start!!
+2025-10-10T15:37:08.102602+0700 INFO Order: 251010N8VVWKS1 Start!!
+2025-10-10T15:37:58.058966+0700 INFO Order: 251010NC1UVKN6 Start!!
+2025-10-10T15:38:11.826419+0700 INFO 251010NC1UVKN6: cusname is Not Duplicated
+2025-10-10T15:38:55.341911+0700 INFO Order: 251010N77V810J Start!!
+2025-10-10T15:39:10.971388+0700 INFO 251010N77V810J: cusname is Not Duplicated
+2025-10-10T15:40:00.914784+0700 INFO Order: 251010N6NC34RB Start!!
+2025-10-10T15:40:06.670302+0700 INFO 251010N6NC34RB: compare self.current_address & self.desired_full_address
+2025-10-10T15:40:06.670302+0700 INFO 1145ถ.ศรีนครินทร์อ่อนนุชสวนหลวงกรุงเทพมหานคร10250
+2025-10-10T15:40:06.671299+0700 INFO ร้านพีเอสดีไซน์(สำนักงานใหญ่)1145ถนน.ศรีนครินทร์อ่อนนุชสวนหลวงกรุงเทพมหานคร10250
+2025-10-10T15:41:33.058266+0700 INFO Order: 251010NWK6BK48 Start!!
+2025-10-10T15:41:49.183363+0700 INFO 251010NWK6BK48: cusname is Not Duplicated
+2025-10-10T15:42:33.473841+0700 INFO Order: 251010P3G1RX1C Start!!
+2025-10-10T15:42:47.156235+0700 INFO 251010P3G1RX1C: cusname is Not Duplicated
+2025-10-10T15:43:43.215840+0700 INFO Order: 251010N7JMJ46V Start!!
+2025-10-10T15:43:56.570078+0700 INFO 251010N7JMJ46V: cusname is Not Duplicated
+2025-10-10T15:45:03.994045+0700 INFO Order: 251010NCSWJWYJ Start!!
+2025-10-10T15:45:17.648476+0700 INFO 251010NCSWJWYJ: cusname is Not Duplicated
+2025-10-10T15:46:17.916597+0700 INFO Order: 251010N6VD4D28 Start!!
+2025-10-10T15:46:31.452060+0700 INFO 251010N6VD4D28: cusname is Not Duplicated
+2025-10-10T15:47:11.498578+0700 INFO Order: 251010N6WK9DPB Start!!
+2025-10-10T15:47:25.381959+0700 INFO 251010N6WK9DPB: cusname is Not Duplicated
+2025-10-10T15:48:05.875318+0700 INFO Order: 251010N8P3EPJN Start!!
+2025-10-10T15:48:20.134602+0700 INFO 251010N8P3EPJN: cusname is Not Duplicated
+2025-10-10T15:49:01.982493+0700 INFO Order: 251010NJAB9C1K Start!!
+2025-10-10T15:49:48.691053+0700 INFO Order: 251010N82NMQTX Start!!
+2025-10-10T15:50:01.977048+0700 INFO Order: 251010N82NMQTX outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1230, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=140.0.7339.208)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6dc5d9]
+	(No symbol) [0x0x7ff6ff6d9f5e]
+	(No symbol) [0x0x7ff6ff6d6eb1]
+	(No symbol) [0x0x7ff6ff6d5da0]
+	(No symbol) [0x0x7ff6ff6c7338]
+	(No symbol) [0x0x7ff6ff6fcada]
+	(No symbol) [0x0x7ff6ff6c6bc6]
+	(No symbol) [0x0x7ff6ff6fccf0]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T15:50:03.037150+0700 INFO Order: 251010N6UT12NY Start!!
+2025-10-10T15:50:16.215547+0700 INFO 251010N6UT12NY: cusname is Not Duplicated
+2025-10-10T15:50:59.724152+0700 INFO Order: 251010N6XE04SE Start!!
+2025-10-10T15:51:13.585864+0700 INFO 251010N6XE04SE: cusname is Not Duplicated
+2025-10-10T15:51:57.760351+0700 INFO Order: 251010N8BX8G6H Start!!
+2025-10-10T15:52:19.148562+0700 INFO 251010N8BX8G6H: cusname is Not Duplicated
+2025-10-10T15:53:08.082226+0700 INFO Order: 251010N8F922HR Start!!
+2025-10-10T15:53:22.972374+0700 INFO 251010N8F922HR: cusname is Not Duplicated
+2025-10-10T15:54:05.529755+0700 INFO Order: 251010N8FCW38X Start!!
+2025-10-10T15:54:18.618471+0700 INFO 251010N8FCW38X: cusname is Not Duplicated
+2025-10-10T15:55:40.365612+0700 INFO Order: 251010P2AF6YQ3 Start!!
+2025-10-10T15:55:56.040176+0700 INFO 251010P2AF6YQ3: cusname is Not Duplicated
+2025-10-10T15:56:35.696488+0700 INFO Order: 251010P4HDXQRM Start!!
+2025-10-10T15:56:50.258334+0700 INFO 251010P4HDXQRM: cusname is Not Duplicated
+2025-10-10T15:57:31.740481+0700 INFO Order: 251010P5A2KCA3 Start!!
+2025-10-10T15:57:45.491677+0700 INFO 251010P5A2KCA3: cusname is Not Duplicated
+2025-10-10T16:01:18.009538+0700 INFO Order: 251010N8D5BKQU Start!!
+2025-10-10T16:01:33.448440+0700 INFO 251010N8D5BKQU: cusname is Not Duplicated
+2025-10-10T16:02:25.073148+0700 INFO Order: 251010N82NMQTX Start!!
+2025-10-10T16:02:38.248857+0700 INFO 251010N82NMQTX: cusname is Not Duplicated
+2025-10-10T16:45:02.926677+0700 INFO Order: 251009KVTDBKE3 Start!!
+2025-10-10T16:45:13.903825+0700 INFO Order: 251009KVTDBKE3 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1230, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=140.0.7339.208)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6dc5d9]
+	(No symbol) [0x0x7ff6ff6d9f5e]
+	(No symbol) [0x0x7ff6ff6d6eb1]
+	(No symbol) [0x0x7ff6ff6d5da0]
+	(No symbol) [0x0x7ff6ff6c7338]
+	(No symbol) [0x0x7ff6ff6fcada]
+	(No symbol) [0x0x7ff6ff6c6bc6]
+	(No symbol) [0x0x7ff6ff6fccf0]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:45:14.694269+0700 INFO Order: 251009M6TU81S5 Start!!
+2025-10-10T16:47:41.810912+0700 INFO Order: 251009M6TU81S5 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]"}
+  (Session info: chrome=140.0.7339.208); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6d4457]
+	(No symbol) [0x0x7ff6ff6d471c]
+	(No symbol) [0x0x7ff6ff728217]
+	(No symbol) [0x0x7ff6ff6fcb1f]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:47:42.384458+0700 INFO Order: 251009M8TM3PU7 Start!!
+2025-10-10T16:47:45.276371+0700 INFO Order: 251009M8TM3PU7 outer_Exception_Error!! 'SMCO :: เปิดการขาย'
+2025-10-10T16:47:50.253539+0700 INFO Order: 251009KYPG85HD Start!!
+2025-10-10T16:47:51.338478+0700 INFO Order: 251009KYPG85HD outer_Exception_Error!! main thread is not in main loop
+2025-10-10T16:49:10.346667+0700 INFO Order: 251009KVTDBKE3 Start!!
+2025-10-10T16:49:31.294265+0700 INFO 251009KVTDBKE3: cusname is Not Duplicated
+2025-10-10T16:49:47.438046+0700 ERROR sku input in smco cannot be interact from order: 
+2025-10-10T16:49:47.438046+0700 INFO Order: 251009KVTDBKE3 outer_Exception_Error!! sku input in smco cannot be interact
+2025-10-10T16:49:48.170271+0700 INFO Order: 251009M6TU81S5 Start!!
+2025-10-10T16:49:53.056434+0700 INFO Order: 251009M6TU81S5 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=140.0.7339.208); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6d4457]
+	(No symbol) [0x0x7ff6ff6d471c]
+	(No symbol) [0x0x7ff6ff728217]
+	(No symbol) [0x0x7ff6ff6fcb1f]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:49:53.451454+0700 INFO Order: 251009M8TM3PU7 Start!!
+2025-10-10T16:49:58.622797+0700 INFO Order: 251009M8TM3PU7 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=140.0.7339.208); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6d4457]
+	(No symbol) [0x0x7ff6ff6d471c]
+	(No symbol) [0x0x7ff6ff728217]
+	(No symbol) [0x0x7ff6ff6fcb1f]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:50:01.001419+0700 INFO Order: 251009KYPG85HD Start!!
+2025-10-10T16:50:03.653102+0700 INFO Order: 251009KYPG85HD outer_Exception_Error!! 'SMCO :: เปิดการขาย'
+2025-10-10T16:50:08.784794+0700 INFO Order: 251009M201WU40 operation_task_thread_outer_Exception_Error!! Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=140.0.7339.208)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff654b91]
+	(No symbol) [0x0x7ff6ff7040fe]
+	(No symbol) [0x0x7ff6ff7248c2]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:51:11.092838+0700 INFO Order: 251009KVTDBKE3 Start!!
+2025-10-10T16:51:55.705876+0700 INFO Order: 251009KVTDBKE3 outer_Exception_Error!! Message: no such element: element not found
+  (Session info: chrome=140.0.7339.208); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff693295]
+	(No symbol) [0x0x7ff6ff691d83]
+	(No symbol) [0x0x7ff6ff685377]
+	(No symbol) [0x0x7ff6ff683230]
+	(No symbol) [0x0x7ff6ff68770f]
+	(No symbol) [0x0x7ff6ff6877cf]
+	(No symbol) [0x0x7ff6ff6cde36]
+	(No symbol) [0x0x7ff6ff6fcada]
+	(No symbol) [0x0x7ff6ff6c6bc6]
+	(No symbol) [0x0x7ff6ff6fccf0]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:51:56.295317+0700 INFO Order: 251009M6TU81S5 Start!!
+2025-10-10T16:53:07.328777+0700 INFO Order: 251009KVTDBKE3 Start!!
+2025-10-10T16:59:19.912605+0700 INFO Order: 251009M6TU81S5 Start!!
+2025-10-10T16:59:29.226425+0700 INFO Order: 251009M6TU81S5 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]"}
+  (Session info: chrome=140.0.7339.208); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6d4457]
+	(No symbol) [0x0x7ff6ff6d471c]
+	(No symbol) [0x0x7ff6ff728217]
+	(No symbol) [0x0x7ff6ff6fcb1f]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:59:30.615474+0700 INFO Order: 251009M8TM3PU7 Start!!
+2025-10-10T16:59:42.390878+0700 INFO Order: 251009M8TM3PU7 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1296, 418). Other element would receive the click: <textarea class="form-control validate ng-pristine ng-untouched ng-valid ng-empty ng-valid-maxlength" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=140.0.7339.208)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff6ff8ffca5+79861]
+	GetHandleVerifier [0x0x7ff6ff8ffd00+79952]
+	(No symbol) [0x0x7ff6ff67cada]
+	(No symbol) [0x0x7ff6ff6dc5d9]
+	(No symbol) [0x0x7ff6ff6d9f5e]
+	(No symbol) [0x0x7ff6ff6d6eb1]
+	(No symbol) [0x0x7ff6ff6d5da0]
+	(No symbol) [0x0x7ff6ff6c7338]
+	(No symbol) [0x0x7ff6ff6fcada]
+	(No symbol) [0x0x7ff6ff6c6bc6]
+	(No symbol) [0x0x7ff6ff6fccf0]
+	(No symbol) [0x0x7ff6ff724f8b]
+	(No symbol) [0x0x7ff6ff6fc8b3]
+	(No symbol) [0x0x7ff6ff6c5272]
+	(No symbol) [0x0x7ff6ff6c6043]
+	GetHandleVerifier [0x0x7ff6ffbbb9dd+2946349]
+	GetHandleVerifier [0x0x7ff6ffbb5c5a+2922410]
+	GetHandleVerifier [0x0x7ff6ffbd59e7+3052855]
+	GetHandleVerifier [0x0x7ff6ff91aa8e+189918]
+	GetHandleVerifier [0x0x7ff6ff922a2f+222591]
+	GetHandleVerifier [0x0x7ff6ff908ac4+116244]
+	GetHandleVerifier [0x0x7ff6ff908c79+116681]
+	GetHandleVerifier [0x0x7ff6ff8ef058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-10T16:59:43.212359+0700 INFO Order: 251009KYPG85HD Start!!
+2025-10-10T16:59:58.878840+0700 INFO 251009KYPG85HD: cusname is Not Duplicated
+2025-10-10T17:00:49.256729+0700 INFO Order: 251009KYPG85HD outer_Exception_Error!! main thread is not in main loop
+2025-10-10T17:02:26.385218+0700 INFO Order: 251009M6TU81S5 Start!!
+2025-10-10T17:03:40.484780+0700 INFO Order: 251009M8TM3PU7 Start!!
+2025-10-10T17:04:00.814178+0700 INFO 251009M8TM3PU7: cusname is Not Duplicated
+2025-10-10T17:08:23.171183+0700 INFO Order: 251009KYPG85HD Start!!
+2025-10-10T17:09:23.273660+0700 INFO Order: 251009M201WU40 Start!!
+2025-10-10T17:09:38.785271+0700 INFO 251009M201WU40: cusname is Not Duplicated
+2025-10-10T17:10:22.967240+0700 INFO Order: 251009M37ASUYE Start!!
+2025-10-10T17:10:37.752763+0700 INFO 251009M37ASUYE: cusname is Not Duplicated
