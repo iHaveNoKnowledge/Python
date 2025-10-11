@@ -2254,7 +2254,7 @@ class Bot_POS:
         # Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
-        self.max_memory_mb = 120  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -2367,31 +2367,27 @@ class Bot_POS:
                 except:
                     scroll_position = 0
                     
-                    
                 # เปิด tab ใหม่
-                self.driver.execute_script("window.open('');")
+                self.driver.execute_script(f"window.open('{current_url}', '_blank');")
                 all_handles = self.driver.window_handles
                 new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
                 logger.info(f"{self.app.cus_order.get()}: opened new tab to reset memory for '{tab_name or current_url}'")
-
-                # ย้ายไป tab ใหม่
-                self.driver.switch_to.window(new_handle)
-
-                # โหลด URL เดิม
-                self.driver.get(current_url)
-                logger.info(f"{self.app.cus_order.get()}: reloaded URL in new tab to reset memory for '{tab_name or current_url}'")
-
-                # รอให้หน้าโหลดเสร็จ
-                time.sleep(1)
                 
                 # ปิด tab เก่า
                 self.driver.switch_to.window(current_handle)
                 self.driver.close()
                 print("close the exceeded mem tab")
                 logger.info(f"{self.app.cus_order.get()}: closed old tab to reset memory for '{tab_name or current_url}'")
-                
-                # # กลับไป tab ใหม่
+
+                # ย้ายไป tab ใหม่
                 self.driver.switch_to.window(new_handle)
+
+                # โหลด URL เดิม
+                # self.driver.get(current_url)
+                # logger.info(f"{self.app.cus_order.get()}: reloaded URL in new tab to reset memory for '{tab_name or current_url}'")
+
+                # รอให้หน้าโหลดเสร็จ
+                time.sleep(1)
 
                 # กลับไปยัง scroll position เดิม (ถ้าต้องการ)
                 try:
@@ -2399,14 +2395,14 @@ class Bot_POS:
                 except:
                     pass
 
+                self.get_tabs()
                 # อัพเดท merged_dict ให้ชี้ไป handle ใหม่
                 for key, value in self.merged_dict.items():
                     if value == current_handle:
                         self.merged_dict[key] = new_handle
                         print(f"Updated {key} handle to new tab")
                         break
-                # self.get_tabs()
-
+                
                 print(f"Tab closed and reopened successfully - Memory should be cleaned")
                 return True
             return False

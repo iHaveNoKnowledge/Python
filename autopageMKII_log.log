@@ -3529,3 +3529,582 @@ Stacktrace:
 2025-10-10T17:09:38.785271+0700 INFO 251009M201WU40: cusname is Not Duplicated
 2025-10-10T17:10:22.967240+0700 INFO Order: 251009M37ASUYE Start!!
 2025-10-10T17:10:37.752763+0700 INFO 251009M37ASUYE: cusname is Not Duplicated
+2025-10-11T11:29:34.716653+0700 INFO Order: 251009MUE4EDQF Start!!
+2025-10-11T11:29:49.210712+0700 INFO 251009MUE4EDQF: cusname is Not Duplicated
+2025-10-11T11:33:32.209088+0700 INFO Order: 251010P85CNEPE Start!!
+2025-10-11T11:38:11.872691+0700 INFO Order: 251009MQ85N6BQ Start!!
+2025-10-11T11:38:25.181226+0700 INFO 251009MQ85N6BQ: cusname is Not Duplicated
+2025-10-11T11:41:21.868969+0700 INFO Order: 251010N6XW76UR Start!!
+2025-10-11T11:41:36.109228+0700 INFO 251010N6XW76UR: cusname is Not Duplicated
+2025-10-11T14:39:00.191186+0700 INFO Order: 251010Q50MGNMC Start!!
+2025-10-11T14:39:07.672061+0700 INFO 251010Q50MGNMC: compare self.current_address & self.desired_full_address
+2025-10-11T14:39:07.673062+0700 INFO 74-76ถ.หลังพระพระปฐมเจดีย์เมืองนครปฐมนครปฐม73000
+2025-10-11T14:39:07.674077+0700 INFO 74-76ถนนหลังพระพระปฐมเจดีย์เมืองนครปฐมนครปฐม73000
+2025-10-11T14:48:22.835687+0700 INFO Order: 251010PEH32QJK Start!!
+2025-10-11T14:48:32.666579+0700 INFO Order: 251010PEH32QJK outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T14:48:33.248965+0700 INFO Order: 251010PF314AM7 Start!!
+2025-10-11T14:48:47.763082+0700 INFO 251010PF314AM7: cusname is Not Duplicated
+2025-10-11T14:49:03.229242+0700 ERROR sku input in smco cannot be interact from order: 
+2025-10-11T14:49:03.229242+0700 INFO Order: 251010PF314AM7 outer_Exception_Error!! sku input in smco cannot be interact
+2025-10-11T14:49:04.280731+0700 INFO Order: 251010PENBDGB7 Start!!
+2025-10-11T14:49:09.412626+0700 INFO Order: 251010PENBDGB7 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T14:49:10.269481+0700 INFO Order: 251010PFJK0BGP Start!!
+2025-10-11T14:49:14.954530+0700 INFO Order: 251010PFJK0BGP outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T14:49:15.641841+0700 INFO Order: 251010PHPWRSM8 Start!!
+2025-10-11T14:49:20.474401+0700 INFO Order: 251010PHPWRSM8 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T14:50:44.993283+0700 INFO Order: 251010PEH32QJK Start!!
+2025-10-11T14:51:00.215455+0700 INFO 251010PEH32QJK: cusname is Not Duplicated
+2025-10-11T14:51:54.275381+0700 INFO Order: 251010PF314AM7 Start!!
+2025-10-11T14:52:38.967207+0700 INFO Order: 251010PENBDGB7 Start!!
+2025-10-11T14:52:52.163860+0700 INFO 251010PENBDGB7: cusname is Not Duplicated
+2025-10-11T14:53:32.518567+0700 INFO Order: 251010PFJK0BGP Start!!
+2025-10-11T14:53:46.586606+0700 INFO 251010PFJK0BGP: cusname is Not Duplicated
+2025-10-11T14:54:45.327308+0700 INFO Order: 251010PHPWRSM8 Start!!
+2025-10-11T14:55:00.148029+0700 INFO 251010PHPWRSM8: cusname is Not Duplicated
+2025-10-11T14:55:42.965009+0700 INFO Order: 251010PJDFN5EY Start!!
+2025-10-11T14:55:57.308164+0700 INFO 251010PJDFN5EY: cusname is Not Duplicated
+2025-10-11T14:56:43.730368+0700 INFO Order: 251010PJTGCJE8 Start!!
+2025-10-11T14:56:57.551020+0700 INFO 251010PJTGCJE8: cusname is Not Duplicated
+2025-10-11T14:57:35.437993+0700 INFO Order: 251010PK5GBYE4 Start!!
+2025-10-11T14:57:51.433933+0700 INFO 251010PK5GBYE4: cusname is Not Duplicated
+2025-10-11T14:58:39.509523+0700 INFO Order: 251010PMS35FC7 Start!!
+2025-10-11T14:58:53.207071+0700 INFO 251010PMS35FC7: cusname is Not Duplicated
+2025-10-11T14:59:34.394791+0700 INFO Order: 251010PND23QQX Start!!
+2025-10-11T14:59:49.463389+0700 INFO 251010PND23QQX: cusname is Not Duplicated
+2025-10-11T15:00:30.599198+0700 INFO Order: 251010PQAWYFJ7 Start!!
+2025-10-11T15:00:45.154097+0700 INFO 251010PQAWYFJ7: cusname is Not Duplicated
+2025-10-11T15:01:28.542254+0700 INFO Order: 251010PQD6EQHF Start!!
+2025-10-11T15:01:42.527146+0700 INFO 251010PQD6EQHF: cusname is Not Duplicated
+2025-10-11T15:02:19.504807+0700 INFO Order: 251010PS56BX89 Start!!
+2025-10-11T15:02:32.335158+0700 INFO 251010PS56BX89: cusname is Not Duplicated
+2025-10-11T15:03:05.552237+0700 INFO Order: 251010PSWBREHY Start!!
+2025-10-11T15:03:31.370801+0700 INFO 251010PSWBREHY: cusname is Not Duplicated
+2025-10-11T15:04:10.634422+0700 INFO Order: 251010PSHG92Y3 Start!!
+2025-10-11T15:06:57.723937+0700 INFO Order: 251010PSHG92Y3 stop operation
+2025-10-11T15:06:58.775255+0700 INFO Order: 251010PPP0FJE0 Start!!
+2025-10-11T15:07:25.555583+0700 INFO 251010PPP0FJE0: cusname is Not Duplicated
+2025-10-11T15:07:45.288567+0700 INFO Order: 251010PPP0FJE0 stop operation
+2025-10-11T15:07:46.180900+0700 INFO Order: 251010PK5M49XA Start!!
+2025-10-11T15:07:53.137915+0700 INFO Order: 251010PK5M49XA outer_Exception_Error!! ไม่มี C210009106 นี้จาก response_data
+2025-10-11T15:07:53.736121+0700 INFO Order: 251010PHK1Q8C8 Start!!
+2025-10-11T15:08:08.136415+0700 INFO 251010PHK1Q8C8: cusname is Not Duplicated
+2025-10-11T15:08:30.071286+0700 INFO Order: 251010PHK1Q8C8 stop operation
+2025-10-11T15:08:30.721181+0700 INFO Order: 251010PWJNG1J9 Start!!
+2025-10-11T15:08:47.745477+0700 INFO 251010PWJNG1J9: cusname is Not Duplicated
+2025-10-11T15:09:26.645521+0700 INFO Order: 251010PX9Y8X0X Start!!
+2025-10-11T15:09:36.287518+0700 INFO Order: 251010PX9Y8X0X outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff71363c5d9]
+	(No symbol) [0x0x7ff713639f5e]
+	(No symbol) [0x0x7ff713636eb1]
+	(No symbol) [0x0x7ff713635da0]
+	(No symbol) [0x0x7ff713627338]
+	(No symbol) [0x0x7ff71365cada]
+	(No symbol) [0x0x7ff713626bc6]
+	(No symbol) [0x0x7ff71365ccf0]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T15:09:37.256563+0700 INFO Order: 251010PXB4DAX1 Start!!
+2025-10-11T15:10:28.664418+0700 INFO Order: 251010PXFS622V Start!!
+2025-10-11T15:10:43.366750+0700 INFO 251010PXFS622V: cusname is Not Duplicated
+2025-10-11T15:11:34.772072+0700 INFO Order: 251010Q1DDNUSP Start!!
+2025-10-11T15:11:49.150298+0700 INFO 251010Q1DDNUSP: cusname is Not Duplicated
+2025-10-11T15:12:28.610768+0700 INFO Order: 251010Q2320YW9 Start!!
+2025-10-11T15:12:41.465254+0700 INFO 251010Q2320YW9: cusname is Not Duplicated
+2025-10-11T15:13:25.140192+0700 INFO Order: 251010Q2DV5C5E Start!!
+2025-10-11T15:13:39.552897+0700 INFO 251010Q2DV5C5E: cusname is Not Duplicated
+2025-10-11T15:14:17.670462+0700 INFO Order: 251010Q3HV8E9E Start!!
+2025-10-11T15:14:41.334153+0700 INFO 251010Q3HV8E9E: cusname is Not Duplicated
+2025-10-11T15:15:17.803782+0700 INFO Order: 251010QDAH82GT Start!!
+2025-10-11T15:15:32.083380+0700 INFO 251010QDAH82GT: cusname is Not Duplicated
+2025-10-11T15:16:11.870834+0700 INFO Order: 251010QDHAMKNC Start!!
+2025-10-11T15:16:26.545465+0700 INFO 251010QDHAMKNC: cusname is Not Duplicated
+2025-10-11T15:17:04.317193+0700 INFO Order: 251010QJ44E5SG Start!!
+2025-10-11T15:17:18.743066+0700 INFO 251010QJ44E5SG: cusname is Not Duplicated
+2025-10-11T15:18:01.158408+0700 INFO Order: 251010QJEP2J97 Start!!
+2025-10-11T15:18:11.794593+0700 INFO Order: 251010QJEP2J97 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff71363c5d9]
+	(No symbol) [0x0x7ff713639f5e]
+	(No symbol) [0x0x7ff713636eb1]
+	(No symbol) [0x0x7ff713635da0]
+	(No symbol) [0x0x7ff713627338]
+	(No symbol) [0x0x7ff71365cada]
+	(No symbol) [0x0x7ff713626bc6]
+	(No symbol) [0x0x7ff71365ccf0]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T15:18:12.522269+0700 INFO Order: 251011QKW4V7GF Start!!
+2025-10-11T15:18:27.083227+0700 INFO 251011QKW4V7GF: cusname is Not Duplicated
+2025-10-11T15:19:04.792389+0700 INFO Order: 251010PJ33S0WD Start!!
+2025-10-11T15:19:12.322915+0700 INFO 251010PJ33S0WD: compare self.current_address & self.desired_full_address
+2025-10-11T15:19:12.324509+0700 INFO เลขที่56หมู่ที่2สันพระเนตรสันทรายเชียงใหม่50210
+2025-10-11T15:19:12.324509+0700 INFO 56หมู่2สันพระเนตรสันทรายเชียงใหม่50210
+2025-10-11T15:20:24.168837+0700 INFO Order: 251010PFHNCHBV Start!!
+2025-10-11T15:20:49.821639+0700 INFO 251010PFHNCHBV: cusname is Not Duplicated
+2025-10-11T15:21:29.167900+0700 INFO Order: 251010PFMVDF38 Start!!
+2025-10-11T15:22:02.908992+0700 INFO 251010PFMVDF38: cusname is Not Duplicated
+2025-10-11T15:22:38.063261+0700 INFO Order: 251010PJA4TYC2 Start!!
+2025-10-11T15:22:53.843795+0700 INFO 251010PJA4TYC2: cusname is Not Duplicated
+2025-10-11T15:23:29.697376+0700 INFO Order: 251010PPH51K3U Start!!
+2025-10-11T15:23:53.655400+0700 INFO 251010PPH51K3U: cusname is Not Duplicated
+2025-10-11T15:25:01.743980+0700 INFO Order: 251010PRU8SVBS Start!!
+2025-10-11T15:25:20.104472+0700 INFO 251010PRU8SVBS: cusname is Not Duplicated
+2025-10-11T15:25:59.873302+0700 INFO Order: 251010PSB8Y34H Start!!
+2025-10-11T15:26:23.351705+0700 INFO 251010PSB8Y34H: cusname is Not Duplicated
+2025-10-11T15:27:00.152738+0700 INFO Order: 251010QEYGVVJ2 Start!!
+2025-10-11T15:27:36.936752+0700 INFO Order: 251010QH1AJUNG Start!!
+2025-10-11T15:27:52.552795+0700 INFO 251010QH1AJUNG: cusname is Not Duplicated
+2025-10-11T15:28:27.827956+0700 INFO Order: 251010QH3H4C65 Start!!
+2025-10-11T15:28:43.032946+0700 INFO 251010QH3H4C65: cusname is Not Duplicated
+2025-10-11T15:29:20.133968+0700 INFO Order: 251010PH4DJ30G Start!!
+2025-10-11T15:29:36.007544+0700 INFO 251010PH4DJ30G: cusname is Not Duplicated
+2025-10-11T15:30:53.194731+0700 INFO Order: 251010PN2S2Q9F Start!!
+2025-10-11T15:31:07.931485+0700 INFO 251010PN2S2Q9F: cusname is Not Duplicated
+2025-10-11T15:31:58.492565+0700 INFO Order: 251010PN2S2Q9F outer_Exception_Error!! 'NoneType' object has no attribute 'is_displayed'
+2025-10-11T15:31:59.380558+0700 INFO Order: 251010Q6MTEF0U Start!!
+2025-10-11T15:32:14.504089+0700 INFO 251010Q6MTEF0U: cusname is Not Duplicated
+2025-10-11T15:34:35.517934+0700 INFO Order: 251010PG5VYK0E Start!!
+2025-10-11T15:35:29.230122+0700 INFO Order: 251010PG98QPFB Start!!
+2025-10-11T15:35:43.015136+0700 INFO 251010PG98QPFB: cusname is Not Duplicated
+2025-10-11T15:36:17.273247+0700 INFO Order: 251010QKB3V9AG Start!!
+2025-10-11T15:36:30.689726+0700 INFO 251010QKB3V9AG: cusname is Not Duplicated
+2025-10-11T15:37:05.816313+0700 INFO Order: 251010PVCNFKYY Start!!
+2025-10-11T15:37:19.576818+0700 INFO 251010PVCNFKYY: cusname is Not Duplicated
+2025-10-11T15:38:08.535553+0700 INFO Order: 251010PDCV96HU Start!!
+2025-10-11T15:38:14.701408+0700 INFO 251010PDCV96HU: compare self.current_address & self.desired_full_address
+2025-10-11T15:38:14.702415+0700 INFO 111/110หมู่ที่7บางคูวัดเมืองปทุมธานีปทุมธานี12000
+2025-10-11T15:38:14.702415+0700 INFO 111/110ม.7บางคูวัดเมืองปทุมธานีปทุมธานี12000
+2025-10-11T15:40:06.744790+0700 INFO Order: 251010PGCPBR0P Start!!
+2025-10-11T15:40:20.651280+0700 INFO 251010PGCPBR0P: cusname is Not Duplicated
+2025-10-11T15:41:58.721330+0700 INFO Order: 251010PHWN7S40 Start!!
+2025-10-11T15:42:13.321389+0700 INFO 251010PHWN7S40: cusname is Not Duplicated
+2025-10-11T15:43:05.381117+0700 INFO Order: 251010PNCFYGN0 Start!!
+2025-10-11T15:43:32.978483+0700 INFO 251010PNCFYGN0: cusname is Not Duplicated
+2025-10-11T15:44:28.429541+0700 INFO Order: 251010PNDDH60C Start!!
+2025-10-11T15:44:43.867421+0700 INFO 251010PNDDH60C: cusname is Not Duplicated
+2025-10-11T15:45:30.465201+0700 INFO Order: 251010PPK9MWY3 Start!!
+2025-10-11T15:45:45.843754+0700 INFO 251010PPK9MWY3: cusname is Not Duplicated
+2025-10-11T15:46:30.020903+0700 INFO Order: 251010PRXMHVFW Start!!
+2025-10-11T15:46:43.486686+0700 INFO 251010PRXMHVFW: cusname is Not Duplicated
+2025-10-11T15:47:34.501793+0700 INFO Order: 251010PW9T8DJX Start!!
+2025-10-11T15:47:49.797628+0700 INFO 251010PW9T8DJX: cusname is Not Duplicated
+2025-10-11T15:48:38.134188+0700 INFO Order: 251010Q2PYYGPQ Start!!
+2025-10-11T15:48:52.208115+0700 INFO 251010Q2PYYGPQ: cusname is Not Duplicated
+2025-10-11T15:49:34.940726+0700 INFO Order: 251010Q4V8BC4P Start!!
+2025-10-11T15:49:47.773482+0700 INFO 251010Q4V8BC4P: cusname is Not Duplicated
+2025-10-11T15:50:57.277009+0700 INFO Order: 251010Q814GVBX Start!!
+2025-10-11T15:51:11.942968+0700 INFO 251010Q814GVBX: cusname is Not Duplicated
+2025-10-11T15:52:05.624837+0700 INFO Order: 251010QCAF3XKC Start!!
+2025-10-11T15:52:21.056340+0700 INFO 251010QCAF3XKC: cusname is Not Duplicated
+2025-10-11T15:53:13.707004+0700 INFO Order: 251010QCH6MCFQ Start!!
+2025-10-11T15:53:28.490260+0700 INFO 251010QCH6MCFQ: cusname is Not Duplicated
+2025-10-11T15:54:14.207072+0700 INFO Order: 251010QEA8V46D Start!!
+2025-10-11T15:54:30.270111+0700 INFO 251010QEA8V46D: cusname is Not Duplicated
+2025-10-11T15:55:08.544722+0700 INFO Order: 251010QEF75JW9 Start!!
+2025-10-11T15:55:24.326921+0700 INFO 251010QEF75JW9: cusname is Not Duplicated
+2025-10-11T15:56:39.036441+0700 INFO Order: 251010QESG63TG Start!!
+2025-10-11T15:56:52.995175+0700 INFO 251010QESG63TG: cusname is Not Duplicated
+2025-10-11T15:57:38.123964+0700 INFO Order: 251010QF390XG2 Start!!
+2025-10-11T15:57:53.199803+0700 INFO 251010QF390XG2: cusname is Not Duplicated
+2025-10-11T16:01:19.702883+0700 INFO Order: 251010QFTE2VAH Start!!
+2025-10-11T16:01:34.160297+0700 INFO 251010QFTE2VAH: cusname is Not Duplicated
+2025-10-11T16:02:22.955322+0700 INFO Order: 251010QH0KQ0HM Start!!
+2025-10-11T16:02:44.781431+0700 INFO 251010QH0KQ0HM: cusname is Not Duplicated
+2025-10-11T16:02:46.851372+0700 INFO 251010QH0KQ0HM: compare self.current_address & self.desired_full_address
+2025-10-11T16:02:46.860589+0700 INFO 793-795ถนนทรงวาดจักรวรรดิสัมพันธวงศ์กรุงเทพมหานคร10100
+2025-10-11T16:02:46.861585+0700 INFO 793-795ถนนทรงวาดจักรวรรดิสัมพันธวงศ์กรุงเทพมหานคร53190
+2025-10-11T16:04:18.461040+0700 INFO Order: 251011QMNVDHWN Start!!
+2025-10-11T16:04:32.599449+0700 INFO 251011QMNVDHWN: cusname is Not Duplicated
+2025-10-11T16:05:12.863126+0700 INFO Order: 251011QMQD12BA Start!!
+2025-10-11T16:05:26.758300+0700 INFO 251011QMQD12BA: cusname is Not Duplicated
+2025-10-11T16:06:12.320099+0700 INFO Order: 251010Q2R83DMH Start!!
+2025-10-11T16:07:41.319269+0700 INFO Order: 251010Q2R83DMH stop operation
+2025-10-11T16:07:42.180123+0700 INFO Order: 251010PPNRUADB Start!!
+2025-10-11T16:07:56.073521+0700 INFO Order: 251010PPNRUADB stop operation
+2025-10-11T16:07:57.337742+0700 INFO Order: 251010PSCB91WB Start!!
+2025-10-11T16:08:11.649224+0700 INFO 251010PSCB91WB: cusname is Not Duplicated
+2025-10-11T16:09:03.247105+0700 INFO Order: 251010PKDJR8VQ Start!!
+2025-10-11T16:10:01.487557+0700 INFO Order: 251010PN20884S Start!!
+2025-10-11T16:10:14.631437+0700 INFO 251010PN20884S: cusname is Not Duplicated
+2025-10-11T16:12:04.231985+0700 INFO Order: 251010Q6FV490C Start!!
+2025-10-11T16:12:17.351460+0700 INFO 251010Q6FV490C: cusname is Not Duplicated
+2025-10-11T16:13:39.302977+0700 INFO Order: 251010PXA22P7X Start!!
+2025-10-11T16:13:53.126162+0700 INFO 251010PXA22P7X: cusname is Not Duplicated
+2025-10-11T16:20:46.064182+0700 INFO Order: 251010PXA22P7X stop operation
+2025-10-11T16:20:47.079578+0700 INFO Order: 251010PFAMAYSH Start!!
+2025-10-11T16:22:18.901841+0700 INFO Order: 251010PQWQQQWA Start!!
+2025-10-11T16:22:27.241659+0700 INFO 251010PQWQQQWA: compare self.current_address & self.desired_full_address
+2025-10-11T16:22:27.242665+0700 INFO 111/110หมู่ที่7บางคูวัดเมืองปทุมธานีปทุมธานี12000
+2025-10-11T16:22:27.242665+0700 INFO 111/110หมู่7บางคูวัดเมืองปทุมธานีปทุมธานี12000
+2025-10-11T16:24:01.435230+0700 INFO Order: 251010PPTWRUV3 Start!!
+2025-10-11T16:24:16.371692+0700 INFO 251010PPTWRUV3: cusname is Not Duplicated
+2025-10-11T16:25:26.609228+0700 INFO Order: 251010PTDGQ317 Start!!
+2025-10-11T16:25:39.659282+0700 INFO 251010PTDGQ317: cusname is Not Duplicated
+2025-10-11T16:26:28.941403+0700 INFO Order: 251010Q3CBT5DR Start!!
+2025-10-11T16:26:45.205940+0700 INFO 251010Q3CBT5DR: cusname is Not Duplicated
+2025-10-11T16:27:21.260142+0700 INFO Order: 251010Q8FTP6UW Start!!
+2025-10-11T16:27:34.999255+0700 INFO 251010Q8FTP6UW: cusname is Not Duplicated
+2025-10-11T16:28:24.093649+0700 INFO Order: 251010N9JYH2UY Start!!
+2025-10-11T16:28:37.148635+0700 INFO 251010N9JYH2UY: cusname is Not Duplicated
+2025-10-11T16:29:37.607044+0700 INFO Order: 251010PC5WWG1H Start!!
+2025-10-11T16:29:51.621822+0700 INFO 251010PC5WWG1H: cusname is Not Duplicated
+2025-10-11T16:30:39.093125+0700 INFO Order: 251010PE4XWDCT Start!!
+2025-10-11T16:30:45.462876+0700 INFO 251010PE4XWDCT: compare self.current_address & self.desired_full_address
+2025-10-11T16:30:45.464173+0700 INFO 18/1ม.4ธรรมศาลาเมืองนครปฐมนครปฐม73000
+2025-10-11T16:30:45.464173+0700 INFO 18/1หมู่4ธรรมศาลาเมืองนครปฐมนครปฐม73000
+2025-10-11T16:32:06.601106+0700 INFO Order: 251010PJYNDPD5 Start!!
+2025-10-11T16:32:32.092573+0700 INFO 251010PJYNDPD5: cusname is Not Duplicated
+2025-10-11T16:33:13.791218+0700 INFO Order: 251010PKX9SNJA Start!!
+2025-10-11T16:34:35.965839+0700 INFO Order: 251010PMJ3232U Start!!
+2025-10-11T16:34:41.863989+0700 INFO 251010PMJ3232U: compare self.current_address & self.desired_full_address
+2025-10-11T16:34:41.865502+0700 INFO 78/159ซ.คู้บอน27แยก29ท่าแร้ง บางเขนกรุงเทพมหานคร10220
+2025-10-11T16:34:41.865502+0700 INFO 78/159ซ.คู้บอน27แยก29ท่าแร้งบางเขนกรุงเทพมหานคร10220
+2025-10-11T16:35:56.102595+0700 INFO Order: 251010PMX83BBV Start!!
+2025-10-11T16:36:58.334990+0700 INFO Order: 251010PWBFMRPE Start!!
+2025-10-11T16:37:12.784523+0700 INFO 251010PWBFMRPE: cusname is Not Duplicated
+2025-10-11T16:37:59.934437+0700 INFO Order: 251010PWN1QTNR Start!!
+2025-10-11T16:38:05.819683+0700 INFO 251010PWN1QTNR: compare self.current_address & self.desired_full_address
+2025-10-11T16:38:05.820703+0700 INFO 43รองเมืองซอย3ถนนรองเมือรองเมืองปทุมวันกรุงเทพมหานคร10330
+2025-10-11T16:38:05.821325+0700 INFO 43รองเมืองซอย3รองเมืองปทุมวันกรุงเทพมหานคร10330
+2025-10-11T16:39:38.066275+0700 INFO Order: 251010PWN1QTNR stop operation
+2025-10-11T16:39:38.071268+0700 INFO Order: 251010PWN1QTNR outer_Exception_Error!! Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff7135b4b91]
+	(No symbol) [0x0x7ff7136640fe]
+	(No symbol) [0x0x7ff7136848c2]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T16:39:38.629742+0700 INFO Order: 251010QBDWDFFM Start!!
+2025-10-11T16:39:52.173713+0700 INFO 251010QBDWDFFM: cusname is Not Duplicated
+2025-10-11T16:40:29.234338+0700 INFO Order: 251010QEAJDADM Start!!
+2025-10-11T16:40:44.258512+0700 INFO 251010QEAJDADM: cusname is Not Duplicated
+2025-10-11T16:41:16.912972+0700 INFO Order: 251010QK65HGSP Start!!
+2025-10-11T16:41:31.680999+0700 INFO 251010QK65HGSP: cusname is Not Duplicated
+2025-10-11T16:42:15.826666+0700 INFO Order: 251011QKN758JQ Start!!
+2025-10-11T16:42:29.734412+0700 INFO 251011QKN758JQ: cusname is Not Duplicated
+2025-10-11T16:43:09.796759+0700 INFO Order: 251011QKQPBG0D Start!!
+2025-10-11T16:43:36.907887+0700 INFO 251011QKQPBG0D: cusname is Not Duplicated
+2025-10-11T16:44:26.082705+0700 INFO Order: 251011QPC6XSXF Start!!
+2025-10-11T16:44:39.005035+0700 INFO 251011QPC6XSXF: cusname is Not Duplicated
+2025-10-11T16:45:10.634073+0700 INFO Order: 251011QPME4XMC Start!!
+2025-10-11T16:45:33.961721+0700 INFO 251011QPME4XMC: cusname is Not Duplicated
+2025-10-11T16:46:24.993132+0700 INFO Order: 251010PEUHR86C Start!!
+2025-10-11T16:46:38.666333+0700 INFO 251010PEUHR86C: cusname is Not Duplicated
+2025-10-11T16:47:25.234512+0700 INFO Order: 251010PGY4Q88A Start!!
+2025-10-11T16:47:39.276752+0700 INFO 251010PGY4Q88A: cusname is Not Duplicated
+2025-10-11T16:48:13.692628+0700 INFO Order: 251010QB6C616S Start!!
+2025-10-11T16:48:27.967765+0700 INFO 251010QB6C616S: cusname is Not Duplicated
+2025-10-11T16:48:59.723489+0700 INFO Order: 251010QE35VU4C Start!!
+2025-10-11T16:49:13.633002+0700 INFO 251010QE35VU4C: cusname is Not Duplicated
+2025-10-11T16:50:20.734153+0700 INFO Order: 251010QJ29AB3H Start!!
+2025-10-11T16:50:46.443412+0700 INFO 251010QJ29AB3H: cusname is Not Duplicated
+2025-10-11T16:51:44.131861+0700 INFO Order: 251010QJ684UQE Start!!
+2025-10-11T16:51:58.037159+0700 INFO 251010QJ684UQE: cusname is Not Duplicated
+2025-10-11T16:52:28.200632+0700 INFO Order: 251010QKDF5XPR Start!!
+2025-10-11T16:52:42.073155+0700 INFO 251010QKDF5XPR: cusname is Not Duplicated
+2025-10-11T16:53:15.479151+0700 INFO Order: 251011QPA0BWHU Start!!
+2025-10-11T16:53:44.574549+0700 INFO 251011QPA0BWHU: cusname is Not Duplicated
+2025-10-11T16:54:16.521370+0700 INFO Order: 251010PJ37MU02 Start!!
+2025-10-11T16:54:43.844857+0700 INFO 251010PJ37MU02: cusname is Not Duplicated
+2025-10-11T16:57:49.694260+0700 INFO Order: 251010PJ37MU02 stop operation
+2025-10-11T16:57:50.523091+0700 INFO Order: 251009KWB2EGGM Start!!
+2025-10-11T16:58:06.449825+0700 INFO 251009KWB2EGGM: cusname is Not Duplicated
+2025-10-11T16:58:49.529506+0700 INFO Order: 251010PDFECD02 Start!!
+2025-10-11T16:58:55.267070+0700 INFO 251010PDFECD02: compare self.current_address & self.desired_full_address
+2025-10-11T16:58:55.267605+0700 INFO เลขที่455/1ตรอก/ซอยพระรามเก้าซอย13ถนนพระรามเก้าบางกะปิห้วยขวางกรุงเทพมหานคร10310
+2025-10-11T16:58:55.267605+0700 INFO 455/1พระรามเก้าซอย13ถนนพระรามเก้าบางกะปิห้วยขวางกรุงเทพมหานคร10310
+2025-10-11T17:00:02.509674+0700 INFO Order: 251010Q4GXXWN3 Start!!
+2025-10-11T17:00:17.549321+0700 INFO 251010Q4GXXWN3: cusname is Not Duplicated
+2025-10-11T17:00:55.491662+0700 INFO Order: 251010PD1TG1KN Start!!
+2025-10-11T17:01:09.319689+0700 INFO 251010PD1TG1KN: cusname is Not Duplicated
+2025-10-11T17:01:51.489033+0700 INFO Order: 251010PD4DEPT9 Start!!
+2025-10-11T17:02:15.170460+0700 INFO 251010PD4DEPT9: cusname is Not Duplicated
+2025-10-11T17:03:01.755128+0700 INFO Order: 251010Q66HNJYY Start!!
+2025-10-11T17:03:16.660919+0700 INFO 251010Q66HNJYY: cusname is Not Duplicated
+2025-10-11T17:04:25.009773+0700 INFO Order: 251010PCTY5GMK Start!!
+2025-10-11T17:04:39.185219+0700 INFO 251010PCTY5GMK: cusname is Not Duplicated
+2025-10-11T17:05:23.933662+0700 INFO Order: 251010PCTY5GMK stop operation
+2025-10-11T17:05:25.077479+0700 INFO Order: 251010PMY3RT5G Start!!
+2025-10-11T17:06:54.680112+0700 INFO Order: 251010PKAYSWU5 Start!!
+2025-10-11T17:07:10.129166+0700 INFO 251010PKAYSWU5: cusname is Not Duplicated
+2025-10-11T17:07:56.368094+0700 INFO Order: 251010Q21P3QQU Start!!
+2025-10-11T17:08:11.207355+0700 INFO 251010Q21P3QQU: cusname is Not Duplicated
+2025-10-11T17:08:52.575203+0700 INFO Order: 251010QD7FYR42 Start!!
+2025-10-11T17:09:44.243845+0700 INFO Order: 251010QJP7CFM9 Start!!
+2025-10-11T17:09:58.292703+0700 INFO 251010QJP7CFM9: cusname is Not Duplicated
+2025-10-11T17:10:36.356555+0700 INFO Order: 251011RGTBNQJK Start!!
+2025-10-11T17:10:50.330327+0700 INFO 251011RGTBNQJK: cusname is Not Duplicated
+2025-10-11T17:11:51.233097+0700 INFO Order: 251010QKFJ0KTX Start!!
+2025-10-11T17:12:16.096159+0700 INFO 251010QKFJ0KTX: cusname is Not Duplicated
+2025-10-11T17:13:00.611345+0700 INFO Order: 251010QCJ813B0 Start!!
+2025-10-11T17:13:13.848409+0700 INFO 251010QCJ813B0: cusname is Not Duplicated
+2025-10-11T17:13:54.441722+0700 INFO Order: 251010QD5AAEQH Start!!
+2025-10-11T17:14:08.452553+0700 INFO 251010QD5AAEQH: cusname is Not Duplicated
+2025-10-11T17:14:46.495136+0700 INFO Order: 251010PQP4J7K4 Start!!
+2025-10-11T17:20:33.965730+0700 INFO Order: 251011QRG4BC4Y Start!!
+2025-10-11T17:20:40.311450+0700 INFO 251011QRG4BC4Y: compare self.current_address & self.desired_full_address
+2025-10-11T17:20:40.312459+0700 INFO 10หมู่10สุรนารีเมืองนครราชสีมานครราชสีมา30000
+2025-10-11T17:20:40.312459+0700 INFO เลขที่10หมู่10สุรนารีเมืองนครราชสีมานครราชสีมา30000
+2025-10-11T17:24:28.031063+0700 INFO Order: 251010PX9Y8X0X Start!!
+2025-10-11T17:24:43.692528+0700 INFO 251010PX9Y8X0X: cusname is Not Duplicated
+2025-10-11T17:25:30.496091+0700 INFO Order: 251010QJEP2J97 Start!!
+2025-10-11T17:25:44.231335+0700 INFO 251010QJEP2J97: cusname is Not Duplicated
+2025-10-11T17:27:58.172002+0700 INFO Order: 251010Q2R83DMH Start!!
+2025-10-11T17:29:28.766386+0700 INFO Order: 251010Q2R83DMH stop operation
+2025-10-11T17:29:30.146479+0700 INFO Order: 251010PPNRUADB Start!!
+2025-10-11T17:29:33.906884+0700 INFO Order: 251010PPNRUADB outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T17:29:34.753683+0700 INFO Order: 251010PXA22P7X Start!!
+2025-10-11T17:29:38.672655+0700 INFO Order: 251010PXA22P7X outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T17:29:39.262585+0700 INFO Order: 251010PJ37MU02 Start!!
+2025-10-11T17:29:42.952158+0700 INFO Order: 251010PJ37MU02 outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T17:29:43.838723+0700 INFO Order: 251010PCTY5GMK Start!!
+2025-10-11T17:29:47.419237+0700 INFO Order: 251010PCTY5GMK outer_Exception_Error!! Message: no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"}
+  (Session info: chrome=141.0.7390.66); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x7ff71385fca5+79861]
+	GetHandleVerifier [0x0x7ff71385fd00+79952]
+	(No symbol) [0x0x7ff7135dcada]
+	(No symbol) [0x0x7ff713634457]
+	(No symbol) [0x0x7ff71363471c]
+	(No symbol) [0x0x7ff713688217]
+	(No symbol) [0x0x7ff71365cb1f]
+	(No symbol) [0x0x7ff713684f8b]
+	(No symbol) [0x0x7ff71365c8b3]
+	(No symbol) [0x0x7ff713625272]
+	(No symbol) [0x0x7ff713626043]
+	GetHandleVerifier [0x0x7ff713b1b9dd+2946349]
+	GetHandleVerifier [0x0x7ff713b15c5a+2922410]
+	GetHandleVerifier [0x0x7ff713b359e7+3052855]
+	GetHandleVerifier [0x0x7ff71387aa8e+189918]
+	GetHandleVerifier [0x0x7ff713882a2f+222591]
+	GetHandleVerifier [0x0x7ff713868ac4+116244]
+	GetHandleVerifier [0x0x7ff713868c79+116681]
+	GetHandleVerifier [0x0x7ff71384f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-11T17:30:25.027243+0700 INFO Order: 251010PPNRUADB Start!!
+2025-10-11T17:32:40.736033+0700 INFO Order: 251010PXA22P7X Start!!
+2025-10-11T17:34:29.235027+0700 INFO Order: 251010PXA22P7X stop operation
+2025-10-11T17:34:30.127584+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-10-11T17:34:30.847408+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
