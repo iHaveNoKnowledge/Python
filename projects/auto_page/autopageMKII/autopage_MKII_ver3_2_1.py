@@ -3720,6 +3720,9 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                                
+                                #Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
+                                self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
 
                                 try:
                                     # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด

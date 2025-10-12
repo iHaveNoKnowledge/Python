@@ -4108,3 +4108,167 @@ Stacktrace:
 2025-10-11T17:34:29.235027+0700 INFO Order: 251010PXA22P7X stop operation
 2025-10-11T17:34:30.127584+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
 2025-10-11T17:34:30.847408+0700 INFO Order:  operation_task_thread_outer_Exception_Error!! 'MyApp' object has no attribute 'search_complete'
+2025-10-12T10:19:59.681441+0700 INFO Order: 251012U98P3Q9W Not found in the shopee's Export File
+2025-10-12T10:20:00.935768+0700 INFO Order: 251012U98P3Q9W Start!!
+2025-10-12T10:20:09.096347+0700 INFO Order: 251012U98P3Q9W outer_Exception_Error!! 'MyApp' object has no attribute 'order_status'
+2025-10-12T10:20:54.615449+0700 INFO Order: 251012U98P3Q9W Start!!
+2025-10-12T10:20:56.950937+0700 INFO Order: 251012U98P3Q9W outer_Exception_Error!! method operation_start Error : Traceback (most recent call last):
+  File "c:\Users\ONLINE_MIS\Desktop\Trans-am 31-01-2022\Projects\python\Python\projects\auto_page\autopageMKII\autopage_MKII_ver3_1_4.py", line 3238, in operation_start
+    self.searchBtn.click()
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 94, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 395, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\ONLINE_MIS\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button data-v-ff857689="" data-v-2df5d49d="" type="button" class="eds-button eds-button--primary eds-button--normal eds-button--outline search-btn" data-testid="order-list-search">...</button> is not clickable at point (1129, 286). Other element would receive the click: <div data-v-aed74027="" class="eds-table__cell align-center last-cell">...</div>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+
+2025-10-12T10:21:39.459137+0700 INFO Order: 251012U98P3Q9W Start!!
+2025-10-12T10:21:54.923821+0700 INFO 251012U98P3Q9W: cusname is Not Duplicated
+2025-10-12T10:29:08.885957+0700 INFO Order: 251010PXA22P7X Start!!
+2025-10-12T10:33:34.956980+0700 INFO Order: 251010PJ37MU02 Start!!
+2025-10-12T10:34:42.272900+0700 INFO Order: 251010PCTY5GMK Start!!
+2025-10-12T10:46:43.413254+0700 INFO Order: 251012T6QUGQGQ Start!!
+2025-10-12T10:51:47.224709+0700 INFO Order: 251011RT87D8TH Start!!
+2025-10-12T10:52:54.008332+0700 INFO Order: 251011RSGM4GYK Start!!
+2025-10-12T10:53:04.770644+0700 INFO Order: 251011RSGM4GYK outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-pristine ng-untouched ng-valid ng-empty ng-valid-maxlength" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-12T10:53:21.408690+0700 INFO Order: 251011RSGM4GYK Start!!
+2025-10-12T10:53:36.153048+0700 INFO 251011RSGM4GYK: cusname is Not Duplicated
+2025-10-12T10:54:36.959901+0700 INFO Order: 251012T6H15085 Start!!
+2025-10-12T10:56:46.092407+0700 INFO Order: 251011T3UB8XSN Start!!
+2025-10-12T10:58:10.052102+0700 INFO Order: 251011SY7C9D15 Start!!
+2025-10-12T10:58:23.242898+0700 INFO 251011SY7C9D15: cusname is Not Duplicated
+2025-10-12T11:00:26.476005+0700 INFO Order: 251011T2094FDR Start!!
+2025-10-12T11:00:40.440008+0700 INFO 251011T2094FDR: cusname is Not Duplicated
+2025-10-12T11:20:48.416209+0700 INFO Order: 251010Q50MGNMC Start!!
+2025-10-12T11:20:56.570306+0700 INFO 251010Q50MGNMC: compare self.current_address & self.desired_full_address
+2025-10-12T11:20:56.571309+0700 INFO 74-76ถ.หลังพระพระปฐมเจดีย์เมืองนครปฐมนครปฐม73000
+2025-10-12T11:20:56.572423+0700 INFO 74-76ถนนหลังพระพระปฐมเจดีย์เมืองนครปฐมนครปฐม73000
+2025-10-12T11:22:38.354596+0700 INFO Order: 251011RYDP753H Start!!
+2025-10-12T11:22:49.207056+0700 INFO Order: 251011RYDP753H outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-12T11:23:10.276975+0700 INFO Order: 251011RYDP753H stop operation
+2025-10-12T11:23:36.353591+0700 INFO Order: 251011RYDP753H Start!!
+2025-10-12T11:23:50.648163+0700 INFO 251011RYDP753H: cusname is Not Duplicated
+2025-10-12T11:27:03.510369+0700 INFO Order: 251012TSMCRKS7 Start!!
+2025-10-12T11:27:16.795364+0700 INFO 251012TSMCRKS7: cusname is Not Duplicated
+2025-10-12T11:32:11.081204+0700 INFO Order: 251012U53MVYDX Start!!
+2025-10-12T11:32:24.837946+0700 INFO Order: 251012U53MVYDX outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-12T11:32:33.512361+0700 INFO Order: 251012U53MVYDX Start!!
+2025-10-12T11:32:48.016539+0700 INFO 251012U53MVYDX: cusname is Not Duplicated
+2025-10-12T11:39:17.289901+0700 INFO Order: 251011SR6W8365 Start!!
+2025-10-12T11:39:34.252412+0700 INFO 251011SR6W8365: cusname is Not Duplicated
