@@ -3393,9 +3393,6 @@ class Bot_POS:
                 self.get_tabs()
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                 
-            # # todo for testing เปิด "SMCO :: เปิดการขาย" ใหม่
-            # print(f"""testing เปิด "SMCO :: เปิดการขาย" ใหม่")
-            # return
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
             self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
@@ -4055,6 +4052,8 @@ class Bot_POS:
     def customer_class_selector(self, is_functionworking):
         customer_form_dialog_element = False
         #todo เช็ค dialog form โหลดเสร็จยัง
+        print(f"self.operation_thread.is_set() {self.operation_thread.is_set()}")
+        print(f"is_functionworking) {is_functionworking}")
         while is_functionworking and not self.operation_thread.is_set():
             try:
                 #* ไม่เจอ faded backdrop แปลว่ายังไม่เปิดnew cus form มันเลยจะไปเปิดใน except แล้วกลับมา 
@@ -4179,6 +4178,7 @@ class Bot_POS:
         except:
             print(f"{self.app.cus_order.get()}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
             
+        print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
         self.customer_class_selector(is_functionworking)
 
         # Prepare customer data based on type

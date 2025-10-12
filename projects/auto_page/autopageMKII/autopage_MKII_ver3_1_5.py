@@ -4043,6 +4043,8 @@ class Bot_POS:
     def customer_class_selector(self, is_functionworking):
         customer_form_dialog_element = False
         #todo เช็ค dialog form โหลดเสร็จยัง
+        print(f"self.operation_thread.is_set() {self.operation_thread.is_set()}")
+        print(f"is_functionworking) {is_functionworking}")
         while is_functionworking and not self.operation_thread.is_set():
             try:
                 #* ไม่เจอ faded backdrop แปลว่ายังไม่เปิดnew cus form มันเลยจะไปเปิดใน except แล้วกลับมา 
@@ -4050,12 +4052,15 @@ class Bot_POS:
                 customer_class_input = self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
                 if customer_form_dialog_element.is_displayed() and customer_class_input.is_displayed():
                     print(f"customer_form_dialog_element: {customer_form_dialog_element.is_displayed()}")
-                    print(f"customer_class_input: {customer_class_input.is_displayed()}")
+                    print(f"OK!! customer_class_input: {customer_class_input.is_displayed()}")
                     break
-            except:
-                self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
-                time.sleep(0.55)
-                continue
+            except Exception as err:
+                try:
+                    self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()# * กดปุ่ม create customer
+                    print(f"No create customer form click 'create customer' button")
+                except:
+                    time.sleep(0.55)
+                    continue
         
         #* มีตัว Customer Class ให้กรอกไหม
         while is_functionworking and not self.operation_thread.is_set():
@@ -4141,7 +4146,7 @@ class Bot_POS:
         except:
             print(f"{self.app.cus_order.get()}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
         
-        print("customer_class_selector()")
+        print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
         self.customer_class_selector(is_functionworking)
 
         # Prepare customer data based on type

@@ -4272,3 +4272,208 @@ Stacktrace:
 2025-10-12T11:32:48.016539+0700 INFO 251012U53MVYDX: cusname is Not Duplicated
 2025-10-12T11:39:17.289901+0700 INFO Order: 251011SR6W8365 Start!!
 2025-10-12T11:39:34.252412+0700 INFO 251011SR6W8365: cusname is Not Duplicated
+2025-10-12T12:48:27.787585+0700 INFO Order: 251011SCV52XWQ Start!!
+2025-10-12T12:48:41.733156+0700 INFO 251011SCV52XWQ: cusname is Not Duplicated
+2025-10-12T12:49:46.891904+0700 INFO Order: 251011RYBAUMFP Start!!
+2025-10-12T12:50:02.854354+0700 INFO 251011RYBAUMFP: cusname is Not Duplicated
+2025-10-12T12:51:19.040791+0700 INFO Order: 251010Q12V0870 Start!!
+2025-10-12T12:51:32.745229+0700 INFO 251010Q12V0870: cusname is Not Duplicated
+2025-10-12T12:52:17.198375+0700 INFO Order: 251011QQ40143Q Start!!
+2025-10-12T12:52:31.646860+0700 INFO 251011QQ40143Q: cusname is Not Duplicated
+2025-10-12T12:53:18.839675+0700 INFO Order: 251011RBR7P74B Start!!
+2025-10-12T12:53:32.554087+0700 INFO 251011RBR7P74B: cusname is Not Duplicated
+2025-10-12T14:34:46.227241+0700 INFO Order: 251011RDVR580C Start!!
+2025-10-12T14:35:00.788582+0700 INFO 251011RDVR580C: cusname is Not Duplicated
+2025-10-12T14:35:47.883750+0700 INFO Order: 251011RG31V9VK Start!!
+2025-10-12T14:36:02.019533+0700 INFO 251011RG31V9VK: cusname is Not Duplicated
+2025-10-12T14:36:57.453373+0700 INFO Order: 251011RKP0665W Start!!
+2025-10-12T14:37:11.604127+0700 INFO 251011RKP0665W: cusname is Not Duplicated
+2025-10-12T14:37:46.816115+0700 INFO Order: 251011RMFFMCPG Start!!
+2025-10-12T14:38:00.321449+0700 INFO 251011RMFFMCPG: cusname is Not Duplicated
+2025-10-12T14:38:35.837456+0700 INFO Order: 251011RQCNQDFY Start!!
+2025-10-12T14:39:17.245021+0700 INFO Order: 251011RRSWDUY8 Start!!
+2025-10-12T14:39:31.370776+0700 INFO 251011RRSWDUY8: cusname is Not Duplicated
+2025-10-12T14:40:13.857433+0700 INFO Order: 251011RS3R5PBA Start!!
+2025-10-12T14:40:27.329422+0700 INFO 251011RS3R5PBA: cusname is Not Duplicated
+2025-10-12T14:41:02.821433+0700 INFO Order: 251011RY83UV37 Start!!
+2025-10-12T14:41:18.587450+0700 INFO 251011RY83UV37: cusname is Not Duplicated
+2025-10-12T14:42:03.781864+0700 INFO Order: 251011RY83UV37 outer_Exception_Error!! 'NoneType' object has no attribute 'is_displayed'
+2025-10-12T14:42:04.575557+0700 INFO Order: 251011RYU1E9U1 Start!!
+2025-10-12T14:42:20.704162+0700 INFO 251011RYU1E9U1: cusname is Not Duplicated
+2025-10-12T14:43:01.322712+0700 INFO Order: 251011S4N040V2 Start!!
+2025-10-12T14:43:38.918442+0700 INFO Order: 251011S4YDYA5G Start!!
+2025-10-12T14:43:54.151111+0700 INFO 251011S4YDYA5G: cusname is Not Duplicated
+2025-10-12T14:44:32.302433+0700 INFO Order: 251011S8N6UX9J Start!!
+2025-10-12T14:44:46.794301+0700 INFO 251011S8N6UX9J: cusname is Not Duplicated
+2025-10-12T14:45:21.174930+0700 INFO Order: 251011SAH3RK8J Start!!
+2025-10-12T14:45:36.541242+0700 INFO 251011SAH3RK8J: cusname is Not Duplicated
+2025-10-12T14:46:08.895575+0700 INFO Order: 251012T99NCKCS Start!!
+2025-10-12T14:46:23.110202+0700 INFO 251012T99NCKCS: cusname is Not Duplicated
+2025-10-12T14:47:03.594590+0700 INFO Order: 251012TA1EAXQA Start!!
+2025-10-12T14:47:16.612412+0700 INFO 251012TA1EAXQA: cusname is Not Duplicated
+2025-10-12T14:48:05.361441+0700 INFO Order: 251012T8ENA807 Start!!
+2025-10-12T14:49:12.610298+0700 INFO Order: 251012T8ENA807 stop operation
+2025-10-12T14:49:13.194982+0700 INFO Order: 251011RP400JBA Start!!
+2025-10-12T14:49:30.793915+0700 INFO Order: 251011RP400JBA stop operation
+2025-10-12T14:49:31.395294+0700 INFO Order: 251011QRYFFWSP Start!!
+2025-10-12T14:49:44.841578+0700 INFO Order: 251011QRYFFWSP stop operation
+2025-10-12T14:49:45.896487+0700 INFO Order: 251012U4S2D6J3 Start!!
+2025-10-12T14:49:59.850953+0700 INFO 251012U4S2D6J3: cusname is Not Duplicated
+2025-10-12T14:53:10.705089+0700 INFO Order: 251010PHBBQC57 Start!!
+2025-10-12T14:53:25.423141+0700 INFO 251010PHBBQC57: cusname is Not Duplicated
+2025-10-12T14:54:01.187755+0700 INFO Order: 251011RUYEM38Q Start!!
+2025-10-12T14:54:27.575532+0700 INFO 251011RUYEM38Q: cusname is Not Duplicated
+2025-10-12T14:55:01.558742+0700 INFO Order: 251011S82E1H2D Start!!
+2025-10-12T14:55:53.684340+0700 INFO Order: 251011RQGRCJ6H Start!!
+2025-10-12T14:56:48.826771+0700 INFO Order: 251011S4AGG736 Start!!
+2025-10-12T14:57:12.028552+0700 INFO 251011S4AGG736: cusname is Not Duplicated
+2025-10-12T14:57:47.626242+0700 INFO Order: 251011QPVU2F4B Start!!
+2025-10-12T14:58:02.505994+0700 INFO 251011QPVU2F4B: cusname is Not Duplicated
+2025-10-12T14:58:37.558551+0700 INFO Order: 251011QQ06VN0F Start!!
+2025-10-12T14:58:51.210637+0700 INFO 251011QQ06VN0F: cusname is Not Duplicated
+2025-10-12T14:59:31.161087+0700 INFO Order: 251011R97M14NQ Start!!
+2025-10-12T14:59:45.459755+0700 INFO 251011R97M14NQ: cusname is Not Duplicated
+2025-10-12T15:00:21.996532+0700 INFO Order: 251011RVC6QC8S Start!!
+2025-10-12T15:00:36.237320+0700 INFO 251011RVC6QC8S: cusname is Not Duplicated
+2025-10-12T15:01:14.125893+0700 INFO Order: 251011RVSG4FBP Start!!
+2025-10-12T15:01:27.978245+0700 INFO 251011RVSG4FBP: cusname is Not Duplicated
+2025-10-12T15:02:24.344638+0700 INFO Order: 251011S4AN7H8U Start!!
+2025-10-12T15:02:38.419649+0700 INFO 251011S4AN7H8U: cusname is Not Duplicated
+2025-10-12T15:03:39.249156+0700 INFO Order: 251012U5YAVHVP Start!!
+2025-10-12T15:03:50.122068+0700 INFO Order: 251012U5YAVHVP outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-12T15:03:50.588673+0700 INFO Order: 251011QT0H36A1 Start!!
+2025-10-12T15:04:17.855294+0700 INFO 251011QT0H36A1: cusname is Not Duplicated
+2025-10-12T15:05:06.980437+0700 INFO Order: 251011RPTXAWT5 Start!!
+2025-10-12T15:05:29.861667+0700 INFO 251011RPTXAWT5: cusname is Not Duplicated
+2025-10-12T15:06:08.482871+0700 INFO Order: 251011RYJ1FJTQ Start!!
+2025-10-12T15:06:23.359134+0700 INFO 251011RYJ1FJTQ: cusname is Not Duplicated
+2025-10-12T15:06:56.457532+0700 INFO Order: 251011S1PG2DEY Start!!
+2025-10-12T15:07:13.698426+0700 INFO 251011S1PG2DEY: cusname is Not Duplicated
+2025-10-12T15:07:49.570015+0700 INFO Order: 251011S41Q5YHK Start!!
+2025-10-12T15:08:04.235392+0700 INFO 251011S41Q5YHK: cusname is Not Duplicated
+2025-10-12T15:08:41.726625+0700 INFO Order: 251012THKQQNX2 Start!!
+2025-10-12T15:08:55.509797+0700 INFO 251012THKQQNX2: cusname is Not Duplicated
+2025-10-12T15:09:29.230187+0700 INFO Order: 251011RKW0B07E Start!!
+2025-10-12T15:11:29.913402+0700 INFO Order: 251012TF62F923 Start!!
+2025-10-12T15:11:36.924053+0700 INFO 251012TF62F923: compare self.current_address & self.desired_full_address
+2025-10-12T15:11:36.924053+0700 INFO 
+2025-10-12T15:11:36.924053+0700 INFO 239/2หมู่4บางหญ้าแพรกเมืองสมุทรสาครสมุทรสาคร74000
+2025-10-12T15:12:46.415305+0700 INFO Order: 251012TKWBAXAR Start!!
+2025-10-12T15:12:59.798554+0700 INFO 251012TKWBAXAR: cusname is Not Duplicated
+2025-10-12T15:14:15.383364+0700 INFO Order: 251011QSU3KUN3 Start!!
+2025-10-12T15:14:25.258977+0700 INFO Order: 251011QSU3KUN3 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-12T15:14:25.953432+0700 INFO Order: 251011R56493AX Start!!
+2025-10-12T15:14:39.165895+0700 INFO 251011R56493AX: cusname is Not Duplicated
+2025-10-12T15:16:19.357316+0700 INFO Order: 251011RGAXM5FD Start!!
+2025-10-12T15:16:34.900933+0700 INFO 251011RGAXM5FD: cusname is Not Duplicated
+2025-10-12T15:17:38.436087+0700 INFO Order: 251011RPQR7PMW Start!!
+2025-10-12T15:17:54.112550+0700 INFO 251011RPQR7PMW: cusname is Not Duplicated
+2025-10-12T15:18:47.531184+0700 INFO Order: 251011RSMAC69A Start!!
+2025-10-12T15:19:01.091121+0700 INFO 251011RSMAC69A: cusname is Not Duplicated
+2025-10-12T15:19:52.591139+0700 INFO Order: 251011S177RMAQ Start!!
+2025-10-12T15:20:06.991967+0700 INFO 251011S177RMAQ: cusname is Not Duplicated
+2025-10-12T15:20:57.716731+0700 INFO Order: 251011S72YWADN Start!!
+2025-10-12T15:21:21.290672+0700 INFO 251011S72YWADN: cusname is Not Duplicated
+2025-10-12T15:22:31.100494+0700 INFO Order: 251012TVJ33FSF Start!!
+2025-10-12T15:22:38.004136+0700 INFO 251012TVJ33FSF: compare self.current_address & self.desired_full_address
+2025-10-12T15:22:38.005480+0700 INFO 
+2025-10-12T15:22:38.005480+0700 INFO อาคารศูนย์เรียนรู้สุขภาวะเลขที่99/8ซอยงามดูพลีทุ่งมหาเมฆสาทรกรุงเทพมหานคร10120
+2025-10-12T15:24:14.624934+0700 INFO Order: 251012TE6KB7T7 Start!!
+2025-10-12T15:24:30.291947+0700 INFO 251012TE6KB7T7: cusname is Not Duplicated
+2025-10-12T15:25:45.239240+0700 INFO Order: 251011QQC4ABB3 Start!!
+2025-10-12T15:26:46.864733+0700 INFO Order: 251011RWTNGQN8 Start!!
+2025-10-12T15:27:02.917878+0700 INFO 251011RWTNGQN8: cusname is Not Duplicated
+2025-10-12T15:27:55.385357+0700 INFO Order: 251011RXVUDH05 Start!!
+2025-10-12T15:28:10.533822+0700 INFO 251011RXVUDH05: cusname is Not Duplicated
+2025-10-12T15:28:59.152138+0700 INFO Order: 251012TSKH4UKD Start!!
+2025-10-12T15:29:12.518385+0700 INFO 251012TSKH4UKD: cusname is Not Duplicated
+2025-10-12T15:32:29.679487+0700 INFO Order: 251012U5YAVHVP Start!!
+2025-10-12T15:32:44.668130+0700 INFO 251012U5YAVHVP: cusname is Not Duplicated
+2025-10-12T15:34:03.692268+0700 INFO Order: 251011QSU3KUN3 Start!!
+2025-10-12T15:34:14.750643+0700 INFO Order: 251011QSU3KUN3 outer_Exception_Error!! Message: element click intercepted: Element <button class="btn btn-sm btn-outline btn-primary " type="button" id="newMember" ng-click="findNewMember(true);" ng-hide="_readOnlyPage === '1'" ng-show="posbook.data.transactionTypeId === undefined || (posbook.data.transactionTypeId === 91200001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)" title="">...</button> is not clickable at point (1421, 418). Other element would receive the click: <textarea class="form-control validate ng-valid ng-valid-maxlength ng-dirty ng-touched ng-empty" rows="4" maxlength="150" placeholder="Define 150 digits." validate-special-character="" check-sc="',&amp;" style="resize: none;" id="addressCustomer" name="addressCustomer" ng-model="memberNew.data.dataOfMemberAddress.custAddress" title=""></textarea>
+  (Session info: chrome=141.0.7390.66)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff7b8a2fca5+79861]
+	GetHandleVerifier [0x0x7ff7b8a2fd00+79952]
+	(No symbol) [0x0x7ff7b87acada]
+	(No symbol) [0x0x7ff7b880c5d9]
+	(No symbol) [0x0x7ff7b8809f5e]
+	(No symbol) [0x0x7ff7b8806eb1]
+	(No symbol) [0x0x7ff7b8805da0]
+	(No symbol) [0x0x7ff7b87f7338]
+	(No symbol) [0x0x7ff7b882cada]
+	(No symbol) [0x0x7ff7b87f6bc6]
+	(No symbol) [0x0x7ff7b882ccf0]
+	(No symbol) [0x0x7ff7b8854f8b]
+	(No symbol) [0x0x7ff7b882c8b3]
+	(No symbol) [0x0x7ff7b87f5272]
+	(No symbol) [0x0x7ff7b87f6043]
+	GetHandleVerifier [0x0x7ff7b8ceb9dd+2946349]
+	GetHandleVerifier [0x0x7ff7b8ce5c5a+2922410]
+	GetHandleVerifier [0x0x7ff7b8d059e7+3052855]
+	GetHandleVerifier [0x0x7ff7b8a4aa8e+189918]
+	GetHandleVerifier [0x0x7ff7b8a52a2f+222591]
+	GetHandleVerifier [0x0x7ff7b8a38ac4+116244]
+	GetHandleVerifier [0x0x7ff7b8a38c79+116681]
+	GetHandleVerifier [0x0x7ff7b8a1f058+11176]
+	BaseThreadInitThunk [0x0x7fffbe46e8d7+23]
+	RtlUserThreadStart [0x0x7fffbfd68d9c+44]
+
+2025-10-12T15:34:26.445207+0700 INFO Order: 251011QSU3KUN3 Start!!
+2025-10-12T15:34:42.917629+0700 INFO 251011QSU3KUN3: cusname is Not Duplicated
