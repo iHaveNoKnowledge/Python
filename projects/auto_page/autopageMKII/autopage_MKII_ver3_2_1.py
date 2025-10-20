@@ -1735,13 +1735,6 @@ class MyApp:
                 for item in self.items:
                     net_price = item['ราคาขายสุทธิ'] + item['ส่วนลดจาก Shopee']
                     self.net_prices_list.append(net_price)
-                # print(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
-                # print(f"ที่อยู่: {result['address']}")
-                # print("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
-                # self.update_log(f"ขอใบกำกับไหม? {result['is_tax'].get()}")
-                # self.update_log(f"ที่อยู่: {result['address']}")
-                # self.update_log("self.bot.get_tabs() ต้องถูกใช้ที่นี่")
-                # loopสินค้า
 
                 self.sum_price = sum(self.net_prices_list)
                 self.show_products(self.items)
@@ -1933,9 +1926,9 @@ class MyApp:
         self.operation_thread.set()
         self.order_Search_thread.set()
         self.operation_thread.clear()
-        print("self.operation_thread: ", self.operation_thread.is_set())
 
         # * สร้าง Thread
+        self.bot.get_tabs()
         self.shorter_thread_cycle = threading.Thread(target=lambda: self.bot.operation_task_thread(self.operation_thread))
         self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.order_Search_thread))
         print("Thread Name: ", self.longer_thread_cycle.name)
@@ -2252,6 +2245,7 @@ class Bot_POS:
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
         self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
+        self.is_memory_checking = False
 
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
@@ -2436,7 +2430,7 @@ class Bot_POS:
     def pre_operation_memory_cleanup(self, operation_name="operation"):
         """ตรวจสอบและจัดการ memory ก่อนเริ่ม operation สำคัญ (เฉพาะ SMCO tabs)"""
         print(f"\n=== Pre-operation Memory Cleanup: {operation_name} ===")
-
+        self.is_memory_checking = True
         try:
             current_handle = self.driver.current_window_handle
             all_handles = self.driver.window_handles
@@ -2451,7 +2445,7 @@ class Bot_POS:
                 try:
                     self.driver.switch_to.window(handle)
                     tab_title = self.driver.title
-
+                    print(f"handle No. {i+1}: {tab_title}")
                     # จัดการเฉพาะ tabs ที่มี "SMCO :: " ในชื่อ
                     if "SMCO :: " in tab_title:
                         smco_tabs_found += 1
@@ -2509,9 +2503,11 @@ class Bot_POS:
                 self.driver.get(target_url)
             
             print("="*50)
+            self.is_memory_checking = False
 
         except Exception as e:
             print(f"Error in pre-operation memory cleanup: {e}")
+            self.is_memory_checking = False
 
     def manage_browser_memory(self, operation_name="operation"):
         """หลัก method สำหรับจัดการ memory ของ browser (ใช้แค่สำหรับการนับ operation)"""
@@ -2652,7 +2648,6 @@ class Bot_POS:
         self.operation_thread = event
         if not self.operation_thread.is_set():
             try:
-                self.get_tabs()
                 # * เริ่มการทำงาน Operation Start
                 if self.app.order != "" and not self.operation_thread.is_set():
 
@@ -3171,8 +3166,19 @@ class Bot_POS:
 
             ####* IF MARKETPLACE IS SHOPEE ###################################################################################################################################
             if self.app.marketplace_target.get() == 'SHOPEE':
+                while self.is_memory_checking:
+                    try:
+                        print("Wait For memory checking.....")
+                        time.sleep(1)
+                        continue
+                    except:
+                        print("Memory checking done.")
+                        break
                 self.driver.switch_to.window(self.merged_dict['Seller Centre'])
+                print("switch to 'Seller Centre'")
+                time.sleep(1)
                 self.operation_states['purchase_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
+                print(f"self.operation_states['purchase_channel']: {self.operation_states['purchase_channel']}")
                 cur_url = self.driver.current_url
 
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน add_new_customer, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
@@ -3599,7 +3605,11 @@ class Bot_POS:
                 
             # todo for testing
             # * Update Accel file //////////////////////
-            self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            try:
+                self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            except Exception as err:
+                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+                
             logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
             return    
 
