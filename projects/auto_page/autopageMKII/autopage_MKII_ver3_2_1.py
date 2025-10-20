@@ -1396,6 +1396,11 @@ class MyApp:
         self.order = order.strip()
         if len(self.order) < 14: raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
+        
+        #* Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
+        if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
+            self.bot.pre_operation_memory_cleanup("search_order")
+            
         differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า','ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
         non_differential_col_data = [
             'หมายเลขคำสั่งซื้อ',
@@ -1760,18 +1765,14 @@ class MyApp:
 
             else:
                 print(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
-                print(
-                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
+                print("อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
                 print("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
                 self.update_log(f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
-                self.update_log(
-                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
-                self.update_log(
-                    "ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
-                self.update_log(
-                    "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+                self.update_log("อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
+                self.update_log("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
+                self.update_log("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
                 self.reset_all_display()
                 logger.info(f"Order: {self.search_query} Not found in the shopee's Export File")
 
@@ -1905,11 +1906,6 @@ class MyApp:
         self.is_bot_running.set(True)
         self.autofinal = False
         
-
-
-        # Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
-        if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
-            self.bot.pre_operation_memory_cleanup("search_order")
         # * ลบ result products list เก่า
         for widget in self.mp_products_list_frame.winfo_children()[6:]:
             widget.destroy()
@@ -1920,6 +1916,7 @@ class MyApp:
             self.search_query = self.entered_order.get()
 
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
+        
         self.entered_order.set("")
         if self.search_query != "":
             self.report_log.configure(state=NORMAL)
@@ -3162,11 +3159,6 @@ class Bot_POS:
         is_etax = False
 
         #! Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation อาจจะไม่ต้องใช้ก็ได้ เพราะใช้ใน
-        # try:
-        #     self.pre_operation_memory_cleanup("main_operation")
-        # except Exception as e:
-        #     print(f"Memory management error: {e}")
-
         inv_number = ""
         self.operation_states = {"purchase_channel":None}
         if self.app.order != "" and not self.operation_thread.is_set():
@@ -3607,8 +3599,9 @@ class Bot_POS:
                 
             # todo for testing
             # * Update Accel file //////////////////////
-            # self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            # return    
+            self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
+            return    
 
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
