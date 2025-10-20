@@ -182,7 +182,7 @@
 # ! 178 /bug/ state ของ sn หายไปด้วย เวลาที่ order ที่แล้ว ยังไม่ได้ใช้ พอไป order ถัดไป sn ที่ไม่ได้ใช้ดันหายไปด้วย state มีนอิงจาก obj_data_from_accel_file (มาจากไฟล์ excel) ต้อง test ด้วยการใช้ order1, order2 แล้วใช้ sn1 แค่อันเดียว ให้มันใส่ sn1 ที่ order1 แล้วกดข้าม order1 แล้วไป order2 แล้วดูว่ามันจะเอา sn1 มาใช้ได้ไหม
 # * 179 /Fixed/ ข้อความแสดง sku ของ shopee mimic gui ของหมึก มันไม่มี 00 นำหน้า
 # * 180 /feat/ 3.2.1 && 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
-# ? 181 /fixed/ ทำตัวรอเวลาหากมีการเช็ค mem ให้อย่างเพิ่ง switch หน้า /Bug/ มันมี 2 threads ที่มัน conflit กันเองเวลาใช้ function get_tabs ตอนเช็ค memory กับตอนเช็ค status มันทำงานพร้อมกัน
+# ? 181 /fixed/!!!ยังไม่ดีหรอก ต้องเทสต่ออีกหน่อย!! ทำตัวรอเวลาหากมีการเช็ค memery ให้function อ่านค่าจาก excel อย่าเพิ่ง switch หน้า ไปเช็ค status shopee /Bug/ มันมี 2 threads ที่มัน conflit กันเองเวลาใช้ function get_tabs ตอนเช็ค memory กับตอนเช็ค status มันทำงานพร้อมกัน
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
