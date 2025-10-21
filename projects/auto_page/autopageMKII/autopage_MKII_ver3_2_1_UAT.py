@@ -2973,7 +2973,7 @@ class Bot_POS:
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
         # * clear ชื่อ เก่า
-        self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
+        self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir).click()
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_open = True if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul) else False
@@ -3622,18 +3622,18 @@ class Bot_POS:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
-            self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
+            self.cus_name_span_elmt_dir = '#select2-memberSearch-container'
             self.cus_name_span_x_btn_text = ""
             self.is_reset = False
             while not self.operation_thread.is_set():
                 try:
-                    self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir)
+                    self.cus_name_span_elmt = self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir)
                     self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
                     print("เจอ element cus_name_span_elmt")
                     break
                 except:
                     print("ยังไม่เจอ element cus_name_span_elmt")
-                    time.sleep(0.5)
+                    time.sleep(1)
                     continue
 
             if self.cus_name_span_x_btn_text == 'Please select':
@@ -3648,11 +3648,11 @@ class Bot_POS:
                 print("เช็คว่าต้องรีไหม", self.is_reset)
                 if self.is_reset:
                     print("รีนี่หว่า, กดรีเลย")
-                    self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
+                    self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir).click()
                     items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
                     if len(items_list) == 0:
                         # * คลิกเพื่อให้ปิด droprdown
-                        self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
+                        self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir).click()
                         print("ปิด dropwdown กรณีไม่มีสินค้า")
                     else:
                         # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
@@ -3676,7 +3676,7 @@ class Bot_POS:
                                 print("Click OK(except)")
                         # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
                         try:
-                            self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click()
+                            self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir).click()
                             print("Cusname still appear the btn 'x' is available.")
                         except:
                             print("Cusname has disappeared no 'x' to press.")
@@ -3904,7 +3904,7 @@ class Bot_POS:
                             if sn_window.is_displayed():
                                 # print("หน้า SN กำลังโชว์")
 
-                                # if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).is_displayed():
+                                # if self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir).is_displayed():
                                 continue
 
                             else:
@@ -5136,7 +5136,7 @@ class Bot_POS:
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
             # ? /lasted update/ปัจจุบันหากผลลัพเปนอันเดิมมันจะไม่ resetละทำให้code ส่วนนี้อาจจะไร้ประโยชน์  ปิดไว้ก่อย/todo/เพื่อ reset ค่า address ให้เป็น lasted update
-            # self.driver.find_element(By.XPATH, self.cus_name_span_elmt_dir).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
+            # self.driver.find_element(By.CSS_SELECTOR, self.cus_name_span_elmt_dir).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
             # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button').click() #* กด dropdown เพื่อดู list ประเภทของการ query data ลูกค้า
             # self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
             # self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
