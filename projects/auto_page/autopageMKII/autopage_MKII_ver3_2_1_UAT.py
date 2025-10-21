@@ -284,7 +284,7 @@ class MyApp:
         ))
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver3.2.1")
+        self.root.title("Autosamatic ver3.2.1 UAT")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
@@ -2411,7 +2411,7 @@ class Bot_POS:
             'itcity': 'SHOPEE',
             'shp_wisegadget_master': 'SHOPEE Wise Gadget',
         }
-        self.origin = BaseUrlFinder().check_available_ip()
+        self.origin = "http://115.31.167.19:9099/"
 
         # Memory management tracking
         self.operation_count = 0
