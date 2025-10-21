@@ -131,6 +131,7 @@ class MyApp:
         self.cookies = {'vatinfo': {'JSESSIONID': '', }}
         self.is_bot_browser_busy = BooleanVar(value=False)
         self.mimic_list_item_states = []
+        self.POP_UP = PopUp(self.root)
 
         # * เราจะใช้สอง obj หลักๆ UI กับ BOT WEBDRIVER ###################################################################
         # * 1)Create UI ---------------------------------------------------------------------------------------------
@@ -145,6 +146,8 @@ class MyApp:
 
         # * 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
         self.bot = Bot_POS(self.root, self)
+
+        
 
     def demonic_cp_selection(self):
         self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
@@ -1859,8 +1862,12 @@ class MyApp:
         print("ก่อน seller voucher popup")
         if self.is_seller_voucher_popup.get() and self.cus_seller_voucher.get() > 0:
             txtsize = self.cal_adjusted_font_size(1920, 24)
-            PopUp("Seller Voucher Notification",
-                  f"มี Seller Voucher {self.cus_seller_voucher.get()} บาท", self.root, "alert", txtsize=txtsize)
+            self.POP_UP.show(
+                "Seller Voucher Notification",
+                f"มี Seller Voucher {self.cus_seller_voucher.get()} บาท",
+                "alert",
+                txtsize=txtsize
+            )
             print("seller voucher popup ต้องเด้งละ")
 
         self.on_complete.set()
@@ -2115,26 +2122,72 @@ class DataSourceSelector:
 
 class PopUp:
     """
-    Class PopUp use for create a pop-up for THE BOT GUI
+    Class PopUp use for create a reusable pop-up for THE BOT GUI
     Parameters:
-        - title (str): Title name of the pop-up.
-        - message (str): For display a message in the pop-up.
         - parent (obj): class parent obj. อยากให้ใครอุ้มส่งไปให้คนนั้น
-        - mode (str): มี 2 ทางเลือก "form" สำหรับ submit, "alert" สำหรับ alert
+
+    Usage:
+        # สร้างครั้งเดียวตอน init
+        popup = PopUp(parent_window)
+
+        # เรียกใช้ได้เรื่อยๆ
+        popup.show(title="Error", message="Something wrong", mode="alert")
+        popup.show(title="Confirm", message="Submit data?", mode="form")
     """
 
-    def __init__(self, title, message, parent, mode, **kwargs):
-        self.mode_opt = {"form": "Submit", "alert": "Close"}
-        self.mode = mode
+    _instances = {}  # เก็บ instance แยกตาม parent
+
+    def __new__(cls, parent):
+        # Singleton pattern - ถ้ามี parent นี้แล้ว ให้ return instance เดิม
+        if parent not in cls._instances:
+            cls._instances[parent] = super().__new__(cls)
+        return cls._instances[parent]
+
+    def __init__(self, parent):
+        # ป้องกัน re-init ถ้า instance มีอยู่แล้ว
+        if hasattr(self, '_initialized'):
+            return
+
         self.parent = parent
+        self.mode_opt = {"form": "Submit", "alert": "Close"}
+        self.subwindow = None
+        self._initialized = True
+
+        # ผูก cleanup กับการปิด parent window
+        self.parent.bind("<Destroy>", self._cleanup, add="+")
+
+    def show(self, title, message, mode="alert", **kwargs):
+        """
+        แสดง popup ใหม่ หรือ update popup ที่มีอยู่
+
+        Parameters:
+            - title (str): Title name of the pop-up
+            - message (str): For display a message in the pop-up
+            - mode (str): "form" สำหรับ submit, "alert" สำหรับ alert
+            - **kwargs: txtsize สำหรับขนาดตัวอักษร
+        """
+        # ถ้ามี popup เปิดอยู่แล้ว ให้ destroy ก่อน
+        if self.subwindow and self.subwindow.winfo_exists():
+            self.subwindow.destroy()
+
+        self.mode = mode
         self.title = title
         self.message = message
-        self.create_subwindow(**kwargs)
+        self._create_subwindow(**kwargs)
+
+    def hide(self):
+        """ซ่อน popup (ไม่ destroy)"""
+        if self.subwindow and self.subwindow.winfo_exists():
+            self.subwindow.withdraw()
 
     def delete(self):
-        self.subwindow.destroy()
+        """ปิด popup"""
+        if self.subwindow and self.subwindow.winfo_exists():
+            self.subwindow.destroy()
+            self.subwindow = None
 
-    def create_subwindow(self, **kwargs):
+    def _create_subwindow(self, **kwargs):
+        """สร้าง popup window (internal method)"""
         self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
         self.subwindow.geometry("400x140+650+400")
@@ -2142,35 +2195,55 @@ class PopUp:
         self.subwindow.grab_set()
         self.subwindow.resizable(True, False)
 
-        # * สร้างเฟรม
+        # สร้างเฟรม
         self.subwin_frame = CTkFrame(self.subwindow)
         self.subwin_frame.pack(padx=10, pady=10, fill='x', expand=True)
 
-        # * สร้าง Texted widget
+        # สร้าง Textbox widget
         self.fontSize = kwargs.get('txtsize') or 9
         self.id_label = CTkTextbox(self.subwin_frame, font=("bazooka", self.fontSize))
         self.id_label.insert(END, f'{self.message}')
         self.id_label.pack(fill=BOTH, expand=True)
         self.id_label.configure(state=DISABLED)
 
-        # * Submit Button
-        self.submit_btn = CTkButton(self.subwin_frame, text=f"{self.mode_opt[self.mode]}", command=self.delete)
+        # Submit/Close Button
+        self.submit_btn = CTkButton(
+            self.subwin_frame,
+            text=f"{self.mode_opt[self.mode]}",
+            command=self.delete
+        )
         self.submit_btn.pack(fill='x', expand=True)
 
-        # * ยก widget นี้ ขึ้นมาหน้าสุด
-        # > กำหนดตำแหน่งเฉยๆ ยังไม่ขยับ ต้องไปสั่งขยับอีกที
+        # ยก widget นี้ขึ้นมาหน้าสุด
         self.subwindow.attributes('-topmost', 1)
-        # > ยกมาในตำแหน่งที่กำหนดจาก attribute ที่แล้ว
         self.subwindow.lift()
+
+    def _cleanup(self, event=None):
+        """ทำลาย instance เมื่อ parent window ถูกปิด"""
+        if self.subwindow and self.subwindow.winfo_exists():
+            self.subwindow.destroy()
+
+        # ลบ instance ออกจาก dict
+        if self.parent in PopUp._instances:
+            del PopUp._instances[self.parent]
+
+    @classmethod
+    def destroy_all(cls):
+        """ทำลาย popup ทั้งหมด (ใช้ตอน cleanup แอพ)"""
+        for instance in list(cls._instances.values()):
+            if instance.subwindow and instance.subwindow.winfo_exists():
+                instance.subwindow.destroy()
+        cls._instances.clear()
 
 # * class สำหรับรับ ID PASS
 
 
 class UserAccount:
-    def __init__(self, parent, app):
+    def __init__(self, parent, app={}):
         self.parent = parent
         self.app = app
         self.create_subwindow("Loginปลอม")
+        self.POP_UP = app.POP_UP
 
     def create_subwindow(self, title: str = "Untitled"):
         self.subwindow = CTkToplevel(self.parent)
@@ -2275,9 +2348,11 @@ class UserAccount:
             return True
         else:
             print("Incorrect username or password")
-            self.login_alert = PopUp(
-                "Login Fail!!", "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู", self.parent,
-                "alert")
+            self.login_alert = self.POP_UP.show(
+                "Login Fail!!",
+                "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู",
+                "alert",
+            )
             return False
 
     def update_btn(self):
@@ -2285,7 +2360,8 @@ class UserAccount:
         user_input_th_included = bool(re.search(r'[\u0E00-\u0E7F]', user_input))
         if self.app.user_id.get() and self.app.user_pw.get():
             if user_input_th_included:
-                self.login_alert = PopUp("Login Fail!!", "พาสเวิร์ดมีภาษาไทย ไม่สามารถ login ได้", self.parent, "alert")
+                self.login_alert = self.POP_UP.show(
+                    title="Login Fail!!", message="พาสเวิร์ดมีภาษาไทย ไม่สามารถ login ได้", mode="alert")
             # is_closable = self.login()
             else:
                 is_closable = True
@@ -2436,66 +2512,93 @@ class Bot_POS:
             return 0
 
     def close_and_reopen_tab_if_memory_high(self, tab_name=None):
-        """ปิด tab เก่าแล้วเปิด tab ใหม่ ถ้าใช้ memory เกินกำหนด"""
-        logger.info(
-            f"{self.app.cus_order.get()}: Close and reopen tab if memory high check for '{tab_name or self.driver.current_url}'")
+        """ปิดแท็บเก่าแล้วเปิดใหม่ ถ้า memory เกิน limit"""
+
         try:
-            current_url = self.driver.current_url
+            # 🧭 ตรวจสอบ URL ปัจจุบัน
+            try:
+                current_url = self.driver.current_url
+            except Exception:
+                logger.warning("ไม่สามารถอ่าน current_url ได้ อาจไม่มีแท็บเปิดอยู่")
+                return False
+
             current_handle = self.driver.current_window_handle
             memory_usage = self.get_current_tab_memory_usage()
 
+            logger.info(
+                f"{self.app.cus_order.get()}: Checking memory for '{tab_name or current_url}' ({memory_usage:.1f}MB)"
+            )
+
+            # 🔥 ถ้าใช้ memory เกิน limit → รีโหลดแท็บ
             if memory_usage > self.max_memory_mb:
                 print(f"Memory usage ({memory_usage:.1f}MB) exceeds limit ({self.max_memory_mb}MB)")
-                print(f"Closing and reopening tab: {tab_name or current_url}")
+                print(f"Reopening tab: {tab_name or current_url}")
 
-                # เก็บ scroll position (ถ้าต้องการ)
+                # 🧾 เก็บตำแหน่ง scroll ปัจจุบัน
                 try:
-                    scroll_position = self.driver.execute_script("return window.pageYOffset;")
-                except:
+                    scroll_position = self.driver.execute_script("return document.scrollingElement.scrollTop;")
+                except Exception:
                     scroll_position = 0
 
-                # เปิด tab ใหม่
+                # 📑 เปิดแท็บใหม่อย่างปลอดภัย
+                old_handles = set(self.driver.window_handles)
                 self.driver.execute_script(f"window.open('{current_url}', '_blank');")
-                all_handles = self.driver.window_handles
-                new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
-                logger.info(f"{self.app.cus_order.get()}: opened new tab to reset memory for '{tab_name or current_url}'")
 
-                # ปิด tab เก่า
-                self.driver.switch_to.window(current_handle)
-                self.driver.close()
-                print("close the exceeded mem tab")
-                logger.info(f"{self.app.cus_order.get()}: closed old tab to reset memory for '{tab_name or current_url}'")
+                # ✅ รอจนกว่าจะมีแท็บใหม่โผล่
+                WebDriverWait(self.driver, 5).until(
+                    lambda d: len(set(d.window_handles) - old_handles) > 0
+                )
 
-                # ย้ายไป tab ใหม่
+                new_handle = list(set(self.driver.window_handles) - old_handles)[0]
+                logger.info(f"{self.app.cus_order.get()}: Opened new tab for '{tab_name or current_url}'")
+
+                # 🪟 สลับไปแท็บใหม่ก่อน แล้วค่อยปิดแท็บเก่า
+                self.driver.switch_to.window(new_handle)
+                try:
+                    self.driver.switch_to.window(current_handle)
+                    self.driver.close()
+                    logger.info(f"{self.app.cus_order.get()}: Closed old tab for '{tab_name or current_url}'")
+                except Exception as e:
+                    logger.warning(f"Error closing old tab: {e}")
+
+                # 🔁 สลับกลับไปแท็บใหม่อีกครั้ง
                 self.driver.switch_to.window(new_handle)
 
-                # โหลด URL เดิม
-                # self.driver.get(current_url)
-                # logger.info(f"{self.app.cus_order.get()}: reloaded URL in new tab to reset memory for '{tab_name or current_url}'")
+                # ⏳ รอหน้าโหลดเสร็จจริง (แทนการ sleep)
+                WebDriverWait(self.driver, 10).until(
+                    lambda d: d.execute_script("return document.readyState") == "complete"
+                )
 
-                # รอให้หน้าโหลดเสร็จ
-                time.sleep(1)
-
-                # กลับไปยัง scroll position เดิม (ถ้าต้องการ)
+                # 📜 กลับไป scroll ตำแหน่งเดิม
                 try:
-                    self.driver.execute_script(f"window.scrollTo(0, {scroll_position});")
-                except:
+                    self.driver.execute_script(f"document.scrollingElement.scrollTop = {scroll_position};")
+                except Exception:
                     pass
 
+                # 🔍 อัปเดตข้อมูลแท็บทั้งหมด
                 self.get_tabs()
-                # อัพเดท merged_dict ให้ชี้ไป handle ใหม่
-                for key, value in self.merged_dict.items():
+
+                # 🔄 อัปเดต handle ใน merged_dict
+                updated = False
+                for key, value in list(self.merged_dict.items()):
                     if value == current_handle:
                         self.merged_dict[key] = new_handle
-                        print(f"Updated {key} handle to new tab")
-                        break
+                        updated = True
+                        print(f"Updated {key} handle → new tab")
+                if not updated:
+                    print("⚠️ No merged_dict entry matched old handle")
 
-                print(f"Tab closed and reopened successfully - Memory should be cleaned")
+                print("✅ Tab closed and reopened successfully (memory cleaned)")
                 return True
+
+            # ถ้า memory ยังไม่เกิน limit → ไม่ต้องทำอะไร
             return False
+
         except Exception as e:
-            print(f"Error closing/reopening tab: {e}")
+            print(f"❌ Error closing/reopening tab: {e}")
+            logger.error(f"close_and_reopen_tab_if_memory_high failed: {e}")
             return False
+
 
     # เก็บฟังก์ชันเก่าไว้เป็น backup
     def refresh_tab_if_memory_high(self, tab_name=None):
@@ -2584,21 +2687,21 @@ class Bot_POS:
 
             print(f"Memory cleanup completed: {tabs_cleaned}/{smco_tabs_found} SMCO tabs cleaned")
             #! กำลังทดลองยังไม่พร้อมใช้ testing ลองดูอันนี้ก่อนนะ เพราะแม่งเปิดใหม่ไม่ติดไม่รู้เปนไรเปิดข้างนอกแม่งเลยดูดิจะเจอเบาะแสไรไหม
-            print("Testing")
-            for i in enumerate(tabs_cleaned):
-                target_url = f'{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm'
-                # เปิด tab ใหม่
-                self.driver.execute_script(f"window.open('{target_url}');")
-                all_handles = self.driver.window_handles
-                new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
+            # print("Testing")
+            # for i in enumerate(tabs_cleaned):
+            #     target_url = f'{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm'
+            #     # เปิด tab ใหม่
+            #     self.driver.execute_script(f"window.open('{target_url}');")
+            #     all_handles = self.driver.window_handles
+            #     new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
 
-                # ย้ายไป tab ใหม่
-                self.driver.switch_to.window(new_handle)
+            #     # ย้ายไป tab ใหม่
+            #     self.driver.switch_to.window(new_handle)
 
-                # โหลด URL เดิม
-                self.driver.get(target_url)
+            #     # โหลด URL เดิม
+            #     self.driver.get(target_url)
 
-            print("="*50)
+            # print("="*50)
             self.is_memory_checking = False
 
         except Exception as e:
@@ -3373,15 +3476,15 @@ class Bot_POS:
                     text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
                     self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
-                    PopUp("Caution!!",
-                          f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    self.app.POP_UP.show("Caution!!",
+                                    f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
                     self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    PopUp("Caution!!",
-                          f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", self.parent, "alert")
+                    self.app.POP_UP.show("Caution!!",
+                                    f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -3811,7 +3914,7 @@ class Bot_POS:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
                             print("Show only the part of obj err", err.alert_text)
-                            PopUp("SN Duplicate", f'{err.alert_text}', self.parent, "alert")
+                            self.app.POP_UP.show("SN Duplicate", f'{err.alert_text}', "alert")
                             # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                             # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
                             # print("Popupโผล่")
@@ -4872,10 +4975,9 @@ class Bot_POS:
         # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
         if not any(cus_address.values()):
             print("Address not matched")
-            # PopUp(
+            # self.app.POP_UP.show(
             #     "Error",
             #     "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง",
-            #     self.parent,
             #     "alert"
             # )
 
@@ -5422,7 +5524,7 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                PopUp("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", self.parent, "alert")
+                self.app.POP_UP.show("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", "alert")
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
@@ -5492,6 +5594,7 @@ if __name__ == "__main__":
     def on_closing():
         print("Tkinter window is closing")
         root.destroy()
+        PopUp.destroy_all()
 
     # def ctrl_saraea_copy(event):
     #     ctrl_state = event.state & 0x4 != 0  # 0x4 คือ flag สำหรับ Control key
