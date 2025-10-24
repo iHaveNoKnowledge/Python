@@ -2757,7 +2757,6 @@ class Bot_POS:
         # cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a' # ! >> old fashion way
         # green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'   # ! >> old fashion way ปุ่มยืนยันสีเขียว
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
-
         item_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         item_list_cp_btn_elements = self.driver.find_elements(
             By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
