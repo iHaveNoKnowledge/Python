@@ -2741,7 +2741,7 @@ class Bot_POS:
         except Exception as e:
             print(f"Error in reset_all_tabs_memory: {e}")
 
-    def demonic_cp_bot(self, item_no:int, cp_no:int):
+    def demonic_cp_bot(self, item_no: int, cp_no: int):
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
@@ -2754,11 +2754,14 @@ class Bot_POS:
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         # *>  element location
         # * >> ปุ่มคูปองด้านนอก ที่ตำแหน่ง [-4] จะเป็นตัวแยก element หรือ ตัวบอกตำแหน่งของ element ว่าเป็นลำดับที่เท่าไหร่ อย่างตัวอย่างนี้เป็น อันที่1
-        cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
-        green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'
+        # cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a' # ! >> old fashion way
+        # green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'   # ! >> old fashion way ปุ่มยืนยันสีเขียว
+        green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
 
         item_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-        item_list_cp_btn_elements = self.driver.find_elements(By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
+        item_list_cp_btn_elements = self.driver.find_elements(
+            By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
+
         try:
             # * ก่อน SMCOver 6.3.3
             cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
@@ -2767,18 +2770,18 @@ class Bot_POS:
             cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
 
         for idx, item in enumerate(self.demonic_ordered_items_list):
+            item_position = idx+1
             print("จำนวน skus in SMCO POS ", len(item_list_elements))
             for idx2, div in enumerate(item_list_elements):
+                li_position = idx2+1
                 try:
-                    is_found = div.text.find(item)
-                    li_position = idx2+1
-
-                    if is_found != -1:
-                        print("found at li no: ", li_position)
-                        print("is_found: ", is_found)
+                    is_found = item in div.text  # * มันจะ error ตรงนี้หาก divตัวไหนแปรสภาพหลังเลือก cp ไปแล้ว ทำให้มันจะข้าม loop ตั้งแต่ตรงนี้ แต่ข้ามแบบ error ซึ่ง exception ข้างล่างดักไว้แล้ว อยากเห็นลองเปิดดูได้
+                    # print(f"item: {item_position}, li no. {li_position}")
+                    # print("is_found: ", is_found)
+                    if is_found == True:
                         # cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'''
-                        cp_btn_xpath = item_list_cp_btn_elements[idx2].get_attribute('xpath')
-                        self.driver.find_element(By.XPATH, cp_btn_xpath).click()
+                        cp_btn_xpath = item_list_cp_btn_elements[idx2]
+                        cp_btn_xpath.click()
 
                         # * เลือก cp เป้าหมาย
                         selected_btn = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{
@@ -2786,14 +2789,16 @@ class Bot_POS:
                         self.driver.find_element(By.XPATH, selected_btn).click()
 
                         # * กดยืนยัน
-                        self.driver.find_element(By.XPATH, green_agree_btn_xpath).click()
-                        # time.sleep(1)
-                        continue
+                        self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
+                        # time.sleep(0.05)
+                        break
                         # print(div.text)
                     else:
                         # print("ไม่เจอ", item, "นะ")
                         pass
-                except:
+                except Exception as err:
+                    # Todo มันไม่ใช่เรื่องใหญ่อะไร exception นี้มักจะเกิดจาก elementที่เคยเลือกไปแล้วมันเปลี่ยนโครงสร้างแต่ elementใน item_list_elements ที่แกะมา ลูบทีละตัวมันเปนค่าเดิม ทำให้ loop รอบถัดไป error ที่ elementเดิมที่เคยเลือก cp ไปก่อนหน้า เช่น รับเข้ามา (<em>(1), <em>(2), <em>(3)) พอเลือก cp มันจะเป็นแบบนี้แทน (<em>(1CP), <em>(2), <em>(3)) แต่ตอน loop เราใช้ค่า <em>(1) ไปหา มันจะ error เพราะในหน้าเว็บมันกลายเปน <em>(1CP) ไปแล้ว
+                    # print("Demonic CP Bot inner Exception Error:", err)
                     pass
 
     def get_tabs(self):
@@ -4638,7 +4643,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
