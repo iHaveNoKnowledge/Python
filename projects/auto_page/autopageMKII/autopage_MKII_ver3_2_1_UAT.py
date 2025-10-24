@@ -1543,7 +1543,7 @@ class MyApp:
                     self.product_col_name_value_widget = CTkEntry(
                         self.mp_products_list_frame, width=int(self.cols_width[1]), height=14)
                     self.product_col_name_value_widget.insert(
-                        0, f"{" ".join(self.convert_text(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
+                        0, f"{" ".join(self.correct_sku_pattern(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
                     self.widgets_product_col_lst.append(self.product_col_name_value_widget)
                     self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
 
@@ -2044,7 +2044,7 @@ class MyApp:
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
-    def convert_text(self, text: str):
+    def correct_sku_pattern(self, text: str):
         result = []
         text = text.replace(" ", "")
         elements = text.split("+")
@@ -2741,12 +2741,13 @@ class Bot_POS:
         except Exception as e:
             print(f"Error in reset_all_tabs_memory: {e}")
 
-    def demonic_cp_bot(self, item_no, cp_no):
+    def demonic_cp_bot(self, item_no: int, cp_no: int):
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_ordered_items_list = self.app.convert_text(
-            self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        self.demonic_ordered_items_list = self.app.correct_sku_pattern(
+            self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)']
+        )
         print(f"self.demonic_ordered_items_list: {self.demonic_ordered_items_list}")
         print(f"self.cp_no: {self.cp_no}")
 
@@ -2756,7 +2757,9 @@ class Bot_POS:
         cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a'
         green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'
 
-        items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        item_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        item_list_cp_btn_elements = self.driver.find_elements(
+            By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
         try:
             # * ก่อน SMCOver 6.3.3
             cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[3]')
@@ -2764,11 +2767,9 @@ class Bot_POS:
             # * ตั้งแต่ SMCOver 6.3.3
             cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
 
-        # print("items_list", items_list)
         for idx, item in enumerate(self.demonic_ordered_items_list):
-            print("มาถึงนี่ไหม")
-            print("จำนวน div ", len(items_list_element))
-            for idx2, div in enumerate(items_list_element):
+            print("จำนวน skus in SMCO POS ", len(item_list_elements))
+            for idx2, div in enumerate(item_list_elements):
                 try:
                     is_found = div.text.find(item)
                     li_position = idx2+1
@@ -2776,8 +2777,8 @@ class Bot_POS:
                     if is_found != -1:
                         print("found at li no: ", li_position)
                         print("is_found: ", is_found)
-                        cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}
-                            ]/div/div[2]/div[3]/div[1]/button'''
+                        # cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'''
+                        cp_btn_xpath = item_list_cp_btn_elements[idx2].get_attribute('xpath')
                         self.driver.find_element(By.XPATH, cp_btn_xpath).click()
 
                         # * เลือก cp เป้าหมาย
