@@ -742,7 +742,8 @@ class MyApp:
         self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
-        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings")
+        columns = ("Productname", "Price", "QTY")
+        self.tree = ttk.Treeview(self.products_list_frame, columns=columns, show="headings")
         self.tree.column("Productname", anchor=W, width=350)
         self.tree.column("Price", width=self.measure_text("Price")+10)
         self.tree.column("QTY", width=self.measure_text("QTY")+10)
@@ -1449,8 +1450,9 @@ class MyApp:
         self.cus_order.set(self.order)
 
         # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
-        if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
-            self.bot.pre_operation_memory_cleanup("search_order")
+        # ! wip not ready yet
+        # if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
+        #     self.bot.pre_operation_memory_cleanup("search_order")
 
         differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า',
                                  'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
@@ -2513,7 +2515,7 @@ class Bot_POS:
         """ปิดแท็บเก่าแล้วเปิดใหม่ ถ้า memory เกิน limit"""
 
         try:
-            # 🧭 ตรวจสอบ URL ปัจจุบัน
+            # * ตรวจสอบ URL ปัจจุบัน
             try:
                 current_url = self.driver.current_url
             except Exception:
@@ -4332,11 +4334,9 @@ class Bot_POS:
         #     print("'MyApp' object has no attribute 'accel_search_thread'")
         #     pass
 
-    def customer_class_selector(self, is_functionworking):
+    def open_customer_form(self, is_functionworking):
         customer_form_dialog_element = False
         # todo เช็ค dialog form โหลดเสร็จยัง
-        print(f"self.operation_thread.is_set() {self.operation_thread.is_set()}")
-        print(f"is_functionworking) {is_functionworking}")
         while is_functionworking and not self.operation_thread.is_set():
             try:
                 # * ไม่เจอ faded backdrop แปลว่ายังไม่เปิดnew cus form มันเลยจะไปเปิดใน except แล้วกลับมา
@@ -4346,19 +4346,21 @@ class Bot_POS:
                     By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
                 if customer_form_dialog_element.is_displayed() and customer_class_input.is_displayed():
                     print(f"customer_form_dialog_element: {customer_form_dialog_element.is_displayed()}")
-                    time.sleep(0.75)
+                    time.sleep(0.25)
                     # * element นี้มันมาไม่ทัน จึงทำให้ต้องเขียน except และมี try except ซ้อนข้างล่างอีกชั้น
                     print(f"customer_class_input: {customer_class_input.is_displayed()}")
                     break
             except Exception as err:
                 # print(f"customer_class_selector error: {err}") #* handle ได้ละ
                 try:
+                    print(f"No create customer form, click 'create customer' button")
                     self.driver.find_element(By.CSS_SELECTOR, self.app.cusCreateBtn).click()  # * กดปุ่ม create customer
-                    print(f"No create customer form click 'create customer' button")
+                    print(f"'create customer' button clicked")
                 except:
-                    time.sleep(0.55)
+                    time.sleep(0.25)
                     continue
 
+    def customer_class_selector(self, is_functionworking):
         print("finding customer class dropdown initializing")
         # * มีตัว Customer Class ให้กรอกไหม
         while is_functionworking and not self.operation_thread.is_set():
@@ -4368,7 +4370,7 @@ class Bot_POS:
                 # self.driver.find_element(By.XPATH, '//*[@class="select2-selection__rendered" and @id="select2-memberClass-container"]').click()
                 while True:
                     print("customer class handler while start")
-                    time.sleep(0.30)
+                    time.sleep(0.25)
                     try:
                         self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").is_displayed()
                         print(f"dropdown target has been already displaying")
@@ -4387,7 +4389,7 @@ class Bot_POS:
                                 dropdown_input.click()
                                 print(f"dropdown clicked {dropdown_input.text}")
                                 # ! ต้องเช็ค ul ที่โผล่มาหลังจาก click ก่อน บางที click แล้วหาย
-                                time.sleep(0.30)
+                                time.sleep(0.25)
                                 continue
                             except:
                                 print(f"driver cannot see the element")
@@ -4396,7 +4398,7 @@ class Bot_POS:
                 # * บางจังหวะ มันไม่ขึ้น "CM1-Domestic Customer" แล้วมันข้ามไปใส่ชื่อเลย แล้วมันจะไปต่อไม่ได้เพราะ CM1-Domestic Customer ไม่ได้ถูกใส่
                 while True:
                     print("let's click the target li")
-                    time.sleep(0.55)
+                    time.sleep(0.25)
                     try:
                         print("click choice li")
                         choice_found = self.driver.find_element(
@@ -4407,7 +4409,7 @@ class Bot_POS:
                             print("the corrected choice is found")
                             self.driver.find_element(
                                 By.CSS_SELECTOR, '#customerNewModal > span > span > span.select2-search.select2-search--dropdown > input').clear()
-                            time.sleep(0.55)
+                            time.sleep(0.25)
                             self.driver.find_element(By.CSS_SELECTOR, "#select2-memberClass-results > li").click()
                             print(f"Click the choice")
                             break
@@ -4467,8 +4469,7 @@ class Bot_POS:
         except:
             print(f"{self.app.cus_order.get()}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
 
-        print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
-        self.customer_class_selector(is_functionworking)
+        self.open_customer_form(is_functionworking)
 
         # Prepare customer data based on type
         if customer_type == "normal":
@@ -4610,6 +4611,9 @@ class Bot_POS:
                     time.sleep(1.75)
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+
+                print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
+                self.customer_class_selector(is_functionworking)
 
                 # * CLick Save Button (commented out but kept for completeness)
                 if customer_type == "normal":
