@@ -4434,7 +4434,6 @@ class Bot_POS:
     def addCustomer(self, customer_type="normal", cusname_fixed=None):
         """
         Unified method to add customers to SMCO system
-
         Args:
             customer_type: "normal", "tax", or "tax_laz"
             cusname_fixed: For normal customers, the fixed customer name
