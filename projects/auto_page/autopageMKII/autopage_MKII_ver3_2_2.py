@@ -284,7 +284,7 @@ class MyApp:
         ))
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver3.2.2")
+        self.root.title("Autosamatic ver3.2.2TEST")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
@@ -4431,6 +4431,17 @@ class Bot_POS:
                 time.sleep(1)
                 print("except: ", err)  # for develop inspection
 
+    def dropdown_input_filler(self, locator:str, keys_to_send:str):
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
+        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(province)
+        time.sleep(1.55)
+        self.driver.find_element(
+            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+        pass
+
     def addCustomer(self, customer_type="normal", cusname_fixed=None):
         """
         Unified method to add customers to SMCO system
@@ -4522,8 +4533,10 @@ class Bot_POS:
             try:
                 # Name TH
                 # self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')))
-                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
-                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
+                self.driver.find_element(
+                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
 
                 # Name ENG
                 self.driver.find_element(
@@ -4572,8 +4585,7 @@ class Bot_POS:
                         self.driver.find_element(By.XPATH, "//*[text()='Thailand']").click()
 
                     # Province dropdown
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
+                    self.driver.find_element(By.CSS_SELECTOR, 'span #select2-province-container').click()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
                     self.driver.find_element(
@@ -4643,6 +4655,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
