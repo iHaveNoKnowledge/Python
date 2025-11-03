@@ -7,7 +7,7 @@ import os
 class BaseUrlFinder:
     """Finds an available base URL from a list of IPs."""
 
-    def __init__(self, file_path: str = r".\json\urls.json"):
+    def __init__(self, file_path: str = r".\json\misc.json"):
         # file_path =
         # self.base_dir = os.path.dirname(__file__)
         # self.file_path = os.path.join(self.base_dir, file_path)
