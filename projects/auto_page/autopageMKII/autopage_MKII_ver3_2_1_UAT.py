@@ -12,6 +12,7 @@ import sys
 import os
 import subprocess
 import winreg
+from dotenv import load_dotenv
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -57,27 +58,20 @@ icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
 arrow_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'Arrow.gif')
 stop_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'stop.jpg')
 
-# * user interface
-# * dataframe table
-# from test_auto_cus_name_MKII import *
-
-# * selenium
-# from ....python_modules3.SMCO.cusNameFixer import cusNameFixer, currencyRemover, addressExtractor, cusNameFixer2, cusNameFixer3
-
-
+#* initial settings
 locale.setlocale(locale.LC_ALL, 'en_us')
-
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
 address_file = r"tables\Addresscleaner_TambonData.xlsx"
 file_path = os.path.join(current_directory, address_file)
 directory_of_file = os.path.dirname(file_path)
 print("file located:", directory_of_file)
-# sys.path.append(os.path.dirname(os.getcwd()))
+load_dotenv()
 
 # * ปรับ https ให้ตัว translate
 setattr(httpcore, 'SyncHTTPTransport', 'AsyncHTTPProxy')
 
+#* splash screen
 if getattr(sys, 'frozen', False):
     import pyi_splash
 

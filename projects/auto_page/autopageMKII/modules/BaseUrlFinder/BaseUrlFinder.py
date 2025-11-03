@@ -4,28 +4,29 @@ from requests.exceptions import RequestException, ConnectionError, Timeout
 import os
 
 
-
-
 class BaseUrlFinder:
     """Finds an available base URL from a list of IPs."""
 
     def __init__(self, file_path: str = r".\json\urls.json"):
-        self.base_dir = os.path.dirname(__file__)
-        self.file_path = os.path.join(self.base_dir, file_path)
-        self.ips_json = self._load_json_file(self.file_path)
+        # file_path =
+        # self.base_dir = os.path.dirname(__file__)
+        # self.file_path = os.path.join(self.base_dir, file_path)
+        # self.ips_json = self._load_json_file(self.file_path)
+        self.ips_json = json.loads(os.getenv("IPS"))
+        print("self.ips_json: ", self.ips_json)
 
-    def _load_json_file(self, file_path: str):
-        """Loads data from a JSON file."""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                data = json.load(file)
-            return data
-        except FileNotFoundError:
-            print(f"Error: The file '{file_path}' was not found.")
-            return {}
-        except json.JSONDecodeError:
-            print(f"Error: Failed to decode JSON from '{file_path}'.")
-            return {}
+    # def _load_json_file(self, file_path: str):
+    #     """Loads data from a JSON file."""
+    #     try:
+    #         with open(file_path, 'r', encoding='utf-8') as file:
+    #             data = json.load(file)
+    #         return data
+    #     except FileNotFoundError:
+    #         print(f"Error: The file '{file_path}' was not found.")
+    #         return {}
+    #     except json.JSONDecodeError:
+    #         print(f"Error: Failed to decode JSON from '{file_path}'.")
+    #         return {}
 
     def check_available_ip(self):
         """
