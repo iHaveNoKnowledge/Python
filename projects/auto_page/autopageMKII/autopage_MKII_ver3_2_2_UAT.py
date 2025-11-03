@@ -60,7 +60,7 @@ icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
 arrow_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'Arrow.gif')
 stop_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'stop.jpg')
 
-#* initial settings
+# * initial settings
 locale.setlocale(locale.LC_ALL, 'en_us')
 current_directory = os.getcwd()
 print("current_directory:", current_directory)
@@ -73,7 +73,7 @@ load_dotenv()
 # * ปรับ https ให้ตัว translate
 setattr(httpcore, 'SyncHTTPTransport', 'AsyncHTTPProxy')
 
-#* splash screen
+# * splash screen
 if getattr(sys, 'frozen', False):
     import pyi_splash
 
@@ -280,7 +280,7 @@ class MyApp:
         ))
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver3.2.1 UAT")
+        self.root.title("Autosamatic ver3.2.2 UAT")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
@@ -2408,7 +2408,7 @@ class Bot_POS:
             'shp_wisegadget_master': 'SHOPEE Wise Gadget',
         }
         self.origin = "http://115.31.167.19:9099/"
-        self.smco_handler = SMCOFormHandler(self, logger) #* ใส่ logger ไปด้วยเพราะมันมี setting 
+        self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
 
         # Memory management tracking
         self.operation_count = 0
@@ -3624,7 +3624,7 @@ class Bot_POS:
 
             self.smco_handler.insert_emp()
             self.smco_handler.select_sale_type()
-            
+
             # ! wip test new class
             # # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
             # self.cus_name_span_elmt_dir = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]'
