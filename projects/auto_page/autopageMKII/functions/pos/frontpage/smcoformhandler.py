@@ -171,7 +171,16 @@ class SMCOFormHandler:
                     continue
 
     def select_sale_type(self):
-        self.driver.find_element(
-            By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
-        time.sleep(1)
-        self.driver.find_element(By.XPATH, '//*[text()="AR Online SHP"]').click()
+        self.driver.find_element(By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+        time.sleep(0.25)
+        
+        while not self.operation_thread.is_set():
+            try:
+                self.driver.find_element(By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[text()="AR Online SHP"]').click()
+                print("เจอ element cus_name_span_elmt")
+                break
+            except Exception as err:
+                print("ยังไม่เจอ li ให้เลือก")
+                print("select_sale_type Error: ", err)
+                time.sleep(0.5)
+                continue

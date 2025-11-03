@@ -3622,8 +3622,8 @@ class Bot_POS:
                 self.get_tabs()
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
-            self.smco_handler.insert_emp()
-            self.smco_handler.select_sale_type()
+            # self.smco_handler.insert_emp()
+            # self.smco_handler.select_sale_type()
 
             # ! wip test new class
             # # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
@@ -3755,7 +3755,7 @@ class Bot_POS:
             #     print("no tax required, skip address check")
 
             # # * ใส่ รหัสพนักงาน ===============================================================================
-            # self.insert_emp()
+            self.insert_emp()
 
             # * ใส่ค่าขนส่ง ================================================================================
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
@@ -3876,23 +3876,20 @@ class Bot_POS:
                     while not self.operation_thread.is_set():
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
-                            # print("loop หลัก")
                             self.cus_name_input_element = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                                By.CSS_SELECTOR, '#select2-salePersonSearch-container')
                             title_attribute = self.cus_name_input_element.get_attribute("title")
 
-                            #! self.is_final_displayed = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]').is_displayed()
-                            self.is_final_displayed = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]').is_displayed()
-                            # self.is_input_empty = re.search(
-                            #     "^C[0-9]+\-", self.cus_name_input_element.text)
+                            self.is_final_page_displayed = self.driver.find_element(
+                                By.XPATH, "//*[contains(text(),' Payment: ')]").is_displayed()
                             break
                         except:
                             # * ไม่มี element ให้วนเรื่อยๆ
                             continue
 
                     # *ดึงตัวอักษรออกมา
-                    matched_obj = re.search("^C[0-9]+", title_attribute)
+                    #! matched_obj = re.search("^C[0-9]+", title_attribute) เลิกใช้ เพราะบางชื่อมันไม่ขึ้นต้นด้วย C
+                    matched_obj = re.search(r"^[0-9]+-", title_attribute)
                     try:
                         self.is_input_empty = matched_obj.group()
                     except:
@@ -3925,15 +3922,12 @@ class Bot_POS:
                             # print("Popupโผล่")
                             continue
 
-                    # print("ว่างแล้วไม่ใช่เหรอวะ: ", self.is_input_empty)
-                    # print("type(self.is_input_empty): ", type(self.is_input_empty))
-                    # print("self.cus_name_input_element.text: ", self.cus_name_input_element.text)
-                    if self.is_input_empty == "" and self.is_final_displayed == False:
-                        print("Name disappeared")
+                    if self.is_input_empty == "" and self.is_final_page_displayed == False:
+                        print("Emp name disappeared")
                         break
-                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == False:
+                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_page_displayed == False:
                         continue
-                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_displayed == True:
+                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_page_displayed == True:
                         self.app.is_bot_browser_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
@@ -4654,7 +4648,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
