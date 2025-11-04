@@ -10,6 +10,10 @@ class SMCOFormHandler:
         self.driver = bot.driver
         self.logger = logger
         self.wait50 = WebDriverWait(self.driver, 50)
+        self.payment_type_dict = {
+            "shopee": "AR Online SHP",
+            "amaze":"AR Online AMAZE ITCITY"
+        }
 
     def __getattr__(self, name):
         return getattr(self.bot, name)
@@ -184,3 +188,5 @@ class SMCOFormHandler:
                 print("select_sale_type Error: ", err)
                 time.sleep(0.5)
                 continue
+
+
