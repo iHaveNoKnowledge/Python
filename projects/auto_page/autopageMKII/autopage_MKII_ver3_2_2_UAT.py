@@ -91,6 +91,7 @@ class MyApp:
         self.is_accel_mode = BooleanVar()
         self.is_accel_mode_activated = BooleanVar(value=False)
         self.is_seller_voucher_popup = BooleanVar(value=False)
+        self.is_auto_invoice_mode = BooleanVar(value=False)
         self.table_location = ""
 
         # * Initialize AccelMode instance
@@ -347,7 +348,7 @@ class MyApp:
             # border_width=10,   # แทน borderwidth
             # border_color="#ccc",  # แทน highlightbackground
         )
-        self.entry_frame.pack(side='top', pady=10, padx=5)
+        self.entry_frame.pack(side='top', anchor=W, pady=10, padx=5)
 
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = CTkFrame(
@@ -483,6 +484,15 @@ class MyApp:
                 bg="#BF2D2A",
                 fg="#FFF"
             )
+    
+    def auto_invoice_mode_toggle(self):
+        if self.is_auto_invoice_mode.get():
+            self.auto_inv_mode_checkbox.configure(bg='#21ff29', fg='#000')
+        else:
+            self.auto_inv_mode_checkbox.configure(
+                bg="#BF2D2A",
+                fg="#FFF"
+            )
 
     #! น่าจะไม่ได้ใช้ deprecated
     # def seller_voucher_popup_toggle(self):
@@ -508,7 +518,7 @@ class MyApp:
         self.inp1_label_order.grid(row=0, column=1, padx=5)
         # * >> Inputs
         self.entered_order = StringVar()
-        self.inp1_order_input = Entry(self.entry_frame, textvariable=self.entered_order, width=50)
+        self.inp1_order_input = Entry(self.entry_frame, textvariable=self.entered_order, width=40)
         self.inp1_order_input.grid(row=0, column=3)
         # * >> Buttons
         self.font = CTkFont(family='fixedsys', size=10, weight="bold")
@@ -582,22 +592,48 @@ class MyApp:
         # * > Log in button component
         # * >> A BTN to display the User_account
         self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get() and self.user_pw.get() else "Login"
-        self.display_acc_btn = CTkButton(self.entry_frame, text=self.btn_display,
-                                         command=lambda: UserAccount(self.root, self),
-                                         width=28, height=25, font=self.font)
+        self.display_acc_btn = CTkButton(
+            self.entry_frame,
+            text=self.btn_display,
+            command=lambda: UserAccount(self.root, self),
+            width=28,
+            height=25,
+            font=self.font
+        )
         self.display_acc_btn.grid(row=0, column=7, padx=5)
 
         # * > Accel mode
-        # * >> Checkbox for activation toggle
-        self.accel_mode_checkbox = Checkbutton(self.entry_frame, text="Accel Mode",
-                                               variable=self.is_accel_mode, command=self.accelmode_toggle)
+        # * >> Checkbox for activation toggle (Built-in label)
+        self.accel_mode_checkbox = Checkbutton(
+            self.entry_frame,
+            text="Accel Mode",
+            variable=self.is_accel_mode,
+            command=self.accelmode_toggle
+        )
+
+        # * > Auto Invoice Mode
+        # * >> Checkbox for activation toggle (Built-in label)
+        self.auto_inv_mode_checkbox = Checkbutton(
+            self.entry_frame,
+            text="Auto Inv",
+            variable=self.is_auto_invoice_mode,
+            command=self.auto_invoice_mode_toggle,
+            bg="#BF2D2A",
+            fg="#FFF"
+        )
+        self.auto_inv_mode_checkbox.grid(row=0, column=9, padx=5)
 
         # * > Seller voucher Pop-up Checkbox
-        # * >> Checkbox for activation toggle
+        # * >> Checkbox for activation toggle (Built-in label)
         self.seller_voucher_popup_checkbox = Checkbutton(
-            self.entry_frame, text="S.V.Notice", variable=self.is_seller_voucher_popup,
-            command=self.seller_voucher_popup_checkbox_toggle, bg="#BF2D2A", fg="#FFF")
-        self.seller_voucher_popup_checkbox.grid(row=0, column=9, padx=5)
+            self.entry_frame,
+            text="S.V.Notice",
+            variable=self.is_seller_voucher_popup,
+            command=self.seller_voucher_popup_checkbox_toggle,
+            bg="#BF2D2A",
+            fg="#FFF"
+        )
+        self.seller_voucher_popup_checkbox.grid(row=0, column=10, padx=5)
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Export File and Bot status location display component
@@ -2373,7 +2409,6 @@ class UserAccount:
                     # return self.display_btn_txt
 
                 if self.app.user_id.get() in self.app.dev_account:
-
                     print("Accel mode approachable")
                     if self.app.accel_mode_checkbox.winfo_ismapped():
                         pass
@@ -2891,6 +2926,20 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
 
+    def dropdown_handler(self):
+        while not self.operation_thread.is_set():
+            try:
+                li_locators = self.driver.find_elements(By.CSS_SELECTOR, "ul.select2-results__options li")
+                print("li_locators.text: ", li_locators[0].text)
+                if not "Searching" in li_locators[0].text:
+                    break
+                time.sleep(0.30)
+
+            except:
+                time.sleep(0.30)
+                continue
+        return "dropdown is ready!"
+
     def get_customer_name_ready(self, cus_search_input):
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
@@ -3151,6 +3200,23 @@ class Bot_POS:
             print("cb doesn't works")
 
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+
+    def select_sale_type(self):
+        self.driver.find_element(
+            By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+        time.sleep(0.25)
+        self.dropdown_handler()
+        while not self.operation_thread.is_set():
+            try:
+                self.driver.find_element(
+                    By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[text()="AR Online SHP"]').click()
+                print("เจอ element cus_name_span_elmt")
+                break
+            except Exception as err:
+                print("ยังไม่เจอ li ให้เลือก")
+                print("select_sale_type Error: ", err)
+                time.sleep(0.5)
+                continue
 
     def insert_emp(self):
         self.smco_current_emp = self.driver.find_element(
@@ -3754,7 +3820,10 @@ class Bot_POS:
             # else:
             #     print("no tax required, skip address check")
 
-            # # * ใส่ รหัสพนักงาน ===============================================================================
+            # * เลือก ประเภทการขาย ==========================================================================
+            self.select_sale_type()
+
+            # * ใส่ รหัสพนักงาน ===============================================================================
             self.insert_emp()
 
             # * ใส่ค่าขนส่ง ================================================================================

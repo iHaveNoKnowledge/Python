@@ -155,6 +155,20 @@ class SMCOFormHandler:
         else:
             print("no tax required, skip address check")
 
+    def dropdown_handler(self):
+        while not self.operation_thread.is_set():
+            try:
+                li_locators = self.driver.find_elements(By.CSS_SELECTOR, "ul.select2-results__options li")
+                print("li_locators.text: ", li_locators[0].text)
+                if not "Searching" in li_locators[0].text:
+                    break
+                time.sleep(0.30)
+                
+            except:
+                time.sleep(0.30)
+                continue
+        return "dropdown is ready!"
+
     def insert_emp(self):
         self.smco_current_emp = self.driver.find_element(
             By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
@@ -173,11 +187,12 @@ class SMCOFormHandler:
 
                 except:
                     continue
+    
 
     def select_sale_type(self):
         self.driver.find_element(By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
         time.sleep(0.25)
-        
+        self.dropdown_handler()
         while not self.operation_thread.is_set():
             try:
                 self.driver.find_element(By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[text()="AR Online SHP"]').click()
