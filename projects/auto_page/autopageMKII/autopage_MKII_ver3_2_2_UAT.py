@@ -3237,6 +3237,76 @@ class Bot_POS:
                 except:
                     continue
 
+    def add_shipping_cost(self):
+        if int(self.app.cus_ship_cost.get()) != int(0):
+            try:
+                self.skuInput_element = self.wait50.until(EC.visibility_of_element_located(
+                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                # skuInput = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                self.skuInput_element.clear()
+
+                self.skuInput_element.send_keys("SV0-000101")
+                print("กรอก Code ขนส่งสำเร็จ")
+
+                self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located(
+                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                self.skuAddBtn.send_keys("\ue007") # กด Enter
+                print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+
+                #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
+                # logger.info(f"Order: {self.app.order} 1/2Finished!!")
+                # return
+                time.sleep(2)
+
+                # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
+                self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located(
+                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+                # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+                self.definePrice_btn_element.click()
+                time.sleep(1)
+                # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
+                print("Successfully clicked on SKU ELEMENT 1")
+
+                self.changePriceInput = self.driver.find_element(
+                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
+                self.changePriceInput.clear()
+                # self.changePriceInput.send_keys(69)
+                # self.changePriceInput.send_keys(int(self.app.cus_ship_cost.get()))
+                self.driver.execute_script(
+                    "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                    self.changePriceInput, self.app.cus_ship_cost.get())
+                self.driver.find_element(
+                    By().XPATH,
+                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
+
+                self.driver.find_element(
+                    By().XPATH,
+                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
+
+                self.driver.find_element(
+                    By().XPATH,
+                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
+
+                self.driver.find_element(
+                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
+                # try:
+                #     print("Waiting for element to disappear")
+                #     self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
+                # except:
+                #     print("No need to wait")
+            except Exception as err:
+                print("Shipment cost skipped")
+                print(err)
+        else:
+            print("No shipment cost")
+
     def printtingPage(self):
         time.sleep(1)
         self.printing_page = self.driver.find_element(By().XPATH, '/html/body')
@@ -3431,75 +3501,7 @@ class Bot_POS:
             print(f"Silent print failed: {e}")
             raise ValueError("Sumatra was not found")
 
-    def add_shipping_cost(self):
-        if int(self.app.cus_ship_cost.get()) != int(0):
-            try:
-                self.skuInput_element = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                # skuInput = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.skuInput_element.clear()
-
-                self.skuInput_element.send_keys("SV0-000101")
-                print("กรอก Code ขนส่งสำเร็จ")
-
-                self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.skuAddBtn.send_keys(Keys().ENTER)
-                print("กด Enter ที่ช่อง SKU Input สำเร็จ")
-
-                #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
-                # logger.info(f"Order: {self.app.order} 1/2Finished!!")
-                # return
-                time.sleep(2)
-
-                # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
-                self.definePrice_btn_element.click()
-                time.sleep(1)
-                # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-                print("Successfully clicked on SKU ELEMENT 1")
-
-                self.changePriceInput = self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
-                self.changePriceInput.clear()
-                # self.changePriceInput.send_keys(69)
-                # self.changePriceInput.send_keys(int(self.app.cus_ship_cost.get()))
-                self.driver.execute_script(
-                    "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                    self.changePriceInput, self.app.cus_ship_cost.get())
-                self.driver.find_element(
-                    By().XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
-
-                self.driver.find_element(
-                    By().XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
-
-                self.driver.find_element(
-                    By().XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
-
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
-                # try:
-                #     print("Waiting for element to disappear")
-                #     self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
-                # except:
-                #     print("No need to wait")
-            except Exception as err:
-                print("Shipment cost skipped")
-                print(err)
-        else:
-            print("No shipment cost")
+    
 
     def operation_start(self):
         self.app.is_bot_browser_busy.set(True)
