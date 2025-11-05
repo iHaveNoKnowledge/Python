@@ -11,8 +11,15 @@ class SMCOFormHandler:
         self.logger = logger
         self.wait50 = WebDriverWait(self.driver, 50)
         self.payment_type_dict = {
-            "shopee": "AR Online SHP",
-            "amaze":"AR Online AMAZE ITCITY"
+            "SITO1": "Online Sale",
+            "SITL1": "AR Online LAZ",
+            "SITS1": "AR Online SHP",
+            "SXTO1": "ไม่รู้ มีทั้ง AR Online และ Online sale",
+            "STIKTO": "AR Online TIK",
+            "SOULIT": "Online Sale",
+            "SWGIT": "AR Online SHP - Wise Gadget ",
+            "SITLE": "AR Online SHP - IT CITY LENOVO ",
+            "SAMAIT-AMAZEITCITY": "AR Online AMAZE ITCITY ",
         }
 
     def __getattr__(self, name):
@@ -163,7 +170,7 @@ class SMCOFormHandler:
                 if not "Searching" in li_locators[0].text:
                     break
                 time.sleep(0.30)
-                
+
             except:
                 time.sleep(0.30)
                 continue
@@ -187,15 +194,16 @@ class SMCOFormHandler:
 
                 except:
                     continue
-    
 
     def select_sale_type(self):
-        self.driver.find_element(By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+        self.driver.find_element(
+            By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
         time.sleep(0.25)
         self.dropdown_handler()
         while not self.operation_thread.is_set():
             try:
-                self.driver.find_element(By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[text()="AR Online SHP"]').click()
+                self.driver.find_element(
+                    By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[text()="AR Online SHP"]').click()
                 print("เจอ element cus_name_span_elmt")
                 break
             except Exception as err:
@@ -203,5 +211,3 @@ class SMCOFormHandler:
                 print("select_sale_type Error: ", err)
                 time.sleep(0.5)
                 continue
-
-

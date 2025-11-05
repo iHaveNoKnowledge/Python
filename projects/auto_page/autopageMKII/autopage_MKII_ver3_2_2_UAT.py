@@ -484,7 +484,7 @@ class MyApp:
                 bg="#BF2D2A",
                 fg="#FFF"
             )
-    
+
     def auto_invoice_mode_toggle(self):
         if self.is_auto_invoice_mode.get():
             self.auto_inv_mode_checkbox.configure(bg='#21ff29', fg='#000')
@@ -3208,15 +3208,17 @@ class Bot_POS:
         self.dropdown_handler()
         while not self.operation_thread.is_set():
             try:
+                #! ยังไม่สมบูร 100% 
                 self.driver.find_element(
-                    By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[text()="AR Online SHP"]').click()
+                    By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[(starts-with(., "AR Online") or starts-with(., "Online Sale")) and not(contains(., "Deposite -"))]').click()
                 print("เจอ element cus_name_span_elmt")
-                break
+                return
             except Exception as err:
                 print("ยังไม่เจอ li ให้เลือก")
                 print("select_sale_type Error: ", err)
                 time.sleep(0.5)
                 continue
+        raise Exception(f'Thread has been terminated during select_sale_type')
 
     def insert_emp(self):
         self.smco_current_emp = self.driver.find_element(
@@ -3251,7 +3253,7 @@ class Bot_POS:
                 self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.skuAddBtn.send_keys("\ue007") # กด Enter
+                self.skuAddBtn.send_keys("\ue007")  # กด Enter
                 print("กด Enter ที่ช่อง SKU Input สำเร็จ")
 
                 #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
@@ -3500,8 +3502,6 @@ class Bot_POS:
         except Exception as e:
             print(f"Silent print failed: {e}")
             raise ValueError("Sumatra was not found")
-
-    
 
     def operation_start(self):
         self.app.is_bot_browser_busy.set(True)
