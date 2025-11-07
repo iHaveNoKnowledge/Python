@@ -4512,16 +4512,6 @@ class Bot_POS:
                 time.sleep(1)
                 print("except: ", err)  # for develop inspection
 
-    def dropdown_input_filler(self, locator: str, keys_to_send: str):
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[2]/div/span/span[1]/span/span[1]').click()
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(province)
-        time.sleep(1.55)
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
-        pass
 
     def addCustomer(self, customer_type="normal", cusname_fixed=None):
         """
