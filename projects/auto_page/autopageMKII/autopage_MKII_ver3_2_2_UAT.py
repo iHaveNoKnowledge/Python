@@ -1,57 +1,52 @@
 
 
-from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
-from functions.accel_mode import AccelMode
-from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
-
-import pytz
+import base64
 import datetime
-from loguru import logger
-
 import locale
-import threading
-import sys
 import os
+import re
 import subprocess
+import sys
+import threading
+import time
+import traceback
 import winreg
-from dotenv import load_dotenv
+from tkinter import *
+from tkinter import filedialog, font, ttk
 
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import UnexpectedAlertPresentException
+import customtkinter as ctk
+import httpcore
+import numpy as np
+import pandas as pd
+import pdfplumber
+import pytz
+import requests
+import win32api
+import win32com.client as comclt
+import win32print
+from bs4 import BeautifulSoup
+from customtkinter import *
+from dotenv import load_dotenv
+from functions.accel_mode import AccelMode
+from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
+from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
+from googletrans import Translator
+from loguru import logger
+from openpyxl import load_workbook
+from PIL import Image, ImageTk
+from pypdf import PdfReader
 from selenium import webdriver
+from selenium.common.exceptions import UnexpectedAlertPresentException
+from selenium.webdriver import ActionChains
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
 from webdriver_auto_update.webdriver_manager import WebDriverManager
 
-import re
-import win32com.client as comclt
-import win32print
-import win32api
-import time
-import pandas as pd
-import numpy as np
-from tkinter import font
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import *
-from customtkinter import *
-import customtkinter as ctk
-from pypdf import PdfReader
-from openpyxl import load_workbook
-from PIL import Image, ImageTk
-import base64
-import pdfplumber
-
-import traceback
-from bs4 import BeautifulSoup
-import httpcore
-from googletrans import Translator
-import requests
 session = requests.Session()
 
 
@@ -2909,22 +2904,22 @@ class Bot_POS:
         self.wait50.until(
             EC.element_to_be_clickable(
                 (By.XPATH,
-                 r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]''')))
+                 r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='E'")]''')))
         if self.app.tax_bool.get() == True:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             if self.app.marketplace_target.get() == "SHOPEE":
                 print("ขอใบกำกับSHOPEE ใช้ T:")
                 self.driver.find_element(
-                    By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+                    By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
             elif self.app.marketplace_target.get() == "LAZADA":
                 print("ขอใบกำกับLazada ใช้ T:")
                 self.driver.find_element(
-                    By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='T'")]''').click()
+                    By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
         elif self.app.tax_bool.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
             self.driver.find_element(
-                By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click,"st='N'")]''').click()
+                By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='N'")]''').click()
 
     def dropdown_handler(self):
         while not self.operation_thread.is_set():
@@ -3771,7 +3766,7 @@ class Bot_POS:
 
             # self.smco_handler.insert_emp()
             # self.smco_handler.select_sale_type()
-            
+
             # * เลือก ประเภทการขาย ==========================================================================
             self.select_sale_type()
 
@@ -3856,18 +3851,21 @@ class Bot_POS:
                         continue
 
             print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
-            
-            #* /html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[1]/div/div/button
+
+            # * เลือก filter การ query ลูกค้า ==========================================================================
+            # * /html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[1]/div/div/button
             # self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
-            self.wait50.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button")))
-            
+            self.wait50.until(EC.element_to_be_clickable(
+                (By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button")))
+
             time.sleep(1)
 
             # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
-            self.driver.find_element(By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button").click()
+            self.driver.find_element(
+                By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button").click()
             print("self.app.tax_bool: ", self.app.tax_bool.get())
 
-            # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ search
+            # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ searchs
             self.set_cus_name_search_type()
 
             # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
@@ -3908,8 +3906,6 @@ class Bot_POS:
 
             else:
                 print("no tax required, skip address check")
-
-
 
             # * ใส่ค่าขนส่ง ================================================================================
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
@@ -4415,6 +4411,10 @@ class Bot_POS:
         #     pass
 
     def open_customer_form(self, is_functionworking):
+        # ? wip เช็คตรงนี้ก่อน
+        # ? //span[(contains(., "AR Online") or contains(., "Online Sale")) and not(contains(., "Deposite -"))and(@id="select2-divSaletype2-container")]
+        # ? ว่ามี element ใหม่ ถ้ามี แปลว่าเลือกแล้ว ถ้าไม่มีค่อยลงมาทำข้างล่าง
+
         customer_form_dialog_element = False
         # todo เช็ค dialog form โหลดเสร็จยัง
         while is_functionworking and not self.operation_thread.is_set():
@@ -5235,8 +5235,8 @@ class Bot_POS:
             # ? /lasted update/ปัจจุบันหากผลลัพเปนอันเดิมมันจะไม่ resetละทำให้code ส่วนนี้อาจจะไร้ประโยชน์  ปิดไว้ก่อย/todo/เพื่อ reset ค่า address ให้เป็น lasted update
             # self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
             # self.driver.find_element(By.XPATH, '//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button').click() #* กด dropdown เพื่อดู list ประเภทของการ query data ลูกค้า
-            # self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
-            # self.driver.find_element(By.XPATH, r'''/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/div/a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
+            # self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
+            # self.driver.find_element(By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
             # self.enter_cus_name(self.cus_code) #* ใส่ customer code ลง input ช่องค้นหา
 
             # while not self.operation_thread.is_set(): #* รอกด li อันที่1 จาก dropdown ให้มันแสดงผลออกมา
