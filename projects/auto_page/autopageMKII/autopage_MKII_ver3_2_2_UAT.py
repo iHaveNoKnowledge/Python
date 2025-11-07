@@ -606,16 +606,17 @@ class MyApp:
             command=self.accelmode_toggle
         )
 
+        # ! __wip not ready
         # * > Auto Invoice Mode
         # * >> Checkbox for activation toggle (Built-in label)
-        self.auto_inv_mode_checkbox = Checkbutton(
-            self.entry_frame,
-            text="Auto Inv",
-            variable=self.is_auto_invoice_mode,
-            command=self.auto_invoice_mode_toggle,
-            bg="#BF2D2A",
-            fg="#FFF"
-        )
+        # self.auto_inv_mode_checkbox = Checkbutton(
+        #     self.entry_frame,
+        #     text="Auto Inv",
+        #     variable=self.is_auto_invoice_mode,
+        #     command=self.auto_invoice_mode_toggle,
+        #     bg="#BF2D2A",
+        #     fg="#FFF"
+        # )
         self.auto_inv_mode_checkbox.grid(row=0, column=9, padx=5)
 
         # * > Seller voucher Pop-up Checkbox
@@ -3054,7 +3055,7 @@ class Bot_POS:
             # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
             # * กรณี add แล้ว มี popup-duplicate customer
             print("Check Duplicated customer!!")
-            self.duplicate_cus_name_resolver(cus_code_element)
+            self.duplicated_cus_name_resolver(cus_code_element)
             cb()
 
         except Exception as err:
@@ -4735,8 +4736,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
-
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -4773,7 +4772,7 @@ class Bot_POS:
         print('response.json(): ', response.json())
         return response
 
-    def find_customer_id(self, cus_code: str = ""):
+    def smco_req_find_customer_id(self, cus_code: str = ""):
         print("find_customer_id excuted by code: ", cus_code)
         payload = {
             'requestText': f'{cus_code}',
@@ -4795,7 +4794,7 @@ class Bot_POS:
         # print("customer_id: ", cus_data['id'])
         return customer_id
 
-    def find_cus_address(self, cus_id: int = None):
+    def smco_req_find_cus_address(self, cus_id: int = None):
         max_retries = 3
         retry_count = 0
 
@@ -5057,10 +5056,10 @@ class Bot_POS:
         match = re.search(r'^C\d{1,}(?=-)', cus_name)
         self.cus_code = match.group()
 
-        customer_id = self.find_customer_id(self.cus_code)
+        customer_id = self.smco_req_find_customer_id(self.cus_code)
 
         if customer_id:
-            cus_address = self.find_cus_address(customer_id)
+            cus_address = self.smco_req_find_cus_address(customer_id)
         else:
             cus_address = {
                 'address': '',
@@ -5282,7 +5281,7 @@ class Bot_POS:
         self.driver.find_element(
             By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").send_keys(self.app.tax_num.get())
 
-    def duplicate_cus_name_resolver(self, popup_dup_element):
+    def duplicated_cus_name_resolver(self, popup_dup_element):
         # * ระบุตัวตนของ pop-up
         self.cus_code_element = popup_dup_element
         self.dup_popup_content = self.cus_code_element.text
