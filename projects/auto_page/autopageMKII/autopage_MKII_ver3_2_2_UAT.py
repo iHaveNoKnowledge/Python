@@ -113,14 +113,18 @@ class MyApp:
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
         self.cus_purchase_time = StringVar(value="")
-        self.cus_arrow_btn = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[2]'
-        self.cusNameInput = '/html/body/span/span/span[1]/input'
-        self.cusSearchSMCO = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[7]/a'
+        self.cus_arrow_btn = '//form[@id="divMember"]//span[@class="select2-selection__arrow" and @role="presentation"]'
+        # self.cusNameInput = '/html/body/span/span/span[1]/input' อันเก่าจริงๆมันใช้ได้แหละแต่กันไว้ก่อน
+        self.cusNameInput = '//span[@class="select2-search select2-search--dropdown"]/input'
         self.cusCreateBtn = 'button#newMember'
         self.cusNameLi1 = '/html/body/span/span/span[2]/ul/li'
-        self.cus_name_dropdown_ul = '/html/body/span/span/span[2]/ul'
+        self.cus_name_dropdown_ul = '//ul[@id="select2-memberSearch-results"]'
         # self.bot_state = BooleanVar(value=False)
-        self.cookies = {'vatinfo': {'JSESSIONID': '', }}
+        self.cookies = {
+            'vatinfo': {
+                'JSESSIONID': '',
+            }
+        }
         self.is_bot_browser_busy = BooleanVar(value=False)
         self.mimic_list_item_states = []
         self.POP_UP = PopUp(self.root)
@@ -617,7 +621,7 @@ class MyApp:
         #     bg="#BF2D2A",
         #     fg="#FFF"
         # )
-        self.auto_inv_mode_checkbox.grid(row=0, column=9, padx=5)
+        # self.auto_inv_mode_checkbox.grid(row=0, column=9, padx=5)
 
         # * > Seller voucher Pop-up Checkbox
         # * >> Checkbox for activation toggle (Built-in label)
@@ -2947,12 +2951,13 @@ class Bot_POS:
             print("มันทำไม", self.searching_condition.text)
 
             # ? WIP แก้ละรอดูว่าพังไหม //pop-up เด้งแทรกตอนกรอกชื่อลูกค้าในช่อง search
-            # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"/html/body/div[24]/div[2]/button[1]"
+            # pop-up อันนึงเด้งมาหลังจาก กรอกชื่อ  xpath : "/html/body/div[16]/div[2]/div[6]" text: "Reload data not complete,reload page verify data again." button:"//button[@class = 'swal2-confirm styled' and text()='OK']"
             try:
                 # * มี pop-upไหม
                 if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
                     # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
-                    self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
+                    self.driver.find_element(
+                        By.XPATH, "//button[@class = 'swal2-confirm styled' and text()='OK']").click()
                     continue
                 # * ไม่มี pop-up ให้ break
                 break
@@ -3001,7 +3006,7 @@ class Bot_POS:
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
         if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
             try:
-                self.driver.find_element(By.XPATH, "/html/body/div[24]/div[2]/button[1]").click()
+                self.driver.find_element(By.XPATH, "//button[@class = 'swal2-confirm styled' and text()='OK']").click()
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
                 self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
             except:
@@ -3049,8 +3054,8 @@ class Bot_POS:
             self.addCustomer("normal", self.cus_search_input)
 
         try:
-            self.wait5.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]/div[6]')))
-            cus_code_element = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/div[6]')
+            self.wait5.until(EC.visibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
+            cus_code_element = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
             # * เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
             # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
             # * กรณี add แล้ว มี popup-duplicate customer
@@ -3197,6 +3202,22 @@ class Bot_POS:
             print("cb doesn't works")
 
         # * มันจะมีกรณีที่ถ้าเลือกลูกค้าได้ในครั้งแรก cb จะไม่ทำงานในส่วนนี้
+
+    def has_sale_type_selected(self) -> bool:
+        """
+        elements บางส่วนจะมีการโชว์หรือซ่อนขึ้นอยู่กับค่าของ Sale Type ด้วย ฉะนั้นต้องชัวร์ก่อนว่าได้เลือก Sale Type แล้ว
+        """
+        # ? wip เช็คตรงนี้ก่อน
+        # ? //span[(contains(., "AR Online") or contains(., "Online Sale")) and not(contains(., "Deposite -"))and(@id="select2-divSaletype2-container")]
+        # ? ว่ามี element ใหม่ ถ้ามี แปลว่าเลือกแล้ว ถ้าไม่มีค่อยลงมาทำข้างล่าง
+        try:
+            self.driver.find_element(
+                By.XPATH,
+                """//span[(contains(., "AR Online") or contains(., "Online Sale")) and not(contains(., "Deposite -"))and(@id="select2-divSaletype2-container")]""")
+            return True
+        except:
+            print("Sale Type ยังไม่ได้เลือก")
+            return False
 
     def select_sale_type(self):
         self.driver.find_element(
@@ -3812,22 +3833,25 @@ class Bot_POS:
                     else:
                         # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
                         print("กรณีมีสินค้า")
-                        self.driver.find_element(
-                            By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]/span').click()
+                        self.driver.find_element(By.XPATH, '//span[@id="select2-memberSearch-container"]/span').click()
                         try:
                             print("wait for pop-up(try)")
                             # ระบุปุ่ม ok
-                            if self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]'):
+                            if self.driver.find_element(
+                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']"""):
                                 print("has pop-up(try)")
-                                self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+                                self.driver.find_element(
+                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""").click()
                                 print("Click OK(try)")
                         except:
                             print("wait for pop-up(except)")
                             time.sleep(1)
                             # * ระบุปุ่ม ok
-                            if self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]'):
+                            if self.driver.find_element(
+                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']"""):
                                 print("has pop-up(except)")
-                                self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+                                self.driver.find_element(
+                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""").click()
                                 print("Click OK(except)")
                         # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
                         try:
@@ -3895,12 +3919,7 @@ class Bot_POS:
             # * ใส่ตัวเช็คที่อยู่ลูกค้า
             if self.app.tax_bool.get():
                 print("tax required, start address check and correct")
-                self.smco_cus_address_element = self.driver.find_element(
-                    By.XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[14]/div[2]/div[1]/span/span[1]/span/span[1]')
-                self.cus_name_span = self.driver.find_element(
-                    By.XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
+                self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
                 # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี
                 self.text_from_name_span = self.cus_name_span.get_attribute("title")
                 self.tax_address_corrector(self.text_from_name_span)
@@ -4107,16 +4126,16 @@ class Bot_POS:
                             #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
                             #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
 
-                            # * ค้นหา element โดยใช้ XPath
-                            self.is_input_on = self.driver.find_element(
-                                By.XPATH,
-                                '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
 
-                            # * ดึงข้อความจาก element ที่ค้นหาได้
-                            text_value = self.is_input_on.get_attribute("title")
+                            #! deprecated มันเหมือนมีไรสักอย่างที่มันจะแสดงชื่อลูกค้า แต่ตอนนี้เหมือนจะไม่มีละ
+                            # # * ค้นหา element โดยใช้ XPath
+                            # self.is_input_on = self.driver.find_element(By.XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
 
-                            # * พิมพ์ผลลัพธ์
-                            print("Check customer name self.is_input_on:", text_value)
+                            # # * ดึงข้อความจาก element ที่ค้นหาได้
+                            # text_value = self.is_input_on.get_attribute("title")
+
+                            # # * พิมพ์ผลลัพธ์
+                            # print("Check customer name self.is_input_on:", text_value)
 
                             # # * สำหรับ prefinal  pop-up (optional by ETAX)
                             # # * > แบบเลือกให้ตาม ข้อมูลลูกค้า
@@ -4146,7 +4165,7 @@ class Bot_POS:
                             # # * > แบบเลือกemail เป็น default
                             # ใช้ได้หรือป่าวไม่แน่ใจ
                             # while not self.operation_thread.is_set():
-                            #     self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]')
+                            #     self.final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""")
 
                             #     print("Radio while loop")
                             #     if self.final_popup.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
@@ -4182,10 +4201,9 @@ class Bot_POS:
                                 time.sleep(1)
                                 try:
                                     # print("auto click Before print loop")
-                                    # self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]') #! ปุ่มนี้น่าจะหายไปละ
-                                    self.final_popup = self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]')
-                                    # self.is_final_page = self.wait50.until(EC.invisibility_of_element_located(
-                                    #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
+                                    # self.final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""") #! ปุ่มนี้น่าจะหายไปละ
+                                    self.final_popup = self.driver.find_element(
+                                        By.XPATH, """//div[@class = 'swal2-content']""")
                                     self.is_final_page = self.driver.find_element(
                                         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                                     #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
@@ -4198,7 +4216,7 @@ class Bot_POS:
                                     print("self.final_popup is displayed")
                                     try:
                                         self.driver.find_element(
-                                            By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+                                            By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""").click()
                                         print('Click space behind final popup')
                                     except:
                                         print('Cannot click space behind final popup')
@@ -4237,13 +4255,13 @@ class Bot_POS:
                                     print("final pop-up has finally displayed!")
                                     try:
                                         self.final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
-                                            # (By.XPATH, '/html/body/div[24]/div[2]/button[1]'))) #! ปุ่มนี้น่าจะหายไปละ
-                                            (By.XPATH, '/html/body/div[24]/div[2]')))
+                                            # (By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']"""))) #! ปุ่มนี้น่าจะหายไปละ
+                                            (By.XPATH, """//div[@class = 'swal2-content']""")))
                                         # *> ให้เวลาดูเลขบิล 1 วิ
                                         time.sleep(1)
 
                                         alert_text = self.driver.find_element(
-                                            By().XPATH, '/html/body/div[24]/div[2]/div[6]').text  # อันนี้น่าจะใช้ไม่ได้ละ
+                                            By().XPATH, """//div[@class = 'swal2-content']""").text  # อันนี้น่าจะใช้ไม่ได้ละ
 
                                         match = re.search(r'B\d+-\w.*\d+-\d+', alert_text)
                                         print("match: ", match)
@@ -4273,13 +4291,12 @@ class Bot_POS:
                                             # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
                                             break
 
-                                        # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, '/html/body/div[24]/div[2]')))
+                                        # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
                                         # time.sleep(1)
                                         # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
 
                                         # * ลอง click container ดู ใช้ได้แล้ว
                                         print("click container!")
-                                        # self.driver.find_element(By.XPATH, '/html/body/div[24]').click()
                                         self.driver.execute_script(
                                             "document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
 
@@ -4359,11 +4376,11 @@ class Bot_POS:
                                     #     print('จุดจบ')
                                     #     # * กดปุ่มใน pop-up สุดท้าย
                                     #     self.driver.find_element(
-                                    #         By.XPATH, '/html/body/div[24]/div[2]/button[1]')
+                                    #         By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""")
                                     #     self.wait50.until(EC.visibility_of_element_located(
-                                    #         (By.XPATH, '/html/body/div[24]/div[2]/button[1]')))
+                                    #         (By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""")))
                                     #     self.wait50.until(EC.element_to_be_clickable(
-                                    #         (By.XPATH, '/html/body/div[24]/div[2]/button[1]'))).click()
+                                    #         (By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']"""))).click()
                                     #     # > รอหน้า canvas โผล่ก่อน
                                     #     self.wait50.until(EC.visibility_of_element_located(
                                     #         (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
@@ -4412,9 +4429,10 @@ class Bot_POS:
         #     pass
 
     def open_customer_form(self, is_functionworking):
-        # ? wip เช็คตรงนี้ก่อน
-        # ? //span[(contains(., "AR Online") or contains(., "Online Sale")) and not(contains(., "Deposite -"))and(@id="select2-divSaletype2-container")]
-        # ? ว่ามี element ใหม่ ถ้ามี แปลว่าเลือกแล้ว ถ้าไม่มีค่อยลงมาทำข้างล่าง
+        if not self.has_sale_type_selected():
+            print("No sale type selected, selecting now")
+            self.select_sale_type()
+        print("opening customer form initializing")
 
         customer_form_dialog_element = False
         # todo เช็ค dialog form โหลดเสร็จยัง
@@ -4512,7 +4530,6 @@ class Bot_POS:
                 time.sleep(1)
                 print("except: ", err)  # for develop inspection
 
-
     def addCustomer(self, customer_type="normal", cusname_fixed=None):
         """
         Unified method to add customers to SMCO system
@@ -4544,7 +4561,7 @@ class Bot_POS:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
         try:
-            self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+            self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""").click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
             print(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
         except:
@@ -4647,7 +4664,7 @@ class Bot_POS:
                     # Country dropdown
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
-                    time.sleep(1.55)
+                    self.dropdown_handler()
 
                     if customer_type == "tax":
                         self.driver.find_element(
@@ -4661,7 +4678,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(province)
-                    time.sleep(1.55)
+                    self.dropdown_handler()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
@@ -4672,7 +4689,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(district)
-                    time.sleep(1.75)
+                    self.dropdown_handler()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
@@ -4687,7 +4704,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(sub_district)
-                    time.sleep(1.75)
+                    self.dropdown_handler()
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
@@ -4726,6 +4743,8 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -5043,7 +5062,7 @@ class Bot_POS:
     def tax_address_corrector(self, cus_name):
         print("cus_name: ", cus_name)
         # match = re.search(r'C\d*(?=-)', cus_name) #! อันนี้ถ้าหากมีคนตั้งชื่อเหมือนรหัสมันจะเจอสองจุดแต่ patternจริงๆแล้วนั้นรหัสมันจะต้องขึ้นต้นก่อนเสมอฉะนั้นต้องปรับ
-        match = re.search(r'^C\d{1,}(?=-)', cus_name)
+        match = re.search(r'^C\d{1,}(?=-)', cus_name)  # * for customer code
         self.cus_code = match.group()
 
         customer_id = self.smco_req_find_customer_id(self.cus_code)
@@ -5275,7 +5294,7 @@ class Bot_POS:
         # * ระบุตัวตนของ pop-up
         self.cus_code_element = popup_dup_element
         self.dup_popup_content = self.cus_code_element.text
-        self.driver.find_element(By.XPATH, '/html/body/div[24]/div[2]/button[1]').click()
+        self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and text()='OK']""").click()
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
             logger.info(f"{self.app.cus_order.get()}: After adding cusname, the cusname is Not Duplicated")
