@@ -3208,7 +3208,7 @@ class Bot_POS:
         self.dropdown_handler()
         while not self.operation_thread.is_set():
             try:
-                #! ยังไม่สมบูร 100% 
+                #! ยังไม่สมบูร 100%
                 self.driver.find_element(
                     By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[(starts-with(., "AR Online") or starts-with(., "Online Sale")) and not(contains(., "Deposite -"))]').click()
                 print("เจอ element cus_name_span_elmt")
@@ -3224,9 +3224,17 @@ class Bot_POS:
         self.smco_current_emp = self.driver.find_element(
             By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').text
         if not self.app.user_id.get() in self.smco_current_emp:
-            self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
-            self.driver.find_element(By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
+            while not self.operation_thread.is_set():  # * รอโหลดหลังเลือก AR บางครั้งมันจะเclick ไม่ได้เพราะมันมีการเอา background fading มาบัง
+                try:
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/div[1]/span/span[1]/span/span[1]').click()
+                    self.driver.find_element(
+                        By.XPATH, '/html/body/span/span/span[1]/input').send_keys(self.app.user_id.get())
+                    break
+                except:
+                    time.sleep(0.25)
+                    continue
+
             while not self.operation_thread.is_set():
                 time.sleep(0.25)
                 try:
@@ -4052,7 +4060,7 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
-                                self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
+                                # self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
 
                                 try:
                                     # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
@@ -4722,6 +4730,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
