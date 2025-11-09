@@ -1478,9 +1478,9 @@ class MyApp:
             raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
 
-        # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
-        if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
-            self.bot.pre_operation_memory_cleanup("search_order")
+        # # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
+        # if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
+        #     self.bot.pre_operation_memory_cleanup("search_order")
 
         differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า',
                                  'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
@@ -2440,7 +2440,9 @@ class Bot_POS:
             'itcity': 'SHOPEE',
             'shp_wisegadget_master': 'SHOPEE Wise Gadget',
         }
-        self.origin = BaseUrlFinder().check_available_ip()
+        # self.origin = BaseUrlFinder().check_available_ip()
+        # self.origin = "http://115.31.167.19:9099"
+        self.origin = "http://115.31.167.28:8080"
         self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
 
         # Memory management tracking
@@ -3218,8 +3220,14 @@ class Bot_POS:
             return False
 
     def select_sale_type(self):
-        self.driver.find_element(
-            By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+        while not self.operation_thread.is_set():
+            try:
+                self.driver.find_element(
+                    By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+                break
+            except:
+                time.sleep(0.5)
+                continue
         time.sleep(0.25)
         self.dropdown_handler()
         while not self.operation_thread.is_set():
@@ -4124,7 +4132,6 @@ class Bot_POS:
                             #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
                             #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
 
-
                             #! deprecated มันเหมือนมีไรสักอย่างที่มันจะแสดงชื่อลูกค้า แต่ตอนนี้เหมือนจะไม่มีละ
                             # # * ค้นหา element โดยใช้ XPath
                             # self.is_input_on = self.driver.find_element(By.XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/form/div/span/span[1]/span/span[1]')
@@ -4741,7 +4748,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
