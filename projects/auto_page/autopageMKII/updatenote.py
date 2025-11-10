@@ -186,6 +186,7 @@
 # * 182 /fixed/ 3.2.2 ย้ายขั้นตอนการเลือก customer class ไปไว้หลังก่อนกด submit form 
 # todo 183 /Refactor/ 3.2.2 refactor add_new_customer function to reduce code duplication
 # * 185 4.0.0 adjust locator for SMCO version 8.0.0
+# * 186 4.0.1 fix locator for SMCO version 8.0.1
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
