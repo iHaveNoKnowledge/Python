@@ -3489,7 +3489,7 @@ class Bot_POS:
                 ".",
                 0
             )
-            print("Printing silently complete.")
+            print("Printing via pdf readers silently complete.")
         except OSError as err:
             print(f"(silence_mode)No PDF Reader found: {err}")
 
@@ -3516,6 +3516,7 @@ class Bot_POS:
                                     if "SumatraPDF" in display_name:  # * เทียบดิวะรอไร
                                         install_location, _ = winreg.QueryValueEx(subkey, "InstallLocation")
                                         exe_path = os.path.join(install_location, "SumatraPDF.exe")
+                                        print("smt path: ", exe_path)
                                         if os.path.isfile(exe_path):
                                             return exe_path
                             except (FileNotFoundError, OSError, PermissionError, KeyError):
@@ -3523,7 +3524,7 @@ class Bot_POS:
                                 continue
                 except FileNotFoundError:
                     continue
-        print("ไม่มี SumatraPDF install อยู่ในเครื่องแล้วละมั้ง")
+        print("SumatraPDF was not installed.")
         return None
 
     def print_pdf_silence_sumatra(self, pdf_path):
@@ -3532,7 +3533,7 @@ class Bot_POS:
             subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
             print("SMT Printing silently complete.")
         except Exception as e:
-            print(f"Silent print failed: {e}")
+            print(f"sumatra Silent print failed: {e}")
             raise ValueError("Sumatra was not found")
 
     def operation_start(self):
@@ -4088,7 +4089,8 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
-                                # self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
+                                #* ผมใช้เอง
+                                self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
 
                                 try:
                                     # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
