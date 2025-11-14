@@ -179,7 +179,7 @@
 # * 175 patch 3.2.1 /fix/ ไอClaudeมันแก้codeแต่ไม่เก็บค่าไปตัด excel เหลือแต่ตัวแปรเปล่าๆ ไม่มี array list tuple ไรเลย /bug/ bug array used_serials มันหายไป ทำให้ตัวตัดค่า sn ที่ใช้แล้วไม่ได้  แถมไม่ตัด order ด้วย
 # ! 176 /bug/ ตัว clear memory ยังไม่ยอมเปิดหน้าใหม่ hint เปิดใหม่แล้วค่อยปิดเก่า ค่อนข้าง work มันเหมือนมันจะใช้ memory session ใหม่ แต่ถ้าปิดก่อนแล้วเปิดเหมือนมันจะใช้ session เดิม
 # ! 177 /bug/ กรุงเทพ วัฒนา พระโขนง เวลาเอาไป create customer 251111FSHR0P5R ถ้าเสิช เขตวัฒนา จะได้ ทวีวัฒนา ทำให้สร้าง ชื่อลูฏค้าไม่ได้
-# ! 178 /bug/ state ของ sn หายไปด้วย เวลาที่ order ที่แล้ว ยังไม่ได้ใช้ พอไป order ถัดไป sn ที่ไม่ได้ใช้ดันหายไปด้วย state มีนอิงจาก obj_data_from_accel_file (มาจากไฟล์ excel) ต้อง test ด้วยการใช้ order1, order2 แล้วใช้ sn1 แค่อันเดียว ให้มันใส่ sn1 ที่ order1 แล้วกดข้าม order1 แล้วไป order2 แล้วดูว่ามันจะเอา sn1 มาใช้ได้ไหม
+# * 178 /fixed/ state ของ sn หายไปด้วย เวลาที่ order ที่แล้ว ยังไม่ได้ใช้ พอไป order ถัดไป sn ที่ไม่ได้ใช้ดันหายไปด้วย state มีนอิงจาก obj_data_from_accel_file (มาจากไฟล์ excel) ต้อง test ด้วยการใช้ order1, order2 แล้วใช้ sn1 แค่อันเดียว ให้มันใส่ sn1 ที่ order1 แล้วกดข้าม order1 แล้วไป order2 แล้วดูว่ามันจะเอา sn1 มาใช้ได้ไหม
 # * 179 /Fixed/ ข้อความแสดง sku ของ shopee mimic gui ของหมึก มันไม่มี 00 นำหน้า
 # * 180 /feat/ 3.2.1 && 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
 # ? 181 /fixed/!!!ยังไม่ดีหรอก ต้องเทสต่ออีกหน่อย!! ทำตัวรอเวลาหากมีการเช็ค memery ให้function อ่านค่าจาก excel อย่าเพิ่ง switch หน้า ไปเช็ค status shopee /Bug/ มันมี 2 threads ที่มัน conflit กันเองเวลาใช้ function get_tabs ตอนเช็ค memory กับตอนเช็ค status มันทำงานพร้อมกัน
