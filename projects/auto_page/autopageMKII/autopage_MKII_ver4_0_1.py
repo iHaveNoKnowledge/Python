@@ -772,7 +772,7 @@ class MyApp:
         self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
-        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings")
+        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings", height=8)
         self.tree.column("Productname", anchor=W, width=350)
         self.tree.column("Price", width=self.measure_text("Price")+10)
         self.tree.column("QTY", width=self.measure_text("QTY")+10)
@@ -781,8 +781,8 @@ class MyApp:
         self.tree.heading("QTY", text="QTY")
 
         self.y_scrollbar = ttk.Scrollbar(self.products_list_frame, command=self.tree.yview)
-
         self.y_scrollbar.pack(side="right", fill="y")
+        
         self.tree.pack(side='bottom', fill=X)
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
