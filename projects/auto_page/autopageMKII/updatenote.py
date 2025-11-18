@@ -173,22 +173,23 @@
 # ? 169 patch 3.1.4 /Not sure/ ไม่เจออาการนี้ตอน Debug /Bug/ มันมีการวนมา Add ชื่อซ้ำหลังจาก Add ไปแล้ว
 # Todo 170 minor 3.2.0 /addnew/ Accel mode for some A-zone products (Ink, memory card)
 # * 171 patch 3.2.0 /Fixed/ ใส่ try except ในจุดที่คลิกปุ่ม 'create new customer' ให้กลับไปใช้ is_displayed() ใหม่ก็หายละ /Bug/ function ที่ใช้ จัดการ 'Customer Class' ยังมีปัญหาอยู่, function มันเรียกหาelement เร็วไป มันหาตำแหน่งเจอ แต่ element ดันใช้ method is_displayed() ไม่ได้ มันเลย error แล้วด้านล่างใน except ฉันดันเรียกปุ่ม create customer ที่อยู่ข้างนอกทันที เพราะคิดแค่ว่าถ้าใช้ is_displayed()ไม่ได้เลยตัดสินไปเลยว่าไม่มีหน้า form แต่ก็เรียกไม่ได้เพราะ form ในการ crate new customer มันบังอยู่ก็เลยพัง
-# ! 172 patch 3.2.0 /Bug/ no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"} หลาย order อยู่ ต้องเช็คละ
+# ? 172 patch 4.0.2 /Fixed/ เปลี่ยน pathใหม่ เป็น path ที่อิงจาก attr /Bug/ no such element: Unable to locate element: {"method":"xpath","selector":"/html/body/div[2]/div[2]/div[2]/div[1]/label/div/button"} หลาย order อยู่ ต้องเช็คละ
 # ! 173 /req/ ตัวpop up seller voucher มให้ default เป็น true if accel mode {pop-up ไม่ทำงาน} else {pop-up ทำงาน}
 # * 174 patch 3.2.1 /Fixed/ ทำตัวเช็คให้เปิดหน้า เปิดการขายก่อนเริ่ม operations ใน smco
 # * 175 patch 3.2.1 /fix/ ไอClaudeมันแก้codeแต่ไม่เก็บค่าไปตัด excel เหลือแต่ตัวแปรเปล่าๆ ไม่มี array list tuple ไรเลย /bug/ bug array used_serials มันหายไป ทำให้ตัวตัดค่า sn ที่ใช้แล้วไม่ได้  แถมไม่ตัด order ด้วย
-# ! 176 /bug/ ตัว clear memory ยังไม่ยอมเปิดหน้าใหม่ hint เปิดใหม่แล้วค่อยปิดเก่า ค่อนข้าง work มันเหมือนมันจะใช้ memory session ใหม่ แต่ถ้าปิดก่อนแล้วเปิดเหมือนมันจะใช้ session เดิม
+# * 176 patch 3.2.1 /fixed/ แก้แล้วแต่ไม่เว์ร์ค มันยังคงต่างกับพฤติกรรมที่ user คลิก x บน browser อยู่ดี /bug/ ตัว clear memory ยังไม่ยอมเปิดหน้าใหม่ hint เปิดใหม่แล้วค่อยปิดเก่า ค่อนข้าง work มันเหมือนมันจะใช้ memory session ใหม่ แต่ถ้าปิดก่อนแล้วเปิดเหมือนมันจะใช้ session เดิม
 # ! 177 /bug/ กรุงเทพ วัฒนา พระโขนง เวลาเอาไป create customer 251111FSHR0P5R ถ้าเสิช เขตวัฒนา จะได้ ทวีวัฒนา ทำให้สร้าง ชื่อลูฏค้าไม่ได้
 # * 178 /fixed/ state ของ sn หายไปด้วย เวลาที่ order ที่แล้ว ยังไม่ได้ใช้ พอไป order ถัดไป sn ที่ไม่ได้ใช้ดันหายไปด้วย state มีนอิงจาก obj_data_from_accel_file (มาจากไฟล์ excel) ต้อง test ด้วยการใช้ order1, order2 แล้วใช้ sn1 แค่อันเดียว ให้มันใส่ sn1 ที่ order1 แล้วกดข้าม order1 แล้วไป order2 แล้วดูว่ามันจะเอา sn1 มาใช้ได้ไหม
 # * 179 /Fixed/ ข้อความแสดง sku ของ shopee mimic gui ของหมึก มันไม่มี 00 นำหน้า
 # * 180 /feat/ 3.2.1 && 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
 # ? 181 /fixed/!!!ยังไม่ดีหรอก ต้องเทสต่ออีกหน่อย!! ทำตัวรอเวลาหากมีการเช็ค memery ให้function อ่านค่าจาก excel อย่าเพิ่ง switch หน้า ไปเช็ค status shopee /Bug/ มันมี 2 threads ที่มัน conflit กันเองเวลาใช้ function get_tabs ตอนเช็ค memory กับตอนเช็ค status มันทำงานพร้อมกัน
-# * 182 /fixed/ 3.2.2 ย้ายขั้นตอนการเลือก customer class ไปไว้หลังก่อนกด submit form 
+# * 182 /fixed/ 3.2.2 ย้ายขั้นตอนการเลือก customer class ไปไว้หลังก่อนกด submit form
 # todo 183 /Refactor/ 3.2.2 refactor add_new_customer function to reduce code duplication
 # * 185 4.0.0 adjust locator for SMCO version 8.0.0
-# * 186 4.0.1 fix locator for SMCO version 8.0.1
-# ! 187 /bug/ ตรงแอดชื่ออย่าให้มันรัวเลย พอมันหาไม่เจอมันเริ่มใหม่เรื่อยๆ
+# * 186 4.0.1 fix locator for SMCO version 8.0.0
+# ? 187 /Shit/ หาจุดที่เป็นปัญหาไม่เจอ แต่ตอนใช้มันเจอจริงๆ /bug/ ตรงแอดชื่ออย่าให้มันรัวเลย พอมันหาไม่เจอมันเริ่มใหม่เรื่อยๆ
 # Todo 188 /New Feat/ autoclick check serial
+# * 189 /Fixed/ ปรับตัว Replace ชื่อลูกค้าบางส่วน ในฟังชั่น select_cus_name_from_lis() เพราะฟังชั่นนี้ขาดการ replace "/n" (การกด enter ขึ้นบรรทัดใหม่) เนื่องจาก ชื่อลูกค้าบางชื่อมีการใช้ enter แทน \s แล้วการกด enter ของ user มันดันแสดงผลเป็น \s ใน ui ของ shopee แต่ในdata มันไม่ใช่ \s ตามที่เห็นใน ui แต่เป็น \n ทำให้การตัด \s เพียงอย่างเดียว เพื่อเช็คความเหมือนของชื่อลูกค้านั้นไม่เพียงพอ
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
