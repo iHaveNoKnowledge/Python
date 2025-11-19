@@ -585,9 +585,13 @@ class MyApp:
         # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # * >> add transfer Button
         self.add_trans_to_accel_file_btn = CTkButton(
-            self.entry_frame, text=f"เลือกใส่ Transfer", command=lambda: self.accel_mode.extract_sn_btn(
-                self.accel_mode.accel_file_dir),
-            fg_color="#969696")
+            self.entry_frame, 
+            text=f"เลือกใส่ Transfer", 
+            command=lambda: self.accel_mode.extract_sn_btn(
+                self.accel_mode.accel_file_dir
+            ),
+            fg_color="#969696"
+        )
 
         # * > Log in button component
         # * >> A BTN to display the User_account
@@ -809,8 +813,8 @@ class MyApp:
         self.demonicCp_cpNo_input = Entry(
             self.demonic_frame, textvariable=self.demonicCp_cpNo, width=10)
         self.demonicCp_cpNo_input.grid(row=0, column=4)
-        # * >> Buttons
-        self.demonicCp_btn = CTkButton(self.demonic_frame, text="Add CP!",
+        # * >> Buttons Auto add CP
+        self.demonicCp_btn = CTkButton(self.demonic_frame, text="SonicBlow!",
                                        command=self.demonic_cp_selection, width=60,  height=4)
         self.demonicCp_btn.grid(row=0, column=5, padx=(1, 0))
 
@@ -1572,9 +1576,14 @@ class MyApp:
                     self.no_col_value_widget = CTkButton(
                         self.mp_products_list_frame, width=int(self.cols_width[0]), height=14)
                     # self.no_col_value_widget.insert(0, self.idx+1)
-                    self.no_col_value_widget.configure(text=str(self.idx + 1),
-                                                       fg_color="#81ed55", text_color="#1E1E1E",
-                                                       command=lambda: print("เรียกใช้ auto add"))
+                    self.no_col_value_widget.configure(
+                        text=str(self.idx + 1),
+                        fg_color="#81ed55", 
+                        text_color="#1E1E1E", 
+                        border_width=2, 
+                        border_color="#969696",
+                        command=lambda: print("เรียกใช้ auto add")
+                    )
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
 
@@ -4768,6 +4777,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
