@@ -1,1 +1,1 @@
-
+not self.operation_thread.is_set()

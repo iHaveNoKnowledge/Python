@@ -8,10 +8,11 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 class AutoAddProduct:
-    def __init__(self, driver, wait50, app):
+    def __init__(self, driver, wait50, app, parent):
         self.driver = driver
         self.wait50 = wait50
         self.app = app
+        self.bot = parent
 
     def price_setter(self,  sku: str,  srp: int = None):
         # Todo WIP ใช้ได้ละ รอ implement ใน flow จริง ใช้คู่กับ auto_add_product
@@ -78,19 +79,30 @@ class AutoAddProduct:
             sku_qty_element = self.driver.find_element(
                 By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
             for sku in skus:
-                print("Processing SKU: ", sku, " with qty: ", qty)
-                self.driver.execute_script(
-                    "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                    sku_qty_element,
-                    qty
-                )
+                while not self.bot.operation_thread.is_set():  # * ต้อง while เพราะ มันมีปัญหาคือ angular เปลี่ยนค่าไม่ติด ต้องเปลี่ยนจนกว่าจะติด
+                    try:
+                        print("Processing SKU: ", sku, " with qty: ", qty)
+                        self.driver.execute_script(
+                            "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                            sku_qty_element,
+                            qty
+                        )
+                        result = self.driver.execute_script(
+                            "return angular.element(arguments[0]).val()", sku_qty_element)
+                        print("result: ", result)
+                        if int(result) == int(qty):
+                            break
+                        time.sleep(0.25)
+                    except:
+                        time.sleep(0.25)
+                        continue
+
                 skuInput_element.clear()
                 skuInput_element.send_keys(sku)
                 print(f"Placing SKU Input with {sku} success")
 
                 skuInput_element.send_keys(Keys().ENTER)
                 print("Pressed Enter to submit SKU")
-                time.sleep(0.1)
 
             request_ids = []
             target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"

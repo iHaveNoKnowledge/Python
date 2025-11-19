@@ -2473,7 +2473,7 @@ class Bot_POS:
         # self.origin = "http://115.31.167.19:9099"
         self.origin = "http://115.31.167.28:8080"
         self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
-        self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app)
+        self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app, self)
 
         # Memory management tracking
         self.operation_count = 0
