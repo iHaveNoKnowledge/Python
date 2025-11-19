@@ -26,6 +26,7 @@ from bs4 import BeautifulSoup
 from customtkinter import *
 from dotenv import load_dotenv
 from functions.accel_mode import AccelMode
+from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
 from googletrans import Translator
@@ -585,8 +586,8 @@ class MyApp:
         # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
         # * >> add transfer Button
         self.add_trans_to_accel_file_btn = CTkButton(
-            self.entry_frame, 
-            text=f"เลือกใส่ Transfer", 
+            self.entry_frame,
+            text=f"เลือกใส่ Transfer",
             command=lambda: self.accel_mode.extract_sn_btn(
                 self.accel_mode.accel_file_dir
             ),
@@ -1531,12 +1532,11 @@ class MyApp:
                 self.cus_masked_tel = self.data_frame[self.target_row]['หมายเลขโทรศัพท์'].iloc[0]
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
-                # *  ของมีอะไรบ้าง
+                # *  ของมีอะไรบ้าง dtypeหลังใช้ .to_dict('records') จะเป็น list of dict ฉันั้น self.items = [{}, {}, ...]
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
-                # ตัดช่องว่าง
+                #* ตัดช่องว่าง
                 for row in self.items:
-                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
-                        ' ', '')
+                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(' ', '')
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
@@ -1574,15 +1574,22 @@ class MyApp:
                 for row in self.items:
                     # self.no_col_value_widget = CTkEntry(self.mp_products_list_frame,width=int(self.cols_width[0]), height=14)
                     self.no_col_value_widget = CTkButton(
-                        self.mp_products_list_frame, width=int(self.cols_width[0]), height=14)
+                        self.mp_products_list_frame,
+                        width=int(self.cols_width[0]),
+                        height=14
+                    )
                     # self.no_col_value_widget.insert(0, self.idx+1)
                     self.no_col_value_widget.configure(
                         text=str(self.idx + 1),
-                        fg_color="#81ed55", 
-                        text_color="#1E1E1E", 
-                        border_width=2, 
+                        fg_color="#81ed55",
+                        text_color="#1E1E1E",
+                        border_width=2,
                         border_color="#969696",
-                        command=lambda: print("เรียกใช้ auto add")
+                        command=lambda: self.bot.AutoAddProduct.auto_add_product(self.correct_sku_pattern(self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)']))
+                        # command=lambda: print(f"""
+                        #                       self.idx inside lambda: {self.idx}|
+                        #                       self.items: {self.correct_sku_pattern(self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)'])}
+                        #                       """)
                     )
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
@@ -1619,18 +1626,15 @@ class MyApp:
                     # self.demonic_cp_btn = CTkButton(self.mp_products_list_frame, text="xxx", fg_color="#969696", command=self.search_order, width=10)
                     # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
 
-                # print("none ได้ไง:", self.widgets_no_col_lst)
-                # print("ไม่สามารถ grid: ", self.all_cols)
-
                 for col_idx, col_list in enumerate(self.all_cols):
                     for idxrow, col in enumerate(col_list):
                         col.grid(
-                            row=idxrow + 1, column=self.cols_location[col_idx],
-                            columnspan=self.colspan_amount[col_idx])
+                            row=idxrow + 1,
+                            column=self.cols_location[col_idx],
+                            columnspan=self.colspan_amount[col_idx]
+                        )
                         if col_idx != 1:
                             col.configure(state="readonly")
-
-                # self.row_header_maker(self.items)
 
                 # * ชื่อที่ต้องออกใบกำกับ
                 try:
@@ -2452,16 +2456,22 @@ class Bot_POS:
         self.parent = parent
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
-        self.setup_chrome()
+        self.driver = self.setup_chrome()
+        self.driver.execute_cdp_cmd("Network.enable", {})
         self.channel_options = {
             'shp_itcitymobile_master': 'SHP ITCITY Mobile',
             'itcity': 'SHOPEE',
             'shp_wisegadget_master': 'SHOPEE Wise Gadget',
         }
+
+        self.wait50 = WebDriverWait(self.driver, 50)
+        self.wait5 = WebDriverWait(self.driver, 5)
+        # ? BaseUrlFinder() มันทำงานโดยหาค่าจาก env แต่ตอนออก exe ยังใช้ไม่ได้ ตอนนี้เลยตั้งค่า origin ตายตัวไปก่อน
         # self.origin = BaseUrlFinder().check_available_ip()
         # self.origin = "http://115.31.167.19:9099"
         self.origin = "http://115.31.167.28:8080"
         self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
+        self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app)
 
         # Memory management tracking
         self.operation_count = 0
@@ -2500,12 +2510,12 @@ class Bot_POS:
         try:
             print("create driver")
             # * error มันจะเกิดแถวนี้
-            self.driver = webdriver.Chrome(
+            driver = webdriver.Chrome(
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
-
             print("driver created")
+            return driver
 
         except:
             traceback_str = traceback.format_exc()
@@ -2532,10 +2542,11 @@ class Bot_POS:
                 print(err)
                 raise
 
-            self.driver = webdriver.Chrome(
+            driver = webdriver.Chrome(
                 service=Service(r'C:\bin\chromedriver.exe'),
                 options=self.opt
             )
+            return driver
 
     def get_current_tab_memory_usage(self):
         """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
@@ -3569,10 +3580,8 @@ class Bot_POS:
             ### * MARKETPLACES Part ########################################################################################
             self.autofinal = False
             print("operation start!! ยังไม่มีไรจะใส่ใส่เป็น placeholderไว้ก่อน")
-            self.wait50 = WebDriverWait(self.driver, 50)
-            self.wait5 = WebDriverWait(self.driver, 5)
-            # * เปลี่ยนไปtab MARKETPLACES เพื่อเช็ค status (เพราะไม่มี API เลยต้องทำ และเพื่อดูรูปว่ามีของแถมหรือไม่)
 
+            # * เปลี่ยนไปtab MARKETPLACES เพื่อเช็ค status (เพราะไม่มี API เลยต้องทำ และเพื่อดูรูปว่ามีของแถมหรือไม่)
             #### * IF MARKETPLACE IS SHOPEE ###################################################################################################################################
             if self.app.marketplace_target.get() == 'SHOPEE':
                 while self.is_memory_checking:
@@ -3833,131 +3842,134 @@ class Bot_POS:
                 try:
                     self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc)
                     self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
-                    print("เจอ element cus_name_span_elmt")
+                    print("found element cus_name_span_elmt ")
                     break
                 except:
-                    print("ยังไม่เจอ element cus_name_span_elmt")
+                    print("finding element cus_name_span_elmt")
                     time.sleep(0.5)
                     continue
+                
+            if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
+                print("element cus_name_span_elmt is displayed")
 
-            if self.cus_name_span_x_btn_text == 'Please select':
-                self.is_reset = False
-            elif self.cus_name_span_x_btn_text == 'กรุณาเลือก':
-                self.is_reset = False
-            else:
-                self.is_reset = True
-                print("มีชื่อลูกค้าอยู่แล้ว")
+                if self.cus_name_span_x_btn_text == 'Please select':
+                    self.is_reset = False
+                elif self.cus_name_span_x_btn_text == 'กรุณาเลือก':
+                    self.is_reset = False
+                else:
+                    self.is_reset = True
+                    print("มีชื่อลูกค้าอยู่แล้ว")
 
-            try:
-                print("เช็คว่าต้องรีไหม", self.is_reset)
-                if self.is_reset:
-                    print("รีนี่หว่า, กดรีเลย")
-                    self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
-                    items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-                    if len(items_list) == 0:
-                        # * คลิกเพื่อให้ปิด droprdown
+                try:
+                    print("เช็คว่าต้องรีไหม", self.is_reset)
+                    if self.is_reset:
+                        print("รีนี่หว่า, กดรีเลย")
                         self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
-                        print("ปิด dropwdown กรณีไม่มีสินค้า")
-                    else:
-                        # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
-                        print("กรณีมีสินค้า")
-                        self.driver.find_element(By.XPATH, '//span[@id="select2-memberSearch-container"]/span').click()
-                        try:
-                            print("wait for pop-up(try)")
-                            # ระบุปุ่ม ok
-                            if self.driver.find_element(
-                                    By.XPATH,
-                                    """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
-                                print("has pop-up(try)")
-                                self.driver.find_element(
-                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-                                print("Click OK(try)")
-                        except:
-                            print("wait for pop-up(except)")
-                            time.sleep(1)
-                            # * ระบุปุ่ม ok
-                            if self.driver.find_element(
-                                    By.XPATH,
-                                    """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
-                                print("has pop-up(except)")
-                                self.driver.find_element(
-                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-                                print("Click OK(except)")
-                        # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
-                        try:
+                        items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                        if len(items_list) == 0:
+                            # * คลิกเพื่อให้ปิด droprdown
                             self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
-                            print("Cusname still appear, the btn 'x' is available.")
-                        except:
-                            print("Cusname has disappeared, no 'x' to press.")
+                            print("ปิด dropwdown กรณีไม่มีสินค้า")
+                        else:
+                            # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
+                            print("กรณีมีสินค้า")
+                            self.driver.find_element(By.XPATH, '//span[@id="select2-memberSearch-container"]/span').click()
+                            try:
+                                print("wait for pop-up(try)")
+                                # ระบุปุ่ม ok
+                                if self.driver.find_element(
+                                        By.XPATH,
+                                        """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
+                                    print("has pop-up(try)")
+                                    self.driver.find_element(
+                                        By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+                                    print("Click OK(try)")
+                            except:
+                                print("wait for pop-up(except)")
+                                time.sleep(1)
+                                # * ระบุปุ่ม ok
+                                if self.driver.find_element(
+                                        By.XPATH,
+                                        """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
+                                    print("has pop-up(except)")
+                                    self.driver.find_element(
+                                        By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+                                    print("Click OK(except)")
+                            # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
+                            try:
+                                self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
+                                print("Cusname still appear, the btn 'x' is available.")
+                            except:
+                                print("Cusname has disappeared, no 'x' to press.")
 
-                    print("หน้าใหม่พร้อมแล้ว")
-                elif self.is_reset == False:
-                    print("ไม่ต้องรี")
-            except Exception as err:
-                # * กดปุ่ม Reset มุมขวาบนเพื่อ Reset หน้าเว็บใหม่
-                print("Error From SMCO phase1 Resetting", err)
-                logger.info("Error From SMCO phase1 Resetting", err)
-                while not self.operation_thread.is_set():
-                    print("รอ")
-                    time.sleep(1)
-                    if self.driver.find_element(
-                            By.XPATH, '//div[@class="btn-outline pull-right"]//button[@id="create"]'):
-                        print("เจอแล้ว")
-                        break
-                    else:
-                        continue
+                        print("หน้าใหม่พร้อมแล้ว")
+                    elif self.is_reset == False:
+                        print("ไม่ต้องรี")
+                except Exception as err:
+                    # * กดปุ่ม Reset มุมขวาบนเพื่อ Reset หน้าเว็บใหม่
+                    print("Error From SMCO phase1 Resetting", err)
+                    logger.info("Error From SMCO phase1 Resetting", err)
+                    while not self.operation_thread.is_set():
+                        print("รอ")
+                        time.sleep(1)
+                        if self.driver.find_element(
+                                By.XPATH, '//div[@class="btn-outline pull-right"]//button[@id="create"]'):
+                            print("เจอแล้ว")
+                            break
+                        else:
+                            continue
 
-            print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
+                print("ผ่านเคลียชื่อลูกค้า, รอ element โผล่")
 
-            # * เลือก filter การ query ลูกค้า ==========================================================================
-            # * /html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[1]/div/div/button
-            # self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
-            self.wait50.until(EC.element_to_be_clickable(
-                (By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button")))
+                # * เลือก filter การ query ลูกค้า ==========================================================================
+                # * /html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[1]/div/div/button
+                # self.wait50.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[5]/div/div/button')))
+                self.wait50.until(EC.element_to_be_clickable(
+                    (By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button")))
 
-            time.sleep(1)
+                time.sleep(1)
 
-            # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
-            self.driver.find_element(
-                By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button").click()
-            print("self.app.tax_bool: ", self.app.tax_bool.get())
+                # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
+                self.driver.find_element(
+                    By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button").click()
+                print("self.app.tax_bool: ", self.app.tax_bool.get())
 
-            # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ searchs
-            self.set_cus_name_search_type()
+                # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ searchs
+                self.set_cus_name_search_type()
 
-            # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
-            # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
+                # * ดูว่า self.cus_search_input จะต้องถูกกำหนดค่าเป็นเลขใบกำกับหรือชื่อ อิงจาก tax_bool choosing by ternary like conditional
+                # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
 
-            # if self.app.marketplace_target.get() == "SHOPEE":
-            #     self.cus_search_input = self.app.cus_email.get() if self.app.tax_bool.get(
-            #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
-            # elif self.app.marketplace_target.get() == "LAZADA":
-            #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-            #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                # if self.app.marketplace_target.get() == "SHOPEE":
+                #     self.cus_search_input = self.app.cus_email.get() if self.app.tax_bool.get(
+                #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                # elif self.app.marketplace_target.get() == "LAZADA":
+                #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            # * 05/07/2024 Shopeeนั้นได้ลบ ชื่อลูกค้าแบบ ธรรมดา ออกไปอย่างถาวร จึงต้องปรับวิธีออกบิลให้กับแบบธรรมดาโดยการใช้ "account"+" ชื่อที่เป็นดอกจัน"+" หมายเลขโทรศัพท์"
-            # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-            # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                # * 05/07/2024 Shopeeนั้นได้ลบ ชื่อลูกค้าแบบ ธรรมดา ออกไปอย่างถาวร จึงต้องปรับวิธีออกบิลให้กับแบบธรรมดาโดยการใช้ "account"+" ชื่อที่เป็นดอกจัน"+" หมายเลขโทรศัพท์"
+                # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            if self.app.marketplace_target.get() == "SHOPEE":
-                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
-            elif self.app.marketplace_target.get() == "LAZADA":
-                self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
-                ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                if self.app.marketplace_target.get() == "SHOPEE":
+                    self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+                elif self.app.marketplace_target.get() == "LAZADA":
+                    self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                    ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-            # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
-            self.get_customer_name_ready(self.cus_search_input)
+                # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
+                self.get_customer_name_ready(self.cus_search_input)
 
-            # * ใส่ตัวเช็คที่อยู่ลูกค้า
-            if self.app.tax_bool.get():
-                print("tax required, start address check and correct")
-                self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
-                # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี
-                self.text_from_name_span = self.cus_name_span.get_attribute("title")
-                self.tax_address_corrector(self.text_from_name_span)
+                # * ใส่ตัวเช็คที่อยู่ลูกค้า
+                if self.app.tax_bool.get():
+                    print("tax required, start address check and correct")
+                    self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
+                    # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี
+                    self.text_from_name_span = self.cus_name_span.get_attribute("title")
+                    self.tax_address_corrector(self.text_from_name_span)
 
-            else:
-                print("no tax required, skip address check")
+                else:
+                    print("no tax required, skip address check")
 
             # * ใส่ค่าขนส่ง ================================================================================
             # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น

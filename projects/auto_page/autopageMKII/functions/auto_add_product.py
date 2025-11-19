@@ -13,18 +13,16 @@ class AutoAddProduct:
         self.wait50 = wait50
         self.app = app
 
-    def price_setter(self, user_id: str, user_pw: str, sku: str,  srp: int = None):
+    def price_setter(self,  sku: str,  srp: int = None):
         # Todo WIP ใช้ได้ละ รอ implement ใน flow จริง ใช้คู่กับ auto_add_product
         # Todo มึงจะต้องหา element ของ item ทั้งหมดก่อน แล้วก็ดูว่า response ข้างบน มันส่งคืน item ไรมา บ้าง แล้วก็ loop เพื่อหา element ที่ตรงกับ item ที่ response ส่งมา เราก็จะรู้ว่า response ที่ส่งกลับมาไปอยู่ลำดับที่เท่าไหร่ของ element ในหน้ายิงขาย
         # Todo //span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u[text()=ตัวแปรsku]
         if srp:
-            smco_sku_code_elements = self.driver.find_elements(
-                By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
+            smco_sku_code_elements = self.driver.find_elements(By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
             sku_target_idx: int = None
             for idx, sku_element in enumerate(smco_sku_code_elements):
                 print(f"No. {idx+1} เจอ sku: {sku_element.text}")
                 if sku_element.text == sku:
-
                     sku_target_idx = idx
                     print(f"เจอ sku ตรงกับที่ต้องการที่ลำดับที่ {sku_target_idx + 1} ")
                     break
@@ -48,12 +46,12 @@ class AutoAddProduct:
             self.driver.find_element(
                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
             self.driver.find_element(
-                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(user_id)
+                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
 
             self.driver.find_element(
                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
             self.driver.find_element(
-                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(user_pw)
+                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
 
             self.driver.find_element(
                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
@@ -69,8 +67,8 @@ class AutoAddProduct:
             except:
                 print("No need to wait")
 
-
-    def auto_add_product(self, user_id: str, user_pw: str, skus: list[str], srp: int = None):
+    def auto_add_product(self, skus: list[str], srp: int = None):
+        print(f"incoming skus: {skus}")
         try:
             skuInput_element = self.wait50.until(EC.visibility_of_element_located(
                 (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
@@ -134,7 +132,7 @@ class AutoAddProduct:
                     break
                 time.sleep(0.1)
 
-            self.price_setter(user_id, user_pw, sku=product_from_response, srp=srp)
+            self.price_setter(sku=product_from_response, srp=srp)
 
         except Exception as err:
             print("Shipment cost skipped")
