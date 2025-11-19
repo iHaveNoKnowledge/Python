@@ -1534,9 +1534,10 @@ class MyApp:
 
                 # *  ของมีอะไรบ้าง dtypeหลังใช้ .to_dict('records') จะเป็น list of dict ฉันั้น self.items = [{}, {}, ...]
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
-                #* ตัดช่องว่าง
+                # * ตัดช่องว่าง
                 for row in self.items:
-                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(' ', '')
+                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
+                        ' ', '')
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
@@ -1585,7 +1586,8 @@ class MyApp:
                         text_color="#1E1E1E",
                         border_width=2,
                         border_color="#969696",
-                        command=lambda: self.bot.AutoAddProduct.auto_add_product(self.correct_sku_pattern(self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)']))
+                        command=lambda: self.bot.AutoAddProduct.auto_add_product(self.correct_sku_pattern(
+                            self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)']), self.items[0]['จำนวน'])
                         # command=lambda: print(f"""
                         #                       self.idx inside lambda: {self.idx}|
                         #                       self.items: {self.correct_sku_pattern(self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)'])}
@@ -2493,6 +2495,7 @@ class Bot_POS:
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
+        self.opt.set_capability("goog:loggingPrefs", {"performance": "ALL"})
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         self.opt.add_argument("--disable-popup-blocking")
         # self.opt.add_experimental_option("prefs",{
@@ -3848,7 +3851,7 @@ class Bot_POS:
                     print("finding element cus_name_span_elmt")
                     time.sleep(0.5)
                     continue
-                
+
             if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
                 print("element cus_name_span_elmt is displayed")
 
@@ -3865,7 +3868,8 @@ class Bot_POS:
                     if self.is_reset:
                         print("รีนี่หว่า, กดรีเลย")
                         self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
-                        items_list = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                        items_list = self.driver.find_elements(
+                            By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
                         if len(items_list) == 0:
                             # * คลิกเพื่อให้ปิด droprdown
                             self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
@@ -3873,7 +3877,8 @@ class Bot_POS:
                         else:
                             # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
                             print("กรณีมีสินค้า")
-                            self.driver.find_element(By.XPATH, '//span[@id="select2-memberSearch-container"]/span').click()
+                            self.driver.find_element(
+                                By.XPATH, '//span[@id="select2-memberSearch-container"]/span').click()
                             try:
                                 print("wait for pop-up(try)")
                                 # ระบุปุ่ม ok
@@ -3963,7 +3968,8 @@ class Bot_POS:
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.tax_bool.get():
                     print("tax required, start address check and correct")
-                    self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
+                    self.cus_name_span = self.driver.find_element(
+                        By.XPATH, "//span[@id='select2-memberSearch-container']")
                     # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี
                     self.text_from_name_span = self.cus_name_span.get_attribute("title")
                     self.tax_address_corrector(self.text_from_name_span)
@@ -4789,7 +4795,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

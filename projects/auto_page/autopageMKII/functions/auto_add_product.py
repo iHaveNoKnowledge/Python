@@ -3,8 +3,8 @@ import math
 import time
 
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class AutoAddProduct:
@@ -18,7 +18,8 @@ class AutoAddProduct:
         # Todo มึงจะต้องหา element ของ item ทั้งหมดก่อน แล้วก็ดูว่า response ข้างบน มันส่งคืน item ไรมา บ้าง แล้วก็ loop เพื่อหา element ที่ตรงกับ item ที่ response ส่งมา เราก็จะรู้ว่า response ที่ส่งกลับมาไปอยู่ลำดับที่เท่าไหร่ของ element ในหน้ายิงขาย
         # Todo //span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u[text()=ตัวแปรsku]
         if srp:
-            smco_sku_code_elements = self.driver.find_elements(By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
+            smco_sku_code_elements = self.driver.find_elements(
+                By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
             sku_target_idx: int = None
             for idx, sku_element in enumerate(smco_sku_code_elements):
                 print(f"No. {idx+1} เจอ sku: {sku_element.text}")
@@ -67,19 +68,29 @@ class AutoAddProduct:
             except:
                 print("No need to wait")
 
-    def auto_add_product(self, skus: list[str], srp: int = None):
+    def auto_add_product(self, skus: list[str], qty: int = 1, srp: int = None):
         print(f"incoming skus: {skus}")
         try:
+            # * SKU input location
             skuInput_element = self.wait50.until(EC.visibility_of_element_located(
                 (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
             # skuInput = self.driver.find_element(By.CSS_SELECTOR,'input.arFilterBox-search.ng-valid.ng-dirty.ng-empty.ng-touched')
+            sku_qty_element = self.driver.find_element(
+                By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
             for sku in skus:
+                print("Processing SKU: ", sku, " with qty: ", qty)
+                self.driver.execute_script(
+                    "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                    sku_qty_element,
+                    qty
+                )
                 skuInput_element.clear()
                 skuInput_element.send_keys(sku)
                 print(f"Placing SKU Input with {sku} success")
 
                 skuInput_element.send_keys(Keys().ENTER)
                 print("Pressed Enter to submit SKU")
+                time.sleep(0.1)
 
             request_ids = []
             target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
@@ -88,7 +99,7 @@ class AutoAddProduct:
             for _ in range(50):  # poll 5 วิ
                 logs = self.driver.get_log("performance")
                 for entry in logs:
-                    print("entry: ", entry)
+                    # print("entry: ", entry)
                     msg = json.loads(entry["message"])["message"]
                     if msg["method"] == "Network.requestWillBeSent":  # * ตรวจดู เมื่อ browser กำลังจะส่ง request ออกไป
                         url = msg["params"]["request"]["url"]
