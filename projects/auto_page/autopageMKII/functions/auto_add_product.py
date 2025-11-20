@@ -14,20 +14,58 @@ class AutoAddProduct:
         self.app = app
         self.bot = parent
 
+    # * Utils
+    def idx_of_target_element(self, sku: str):
+        smco_sku_code_elements = self.driver.find_elements(
+            By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
+
+        sku_target_idx: int = None
+        for idx, sku_element in enumerate(smco_sku_code_elements):
+            print(f"No. {idx+1} เจอ sku: {sku_element.text}")
+            if sku_element.text == sku:
+                sku_target_idx = idx
+                print(f"เจอ sku ตรงกับที่ต้องการที่ลำดับที่ {sku_target_idx + 1} ")
+                return sku_target_idx
+
+        return None
+
+    # * main fxs/helpers
+    def item_qty_setter(self, item_identifier: str | int, qty: int = 1):
+        print("item_qty_setter called")
+        if isinstance(item_identifier, str):  # * แปลงเป็น idx ก่อน
+            print("Converting")
+            item_identifier = self.idx_of_target_element(item_identifier)
+            print("Converted")
+
+        target_idx = item_identifier
+        current_qty_elements = self.driver.find_elements(By.XPATH, "//span[@class='col-sm-4 ng-binding']")
+        target_current_qty = current_qty_elements[target_idx].text
+        print("current_qty_elements: ", current_qty_elements)
+        print("target_current_qty: ", target_current_qty)
+        print("target_idx: ", target_idx)
+        print("qty: ", qty)
+
+        if target_idx >= 0:
+            print("Start qty setter")
+            item_qty_elements = self.driver.find_elements(By.XPATH, "//button[@ng-click='incrementMainQty(true, x)']")
+            while not self.bot.operation_thread.is_set() and int(target_current_qty) < int(qty):
+                print(f"target_current_qty and qty: {target_current_qty} and {qty}")
+                try:
+                    print("click increase button")
+                    item_qty_elements[target_idx].click()
+                    target_current_qty = current_qty_elements[target_idx].text
+                except:
+                    # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
+                    print("Cannot click increase button")
+                    time.sleep(0.25)
+                    continue
+
+        pass
+
     def price_setter(self,  sku: str,  srp: int = None):
-        # Todo WIP ใช้ได้ละ รอ implement ใน flow จริง ใช้คู่กับ auto_add_product
-        # Todo มึงจะต้องหา element ของ item ทั้งหมดก่อน แล้วก็ดูว่า response ข้างบน มันส่งคืน item ไรมา บ้าง แล้วก็ loop เพื่อหา element ที่ตรงกับ item ที่ response ส่งมา เราก็จะรู้ว่า response ที่ส่งกลับมาไปอยู่ลำดับที่เท่าไหร่ของ element ในหน้ายิงขาย
         # Todo //span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u[text()=ตัวแปรsku]
         if srp:
-            smco_sku_code_elements = self.driver.find_elements(
-                By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
-            sku_target_idx: int = None
-            for idx, sku_element in enumerate(smco_sku_code_elements):
-                print(f"No. {idx+1} เจอ sku: {sku_element.text}")
-                if sku_element.text == sku:
-                    sku_target_idx = idx
-                    print(f"เจอ sku ตรงกับที่ต้องการที่ลำดับที่ {sku_target_idx + 1} ")
-                    break
+            sku_target_idx = self.idx_of_target_element(sku)
 
             # * Dynamic click on price element base on sku_target_idx
             smco_price_elements = self.driver.find_elements(
@@ -78,6 +116,7 @@ class AutoAddProduct:
             # skuInput = self.driver.find_element(By.CSS_SELECTOR,'input.arFilterBox-search.ng-valid.ng-dirty.ng-empty.ng-touched')
             sku_qty_element = self.driver.find_element(
                 By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
+
             for sku in skus:
                 while not self.bot.operation_thread.is_set():  # * ต้อง while เพราะ มันมีปัญหาคือ angular เปลี่ยนค่าไม่ติด ต้องเปลี่ยนจนกว่าจะติด
                     try:
@@ -92,9 +131,9 @@ class AutoAddProduct:
                         print("result: ", result)
                         if int(result) == int(qty):
                             break
-                        time.sleep(0.25)
+
                     except:
-                        time.sleep(0.25)
+
                         continue
 
                 skuInput_element.clear()
@@ -103,59 +142,61 @@ class AutoAddProduct:
 
                 skuInput_element.send_keys(Keys().ENTER)
                 print("Pressed Enter to submit SKU")
+                time.sleep(0.25)
 
-            request_ids = []
-            target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
-            n = 0
-            # * จับ requestId หลัง submit form: โดยเราจะดูว่า request ที่ browser ส่งออกไป มี url ตรงกับ request url ที่เราตั้งใจส่งและรอดูผลลัพหรือไม่ ซึ่งในที่นี้คือ target_url_part
-            for _ in range(50):  # poll 5 วิ
-                logs = self.driver.get_log("performance")
-                for entry in logs:
-                    # print("entry: ", entry)
-                    msg = json.loads(entry["message"])["message"]
-                    if msg["method"] == "Network.requestWillBeSent":  # * ตรวจดู เมื่อ browser กำลังจะส่ง request ออกไป
-                        url = msg["params"]["request"]["url"]
-                        if target_url_part in url:
-                            request_ids.append(msg["params"]["requestId"])
-                            print("msg from target url req:", msg)
-                            break
+                request_ids = []
+                target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
+                n = 0
+                # * จับ requestId หลัง submit form: โดยเราจะดูว่า request ที่ browser ส่งออกไป มี url ตรงกับ request url ที่เราตั้งใจส่ง และรอดูผลลัพหรือไม่ ซึ่งในที่นี้คือ target_url_part
+                for _ in range(50):  # poll 5 วิ
+                    logs = self.driver.get_log("performance")
+                    for entry in logs:
+                        # print("entry: ", entry)
+                        msg = json.loads(entry["message"])["message"]
+                        if msg["method"] == "Network.requestWillBeSent":  # * ตรวจดู เมื่อ browser กำลังจะส่ง request ออกไป
+                            url = msg["params"]["request"]["url"]
+                            if target_url_part in url:
+                                request_ids.append(msg["params"]["requestId"])
+                                # print("msg from target url req:", msg)
+                                break
 
-                # * ถ้าใช้ตรงนี้มันจะเร็วเกินไป ทำให้ response ยังไม่มา รอ 5 วิ พอเป็นพิธี
-                if len(request_ids) > 0:
-                    print("request_ids: ", request_ids)
-                    break
-
-                time.sleep(0.1)
-                n += 1
-                if n % 10 == 0 and n >= 10:
-                    print("time: ", math.floor(n/10), "วินาที")
-
-            product_from_response = None
-            # * ดึง response จาก requestId: เป็นการดูว่า request ที่เราสนใจ มี response กลับมาแล้วหรือยัง มันจะส่งกลับมา 200 เสมอ ถ้ามีของกลับมา
-            for _ in range(50):  # poll 10 วิ
-                res = None
-                for req_id in request_ids:
-                    try:
-                        res = self.driver.execute_cdp_cmd("Network.getResponseBody", {"requestId": req_id})
-                        print(f"Response for {req_id} = {res}")
-                        try:
-                            product_from_response = json.loads(res['body'])[0]['productCode']
-                        except:
-                            product_from_response = None
-
+                    # * ถ้าใช้ตรงนี้มันจะเร็วเกินไป ทำให้ response ยังไม่มา รอ 5 วิ พอเป็นพิธี
+                    if len(request_ids) > 0:
+                        print("request_ids: ", request_ids)
                         break
-                    except Exception as e:
-                        # print(f"Request {req_id} ยังไม่มี response: {e}")
-                        continue
 
-                print("resp: ", res)
-                print("sku from res: ", product_from_response)
-                if res:
-                    print("ได้ response แล้ว")
-                    break
-                time.sleep(0.1)
+                    time.sleep(0.1)
+                    n += 1
+                    if n % 10 == 0 and n >= 10:
+                        print("time: ", math.floor(n/10), "วินาที")
 
-            self.price_setter(sku=product_from_response, srp=srp)
+                product_from_response = None
+                # * ดึง response จาก requestId: เป็นการดูว่า request ที่เราสนใจ มี response กลับมาแล้วหรือยัง มันจะส่งกลับมา 200 เสมอ ถ้ามีของกลับมา
+                for _ in range(50):  # poll 10 วิ
+                    res = None
+                    for req_id in request_ids:
+                        try:
+                            res = self.driver.execute_cdp_cmd("Network.getResponseBody", {"requestId": req_id})
+                            # print(f"Response for {req_id} = {res}")
+                            try:
+                                product_from_response = json.loads(res['body'])[0]['productCode']
+                            except:
+                                product_from_response = None
+
+                            break
+                        except Exception as e:
+                            # print(f"Request {req_id} ยังไม่มี response: {e}")
+                            continue
+
+                    # print("resp: ", res)
+                    print("sku from res: ", product_from_response)
+                    if res:
+                        print("ได้ response แล้ว")
+                        break
+                    time.sleep(0.1)
+
+                self.price_setter(sku=product_from_response, srp=srp)
+                self.item_qty_setter(product_from_response, qty)
 
         except Exception as err:
             print("Shipment cost skipped")
