@@ -2,6 +2,7 @@ import base64
 import datetime
 import locale
 import os
+import random
 import re
 import subprocess
 import sys
@@ -1572,7 +1573,7 @@ class MyApp:
                 ]
                 self.idx = 0
                 self.mimic_list_item_states = []
-                for row in self.items:
+                for item_idx, row in enumerate(self.items):
                     # self.no_col_value_widget = CTkEntry(self.mp_products_list_frame,width=int(self.cols_width[0]), height=14)
                     self.no_col_value_widget = CTkButton(
                         self.mp_products_list_frame,
@@ -1586,13 +1587,11 @@ class MyApp:
                         text_color="#1E1E1E",
                         border_width=2,
                         border_color="#969696",
-                        command=lambda: self.bot.AutoAddProduct.auto_add_product(self.correct_sku_pattern(
-                            self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)']), self.items[0]['จำนวน'])
-                        # command=lambda: print(f"""
-                        #                       self.idx inside lambda: {self.idx}|
-                        #                       self.items: {self.correct_sku_pattern(self.items[0]['เลขอ้างอิง SKU (SKU Reference No.)'])}
-                        #                       """)
+                        command=lambda idx=item_idx: self.bot.AutoAddProduct.auto_add_product(self.correct_sku_pattern(
+                            self.items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']), self.items[idx]['จำนวน'])
+
                     )
+
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
 
@@ -1798,10 +1797,10 @@ class MyApp:
                     self.input_formula.append(result)
                     print("จำนวน", int(item['จำนวน']), type(int(item['จำนวน'])))
                 print("สูตรสร้าง input", self.input_formula)
-                for idx, item in enumerate(self.input_formula):
-                    print("รายการที่ ", idx+1, item['sku'])
-                    for idx in range(item['qty']):
-                        print("สร้างinputอันที่ ", idx+1)
+                for item_idx, item in enumerate(self.input_formula):
+                    print("รายการที่ ", item_idx+1, item['sku'])
+                    for item_idx in range(item['qty']):
+                        print("สร้างinputอันที่ ", item_idx+1)
 
                 self.cus_account_name.set(re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+',
                                           '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
@@ -3382,6 +3381,7 @@ class Bot_POS:
         self.action01 = ActionChains(self.driver).context_click(self.printing_page)
         self.action01.perform()
 
+    #! deprecated?
     def justPressP(self):
         time.sleep(1)
         self.wsh.SendKeys("P")
@@ -4010,14 +4010,14 @@ class Bot_POS:
 
             # todo for testing
             # * Update Accel file //////////////////////
-            try:
-                self.app.accel_mode.deduct_accel_file_data(
-                    self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            except Exception as err:
-                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+            # try:
+            #     self.app.accel_mode.deduct_accel_file_data(
+            #         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            # except Exception as err:
+            #     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
-            return
+            # logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
+            # return
 
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
@@ -4034,7 +4034,7 @@ class Bot_POS:
                             title_attribute = self.cus_name_input_element.get_attribute("title")
 
                             # * ตรวจสอบว่าหน้าสุดท้ายหรือยัง
-                            self.is_final_page_displayed = self.driver.find_element(
+                            is_final_page_displayed = self.driver.find_element(
                                 By.XPATH, "//*[contains(text(),' Payment: ') or  contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]").is_displayed()
                             break
                         except:
@@ -4076,25 +4076,25 @@ class Bot_POS:
                             # print("Popupโผล่")
                             continue
 
-                    if self.is_input_empty == "" and self.is_final_page_displayed == False:
+                    if self.is_input_empty == "" and is_final_page_displayed == False:
                         print("Emp name disappeared")
                         break
-                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_page_displayed == False:
+                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and is_final_page_displayed == False:
                         continue
-                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and self.is_final_page_displayed == True:
+                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and is_final_page_displayed == True:
                         self.app.is_bot_browser_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
-                        self.is_final_page2 = self.wait50.until(EC.visibility_of_element_located(
+                        is_final_page2 = self.wait50.until(EC.visibility_of_element_located(
                             (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
                         self.last_page = self.driver.find_element(
                             By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                         if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                             # Auto หน้าท้าย ทำได้ครั้งเดียว
-                            self.is_final_page2 = self.wait50.until(EC.visibility_of_element_located(
+                            is_final_page2 = self.wait50.until(EC.visibility_of_element_located(
                                 (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
 
-                            # self.is_final_page = self.wait50.until(EC.visibility_of_element_located(
+                            # is_final_page = self.wait50.until(EC.visibility_of_element_located(
                             #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea')))
                             try:
                                 #! deprecated
@@ -4216,13 +4216,13 @@ class Bot_POS:
                             # # * > แบบเลือกemail เป็น default
                             # ใช้ได้หรือป่าวไม่แน่ใจ
                             # while not self.operation_thread.is_set():
-                            #     self.final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""")
+                            #     final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""")
 
                             #     print("Radio while loop")
-                            #     if self.final_popup.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
+                            #     if final_popup.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
                             #         print("Radio ยังไม่โผล่")
                             #         continue
-                            #     elif self.final_popup.is_displayed() == False:
+                            #     elif final_popup.is_displayed() == False:
                             #         print("หน้า final หายไป")
                             #         break
                             #     else:
@@ -4245,211 +4245,7 @@ class Bot_POS:
                             #             break
 
                             # * สำหรับรอ final pop-up after click the green btn
-                            self.app.is_bot_browser_busy.set(False)
-                            auto_radio_times = 0
-                            while not self.operation_thread.is_set():
-
-                                time.sleep(1)
-                                try:
-                                    # print("auto click Before print loop")
-                                    # self.final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
-                                    self.final_popup = self.driver.find_element(
-                                        By.XPATH, """//div[@class = 'swal2-content']""")
-                                    self.is_final_page = self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
-                                    #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
-                                    print("self.is_final_page= ", self.is_final_page)
-                                except:
-                                    print("Element not found, continuing loop...")
-                                    continue
-
-                                if self.final_popup.is_displayed():
-                                    print("self.final_popup is displayed")
-                                    try:
-                                        self.driver.find_element(
-                                            By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-                                        print('Click space behind final popup')
-                                    except:
-                                        print('Cannot click space behind final popup')
-                                    pass
-                                #! etax พังใช้ไม่ได้
-                                # elif self.is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
-                                #     print("Radio ยังไม่โผล่")
-                                #     continue
-                                elif self.is_final_page.is_displayed() == False:
-                                    print("หน้า final หายไป")
-                                    pass
-                                else:
-                                    try:
-                                        # ? พังหมด
-                                        # print("Radio appeared")
-                                        if self.etax_radio_sendmail.is_displayed():
-                                            is_etax = True
-                                            print("Click Send Email Radio")
-                                            if auto_radio_times < 1:
-                                                self.etax_radio_sendmail.click()
-                                                print(
-                                                    "Press Send Email, and break the loop")
-                                                auto_radio_times += 1
-                                            else:
-                                                print("เคยเลือกไปแล้ว")
-
-                                        elif not self.etax_radio_sendmail.is_displayed():
-                                            print("ไม่โชว์ก็ออก")
-
-                                    except:
-                                        # print("radio has Disappeared")
-                                        pass
-
-                                if self.final_popup.is_displayed() == True:
-                                    self.app.is_bot_browser_busy.set(True)
-                                    print("final pop-up has finally displayed!")
-                                    try:
-                                        self.final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
-                                            # (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""))) #! ปุ่มนี้น่าจะหายไปละ
-                                            (By.XPATH, """//div[@class = 'swal2-content']""")))
-                                        # *> ให้เวลาดูเลขบิล 1 วิ
-                                        time.sleep(1)
-
-                                        alert_text = self.driver.find_element(
-                                            By().XPATH, """//div[@class = 'swal2-content']""").text  # อันนี้น่าจะใช้ไม่ได้ละ
-
-                                        match = re.search(r'B\d+-\w.*\d+-\d+', alert_text)
-                                        print("match: ", match)
-                                        # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
-                                        inv_number = match.group()
-                                        print("inv_number: ", inv_number)
-                                        self.app.update_log(f'เลขบิล: {inv_number}')
-
-                                        # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
-                                        # * ไปหน้า Reprint ##########################################################################################
-                                        if is_etax and inv_number != "":
-                                            print("has etax")
-                                            self.etax_reprint(inv_number)
-                                            # * Update Accel file //////////////////////
-                                            try:
-                                                self.app.accel_mode.used_serials
-                                                print("Accel mode used")
-                                                # * ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
-                                                self.app.accel_mode.deduct_accel_file_data(
-                                                    self.app.cus_order,
-                                                    getattr(self.app.accel_mode, "used_serials", []))
-                                            except:
-                                                print("Accel mode not used")
-                                                pass
-                                            # * ถ้ามี etax ก็ print แล้วจบไป
-                                            time.sleep(0.75)
-                                            # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
-                                            break
-
-                                        # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
-                                        # time.sleep(1)
-                                        # self.final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
-
-                                        # * ลอง click container ดู ใช้ได้แล้ว
-                                        print("click container!")
-                                        self.driver.execute_script(
-                                            "document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
-
-                                        # * > printing
-                                        # * >> รอหน้า canvas โผล่ก่อน
-                                        self.wait50.until(EC.visibility_of_element_located(
-                                            (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
-                                        time.sleep(1)
-
-                                        #! วิธี print แบบเก่า
-                                        # self.printtingPage()
-                                        # self.justPressP()
-                                        # * วิธี print แบบใหม่
-                                        self.printing_thread = threading.Thread(
-                                            target=self.get_pdf_src_and_print, args=(inv_number,))
-                                        self.printing_thread.start()
-                                        #! self.get_pdf_src_and_print(inv_number) ถ้าบรรทัดข้างบนใช้ได้มึงโดนโละแน่
-
-                                        # * Update Accel file //////////////////////
-                                        try:
-                                            self.app.accel_mode.used_serials
-                                            print("Accel mode used")
-                                            # * ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
-                                            self.app.accel_mode.deduct_accel_file_data(
-                                                self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-
-                                        except:
-                                            print("Accel mode not used")
-                                            pass
-
-                                    except Exception as err:
-                                        # time.sleep(1)
-                                        # print("ไม่ได้เลขบิล")
-                                        # self.final_popup.click()
-                                        try:
-                                            self.final_popup_btn.click()  # ! ปุ่มนี้น่าจะหายไปละ
-                                        except:
-                                            pass
-                                        print("พัง ข้ามไปเลยละกัน", err)
-
-                                    break
-
-                                    # * > รอหน้า canvas โผล่ก่อน
-                                    # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
-
-                                    #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait50
-                                    #! ย้ายไปข้างบนแล้ว ถ้าข้างบนใช้ได้ข้างล่างลบทิ้งได้เลย
-                                    # self.wait50.until(EC.visibility_of_element_located(
-                                    #     (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
-                                    # time.sleep(1)
-                                    # self.driver.find_element(
-                                    #     By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
-                                    # self.printtingPage()
-                                    # self.justPressP()
-                                    # break
-
-                                # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
-                                elif self.is_final_page.is_displayed() == False:
-                                    print("End or back")
-                                    if bool(
-                                        re.search(
-                                            r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(
-                                                By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[1]').text)):
-                                        print("ไปหน้าสุดท้าย จบ loop")
-                                        break
-                                    elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == "":
-                                        print("มันจบละ")
-                                        break
-                                    elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
-                                        print("กลับมาหน้าเดิม")
-                                        break
-
-                                else:
-                                    continue
-
-                                    # try:
-                                    #     print('จุดจบ')
-                                    #     # * กดปุ่มใน pop-up สุดท้าย
-                                    #     self.driver.find_element(
-                                    #         By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""")
-                                    #     self.wait50.until(EC.visibility_of_element_located(
-                                    #         (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""")))
-                                    #     self.wait50.until(EC.element_to_be_clickable(
-                                    #         (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""))).click()
-                                    #     # > รอหน้า canvas โผล่ก่อน
-                                    #     self.wait50.until(EC.visibility_of_element_located(
-                                    #         (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
-                                    #     self.printtingPage()
-                                    #     break
-                                    # except Exception as err:
-                                    #     print('ไม่ใช่จุดจบ', err)
-                                    #     pass
-
-                            # * ต้องใช้จริงๆเหรอ?
-                            # if self.app.accel_search_thread:
-                            #     self.app.accel_timer = threading.Timer(
-                            #         0.2, self.app.on_accel_thread_done)
-                            #     self.app.accel_timer.start()
-                            # else:
-                            #     print("'MyApp' object has no attribute 'accel_search_thread'")
-                            #     pass
-
+                            self.final_popup_after_green_btn_handler()
                             # * ไม่แน่ใจ
                             continue
                         else:
@@ -4795,6 +4591,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5610,7 +5407,7 @@ class Bot_POS:
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
-    def assign_address(self, df, order):
+    def address_seperator(self, df, order):
         # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ
         print("assign_address order:", order)
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
@@ -5713,7 +5510,7 @@ class Bot_POS:
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
             # * หาตำบล จาก address ที่ลูกค้าให้มา
-            cus_address_from_table = self.assign_address(
+            cus_address_from_table = self.address_seperator(
                 self.app.data_frame, self.app.cus_order.get())
 
             manual_result_strcuture = {
@@ -5745,6 +5542,220 @@ class Bot_POS:
                 print("ไม่เจอช่องว่างจาก response แต่เพิ่มให้แล้ว", result['name'])
 
         return result
+
+    def final_popup_after_green_btn_handler(self):
+        self.app.is_bot_browser_busy.set(False)
+        auto_radio_times = 0
+        while not self.operation_thread.is_set():
+            time.sleep(1)
+            try:
+                # print("auto click Before print loop")
+                # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
+                final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
+                convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
+                is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
+                #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
+                print("is_final_page= ", is_final_page)
+            except:
+                print("Element not found, continuing loop...")
+                continue
+
+            if final_popup.is_displayed():
+                print("final_popup is displayed")
+                try:
+                    self.driver.find_element(
+                        By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+                    print('Click space behind final popup')
+                except:
+                    print('Cannot click space behind final popup')
+                pass
+            #! etax พังใช้ไม่ได้
+            # elif is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
+            #     print("Radio ยังไม่โผล่")
+            #     continue
+
+            #! ตรงนี้อาจจะย้ายไปเป็นฟังชั่นใหม่
+            # elif convert_full_tax_modal_element.is_displayed():
+            #     print("convertFullTaxModal displayed")
+            #     try:
+            #         if
+            #         pass
+            #     except:
+
+            #         pass
+
+            elif is_final_page.is_displayed() == False:
+                print("หน้า final หายไป")
+                pass
+            else:
+                try:
+                    # ? พังหมด
+                    # print("Radio appeared")
+                    if self.etax_radio_sendmail.is_displayed():
+                        is_etax = True
+                        print("Click Send Email Radio")
+                        if auto_radio_times < 1:
+                            self.etax_radio_sendmail.click()
+                            print(
+                                "Press Send Email, and break the loop")
+                            auto_radio_times += 1
+                        else:
+                            print("เคยเลือกไปแล้ว")
+
+                    elif not self.etax_radio_sendmail.is_displayed():
+                        print("ไม่โชว์ก็ออก")
+
+                except:
+                    # print("radio has Disappeared")
+                    pass
+
+            if final_popup.is_displayed() == True:
+                self.app.is_bot_browser_busy.set(True)
+                print("final pop-up has finally displayed!")
+                try:
+                    final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
+                        # (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""))) #! ปุ่มนี้น่าจะหายไปละ
+                        (By.XPATH, """//div[@class = 'swal2-content']""")))
+                    # *> ให้เวลาดูเลขบิล 1 วิ
+                    time.sleep(1)
+
+                    alert_text = self.driver.find_element(By().XPATH, """//div[@class = 'swal2-content']""").text  # อันนี้น่าจะใช้ไม่ได้ละ
+
+                    match = re.search(r'B\d+-\w.*\d+-\d+', alert_text)
+                    print("match: ", match)
+                    # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
+                    inv_number = match.group()
+                    print("inv_number: ", inv_number)
+                    self.app.update_log(f'เลขบิล: {inv_number}')
+
+                    # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
+                    # * ไปหน้า Reprint ##########################################################################################
+                    if is_etax and inv_number != "":
+                        print("has etax")
+                        self.etax_reprint(inv_number)
+                        # * Update Accel file //////////////////////
+                        try:
+                            self.app.accel_mode.used_serials
+                            print("Accel mode used")
+                            # * ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                            self.app.accel_mode.deduct_accel_file_data(
+                                self.app.cus_order,
+                                getattr(self.app.accel_mode, "used_serials", []))
+                        except:
+                            print("Accel mode not used")
+                            pass
+                        # * ถ้ามี etax ก็ print แล้วจบไป
+                        time.sleep(0.75)
+                        # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
+                        break
+
+                    # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
+                    # time.sleep(1)
+                    # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
+
+                    # * ลอง click container ดู ใช้ได้แล้ว
+                    print("click container!")
+                    self.driver.execute_script(
+                        "document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
+
+                    # * > printing
+                    # * >> รอหน้า canvas โผล่ก่อน
+                    self.wait50.until(EC.visibility_of_element_located(
+                        (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
+                    time.sleep(1)
+
+                    #! วิธี print แบบเก่า
+                    # self.printtingPage()
+                    # self.justPressP()
+                    # * วิธี print แบบใหม่
+                    self.printing_thread = threading.Thread(
+                        target=self.get_pdf_src_and_print, args=(inv_number,))
+                    self.printing_thread.start()
+                    #! self.get_pdf_src_and_print(inv_number) ถ้าบรรทัดข้างบนใช้ได้มึงโดนโละแน่
+
+                    # * Update Accel file //////////////////////
+                    try:
+                        self.app.accel_mode.used_serials
+                        print("Accel mode used")
+                        # * ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
+                        self.app.accel_mode.deduct_accel_file_data(
+                            self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+
+                    except:
+                        print("Accel mode not used")
+                        pass
+
+                except Exception as err:
+                    # time.sleep(1)
+                    # print("ไม่ได้เลขบิล")
+                    # final_popup.click()
+                    try:
+                        final_popup_btn.click()  # ! ปุ่มนี้น่าจะหายไปละ
+                    except:
+                        pass
+                    print("พัง ข้ามไปเลยละกัน", err)
+
+                break
+
+                # * > รอหน้า canvas โผล่ก่อน
+                # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
+
+                #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait50
+                #! ย้ายไปข้างบนแล้ว ถ้าข้างบนใช้ได้ข้างล่างลบทิ้งได้เลย
+                # self.wait50.until(EC.visibility_of_element_located(
+                #     (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
+                # time.sleep(1)
+                # self.driver.find_element(
+                #     By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
+                # self.printtingPage()
+                # self.justPressP()
+                # break
+
+            # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
+            elif is_final_page.is_displayed() == False:
+                print("End or back")
+                if bool(
+                    re.search(
+                        r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(
+                            By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[1]').text)):
+                    print("ไปหน้าสุดท้าย จบ loop")
+                    break
+                elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == "":
+                    print("มันจบละ")
+                    break
+                elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
+                    print("กลับมาหน้าเดิม")
+                    break
+
+            else:
+                continue
+
+                # try:
+                #     print('จุดจบ')
+                #     # * กดปุ่มใน pop-up สุดท้าย
+                #     self.driver.find_element(
+                #         By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""")
+                #     self.wait50.until(EC.visibility_of_element_located(
+                #         (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""")))
+                #     self.wait50.until(EC.element_to_be_clickable(
+                #         (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""))).click()
+                #     # > รอหน้า canvas โผล่ก่อน
+                #     self.wait50.until(EC.visibility_of_element_located(
+                #         (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
+                #     self.printtingPage()
+                #     break
+                # except Exception as err:
+                #     print('ไม่ใช่จุดจบ', err)
+                #     pass
+
+        # * ต้องใช้จริงๆเหรอ?
+        # if self.app.accel_search_thread:
+        #     self.app.accel_timer = threading.Timer(
+        #         0.2, self.app.on_accel_thread_done)
+        #     self.app.accel_timer.start()
+        # else:
+        #     print("'MyApp' object has no attribute 'accel_search_thread'")
+        #     pass
 
 
 if __name__ == "__main__":

@@ -1,1 +1,2 @@
-auto_add_product
+
+                        border_width=2,
