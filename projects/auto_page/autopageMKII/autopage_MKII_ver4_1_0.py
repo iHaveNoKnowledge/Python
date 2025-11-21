@@ -3004,7 +3004,8 @@ class Bot_POS:
             try:
                 # * หา li ไปตรวจสอบว่ามี len เท่าไหร่
                 customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
-                customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
+                customer_name_dropdown_lis = customer_name_input_ul.find_elements(
+                    By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
                 # * เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
                 if len(customer_name_dropdown_lis) > 1:
@@ -3037,7 +3038,8 @@ class Bot_POS:
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
         if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
             try:
-                self.driver.find_element(By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
+                self.driver.find_element(
+                    By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
                 self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
             except:
@@ -3254,7 +3256,8 @@ class Bot_POS:
     def select_sale_type(self):
         while not self.operation_thread.is_set():
             try:
-                self.driver.find_element(By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+                self.driver.find_element(
+                    By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
                 break
             except:
                 time.sleep(0.5)
@@ -4281,21 +4284,24 @@ class Bot_POS:
             print("No sale type selected, selecting now")
             self.select_sale_type()
         print("opening customer form initializing")
-        
-        #* มันมีปุ่มบางอย่างที่มันอาจจะทำให้มีปัญหาในการจัดการชื่อลูกค้าได้ มันจะแสดงผลในหน้าใหม่เท่านั้น หน้าเก่าไม่แสดง เลยต้อง try-except ไว้ เพราะมันอาจจะมีหรือไม่มีก็ได้
+
+        # * มันมีปุ่มบางอย่างที่มันอาจจะทำให้มีปัญหาในการจัดการชื่อลูกค้าได้ มันจะแสดงผลในหน้าใหม่เท่านั้น หน้าเก่าไม่แสดง เลยต้อง try-except ไว้ เพราะมันอาจจะมีหรือไม่มีก็ได้
         try:
-            self.diver.execute_script(""" return document.querySelector("button[ng-click='abbCustomerFlag = false;']").click(); """)
+            self.diver.execute_script(
+                """ document.querySelector("button[ng-click='abbCustomerFlag = false;']").click(); """)
         except Exception as err:
             print("There's no the new abbCustomerFlag btn")
             print("abbCustomerFlag-err: ", err)
-                
+
         customer_form_dialog_element = False
         # todo เช็ค dialog form โหลดเสร็จยัง
         while is_functionworking and not self.operation_thread.is_set():
             try:
                 # * ไม่เจอ faded backdrop แปลว่ายังไม่เปิดnew cus form มันเลยจะไปเปิดใน except แล้วกลับมา
-                customer_form_dialog_element = self.driver.find_element(By.CSS_SELECTOR, 'body > div.modal-backdrop.fade.in')
-                customer_class_input = self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
+                customer_form_dialog_element = self.driver.find_element(
+                    By.CSS_SELECTOR, 'body > div.modal-backdrop.fade.in')
+                customer_class_input = self.driver.find_element(
+                    By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
                 if customer_form_dialog_element.is_displayed() and customer_class_input.is_displayed():
                     print(f"customer_form_dialog_element: {customer_form_dialog_element.is_displayed()}")
                     time.sleep(0.25)
@@ -4597,7 +4603,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5558,8 +5563,9 @@ class Bot_POS:
                 # print("auto click Before print loop")
                 # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
                 final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
-                convert_full_tax_modal_element = self.driver.find_element(
-                    By.XPATH, "//div[@id = 'convertFullTaxModal']")
+                # convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
+                convert_full_tax_modal_element = self.driver.execute_script(
+                    """ return document.querySelector("div[id='convertFullTaxModal']"); """)
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
                 print("is_final_page= ", is_final_page)
@@ -5582,14 +5588,27 @@ class Bot_POS:
             #     continue
 
             #! ตรงนี้อาจจะย้ายไปเป็นฟังชั่นใหม่
-            # elif convert_full_tax_modal_element.is_displayed():
-            #     print("convertFullTaxModal displayed")
-            #     try:
-            #         if
-            #         pass
-            #     except:
-
-            #         pass
+            elif convert_full_tax_modal_element:
+                print("convertFullTaxModal displayed")
+                while not self.operation_thread.is_set():
+                    if not self.is_old_tax_form and self.app.tax_bool.get():
+                        try:
+                            # * ต้องการใบกำกับ
+                            self.driver.execute_script(
+                                """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
+                            break
+                        except:
+                            continue
+                    else:
+                        try:
+                            # * ไม่ต้องการต้องการใบกำกับ
+                            self.driver.execute_script(
+                                """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
+                            self.driver.execute_script(
+                                """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
+                            break
+                        except:
+                            continue
 
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
@@ -5663,8 +5682,7 @@ class Bot_POS:
 
                     # * ลอง click container ดู ใช้ได้แล้ว
                     print("click container!")
-                    self.driver.execute_script(
-                        "document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
+                    self.driver.execute_script("document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
 
                     # * > printing
                     # * >> รอหน้า canvas โผล่ก่อน
@@ -5764,6 +5782,11 @@ class Bot_POS:
         # else:
         #     print("'MyApp' object has no attribute 'accel_search_thread'")
         #     pass
+
+    #! จำเป็นเหรอวะ
+    # def last_page_tax_dialog_handler(self):
+    #     while not self.operation_thread.is_set():
+    #         try:
 
 
 if __name__ == "__main__":
