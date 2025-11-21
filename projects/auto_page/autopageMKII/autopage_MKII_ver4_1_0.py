@@ -3004,8 +3004,7 @@ class Bot_POS:
             try:
                 # * หา li ไปตรวจสอบว่ามี len เท่าไหร่
                 customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
-                customer_name_dropdown_lis = customer_name_input_ul.find_elements(
-                    By.CSS_SELECTOR, '.select2-results__option')
+                customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
                 # * เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
                 if len(customer_name_dropdown_lis) > 1:
@@ -3038,8 +3037,7 @@ class Bot_POS:
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
         if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
             try:
-                self.driver.find_element(
-                    By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
+                self.driver.find_element(By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
                 self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
             except:
@@ -3256,8 +3254,7 @@ class Bot_POS:
     def select_sale_type(self):
         while not self.operation_thread.is_set():
             try:
-                self.driver.find_element(
-                    By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
+                self.driver.find_element(By.CSS_SELECTOR, '#contentZen > div.ng-scope > div:nth-child(2) > div.panel-body > div.col-sm-3 > div.col-sm-12.nopadding > div.panel-body > div > div > div:nth-child(2) span.select2-selection__arrow').click()
                 break
             except:
                 time.sleep(0.5)
@@ -3269,7 +3266,7 @@ class Bot_POS:
                 #! ยังไม่สมบูร 100%
                 self.driver.find_element(
                     By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[(starts-with(., "AR Online") or starts-with(., "Online Sale")) and not(contains(., "Deposite -"))]').click()
-                print("เจอ element cus_name_span_elmt")
+                print("เจอ saletype li")
                 return
             except Exception as err:
                 print("ยังไม่เจอ li ให้เลือก")
@@ -3299,7 +3296,7 @@ class Bot_POS:
                     if self.app.user_id.get() in self.driver.find_element(
                             By.XPATH, '/html/body/span/span/span[2]/ul/li').text:
                         self.driver.find_element(By.XPATH, '/html/body/span/span/span[2]/ul/li').click()
-                        print("Found and select")
+                        print("Found emp and select")
                         break
 
                 except:
@@ -3575,10 +3572,11 @@ class Bot_POS:
         self.app.is_bot_browser_busy.set(True)
         self.is_forbid = False
         is_etax = False
+        self.is_old_tax_form = False
 
         #! Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation อาจจะไม่ต้องใช้ก็ได้ เพราะใช้ใน
         inv_number = ""
-        self.operation_states = {"purchase_channel": None}
+        self.operation_states = {"purchased_channel": None}
         if self.app.order != "" and not self.operation_thread.is_set():
             ### * MARKETPLACES Part ########################################################################################
             self.autofinal = False
@@ -3600,9 +3598,9 @@ class Bot_POS:
                 time.sleep(1)
                 self.wait5.until(EC.presence_of_element_located(
                     (By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')))
-                self.operation_states['purchase_channel'] = self.driver.find_element(
+                self.operation_states['purchased_channel'] = self.driver.find_element(
                     By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
-                print(f"self.operation_states['purchase_channel']: {self.operation_states['purchase_channel']}")
+                print(f"self.operation_states['purchased_channel']: {self.operation_states['purchased_channel']}")
                 cur_url = self.driver.current_url
 
                 # * เปลี่ยนไปใช้หน้า "ทั้งหมด" เพราะ ในที่หน้าต่างกัน add_new_customer, elements มันต่างกัน บังคับให้มันใช้อันที่ถูก
@@ -3677,19 +3675,18 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div[3]/div/div[1]/span').text)
 
                 # * จะได้ element มา
-                self.app.display_current_status.configure(
-                    text_color="#000000", fg_color="#8fd4ff")
+                self.app.display_current_status.configure(text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
                     self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
-                    self.app.POP_UP.show("Caution!!",
-                                         f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
+                    self.app.POP_UP.show(
+                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
                     self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
-                    self.app.POP_UP.show("Caution!!",
-                                         f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
+                    self.app.POP_UP.show(
+                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -3852,7 +3849,10 @@ class Bot_POS:
                     time.sleep(0.5)
                     continue
 
+            # * เพราะวิธีออกใบกำกับมันยังไม่แน่นอนมีทั้งแบบเก่าและแบบใหม่ แบบเก่ามันจะทำโดยขั้นตอนด้านล่างนี่ แต่ถ้าเป็นแบบใหม่มันจะย้ายไปทำหน้าท้าย ซึ่งไม่รู้จะย้ายไปไม
+            self.is_old_tax_form = False
             if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
+                self.is_old_tax_form = True
                 print("element cus_name_span_elmt is displayed")
 
                 if self.cus_name_span_x_btn_text == 'Please select':
@@ -4117,7 +4117,7 @@ class Bot_POS:
                                 # เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
                                 if self.app.marketplace_target.get() == 'SHOPEE':
-                                    channel = self.channel_options[f'{self.operation_states['purchase_channel']}']
+                                    channel = self.channel_options[f'{self.operation_states['purchased_channel']}']
                                     print("channel: ", channel)
                                     # เลือก shopee
                                     self.driver.find_element(By.XPATH, f"//a[contains(., '{channel}')]").click()
@@ -4126,10 +4126,10 @@ class Bot_POS:
                                     self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
 
                                 # * PO No:
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').clear()
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                                po_no_input_element = self.driver.find_element(
+                                    By.XPATH, "//input[@id='textbox81037000102']")
+                                po_no_input_element.clear()
+                                po_no_input_element.send_keys(self.app.cus_order.get())
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
                                 # * ผมใช้เอง
@@ -4154,8 +4154,9 @@ class Bot_POS:
                                     self.driver.find_element(
                                         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
-                            except:
+                            except Exception as err:
                                 print("Final page failed, skip to waiting for price")
+                                print("err: ", err)
                                 break
 
                             # *Auto Enter final Price
@@ -4280,16 +4281,21 @@ class Bot_POS:
             print("No sale type selected, selecting now")
             self.select_sale_type()
         print("opening customer form initializing")
-
+        
+        #* มันมีปุ่มบางอย่างที่มันอาจจะทำให้มีปัญหาในการจัดการชื่อลูกค้าได้ มันจะแสดงผลในหน้าใหม่เท่านั้น หน้าเก่าไม่แสดง เลยต้อง try-except ไว้ เพราะมันอาจจะมีหรือไม่มีก็ได้
+        try:
+            self.diver.execute_script(""" return document.querySelector("button[ng-click='abbCustomerFlag = false;']").click(); """)
+        except Exception as err:
+            print("There's no the new abbCustomerFlag btn")
+            print("abbCustomerFlag-err: ", err)
+                
         customer_form_dialog_element = False
         # todo เช็ค dialog form โหลดเสร็จยัง
         while is_functionworking and not self.operation_thread.is_set():
             try:
                 # * ไม่เจอ faded backdrop แปลว่ายังไม่เปิดnew cus form มันเลยจะไปเปิดใน except แล้วกลับมา
-                customer_form_dialog_element = self.driver.find_element(
-                    By.CSS_SELECTOR, 'body > div.modal-backdrop.fade.in')
-                customer_class_input = self.driver.find_element(
-                    By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
+                customer_form_dialog_element = self.driver.find_element(By.CSS_SELECTOR, 'body > div.modal-backdrop.fade.in')
+                customer_class_input = self.driver.find_element(By.XPATH, '//*[contains(@class, "select2-selection__rendered") and @id="select2-memberClass-container"]')
                 if customer_form_dialog_element.is_displayed() and customer_class_input.is_displayed():
                     print(f"customer_form_dialog_element: {customer_form_dialog_element.is_displayed()}")
                     time.sleep(0.25)
@@ -5552,7 +5558,8 @@ class Bot_POS:
                 # print("auto click Before print loop")
                 # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
                 final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
-                convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
+                convert_full_tax_modal_element = self.driver.find_element(
+                    By.XPATH, "//div[@id = 'convertFullTaxModal']")
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
                 print("is_final_page= ", is_final_page)
@@ -5619,7 +5626,8 @@ class Bot_POS:
                     # *> ให้เวลาดูเลขบิล 1 วิ
                     time.sleep(1)
 
-                    alert_text = self.driver.find_element(By().XPATH, """//div[@class = 'swal2-content']""").text  # อันนี้น่าจะใช้ไม่ได้ละ
+                    alert_text = self.driver.find_element(
+                        By().XPATH, """//div[@class = 'swal2-content']""").text  # อันนี้น่าจะใช้ไม่ได้ละ
 
                     match = re.search(r'B\d+-\w.*\d+-\d+', alert_text)
                     print("match: ", match)
