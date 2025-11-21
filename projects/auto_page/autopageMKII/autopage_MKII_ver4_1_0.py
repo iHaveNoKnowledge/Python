@@ -1,5 +1,6 @@
 import base64
 import datetime
+import gc
 import locale
 import os
 import random
@@ -4604,6 +4605,7 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -5557,8 +5559,16 @@ class Bot_POS:
     def final_popup_after_green_btn_handler(self):
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
+        loop_counter = 0  # * Counter for GC
         while not self.operation_thread.is_set():
             time.sleep(1)
+            loop_counter += 1
+
+            # * Periodic Garbage Collection (every ~60 seconds)
+            if loop_counter % 60 == 0:
+                print(f"Performing garbage collection... (Loop count: {loop_counter})")
+                gc.collect()
+
             try:
                 # print("auto click Before print loop")
                 # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
@@ -5604,11 +5614,12 @@ class Bot_POS:
                             # * ไม่ต้องการต้องการใบกำกับ
                             self.driver.execute_script(
                                 """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
-                            self.driver.execute_script(
-                                """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
+                            self.driver.find_element(
+                                By.XPATH, "//button[@ng-click='savePayment()' and @class='btn btn-success']").click()
                             break
                         except:
                             continue
+                pass
 
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
