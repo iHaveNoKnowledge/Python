@@ -54,13 +54,12 @@ class AutoAddProduct:
                     print("click increase button")
                     item_qty_elements[target_idx].click()
                     target_current_qty = current_qty_elements[target_idx].text
+                    break
                 except:
                     # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
                     print("Cannot click increase button")
                     time.sleep(0.25)
                     continue
-
-        pass
 
     def price_setter(self,  sku: str,  srp: int = None):
         # Todo //span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u[text()=ตัวแปรsku]
@@ -107,8 +106,12 @@ class AutoAddProduct:
             except:
                 print("No need to wait")
 
-    def auto_add_product(self, skus: list[str], qty: int = 1, srp: int = None):
+    # * Main Process
+    def auto_add_product(self, skus: list[str], qty: int = 1, srp: int = None, **kwargs):
         print(f"incoming skus: {skus}")
+        self.bot.get_tabs()
+        merged_dict = self.bot.merged_dict
+        self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
         try:
             # * SKU input location
             skuInput_element = self.wait50.until(EC.visibility_of_element_located(
@@ -146,7 +149,7 @@ class AutoAddProduct:
 
                 request_ids = []
                 target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
-                n = 0
+                times = 0
                 # * จับ requestId หลัง submit form: โดยเราจะดูว่า request ที่ browser ส่งออกไป มี url ตรงกับ request url ที่เราตั้งใจส่ง และรอดูผลลัพหรือไม่ ซึ่งในที่นี้คือ target_url_part
                 for _ in range(50):  # poll 5 วิ
                     logs = self.driver.get_log("performance")
@@ -166,9 +169,9 @@ class AutoAddProduct:
                         break
 
                     time.sleep(0.1)
-                    n += 1
-                    if n % 10 == 0 and n >= 10:
-                        print("time: ", math.floor(n/10), "วินาที")
+                    times += 1
+                    if times % 10 == 0 and times >= 10:
+                        print("time: ", math.floor(times/10), "วินาที")
 
                 product_from_response = None
                 # * ดึง response จาก requestId: เป็นการดูว่า request ที่เราสนใจ มี response กลับมาแล้วหรือยัง มันจะส่งกลับมา 200 เสมอ ถ้ามีของกลับมา

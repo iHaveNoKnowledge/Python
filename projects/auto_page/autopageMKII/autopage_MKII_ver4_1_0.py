@@ -268,7 +268,7 @@ class MyApp:
             weight="bold"
         )
 
-        # ตั้งค่าขนาดและตำแหน่งหน้าต่าง
+        # * ตั้งค่าขนาดและตำแหน่งหน้าต่าง
         window_width = min(int(1000 * scaling_factor), screen_width - 100)
         window_height = min(int(900 * scaling_factor), screen_height - 100)
         x_position = max(0, min(
@@ -420,6 +420,7 @@ class MyApp:
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
 
+    # * Mimic Shopee
     def row_header_maker(self, list_of_cols):
         # * สร้าง header
         self.list_of_cols = list_of_cols
@@ -427,12 +428,18 @@ class MyApp:
         self.cols_location = [0, 1, 21, 23, 25, 27]
         # self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
-        self.cols_width = [40, 550, 80, 50, 80, 80]
+        # self.cols_width = [40, 550, 80, 50, 80, 80]
+        self.cols_width = [40, 500, 80, 50, 80, 80]
         self.entry_list = []
         i = 0
         for header in self.list_of_cols:
-            self.mp_products_header = CTkEntry(self.mp_products_list_frame, text_color="#000000",
-                                               fg_color="#fff", width=int(self.cols_width[i]), height=14)
+            self.mp_products_header = CTkEntry(
+                self.mp_products_list_frame,
+                text_color="#000000",
+                fg_color="#fff",
+                width=int(self.cols_width[i]),
+                height=14
+            )
             self.mp_products_header.insert(0, header)
             self.entry_list.append(self.mp_products_header)
             i += 1
@@ -817,8 +824,13 @@ class MyApp:
             self.demonic_frame, textvariable=self.demonicCp_cpNo, width=10)
         self.demonicCp_cpNo_input.grid(row=0, column=4)
         # * >> Buttons Auto add CP
-        self.demonicCp_btn = CTkButton(self.demonic_frame, text="SonicBlow!",
-                                       command=self.demonic_cp_selection, width=60,  height=4)
+        self.demonicCp_btn = CTkButton(
+            self.demonic_frame,
+            text="SonicBlow!",
+            command=self.demonic_cp_selection,
+            width=60,
+            height=4
+        )
         self.demonicCp_btn.grid(row=0, column=5, padx=(1, 0))
 
         # * > Log windows component
@@ -1584,14 +1596,11 @@ class MyApp:
                     # self.no_col_value_widget.insert(0, self.idx+1)
                     self.no_col_value_widget.configure(
                         text=str(self.idx + 1),
-                        fg_color="#81ed55",
-                        text_color="#1E1E1E",
-                        border_width=2,
-                        border_color="#969696",
-                        command=lambda idx=item_idx: self.bot.AutoAddProduct.auto_add_product(self.correct_sku_pattern(
-                            self.items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']), self.items[idx]['จำนวน'])
-
-                    )
+                        fg_color="#81ed55", text_color="#1E1E1E", border_width=2, border_color="#969696",
+                        command=lambda idx=item_idx: self.bot.AutoAddProduct.auto_add_product(
+                            self.correct_sku_pattern(self.items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']),
+                            self.items[idx]['จำนวน'],
+                            get_tabs=self.bot.get_tabs))
 
                     self.widgets_no_col_lst.append(self.no_col_value_widget)
                     self.idx += 1
@@ -2098,6 +2107,7 @@ class MyApp:
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
+    #! ตัวกากกว่า sku_formater,  sku_formaterเทพกว่า
     def correct_sku_pattern(self, text: str):
         result = []
         text = text.replace(" ", "")
@@ -2835,6 +2845,7 @@ class Bot_POS:
         for idx, item in enumerate(self.demonic_ordered_items_list):
             item_position = idx+1
             print("จำนวน skus in SMCO POS ", len(item_list_elements))
+            print("item จาก demonic_ordered_items_list", item)
             for idx2, div in enumerate(item_list_elements):
                 li_position = idx2+1
                 try:
@@ -4137,7 +4148,8 @@ class Bot_POS:
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
                                 # * ผมใช้เอง
-                                self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
+                                if self.app.user_id.get() == "62078":
+                                    self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
 
                                 try:
                                     # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
@@ -5597,29 +5609,29 @@ class Bot_POS:
             #     print("Radio ยังไม่โผล่")
             #     continue
 
-            #! ตรงนี้อาจจะย้ายไปเป็นฟังชั่นใหม่
-            elif convert_full_tax_modal_element:
-                print("convertFullTaxModal displayed")
-                while not self.operation_thread.is_set():
-                    if not self.is_old_tax_form and self.app.tax_bool.get():
-                        try:
-                            # * ต้องการใบกำกับ
-                            self.driver.execute_script(
-                                """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
-                            break
-                        except:
-                            continue
-                    else:
-                        try:
-                            # * ไม่ต้องการต้องการใบกำกับ
-                            self.driver.execute_script(
-                                """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
-                            self.driver.find_element(
-                                By.XPATH, "//button[@ng-click='savePayment()' and @class='btn btn-success']").click()
-                            break
-                        except:
-                            continue
-                pass
+            # Todo ทำไม่ทัน UAT โดนปรับไปใช้คอมมาทก่อน
+            # elif convert_full_tax_modal_element.is_displayed():
+            #     while not self.operation_thread.is_set():
+            #         print("convertFullTaxModal displayed")
+            #         if not self.is_old_tax_form and self.app.tax_bool.get():
+            #             try:
+            #                 # * ต้องการใบกำกับ
+            #                 self.driver.execute_script(
+            #                     """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
+            #                 break
+            #             except:
+            #                 continue
+            #         else:
+            #             try:
+            #                 # * ไม่ต้องการต้องการใบกำกับ
+            #                 self.driver.execute_script(
+            #                     """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
+            #                 self.driver.find_element(
+            #                     By.XPATH, "//button[@ng-click='savePayment()' and @class='btn btn-success']").click()
+            #                 break
+            #             except:
+            #                 continue
+            #     pass
 
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
