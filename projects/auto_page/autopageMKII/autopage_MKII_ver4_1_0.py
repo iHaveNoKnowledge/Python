@@ -693,23 +693,35 @@ class MyApp:
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Current Status display component
-        # >> Labels
+        #* >> Labels
         self.label_current_status = CTkLabel(
-            self.order_details_frame, text="Status: ", fg_color="#FFF", corner_radius=4)
+            self.order_details_frame, 
+            text="Status: ", 
+            fg_color="#FFF", 
+            corner_radius=4
+        )
         self.label_current_status.grid(row=1, column=2, padx=(5, 0), columnspan=1)
-        # >> Value display
+        #* >> Value display
         self.display_current_status = CTkLabel(
-            self.order_details_frame, textvariable=self.cus_cur_status, text_color="#000000", fg_color="#8fd4ff",
-            corner_radius=4)
+            self.order_details_frame, 
+            textvariable=self.cus_cur_status, 
+            text_color="#000000", 
+            fg_color="#8fd4ff",
+            corner_radius=4
+        )
         self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
 
         # * > Is Tax?? display component
-        # >> Labels
+        #* >> Labels
         self.label_is_tax = CTkLabel(self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew', columnspan=1)
-        # >> Value display
-        self.display_is_tax = CTkLabel(self.order_details_frame,
-                                       textvariable=self.cus_tax_status, fg_color="#fff", corner_radius=4)
+        #* >> Value display
+        self.display_is_tax = CTkLabel(
+            self.order_details_frame, 
+            textvariable=self.cus_tax_status, 
+            fg_color="#fff", 
+            corner_radius=4
+        )
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Tax Number display component
@@ -805,7 +817,7 @@ class MyApp:
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
         # * > Margetplace Products display Header purchased products list header
-        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'จำนวน', 'ราคาขายสุทธิ', 'ราคารวมรีเบท']
+        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท']
         self.row_header_maker(headers)
 
         # * > demonic cp segment
