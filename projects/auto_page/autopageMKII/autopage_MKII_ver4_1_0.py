@@ -424,12 +424,12 @@ class MyApp:
     def row_header_maker(self, list_of_cols):
         # * สร้าง header
         self.list_of_cols = list_of_cols
-        self.colspan_amount = [1, 19, 2, 2, 2, 2]
-        self.cols_location = [0, 1, 21, 23, 25, 27]
+        self.colspan_amount = [1, 19, 2, 2, 2, 2, 2]
+        self.cols_location = [0, 1, 21, 23, 25, 27, 29]
         # self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
         # self.cols_width = [40, 550, 80, 50, 80, 80]
-        self.cols_width = [40, 500, 80, 50, 80, 80]
+        self.cols_width = [35, 500, 80, 50, 80, 80, 80]
         self.entry_list = []
         i = 0
         for header in self.list_of_cols:
@@ -693,33 +693,33 @@ class MyApp:
         self.display_current_order.grid(row=1, column=1, padx=(1, 0), sticky=EW, columnspan=1)
 
         # * > Current Status display component
-        #* >> Labels
+        # * >> Labels
         self.label_current_status = CTkLabel(
-            self.order_details_frame, 
-            text="Status: ", 
-            fg_color="#FFF", 
+            self.order_details_frame,
+            text="Status: ",
+            fg_color="#FFF",
             corner_radius=4
         )
         self.label_current_status.grid(row=1, column=2, padx=(5, 0), columnspan=1)
-        #* >> Value display
+        # * >> Value display
         self.display_current_status = CTkLabel(
-            self.order_details_frame, 
-            textvariable=self.cus_cur_status, 
-            text_color="#000000", 
+            self.order_details_frame,
+            textvariable=self.cus_cur_status,
+            text_color="#000000",
             fg_color="#8fd4ff",
             corner_radius=4
         )
         self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
 
         # * > Is Tax?? display component
-        #* >> Labels
+        # * >> Labels
         self.label_is_tax = CTkLabel(self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
         self.label_is_tax.grid(row=2, column=2, padx=(5, 0), sticky='ew', columnspan=1)
-        #* >> Value display
+        # * >> Value display
         self.display_is_tax = CTkLabel(
-            self.order_details_frame, 
-            textvariable=self.cus_tax_status, 
-            fg_color="#fff", 
+            self.order_details_frame,
+            textvariable=self.cus_tax_status,
+            fg_color="#fff",
             corner_radius=4
         )
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
@@ -817,7 +817,7 @@ class MyApp:
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
         # * > Margetplace Products display Header purchased products list header
-        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท']
+        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
         self.row_header_maker(headers)
 
         # * > demonic cp segment
@@ -4628,7 +4628,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
