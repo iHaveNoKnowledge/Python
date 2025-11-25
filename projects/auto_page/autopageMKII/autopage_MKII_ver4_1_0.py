@@ -454,7 +454,8 @@ class MyApp:
     # * mimic row cells table data maker
     def row_table_data_maker(self, ordered_items: dict):
         # * state variables
-        self.adjust_amount = StringVar(value=0.0)
+        #! มีแค่ตัวเดียวแบบนี้ไม่ได้นะโว่ยต้องตามจำนวน row สิ
+        self.adjust_amount = IntVar(value=0)
 
         # * variables for creating widgets
         self.widgets_no_col_lst = []
