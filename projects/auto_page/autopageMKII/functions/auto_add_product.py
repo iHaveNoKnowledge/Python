@@ -135,8 +135,8 @@ class AutoAddProduct:
                         if int(result) == int(qty):
                             break
 
-                    except:
-
+                    except Exception as err:
+                        print("auto_add_product - set qty error: ", err)
                         continue
 
                 skuInput_element.clear()
@@ -183,12 +183,13 @@ class AutoAddProduct:
                             # print(f"Response for {req_id} = {res}")
                             try:
                                 product_from_response = json.loads(res['body'])[0]['productCode']
-                            except:
+                            except Exception as err:
+                                print("Cannot parse product from response: ", err)
                                 product_from_response = None
 
                             break
                         except Exception as e:
-                            # print(f"Request {req_id} ยังไม่มี response: {e}")
+                            print(f"Request {req_id} ยังไม่มี response: {e}")
                             continue
 
                     # print("resp: ", res)
@@ -199,7 +200,7 @@ class AutoAddProduct:
                     time.sleep(0.1)
 
                 self.price_setter(sku=product_from_response, srp=srp)
-                self.item_qty_setter(product_from_response, qty)
+                # self.item_qty_setter(product_from_response, qty)
 
         except Exception as err:
             print("Shipment cost skipped")

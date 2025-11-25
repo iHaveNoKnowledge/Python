@@ -424,12 +424,12 @@ class MyApp:
     def row_header_maker(self, list_of_cols):
         # * สร้าง header
         self.list_of_cols = list_of_cols
-        self.colspan_amount = [1, 19, 2, 2, 2, 2, 2, 1, 1]
-        self.cols_location = [0, 1, 20, 22, 23, 25, 27, 28, 29]
+        self.colspan_amount = [1, 18, 2, 2, 2, 2, 2, 1, 1]
+        self.cols_location = [0, 1, 19, 21, 23, 25, 27, 29, 30]
         # self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
         # self.cols_width = [40, 550, 80, 50, 80, 80]
-        self.cols_width = [35, 500, 80, 50, 80, 80, 70, 35, 35]
+        self.cols_width = [35, 450, 80, 50, 80, 80, 60, 35, 35]
         self.entry_list = []
         i = 0
         for header_name in self.list_of_cols:
@@ -454,7 +454,7 @@ class MyApp:
     # * mimic row cells table data maker
     def row_table_data_maker(self, ordered_items: dict):
         # * state variables
-        self.adjust_amount = IntVar(value=0.0)
+        self.adjust_amount = StringVar(value=0.0)
 
         # * variables for creating widgets
         self.widgets_no_col_lst = []
