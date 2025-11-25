@@ -424,15 +424,15 @@ class MyApp:
     def row_header_maker(self, list_of_cols):
         # * สร้าง header
         self.list_of_cols = list_of_cols
-        self.colspan_amount = [1, 19, 2, 2, 2, 2, 2]
-        self.cols_location = [0, 1, 21, 23, 25, 27, 29]
+        self.colspan_amount = [1, 19, 2, 2, 2, 2, 2, 1, 1]
+        self.cols_location = [0, 1, 20, 22, 23, 25, 27, 28, 29]
         # self.cols_width = [5, 100, 10, 10, 10, 10]
         # self.cols_width = [1, 22, 2, 2, 2, 2]
         # self.cols_width = [40, 550, 80, 50, 80, 80]
-        self.cols_width = [35, 500, 80, 50, 80, 80, 80]
+        self.cols_width = [35, 500, 80, 50, 80, 80, 70, 35, 35]
         self.entry_list = []
         i = 0
-        for header in self.list_of_cols:
+        for header_name in self.list_of_cols:
             self.mp_products_header = CTkEntry(
                 self.mp_products_list_frame,
                 text_color="#000000",
@@ -440,13 +440,145 @@ class MyApp:
                 width=int(self.cols_width[i]),
                 height=14
             )
-            self.mp_products_header.insert(0, header)
+            self.mp_products_header.insert(0, header_name)
             self.entry_list.append(self.mp_products_header)
             i += 1
 
-        for idx, entry in enumerate(self.entry_list):
-            entry.grid(row=0, column=self.cols_location[idx], columnspan=self.colspan_amount[idx], sticky='nsew')
+        for col_idx, entry in enumerate(self.entry_list):
+            entry.grid(
+                row=0, column=self.cols_location[col_idx],
+                columnspan=self.colspan_amount[col_idx],
+                sticky='nsew')
             entry.configure(state="readonly")
+
+    # * mimic row cells table data maker
+    def row_table_data_maker(self, ordered_items: dict):
+        # * state variables
+        self.adjust_amount = IntVar(value=0.0)
+
+        # * variables for creating widgets
+        self.widgets_no_col_lst = []
+        self.widgets_product_col_lst = []
+        self.widgets_prc_unit_lst = []
+        self.widgets_qty_lst = []
+        self.widgets_total_prc_lst = []
+        self.widgets_total_rebt_prc_lst = []
+        # self.widgets_demonic_cp_btn_lst = []
+        self.widgets_adjust_price_amount_lst = []
+        self.widgets_adjust_price_oc_lst = []
+        self.widgets_adjust_price_dc_lstx = []
+        self.all_cols = [
+            self.widgets_no_col_lst,
+            self.widgets_product_col_lst,
+            self.widgets_prc_unit_lst,
+            self.widgets_qty_lst,
+            self.widgets_total_prc_lst,
+            self.widgets_total_rebt_prc_lst,
+            # self.widgets_demonic_cp_btn_lst,
+            self.widgets_adjust_price_amount_lst,
+            self.widgets_adjust_price_oc_lst,
+            self.widgets_adjust_price_dc_lstx
+        ]
+        self.idx = 0
+        self.mimic_list_item_states = []
+        for item_idx, row in enumerate(ordered_items):
+            # self.no_cell_value_widget = CTkEntry(self.mp_products_list_frame,width=int(self.cols_width[0]), height=14)
+            self.no_cell_value_widget = CTkButton(
+                self.mp_products_list_frame,
+                width=int(self.cols_width[0]),
+                height=14
+            )
+            # self.no_cell_value_widget.insert(0, self.idx+1)
+            self.no_cell_value_widget.configure(
+                text=str(self.idx + 1),
+                fg_color="#81ed55", text_color="#1E1E1E", border_width=2, border_color="#969696",
+                command=lambda idx=item_idx: self.bot.AutoAddProduct.auto_add_product(
+                    self.correct_sku_pattern(ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']),
+                    ordered_items[idx]['จำนวน'],
+                    get_tabs=self.bot.get_tabs
+                )
+            )
+            self.widgets_no_col_lst.append(self.no_cell_value_widget)
+
+            self.product_cell_name_value_widget = CTkEntry(
+                self.mp_products_list_frame, width=int(self.cols_width[1]), height=14)
+            self.product_cell_name_value_widget.insert(
+                0,
+                f"{" ".join(self.correct_sku_pattern(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}"
+            )
+            self.widgets_product_col_lst.append(self.product_cell_name_value_widget)
+            self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
+
+            self.price_unit_cell_value_widget = CTkEntry(
+                self.mp_products_list_frame, width=int(self.cols_width[2]), height=14)
+            self.price_unit_cell_value_widget.insert(0, f"{float(row['ราคาขาย']):,.2f}")
+            self.widgets_prc_unit_lst.append(self.price_unit_cell_value_widget)
+
+            self.qty_cell_value_widget = CTkEntry(
+                self.mp_products_list_frame, width=int(self.cols_width[3]), height=14)
+            self.qty_cell_value_widget.insert(0, int(row['จำนวน']))
+            self.widgets_qty_lst.append(self.qty_cell_value_widget)
+
+            self.total_price_cell_value_widget = CTkEntry(
+                self.mp_products_list_frame, width=int(self.cols_width[4]), height=14)
+            self.total_price_cell_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
+            self.widgets_total_prc_lst.append(self.total_price_cell_value_widget)
+
+            self.total_rebate_price_cell_value_widget = CTkEntry(
+                self.mp_products_list_frame, width=int(self.cols_width[5]), height=14)
+            self.total_rebate_price_cell_value_widget.insert(
+                0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
+            self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_cell_value_widget)
+
+            # * ช่อง input สำหรับปรับราคา ----------------------------------------------------------
+            self.adjust_price_cell_input_widget = CTkEntry(
+                self.mp_products_list_frame,
+                width=int(self.cols_width[6]),
+                height=14,
+                textvariable=self.adjust_amount
+            )
+            self.widgets_adjust_price_amount_lst.append(self.adjust_price_cell_input_widget)
+
+            # * ปุ่ม OC ----------------------------------------------------------
+            self.oc_btn_widget = CTkButton(
+                self.mp_products_list_frame,
+                width=int(self.cols_width[7]),
+                height=14
+            )
+            self.oc_btn_widget.configure(
+                text='ขึ้น',
+                fg_color="#ED1C24", text_color="#080808", border_width=2, border_color="#969696",
+                command=lambda idx=item_idx: print("OC Btn clicked for item:", ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
+            )
+            self.widgets_adjust_price_oc_lst.append(self.oc_btn_widget)
+
+            # * ปุ่ม DC ----------------------------------------------------------
+            self.dc_btn_widget = CTkButton(
+                self.mp_products_list_frame,
+                width=int(self.cols_width[8]),
+                height=14
+            )
+            self.dc_btn_widget.configure(
+                text='ลง',
+                fg_color="#00A2E8", text_color="#080808", border_width=2, border_color="#969696",
+                command=lambda idx=item_idx: print("DC Btn clicked for item:", ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
+            )
+            self.widgets_adjust_price_dc_lstx.append(self.dc_btn_widget)
+
+            self.idx += 1
+            # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
+            # self.demonic_cp_btn = CTkButton(self.mp_products_list_frame, text="xxx", fg_color="#969696", command=self.search_order, width=10)
+            # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
+
+        for col_idx, col_list in enumerate(self.all_cols):
+            for idxrow, col in enumerate(col_list):
+                col.grid(
+                    row=idxrow + 1,
+                    column=self.cols_location[col_idx],
+                    columnspan=self.colspan_amount[col_idx]
+                )
+                # if col_idx != 0 or col_idx != 6:
+                #     col.configure(state="readonly")
 
     # * เป็นส่วนของ GUI ช่อง input ที่รับ order sn ในรูปแบบ file excel
     def accelmode_toggle(self):
@@ -1580,84 +1712,7 @@ class MyApp:
                         f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like an orange theme app ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                self.widgets_no_col_lst = []
-                self.widgets_product_col_lst = []
-                self.widgets_prc_unit_lst = []
-                self.widgets_qty_lst = []
-                self.widgets_total_prc_lst = []
-                self.widgets_total_rebt_prc_lst = []
-                self.widgets_demonic_cp_btn_lst = []
-                self.all_cols = [
-                    self.widgets_no_col_lst,
-                    self.widgets_product_col_lst,
-                    self.widgets_prc_unit_lst,
-                    self.widgets_qty_lst,
-                    self.widgets_total_prc_lst,
-                    self.widgets_total_rebt_prc_lst,
-                    self.widgets_demonic_cp_btn_lst
-                ]
-                self.idx = 0
-                self.mimic_list_item_states = []
-                for item_idx, row in enumerate(self.items):
-                    # self.no_col_value_widget = CTkEntry(self.mp_products_list_frame,width=int(self.cols_width[0]), height=14)
-                    self.no_col_value_widget = CTkButton(
-                        self.mp_products_list_frame,
-                        width=int(self.cols_width[0]),
-                        height=14
-                    )
-                    # self.no_col_value_widget.insert(0, self.idx+1)
-                    self.no_col_value_widget.configure(
-                        text=str(self.idx + 1),
-                        fg_color="#81ed55", text_color="#1E1E1E", border_width=2, border_color="#969696",
-                        command=lambda idx=item_idx: self.bot.AutoAddProduct.auto_add_product(
-                            self.correct_sku_pattern(self.items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']),
-                            self.items[idx]['จำนวน'],
-                            get_tabs=self.bot.get_tabs))
-
-                    self.widgets_no_col_lst.append(self.no_col_value_widget)
-                    self.idx += 1
-
-                    self.product_col_name_value_widget = CTkEntry(
-                        self.mp_products_list_frame, width=int(self.cols_width[1]), height=14)
-                    self.product_col_name_value_widget.insert(
-                        0, f"{" ".join(self.correct_sku_pattern(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}")
-                    self.widgets_product_col_lst.append(self.product_col_name_value_widget)
-                    self.mimic_list_item_states.append(f"{str(row['เลขอ้างอิง SKU (SKU Reference No.)'])}")
-
-                    self.price_unit_col_value_widget = CTkEntry(
-                        self.mp_products_list_frame, width=int(self.cols_width[2]), height=14)
-                    self.price_unit_col_value_widget.insert(0, f"{float(row['ราคาขาย']):,.2f}")
-                    self.widgets_prc_unit_lst.append(self.price_unit_col_value_widget)
-
-                    self.qty_col_value_widget = CTkEntry(
-                        self.mp_products_list_frame, width=int(self.cols_width[3]), height=14)
-                    self.qty_col_value_widget.insert(0, int(row['จำนวน']))
-                    self.widgets_qty_lst.append(self.qty_col_value_widget)
-
-                    self.total_price_col_value_widget = CTkEntry(
-                        self.mp_products_list_frame, width=int(self.cols_width[4]), height=14)
-                    self.total_price_col_value_widget.insert(0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
-                    self.widgets_total_prc_lst.append(self.total_price_col_value_widget)
-
-                    self.total_rebate_price_col_value_widget = CTkEntry(
-                        self.mp_products_list_frame, width=int(self.cols_width[5]), height=14)
-                    self.total_rebate_price_col_value_widget.insert(
-                        0, f"{float(row['ราคาขายสุทธิ'])+float(row['ส่วนลดจาก Shopee']):,.2f}")
-                    self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_col_value_widget)
-
-                    # # * ปุ่ม CP นรกใช้ไม่ได้เก็บไว้พิจารณา
-                    # self.demonic_cp_btn = CTkButton(self.mp_products_list_frame, text="xxx", fg_color="#969696", command=self.search_order, width=10)
-                    # self.widgets_demonic_cp_btn_lst.append(self.demonic_cp_btn)
-
-                for col_idx, col_list in enumerate(self.all_cols):
-                    for idxrow, col in enumerate(col_list):
-                        col.grid(
-                            row=idxrow + 1,
-                            column=self.cols_location[col_idx],
-                            columnspan=self.colspan_amount[col_idx]
-                        )
-                        if col_idx != 1:
-                            col.configure(state="readonly")
+                self.row_table_data_maker(self.items)
 
                 # * ชื่อที่ต้องออกใบกำกับ
                 try:
