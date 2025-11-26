@@ -1718,7 +1718,9 @@ class MyApp:
                         f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like an orange theme app ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                self.row_table_data_maker(self.items)
+                with self.bot.driver_lock:
+                    self.row_table_data_maker(self.items)
+                    pass
 
                 # * ชื่อที่ต้องออกใบกำกับ
                 try:
@@ -2005,6 +2007,7 @@ class MyApp:
             print("seller voucher popup ต้องเด้งละ")
 
         self.on_complete.set()
+        print("order_search ทำงานจบ")
 
     def cal_adjusted_font_size(self, base_width, base_font_size):
         screen_width = self.root.winfo_screenwidth()
@@ -2097,9 +2100,14 @@ class MyApp:
             self.display_bot_status_label.configure(
                 text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
-    def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
-        print("shorter_thread_cycle.is_alive(): ", shorter_thread_cycle.is_alive())
-        print("longer_thread_cycle.is_alive(): ", longer_thread_cycle.is_alive())
+    def check_threads(self, longer_thread_cycle, shorter_thread_cycle, callback=None):
+        # * Check if these are still the current threads
+        if longer_thread_cycle != self.longer_thread_cycle or shorter_thread_cycle != self.shorter_thread_cycle:
+            print("Old thread check loop detected. Stopping.")
+            return
+
+        print("shorter_thread_cycle.is_alive(): ", shorter_thread_cycle.is_alive(),
+              "longer_thread_cycle.is_alive(): ", longer_thread_cycle.is_alive())
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
@@ -2161,18 +2169,18 @@ class MyApp:
 
         # * สร้าง Thread
         self.bot.get_tabs()
-        self.shorter_thread_cycle = threading.Thread(
+        self.longer_thread_cycle = threading.Thread(
             target=lambda: self.bot.operation_task_thread(self.operation_thread))
-        self.longer_thread_cycle = threading.Thread(target=lambda: self.order_search(
+        self.shorter_thread_cycle = threading.Thread(target=lambda: self.order_search(
             self.search_query, self.order_Search_thread))
         print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
-        self.longer_thread_cycle.start()
         self.shorter_thread_cycle.start()
+        self.longer_thread_cycle.start()
 
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
-        self.check_threads(self.shorter_thread_cycle, self.longer_thread_cycle, callback)
+        self.check_threads(self.longer_thread_cycle, self.shorter_thread_cycle, callback)
         self.display_bot_status_label.configure(
             text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
@@ -2544,6 +2552,7 @@ class Bot_POS:
         self.parent = parent
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
+        self.driver_lock = threading.Lock()
         self.driver = self.setup_chrome()
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.channel_options = {
@@ -4110,6 +4119,7 @@ class Bot_POS:
             # logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
             # return
 
+            # with self.driver_lock:
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
                 self.app.is_bot_browser_busy.set(False)
@@ -4352,11 +4362,11 @@ class Bot_POS:
                     continue
                 break
 
-            print("จบ auto_last_page")
-            self.autofinal = False
-            print("self.operation_thread.set()4357: ")
-            self.operation_thread.set()
-            # self.driver.quit()
+                print("จบ auto_last_page")
+                self.autofinal = False
+                print("self.operation_thread.set()4357: ")
+                self.operation_thread.set()
+                # self.driver.quit()
 
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
@@ -4378,7 +4388,7 @@ class Bot_POS:
 
         # * มันมีปุ่มบางอย่างที่มันอาจจะทำให้มีปัญหาในการจัดการชื่อลูกค้าได้ มันจะแสดงผลในหน้าใหม่เท่านั้น หน้าเก่าไม่แสดง เลยต้อง try-except ไว้ เพราะมันอาจจะมีหรือไม่มีก็ได้
         try:
-            self.diver.execute_script(
+            self.driver.execute_script(
                 """ document.querySelector("button[ng-click='abbCustomerFlag = false;']").click(); """)
         except Exception as err:
             print("There's no the new abbCustomerFlag btn")
