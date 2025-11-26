@@ -455,7 +455,7 @@ class MyApp:
     def row_table_data_maker(self, ordered_items: dict):
         # * state variables
         #! มีแค่ตัวเดียวแบบนี้ไม่ได้นะโว่ยต้องตามจำนวน row สิ
-        self.adjust_amount = IntVar(value=0)
+        self.adjust_amount_vars = {}
 
         # * variables for creating widgets
         self.widgets_no_col_lst = []
@@ -480,6 +480,8 @@ class MyApp:
             self.widgets_adjust_price_oc_lst,
             self.widgets_adjust_price_dc_lstx
         ]
+
+        # * Iteration สร้าง row table data
         self.idx = 0
         self.mimic_list_item_states = []
         for item_idx, row in enumerate(ordered_items):
@@ -532,11 +534,12 @@ class MyApp:
             self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_cell_value_widget)
 
             # * ช่อง input สำหรับปรับราคา ----------------------------------------------------------
+            self.adjust_amount_vars[item_idx] = IntVar(value="0")
             self.adjust_price_cell_input_widget = CTkEntry(
                 self.mp_products_list_frame,
                 width=int(self.cols_width[6]),
                 height=14,
-                textvariable=self.adjust_amount
+                textvariable=self.adjust_amount_vars[item_idx]
             )
             self.widgets_adjust_price_amount_lst.append(self.adjust_price_cell_input_widget)
 
@@ -547,10 +550,12 @@ class MyApp:
                 height=14
             )
             self.oc_btn_widget.configure(
-                text='ขึ้น',
-                fg_color="#ED1C24", text_color="#080808", border_width=2, border_color="#969696",
-                command=lambda idx=item_idx: print("OC Btn clicked for item:", ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
-            )
+                text='ขึ้น', fg_color="#ED1C24", text_color="#080808", border_width=2, border_color="#969696",
+                command=lambda
+                idx=item_idx:
+                print(
+                    "OC Btn clicked for item:", ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'],
+                    "Adjust Amount:", self.adjust_amount_vars[idx].get()))
             self.widgets_adjust_price_oc_lst.append(self.oc_btn_widget)
 
             # * ปุ่ม DC ----------------------------------------------------------
@@ -2093,7 +2098,8 @@ class MyApp:
                 text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
     def check_threads(self, shorter_thread_cycle, longer_thread_cycle, callback=None):
-        # print(self.is_bot_running.get())
+        print("shorter_thread_cycle.is_alive(): ", shorter_thread_cycle.is_alive())
+        print("longer_thread_cycle.is_alive(): ", longer_thread_cycle.is_alive())
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
@@ -2148,6 +2154,7 @@ class MyApp:
 
         self.operation_thread = threading.Event()
         self.order_Search_thread = threading.Event()
+        print("self.operation_thread.set()2157: ")
         self.operation_thread.set()
         self.order_Search_thread.set()
         self.operation_thread.clear()
@@ -2172,6 +2179,7 @@ class MyApp:
     def stop_operation(self):
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
         self.is_bot_running.set(False)
+        print("self.operation_thread.set()2182: ")
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
@@ -4336,6 +4344,7 @@ class Bot_POS:
                         else:
                             print("จบสูตร")
                         self.autofinal = False
+                        print("self.operation_thread.set()4347: ")
                         self.operation_thread.set()
                         break
 
@@ -4345,6 +4354,7 @@ class Bot_POS:
 
             print("จบ auto_last_page")
             self.autofinal = False
+            print("self.operation_thread.set()4357: ")
             self.operation_thread.set()
             # self.driver.quit()
 
