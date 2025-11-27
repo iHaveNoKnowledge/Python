@@ -2102,33 +2102,36 @@ class MyApp:
 
     def check_threads(self, longer_thread_cycle, shorter_thread_cycle, callback=None):
         # * Check if these are still the current threads
-        if longer_thread_cycle != self.longer_thread_cycle or shorter_thread_cycle != self.shorter_thread_cycle:
-            print("Old thread check loop detected. Stopping.")
-            return
+        is_current = (longer_thread_cycle == self.longer_thread_cycle and shorter_thread_cycle == self.shorter_thread_cycle)
 
-        print("shorter_thread_cycle.is_alive(): ", shorter_thread_cycle.is_alive(),
-              "longer_thread_cycle.is_alive(): ", longer_thread_cycle.is_alive())
+        if is_current:
+            print("shorter_thread_cycle.is_alive(): ", shorter_thread_cycle.is_alive(),
+                  "longer_thread_cycle.is_alive(): ", longer_thread_cycle.is_alive())
+
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
             self.root.after(750, lambda: self.check_threads(shorter_thread_cycle, longer_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
-            if self.is_bot_browser_busy.get() == True:
-                self.display_bot_status_label.configure(
-                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
-            elif self.is_bot_browser_busy.get() == False:
-                self.display_bot_status_label.configure(
-                    text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+            if is_current:
+                if self.is_bot_browser_busy.get() == True:
+                    self.display_bot_status_label.configure(
+                        text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
+                elif self.is_bot_browser_busy.get() == False:
+                    self.display_bot_status_label.configure(
+                        text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
         else:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
-            print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
-            print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
-            self.display_bot_status_label.configure(
-                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
-            print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
+            
+            if is_current:
+                print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
+                print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
+                self.display_bot_status_label.configure(
+                    text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+                print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
 
             if callback:
                 callback()
