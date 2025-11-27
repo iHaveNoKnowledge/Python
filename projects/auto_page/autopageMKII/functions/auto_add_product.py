@@ -33,34 +33,50 @@ class AutoAddProduct:
     # * main fxs/helpers
     def item_qty_setter(self, item_identifier: str | int, qty: int = 1):
         print("item_qty_setter called")
-        if isinstance(item_identifier, str):  # * แปลงเป็น idx ก่อน
-            print("Converting")
-            item_identifier = self.idx_of_target_element(item_identifier)
-            print("Converted")
+        try:
+            if isinstance(item_identifier, str):  # * แปลงเป็น idx ก่อน
+                print("Converting")
+                item_identifier = self.idx_of_target_element(item_identifier)
+                print("Converted")
 
-        target_idx = item_identifier
-        current_qty_elements = self.driver.find_elements(By.XPATH, "//span[@class='col-sm-4 ng-binding']")
-        target_current_qty = current_qty_elements[target_idx].text
-        print("current_qty_elements: ", current_qty_elements)
-        print("target_current_qty: ", target_current_qty)
-        print("target_idx: ", target_idx)
-        print("qty: ", qty)
+            target_idx = item_identifier
+            
+            if target_idx is None:
+                print(f"Error: Could not find element index for identifier '{item_identifier}'")
+                return
 
-        if target_idx >= 0:
-            print("Start qty setter")
-            item_qty_elements = self.driver.find_elements(By.XPATH, "//button[@ng-click='incrementMainQty(true, x)']")
-            while not self.bot.operation_thread.is_set() and int(target_current_qty) < int(qty):
-                print(f"target_current_qty and qty: {target_current_qty} and {qty}")
+            current_qty_elements = self.driver.find_elements(By.XPATH, "//span[@class='col-sm-4 ng-binding']")
+            if target_idx >= len(current_qty_elements):
+                 print(f"Error: target_idx {target_idx} out of range for current_qty_elements (len={len(current_qty_elements)})")
+                 return
+
+            target_current_qty = current_qty_elements[target_idx].text
+            print("current_qty_elements: ", current_qty_elements)
+            print("target_current_qty: ", target_current_qty)
+            print("target_idx: ", target_idx)
+            print("qty: ", qty)
+
+            if target_idx >= 0:
+                print("Start qty setter")
                 try:
-                    print("click increase button")
-                    item_qty_elements[target_idx].click()
-                    target_current_qty = current_qty_elements[target_idx].text
-                    break
-                except:
-                    # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
-                    print("Cannot click increase button")
-                    time.sleep(0.25)
-                    continue
+                    item_qty_elements = self.driver.find_elements(By.XPATH, "//button[@ng-click='incrementMainQty(true, x)']")
+                    while not self.bot.operation_thread.is_set() and int(target_current_qty) < int(qty):
+                        print(f"target_current_qty and qty: {target_current_qty} and {qty}")
+                        try:
+                            print("click increase button")
+                            item_qty_elements[target_idx].click()
+                            target_current_qty = current_qty_elements[target_idx].text
+                            if int(target_current_qty) >= int(qty):
+                                break
+                        except:
+                            # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
+                            print("Cannot click increase button")
+                            time.sleep(0.25)
+                            continue
+                except Exception as e:
+                    print(f"Error in item_qty_setter loop: {e}")
+        except Exception as e:
+            print(f"Critical error in item_qty_setter: {e}")
 
     def price_setter(self,  sku: str,  srp: int = None):
         # Todo //span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u[text()=ตัวแปรsku]

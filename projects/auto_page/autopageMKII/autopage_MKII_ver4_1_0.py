@@ -2105,8 +2105,7 @@ class MyApp:
         is_current = (longer_thread_cycle == self.longer_thread_cycle and shorter_thread_cycle == self.shorter_thread_cycle)
 
         if is_current:
-            print("shorter_thread_cycle.is_alive(): ", shorter_thread_cycle.is_alive(),
-                  "longer_thread_cycle.is_alive(): ", longer_thread_cycle.is_alive())
+            print(f"check_threads: is_current={is_current}, shorter={shorter_thread_cycle.is_alive()}, longer={longer_thread_cycle.is_alive()}")
 
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
@@ -2123,15 +2122,20 @@ class MyApp:
                         text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
         else:
             # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
+            print("check_threads: Threads dead. Joining...")
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
+            print("check_threads: Joined.")
             
             if is_current:
-                print("shorter_thread_cycle is alive?: ", shorter_thread_cycle.is_alive())
-                print("longer_thread_cycle is alive?: ", longer_thread_cycle.is_alive())
+                print("check_threads: Updating GUI to Done")
                 self.display_bot_status_label.configure(
                     text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
+            else:
+                print("check_threads: Not current, skipping GUI update")
+                self.display_bot_status_label.configure(
+                    text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
 
             if callback:
                 callback()
@@ -2163,10 +2167,16 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.configure(state=DISABLED)
 
+        # * Stop previous threads if they exist
+        if hasattr(self, 'operation_thread') and self.operation_thread is not None:
+             print("Stopping previous threads...")
+             self.operation_thread.set()
+             time.sleep(1) # Give them time to die
+
         self.operation_thread = threading.Event()
         self.order_Search_thread = threading.Event()
-        print("self.operation_thread.set()2157: ")
-        self.operation_thread.set()
+        # print("self.operation_thread.set()2157: ")
+        # self.operation_thread.set()
         self.order_Search_thread.set()
         self.operation_thread.clear()
 
@@ -4357,8 +4367,6 @@ class Bot_POS:
                         else:
                             print("จบสูตร")
                         self.autofinal = False
-                        print("self.operation_thread.set()4347: ")
-                        self.operation_thread.set()
                         break
 
                     print("Whileหลัก ถ้ามาถึงนี่แปลว่าต้องเริ่มใหม่")
@@ -4367,8 +4375,8 @@ class Bot_POS:
 
                 print("จบ auto_last_page")
                 self.autofinal = False
-                print("self.operation_thread.set()4357: ")
-                self.operation_thread.set()
+                # print("self.operation_thread.set()4357: ")
+                # self.operation_thread.set()
                 # self.driver.quit()
 
         else:
