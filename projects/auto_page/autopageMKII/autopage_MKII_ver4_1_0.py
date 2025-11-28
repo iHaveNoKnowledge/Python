@@ -43,6 +43,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
@@ -2102,10 +2104,12 @@ class MyApp:
 
     def check_threads(self, longer_thread_cycle, shorter_thread_cycle, callback=None):
         # * Check if these are still the current threads
-        is_current = (longer_thread_cycle == self.longer_thread_cycle and shorter_thread_cycle == self.shorter_thread_cycle)
+        is_current = (longer_thread_cycle == self.longer_thread_cycle and shorter_thread_cycle ==
+                      self.shorter_thread_cycle)
 
         if is_current:
-            print(f"check_threads: is_current={is_current}, shorter={shorter_thread_cycle.is_alive()}, longer={longer_thread_cycle.is_alive()}")
+            print(
+                f"check_threads: is_current={is_current}, shorter={shorter_thread_cycle.is_alive()}, longer={longer_thread_cycle.is_alive()}")
 
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
@@ -2126,7 +2130,7 @@ class MyApp:
             shorter_thread_cycle.join()
             longer_thread_cycle.join()
             print("check_threads: Joined.")
-            
+
             if is_current:
                 print("check_threads: Updating GUI to Done")
                 self.display_bot_status_label.configure(
@@ -2169,9 +2173,9 @@ class MyApp:
 
         # * Stop previous threads if they exist
         if hasattr(self, 'operation_thread') and self.operation_thread is not None:
-             print("Stopping previous threads...")
-             self.operation_thread.set()
-             time.sleep(1) # Give them time to die
+            print("Stopping previous threads...")
+            self.operation_thread.set()
+            time.sleep(1)  # Give them time to die
 
         self.operation_thread = threading.Event()
         self.order_Search_thread = threading.Event()
@@ -4199,14 +4203,27 @@ class Bot_POS:
                         self.app.is_bot_browser_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
-                        is_final_page2 = self.wait50.until(EC.visibility_of_element_located(
-                            (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
-                        self.last_page = self.driver.find_element(
-                            By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
+
+                        # ? ลองของใหม่
+                        if not hasattr(self, "last_page") or not isinstance(self.last_page, WebElement):
+                            reload = True
+                        else:
+                            try:
+                                _ = self.last_page.text
+                                reload = False
+                            except StaleElementReferenceException:
+                                reload = True
+                            except Exception as err:
+                                logger.exception(err)
+                                raise
+
+                        if reload:
+                            self.last_page = self.driver.find_element(
+                                By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
+    )
+
                         if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                             # Auto หน้าท้าย ทำได้ครั้งเดียว
-                            is_final_page2 = self.wait50.until(EC.visibility_of_element_located(
-                                (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')))
 
                             # is_final_page = self.wait50.until(EC.visibility_of_element_located(
                             #     (By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea')))
