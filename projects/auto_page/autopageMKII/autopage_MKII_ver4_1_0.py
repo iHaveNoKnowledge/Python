@@ -37,14 +37,14 @@ from openpyxl import load_workbook
 from PIL import Image, ImageTk
 from pypdf import PdfReader
 from selenium import webdriver
-from selenium.common.exceptions import UnexpectedAlertPresentException
+from selenium.common.exceptions import (StaleElementReferenceException,
+                                        UnexpectedAlertPresentException)
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
@@ -2920,6 +2920,9 @@ class Bot_POS:
     def demonic_cp_bot(self, item_no: int, cp_no: int):
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
+        cp_target_name = ""
+        cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
+        cp_name_elements_list = self.driver.find_elements(By.XPATH, cp_name_loc)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.demonic_ordered_items_list = self.app.correct_sku_pattern(
             self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)']
@@ -2948,7 +2951,12 @@ class Bot_POS:
             item_position = idx+1
             print("จำนวน skus in SMCO POS ", len(item_list_elements))
             print("item จาก demonic_ordered_items_list", item)
+            if cp_target_name != "":
+                for idx, element in enumerate(self.driver.find_elements(By.XPATH, cp_name_loc)):
+                    if cp_target_name in element.text.replace(" ", ""):
+                        self.cp_no = idx+1
             for idx2, div in enumerate(item_list_elements):
+                print("loop item บน smco")
                 li_position = idx2+1
                 try:
                     is_found = item in div.text  # * มันจะ error ตรงนี้หาก divตัวไหนแปรสภาพหลังเลือก cp ไปแล้ว ทำให้มันจะข้าม loop ตั้งแต่ตรงนี้ แต่ข้ามแบบ error ซึ่ง exception ข้างล่างดักไว้แล้ว อยากเห็นลองเปิดดูได้
@@ -2959,12 +2967,22 @@ class Bot_POS:
                         cp_btn_xpath = item_list_cp_btn_elements[idx2]
                         cp_btn_xpath.click()
 
+                        # * CP list page-------------------------------------
                         # * เลือก cp เป้าหมาย
-                        selected_btn = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{
-                            self.cp_no}]/div[1]/button'''
-                        self.driver.find_element(By.XPATH, selected_btn).click()
+                        # selected_btn_loc = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{self.cp_no}]/div[1]/button''' # ! >> old fashion way
+                        selected_btn_loc = f'''
+                            //div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']
+                            '''
+                        self.driver.find_elements(By.XPATH, selected_btn_loc)[self.cp_no-1].click()
+
+                        # * เก็บชื่อ CP ที่เลือก
+                        if cp_target_name == "":
+                            cp_target_name = self.driver.find_elements(By.XPATH, cp_name_loc)[
+                                self.cp_no-1].text.replace(" ", "")
+                            print("cp_target_name now is: ", cp_target_name)
 
                         # * กดยืนยัน
+                        print("click OK ในรอบของ:", item)
                         self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
                         time.sleep(0.25)  # * รอให้มัน process หน่อย
                         break
@@ -2974,8 +2992,12 @@ class Bot_POS:
                         pass
                 except Exception as err:
                     # Todo มันไม่ใช่เรื่องใหญ่อะไร exception นี้มักจะเกิดจาก elementที่เคยเลือกไปแล้วมันเปลี่ยนโครงสร้างแต่ elementใน item_list_elements ที่แกะมา ลูบทีละตัวมันเปนค่าเดิม ทำให้ loop รอบถัดไป error ที่ elementเดิมที่เคยเลือก cp ไปก่อนหน้า เช่น รับเข้ามา (<em>(1), <em>(2), <em>(3)) พอเลือก cp มันจะเป็นแบบนี้แทน (<em>(1CP), <em>(2), <em>(3)) แต่ตอน loop เราใช้ค่า <em>(1) ไปหา มันจะ error เพราะในหน้าเว็บมันกลายเปน <em>(1CP) ไปแล้ว
-                    # print("Demonic CP Bot inner Exception Error:", err)
+                    print("Demonic CP Bot inner Exception Error:", err)
                     pass
+        cp_target_name = ""
+
+    def cp_bringer(self):
+        pass
 
     def get_tabs(self):
         if self.parent.winfo_exists():
@@ -4220,7 +4242,7 @@ class Bot_POS:
                         if reload:
                             self.last_page = self.driver.find_element(
                                 By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
-    )
+                            )
 
                         if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                             # Auto หน้าท้าย ทำได้ครั้งเดียว
