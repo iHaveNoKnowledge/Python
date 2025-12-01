@@ -2716,7 +2716,7 @@ class Bot_POS:
 
                 # 📑 เปิดแท็บใหม่อย่างปลอดภัย (Safe Open Strategy)
                 old_handles = set(self.driver.window_handles)
-                
+
                 # * 1. หา "Safe Opener" (Tab อื่นที่ไม่ใช่ Tab ปัจจุบัน) เพื่อไม่ให้ Tab ใหม่เป็น Child ของ Tab ที่กินแรม
                 safe_opener_handle = current_handle
                 if len(old_handles) > 1:
@@ -2724,9 +2724,9 @@ class Bot_POS:
                         if h != current_handle:
                             safe_opener_handle = h
                             break
-                
+
                 self.driver.switch_to.window(safe_opener_handle)
-                
+
                 # * 2. ใช้ 'noopener' เพื่อตัดความสัมพันธ์กับ Process เดิม
                 self.driver.execute_script(f"window.open('{current_url}', '_blank', 'noopener');")
 
@@ -2742,7 +2742,7 @@ class Bot_POS:
                 self.driver.switch_to.window(current_handle)
                 try:
                     self.driver.get("about:blank")
-                    time.sleep(0.5) # ให้เวลา Browser เคลียร์ Memory นิดนึง
+                    time.sleep(0.5)  # ให้เวลา Browser เคลียร์ Memory นิดนึง
                 except Exception as e:
                     logger.warning(f"Error navigating to about:blank: {e}")
 
@@ -3045,10 +3045,14 @@ class Bot_POS:
                 )
 
             for idx, handle in enumerate(self.driver.window_handles):
-                self.driver.switch_to.window(handle)
-                print("self.driver.title: ", self.driver.title)
-                self.title_list.append(self.driver.title)
-                self.value_list.append(self.driver.current_window_handle)
+                try:
+                    self.driver.switch_to.window(handle)
+                    print("self.driver.title: ", self.driver.title)
+                    self.title_list.append(self.driver.title)
+                    self.value_list.append(self.driver.current_window_handle)
+                except Exception as e:
+                    print(f"Error accessing tab index {idx} (handle: {handle}): {e}")
+                    continue
 
             self.unique_titles = []
             self.counter = {}
@@ -3422,7 +3426,7 @@ class Bot_POS:
             try:
                 #! ยังไม่สมบูร 100%
                 self.driver.find_element(
-                    By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[(starts-with(., "AR Online") or starts-with(., "Online Sale")) and not(contains(., "Deposite -"))]').click()
+                    By.XPATH, '//*[@id="select2-divSaletype2-results"]/li[(starts-with(., "AR Online") or starts-with(., "Online Sale")) or starts-with(., "Sale exhibition") and not(contains(., "Deposite -"))]').click()
                 print("เจอ saletype li")
                 return
             except Exception as err:
@@ -4187,9 +4191,9 @@ class Bot_POS:
                     while not self.operation_thread.is_set():
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
-                            self.cus_name_input_element = self.driver.find_element(
+                            self.saler_name_input_element = self.driver.find_element(
                                 By.CSS_SELECTOR, '#select2-salePersonSearch-container')
-                            title_attribute = self.cus_name_input_element.get_attribute("title")
+                            title_attribute = self.saler_name_input_element.get_attribute("title")
 
                             # * ตรวจสอบว่าหน้าสุดท้ายหรือยัง
                             is_final_page_displayed = self.driver.find_element(
@@ -4197,6 +4201,7 @@ class Bot_POS:
                             break
                         except:
                             # * ไม่มี element ให้วนเรื่อยๆ
+                            time.sleep(0.55)
                             continue
 
                     # *ดึงตัวอักษรออกมา
@@ -4207,13 +4212,13 @@ class Bot_POS:
                     except:
                         self.is_input_empty = ""
 
-                    # * แก้ bot ดับจาก alert
+                    # * หน้ารายการยิงของ (หน้าแรก)
+                    # * /update/ แต่สมัยนี้มันไม่มีหน้า SN แล้วนี่หว่า มันย้ายไปเปนหน้าใหม่เลย popup-sn เลยหายไปละ /ปัญหา/แก้ bot ดับจาก alert หน้ารายการยิงของ (หน้าแรก)
                     while not self.operation_thread.is_set():
                         time.sleep(0.55)
                         try:
-
                             sn_window = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')
+                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')  # * ส่วนลด pop up
                             # print("SN_window is still there")
                             if sn_window.is_displayed():
                                 # print("หน้า SN กำลังโชว์")
@@ -4234,12 +4239,13 @@ class Bot_POS:
                             # print("Popupโผล่")
                             continue
 
+                    # * เอาไว้ใช้เพื่อจบการทำงาน เมื่ออกบืล เดิมทีค่าที่เป็นชื่อลูกค้ามันจะหายไป แต่ปัจจุบันไม่มีชื่อลูกค้าแล้ว เลยไปใช้ชื่อพนักงาน แต่ชื่อพนักงานมันจะหายไหมนะ?
                     if self.is_input_empty == "" and is_final_page_displayed == False:
                         print("Emp name disappeared")
                         break
-                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and is_final_page_displayed == False:
+                    elif (not "Select " in self.saler_name_input_element.text or not "กรุณาเลือก" in self.saler_name_input_element.text) and is_final_page_displayed == False:
                         continue
-                    elif (self.cus_name_input_element.text != "Select Customer" or self.cus_name_input_element.text != "กรุณาเลือก") and is_final_page_displayed == True:
+                    elif (not "Select " in self.saler_name_input_element.text or not "กรุณาเลือก" in self.saler_name_input_element.text) and is_final_page_displayed == True:
                         self.app.is_bot_browser_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
@@ -4295,12 +4301,17 @@ class Bot_POS:
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
                                     self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
+                                else:
+                                    self.driver.find_element(By.XPATH, "//a[contains(., 'Transfer')]").click()
 
                                 # * PO No:
-                                po_no_input_element = self.driver.find_element(
-                                    By.XPATH, "//input[@id='textbox81037000102']")
-                                po_no_input_element.clear()
-                                po_no_input_element.send_keys(self.app.cus_order.get())
+                                try:
+                                    po_no_input_element = self.driver.find_element(
+                                        By.XPATH, "//input[@id='textbox81037000102']")
+                                    po_no_input_element.clear()
+                                    po_no_input_element.send_keys(self.app.cus_order.get())
+                                except Exception as e:
+                                    print("Cannot fill PO No:", e)
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
                                 # * ผมใช้เอง
@@ -4772,6 +4783,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
