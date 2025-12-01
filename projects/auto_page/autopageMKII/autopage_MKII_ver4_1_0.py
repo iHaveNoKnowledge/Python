@@ -2686,7 +2686,7 @@ class Bot_POS:
             return 0
 
     def close_and_reopen_tab_if_memory_high(self, tab_name=None):
-        """ปิดแท็บเก่าแล้วเปิดใหม่ ถ้า memory เกิน limit"""
+        """ปิดแท็บเก่าแล้วเปิดใหม่ ถ้า memory เกิน limit (Optimized for RAM clearing)"""
 
         try:
             # * ตรวจสอบ URL ปัจจุบัน
@@ -2714,32 +2714,50 @@ class Bot_POS:
                 except Exception:
                     scroll_position = 0
 
-                # 📑 เปิดแท็บใหม่อย่างปลอดภัย
+                # 📑 เปิดแท็บใหม่อย่างปลอดภัย (Safe Open Strategy)
                 old_handles = set(self.driver.window_handles)
-                self.driver.execute_script(f"window.open('{current_url}', '_blank');")
+                
+                # * 1. หา "Safe Opener" (Tab อื่นที่ไม่ใช่ Tab ปัจจุบัน) เพื่อไม่ให้ Tab ใหม่เป็น Child ของ Tab ที่กินแรม
+                safe_opener_handle = current_handle
+                if len(old_handles) > 1:
+                    for h in old_handles:
+                        if h != current_handle:
+                            safe_opener_handle = h
+                            break
+                
+                self.driver.switch_to.window(safe_opener_handle)
+                
+                # * 2. ใช้ 'noopener' เพื่อตัดความสัมพันธ์กับ Process เดิม
+                self.driver.execute_script(f"window.open('{current_url}', '_blank', 'noopener');")
 
                 # ✅ รอจนกว่าจะมีแท็บใหม่โผล่
-                WebDriverWait(self.driver, 5).until(
+                WebDriverWait(self.driver, 10).until(
                     lambda d: len(set(d.window_handles) - old_handles) > 0
                 )
 
                 new_handle = list(set(self.driver.window_handles) - old_handles)[0]
                 logger.info(f"{self.app.cus_order.get()}: Opened new tab for '{tab_name or current_url}'")
 
-                # 🪟 สลับไปแท็บใหม่ก่อน แล้วค่อยปิดแท็บเก่า
-                self.driver.switch_to.window(new_handle)
+                # 🧹 3. กลับมาที่ Tab เดิม แล้วโหลด about:blank เพื่อล้าง DOM ทิ้งทันที (สำคัญมากสำหรับการคืน RAM)
+                self.driver.switch_to.window(current_handle)
                 try:
-                    self.driver.switch_to.window(current_handle)
+                    self.driver.get("about:blank")
+                    time.sleep(0.5) # ให้เวลา Browser เคลียร์ Memory นิดนึง
+                except Exception as e:
+                    logger.warning(f"Error navigating to about:blank: {e}")
+
+                # ❌ 4. ปิด Tab เดิม
+                try:
                     self.driver.close()
                     logger.info(f"{self.app.cus_order.get()}: Closed old tab for '{tab_name or current_url}'")
                 except Exception as e:
                     logger.warning(f"Error closing old tab: {e}")
 
-                # 🔁 สลับกลับไปแท็บใหม่อีกครั้ง
+                # 🔁 สลับไปแท็บใหม่
                 self.driver.switch_to.window(new_handle)
 
-                # ⏳ รอหน้าโหลดเสร็จจริง (แทนการ sleep)
-                WebDriverWait(self.driver, 10).until(
+                # ⏳ รอหน้าโหลดเสร็จจริง
+                WebDriverWait(self.driver, 20).until(
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
 

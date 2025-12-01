@@ -17,6 +17,7 @@ class AutoAddProduct:
 
     # * Utils
     def idx_of_target_element(self, sku: str):
+        print("incoming sku: ", sku)
         smco_sku_code_elements = self.driver.find_elements(
             By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)'))and not(contains(@class, 'ng-hide'))]//u")
 
@@ -32,47 +33,68 @@ class AutoAddProduct:
 
     # * main fxs/helpers
     def item_qty_setter(self, item_identifier: str | int, qty: int = 1):
-        print("item_qty_setter called")
+        print("item_qty_setter called item_identifier: ", item_identifier, " qty: ", qty)
         try:
             if isinstance(item_identifier, str):  # * แปลงเป็น idx ก่อน
                 print("Converting")
                 item_identifier = self.idx_of_target_element(item_identifier)
+                print("item_identifier: ", item_identifier)
                 print("Converted")
 
             target_idx = item_identifier
-            
+
             if target_idx is None:
                 print(f"Error: Could not find element index for identifier '{item_identifier}'")
                 return
 
-            current_qty_elements = self.driver.find_elements(By.XPATH, "//span[@class='col-sm-4 ng-binding']")
+            # * Wait for DOM to settle
+            time.sleep(0.5)
+
+            # * Update XPath to exclude hidden elements
+            current_qty_elements = self.driver.find_elements(By.XPATH, "//span[@class='col-sm-4 ng-binding' and not(contains(@class, 'ng-hide'))]")
+            
             if target_idx >= len(current_qty_elements):
-                 print(f"Error: target_idx {target_idx} out of range for current_qty_elements (len={len(current_qty_elements)})")
-                 return
+                print(
+                    f"Error: target_idx {target_idx} out of range for current_qty_elements (len={len(current_qty_elements)})")
+                return
 
             target_current_qty = current_qty_elements[target_idx].text
-            print("current_qty_elements: ", current_qty_elements)
-            print("target_current_qty: ", target_current_qty)
-            print("target_idx: ", target_idx)
-            print("qty: ", qty)
+            print("current_qty_elements count: ", len(current_qty_elements))
+            print(f"target_current_qty at idx {target_idx}: '{target_current_qty}'")
+            print("qty needed: ", qty)
 
             if target_idx >= 0:
-                print("Start qty setter")
+                print("Start qty setter check")
                 try:
-                    item_qty_elements = self.driver.find_elements(By.XPATH, "//button[@ng-click='incrementMainQty(true, x)']")
-                    while not self.bot.operation_thread.is_set() and int(target_current_qty) < int(qty):
-                        print(f"target_current_qty and qty: {target_current_qty} and {qty}")
-                        try:
-                            print("click increase button")
-                            item_qty_elements[target_idx].click()
-                            target_current_qty = current_qty_elements[target_idx].text
-                            if int(target_current_qty) >= int(qty):
-                                break
-                        except:
-                            # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
-                            print("Cannot click increase button")
-                            time.sleep(0.25)
-                            continue
+                    # * Update XPath to exclude hidden elements for buttons too, just in case
+                    item_qty_elements = self.driver.find_elements(
+                        By.XPATH, "//button[@ng-click='incrementMainQty(true, x)' and not(contains(@class, 'ng-hide'))]")
+                    
+                    # * Check if we really need to loop
+                    if int(target_current_qty) < int(qty):
+                        print(f"Quantity mismatch: current {target_current_qty} < needed {qty}. Starting increment loop.")
+                        while not self.bot.operation_thread.is_set() and int(target_current_qty) < int(qty):
+                            print(f"target_current_qty and qty: {target_current_qty} and {qty}")
+                            try:
+                                print("click increase button")
+                                if target_idx < len(item_qty_elements):
+                                    item_qty_elements[target_idx].click()
+                                else:
+                                    print(f"Error: Button index {target_idx} out of range (buttons={len(item_qty_elements)})")
+                                    break
+                                
+                                # * Re-read quantity
+                                target_current_qty = current_qty_elements[target_idx].text
+                                if int(target_current_qty) >= int(qty):
+                                    break
+                            except Exception as e:
+                                # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
+                                print(f"Cannot click increase button: {e}")
+                                time.sleep(0.25)
+                                continue
+                    else:
+                        print(f"Quantity match or exceed: current {target_current_qty} >= needed {qty}. No action needed.")
+
                 except Exception as e:
                     print(f"Error in item_qty_setter loop: {e}")
         except Exception as e:
@@ -156,6 +178,10 @@ class AutoAddProduct:
                         except Exception as err:
                             print("auto_add_product - set qty error: ", err)
                             continue
+
+                    # * Clear performance logs to avoid reading stale requests
+                    self.driver.get_log("performance")
+                    print("Cleared performance logs")
 
                     skuInput_element.clear()
                     skuInput_element.send_keys(sku)
