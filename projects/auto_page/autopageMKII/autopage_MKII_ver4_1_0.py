@@ -3123,6 +3123,27 @@ class Bot_POS:
             self.driver.find_element(
                 By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='N'")]''').click()
 
+    def set_cus_name_search_type_last_page(self):
+        self.wait50.until(
+            EC.element_to_be_clickable(
+                (By.XPATH,
+                 r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='E'")]''')))
+        if self.app.tax_bool.get() == True:
+            # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
+            if self.app.marketplace_target.get() == "SHOPEE":
+                print("ขอใบกำกับSHOPEE ใช้ T:")
+                self.driver.find_element(
+                    By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
+            elif self.app.marketplace_target.get() == "LAZADA":
+                print("ขอใบกำกับLazada ใช้ T:")
+                self.driver.find_element(
+                    By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
+        elif self.app.tax_bool.get() == False:
+            # ไม่ขอใบกำกับ
+            print("ไม่ขอใบกำกับใช้ N:")
+            self.driver.find_element(
+                By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click,"st='N'")]''').click()
+
     def dropdown_handler(self):
         while not self.operation_thread.is_set():
             try:
@@ -4133,6 +4154,7 @@ class Bot_POS:
                 # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
                 # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
+                #! wip ตรงนี้ต้องปรับเป๋็น function สำหรับจัดการชื่อลูกค้าให้อยู่ใน input ให้เรียบร้อย
                 if self.app.marketplace_target.get() == "SHOPEE":
                     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
                 elif self.app.marketplace_target.get() == "LAZADA":
@@ -5796,7 +5818,7 @@ class Bot_POS:
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
                 pass
-            
+
             # Todo ทำไม่ทัน UAT โดนปรับไปใช้คอมมาทก่อน
             elif convert_full_tax_modal_element.is_displayed():
                 # while not self.operation_thread.is_set():
@@ -5821,6 +5843,17 @@ class Bot_POS:
                 #             continue
                 while not self.operation_thread.is_set() and convert_full_tax_modal_element.is_displayed():
                     print("หน้าเลือกแบบย่อแบบเต็มยังแสดงผลอยู่")
+                    if not self.is_old_tax_form and self.app.tax_bool.get():
+                        try:
+                            # * ต้องการใบกำกับ
+                            self.driver.execute_script(
+                                """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
+                            self.set_cus_name_search_type_last_page()
+                            break
+                        except:
+                            continue
+                    else:
+                        print("ไม่เอาใบกำกับ กด submit ไปเลย แต่ไม่กล้ากดตอนนี้")
                     time.sleep(1)
                 pass
             else:
