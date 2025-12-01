@@ -2696,6 +2696,13 @@ class Bot_POS:
                 logger.warning("ไม่สามารถอ่าน current_url ได้ อาจไม่มีแท็บเปิดอยู่")
                 return False
 
+            # * Skip internal pages
+            if "devtools://" in current_url or "chrome://" in current_url or "Tab Search" in (
+                    tab_name or "") or "DevTools" in (
+                    tab_name or ""):
+                print(f"Skipping internal page: {tab_name or current_url}")
+                return False
+
             current_handle = self.driver.current_window_handle
             memory_usage = self.get_current_tab_memory_usage()
 
@@ -2788,6 +2795,7 @@ class Bot_POS:
 
         except Exception as e:
             print(f"❌ Error closing/reopening tab: {e}")
+            print(traceback.format_exc())
             logger.error(f"close_and_reopen_tab_if_memory_high failed: {e}")
             return False
 
@@ -3990,6 +3998,14 @@ class Bot_POS:
             # * เลือก ประเภทการขาย ==========================================================================
             self.select_sale_type()
 
+            # * มันจะมี pop-up เด้งระหว่างนี้
+            try:
+                self.driver.find_element(
+                    By.XPATH,
+                    "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
+            except:
+                print("no sale type pop-up")
+
             # * ใส่ รหัสพนักงาน ===============================================================================
             self.insert_emp()
 
@@ -4294,15 +4310,17 @@ class Bot_POS:
                                 # เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
                                 if self.app.marketplace_target.get() == 'SHOPEE':
-                                    channel = self.channel_options[f'{self.operation_states['purchased_channel']}']
-                                    print("channel: ", channel)
-                                    # เลือก shopee
-                                    self.driver.find_element(By.XPATH, f"//a[contains(., '{channel}')]").click()
+                                    try:
+                                        channel = self.channel_options[f'{self.operation_states['purchased_channel']}']
+                                        print("channel: ", channel)
+                                        # เลือก shopee
+                                        self.driver.find_element(By.XPATH, f"//a[contains(., '{channel}')]").click()
+                                    except Exception as e:
+                                        self.driver.find_element(
+                                            By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']").click()
                                 elif self.app.marketplace_target.get() == 'LAZADA':
                                     # เลือก lazada
                                     self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
-                                else:
-                                    self.driver.find_element(By.XPATH, "//a[contains(., 'Transfer')]").click()
 
                                 # * PO No:
                                 try:
@@ -4783,7 +4801,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5776,32 +5793,35 @@ class Bot_POS:
             #     print("Radio ยังไม่โผล่")
             #     continue
 
-            # Todo ทำไม่ทัน UAT โดนปรับไปใช้คอมมาทก่อน
-            # elif convert_full_tax_modal_element.is_displayed():
-            #     while not self.operation_thread.is_set():
-            #         print("convertFullTaxModal displayed")
-            #         if not self.is_old_tax_form and self.app.tax_bool.get():
-            #             try:
-            #                 # * ต้องการใบกำกับ
-            #                 self.driver.execute_script(
-            #                     """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
-            #                 break
-            #             except:
-            #                 continue
-            #         else:
-            #             try:
-            #                 # * ไม่ต้องการต้องการใบกำกับ
-            #                 self.driver.execute_script(
-            #                     """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
-            #                 self.driver.find_element(
-            #                     By.XPATH, "//button[@ng-click='savePayment()' and @class='btn btn-success']").click()
-            #                 break
-            #             except:
-            #                 continue
-            #     pass
-
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
+                pass
+            
+            # Todo ทำไม่ทัน UAT โดนปรับไปใช้คอมมาทก่อน
+            elif convert_full_tax_modal_element.is_displayed():
+                # while not self.operation_thread.is_set():
+                #     print("convertFullTaxModal displayed")
+                #     if not self.is_old_tax_form and self.app.tax_bool.get():
+                #         try:
+                #             # * ต้องการใบกำกับ
+                #             self.driver.execute_script(
+                #                 """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
+                #             break
+                #         except:
+                #             continue
+                #     else:
+                #         try:
+                #             # * ไม่ต้องการต้องการใบกำกับ
+                #             self.driver.execute_script(
+                #                 """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
+                #             self.driver.find_element(
+                #                 By.XPATH, "//button[@ng-click='savePayment()' and @class='btn btn-success']").click()
+                #             break
+                #         except:
+                #             continue
+                while not self.operation_thread.is_set() and convert_full_tax_modal_element.is_displayed():
+                    print("หน้าเลือกแบบย่อแบบเต็มยังแสดงผลอยู่")
+                    time.sleep(1)
                 pass
             else:
                 try:
