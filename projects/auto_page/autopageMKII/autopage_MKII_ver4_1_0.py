@@ -2665,26 +2665,27 @@ class Bot_POS:
             )
             return driver
 
-
     def retry_on_stale_element(self, func, max_retries=5, delay=0.5, *args, **kwargs):
         """
         Retry wrapper สำหรับ operations ที่อาจเจอ NoSuchElementException หรือ StaleElementReferenceException
         เมื่อ auto_add_product กำลังทำงานพร้อมกัน
-        
+
         Args:
             func: Function ที่ต้องการ retry
             max_retries: จำนวนครั้งที่จะ retry (default: 5)
             delay: เวลารอระหว่าง retry ในหน่วยวินาที (default: 0.5)
             *args, **kwargs: Arguments สำหรับ func
-            
+
         Returns:
             ผลลัพธ์จาก func
-            
+
         Raises:
             Exception: ถ้า retry ครบแล้วยังไม่สำเร็จ
         """
-        from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
-        
+        from selenium.common.exceptions import (NoSuchElementException,
+                                                StaleElementReferenceException,
+                                                TimeoutException)
+
         last_exception = None
         for attempt in range(max_retries):
             try:
@@ -2698,8 +2699,6 @@ class Bot_POS:
                 else:
                     print(f"Max retries ({max_retries}) reached. Giving up.")
                     raise last_exception
-
-
 
     def get_current_tab_memory_usage(self):
         """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
@@ -3116,8 +3115,10 @@ class Bot_POS:
             print("มี tabs ไรบ้าง", self.merged_dict)
 
     def operation_task_thread(self, event=None):
-        from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
-        
+        from selenium.common.exceptions import (NoSuchElementException,
+                                                StaleElementReferenceException,
+                                                TimeoutException)
+
         self.operation_thread = event
         if not self.operation_thread.is_set():
             try:
@@ -3125,19 +3126,21 @@ class Bot_POS:
                 if self.app.order != "" and not self.operation_thread.is_set():
 
                     logger.info(f"Order: {self.app.order} Start!!")
-                    
+
                     # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
                     max_retries = 3
                     retry_delay = 1.0  # วินาที
-                    
+
                     for attempt in range(max_retries):
                         try:
                             self.operation_start()
                             break  # สำเร็จแล้ว ออกจาก loop
                         except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as err:
                             if attempt < max_retries - 1:
-                                logger.warning(f"Order: {self.app.order} Retry attempt {attempt + 1}/{max_retries} due to: {type(err).__name__}: {err}")
-                                print(f"⚠️  Retrying operation_start (attempt {attempt + 1}/{max_retries}) due to: {type(err).__name__}")
+                                logger.warning(
+                                    f"Order: {self.app.order} Retry attempt {attempt + 1}/{max_retries} due to: {type(err).__name__}: {err}")
+                                print(
+                                    f"⚠️  Retrying operation_start (attempt {attempt + 1}/{max_retries}) due to: {type(err).__name__}")
                                 time.sleep(retry_delay)
                                 continue
                             else:
@@ -3881,12 +3884,12 @@ class Bot_POS:
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
                     # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click() //ใช้ได้แต่กันไว้ก่อน 25/11/2024 15:11
-                    
+
                     # * ใช้ retry logic เพื่อป้องกัน NoSuchElementException เมื่อ auto_add_product กำลังทำงาน
                     def click_tab():
                         return self.driver.find_element(
                             By.CSS_SELECTOR, 'div.eds-tabs__nav div.eds-tabs__nav-warp div div div.tab-label').click()
-                    
+
                     self.retry_on_stale_element(click_tab)
                     #! ตรงนี้มันไม่ใช้แล้ว
                     # self.wait50.until(EC.text_to_be_present_in_element(
@@ -3906,7 +3909,7 @@ class Bot_POS:
                             (By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
 
                         ))
-                    
+
                     self.search_elmt = self.retry_on_stale_element(find_search_element)
 
                     self.search_elmt.clear()
@@ -5942,15 +5945,19 @@ class Bot_POS:
                 #             continue
                 while not self.operation_thread.is_set() and convert_full_tax_modal_element.is_displayed():
                     print("หน้าเลือกแบบย่อแบบเต็มยังแสดงผลอยู่")
-                    if not self.is_old_tax_form and self.app.tax_bool.get():
+                    if self.app.tax_bool.get():
                         try:
                             # * ต้องการใบกำกับ
-                            self.driver.execute_script(
-                                """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
-                            self.set_cus_name_search_type_last_page()
-                            self.select_cusname_address_last_page()
+                            el = self.driver.find_element(
+                                By.CSS_SELECTOR, "input[name='radioConvertFullTaxModal'][ng-value='93003002']")
+                            self.driver.execute_script("arguments[0].click();", el)
+                            if not self.driver.find_element(
+                                    By.XPATH, "select2-memberSearchft-container").get_attribute('title'):
+                                self.set_cus_name_search_type_last_page()
+                                self.select_cusname_address_last_page()
                             break
                         except:
+                            time.sleep(0.5)
                             continue
                     else:
                         print("ไม่เอาใบกำกับ กด submit ไปเลย แต่ไม่กล้ากดตอนนี้")
