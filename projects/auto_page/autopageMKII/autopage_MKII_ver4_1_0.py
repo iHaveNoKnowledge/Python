@@ -2571,6 +2571,7 @@ class Bot_POS:
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.driver_lock = threading.Lock()
+        self.auto_add_product_stop_flag = threading.Event()  # Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
         self.driver = self.setup_chrome()
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.channel_options = {
@@ -2663,6 +2664,42 @@ class Bot_POS:
                 options=self.opt
             )
             return driver
+
+
+    def retry_on_stale_element(self, func, max_retries=5, delay=0.5, *args, **kwargs):
+        """
+        Retry wrapper สำหรับ operations ที่อาจเจอ NoSuchElementException หรือ StaleElementReferenceException
+        เมื่อ auto_add_product กำลังทำงานพร้อมกัน
+        
+        Args:
+            func: Function ที่ต้องการ retry
+            max_retries: จำนวนครั้งที่จะ retry (default: 5)
+            delay: เวลารอระหว่าง retry ในหน่วยวินาที (default: 0.5)
+            *args, **kwargs: Arguments สำหรับ func
+            
+        Returns:
+            ผลลัพธ์จาก func
+            
+        Raises:
+            Exception: ถ้า retry ครบแล้วยังไม่สำเร็จ
+        """
+        from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
+        
+        last_exception = None
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as e:
+                last_exception = e
+                if attempt < max_retries - 1:
+                    print(f"Retry attempt {attempt + 1}/{max_retries} due to: {type(e).__name__}")
+                    time.sleep(delay)
+                    continue
+                else:
+                    print(f"Max retries ({max_retries}) reached. Giving up.")
+                    raise last_exception
+
+
 
     def get_current_tab_memory_usage(self):
         """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
@@ -3079,6 +3116,8 @@ class Bot_POS:
             print("มี tabs ไรบ้าง", self.merged_dict)
 
     def operation_task_thread(self, event=None):
+        from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
+        
         self.operation_thread = event
         if not self.operation_thread.is_set():
             try:
@@ -3086,10 +3125,29 @@ class Bot_POS:
                 if self.app.order != "" and not self.operation_thread.is_set():
 
                     logger.info(f"Order: {self.app.order} Start!!")
-                    try:
-                        self.operation_start()
-                    except Exception as err:
-                        logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
+                    
+                    # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
+                    max_retries = 3
+                    retry_delay = 1.0  # วินาที
+                    
+                    for attempt in range(max_retries):
+                        try:
+                            self.operation_start()
+                            break  # สำเร็จแล้ว ออกจาก loop
+                        except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as err:
+                            if attempt < max_retries - 1:
+                                logger.warning(f"Order: {self.app.order} Retry attempt {attempt + 1}/{max_retries} due to: {type(err).__name__}: {err}")
+                                print(f"⚠️  Retrying operation_start (attempt {attempt + 1}/{max_retries}) due to: {type(err).__name__}")
+                                time.sleep(retry_delay)
+                                continue
+                            else:
+                                # ครบจำนวน retry แล้ว ให้ raise exception
+                                logger.error(f"Order: {self.app.order} Max retries reached. Final error: {err}")
+                                raise
+                        except Exception as err:
+                            # Exception อื่นๆ ที่ไม่ใช่ element not found ให้ raise ทันที
+                            logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
+                            raise
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
                     self.app.search_complete.set()
@@ -3823,8 +3881,13 @@ class Bot_POS:
                 if cur_url != "https://seller.shopee.co.th/portal/sale/order":
                     # self.driver.get("https://seller.shopee.co.th/portal/sale/order")
                     # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div[1]/div/div/div/div[1]/div/div[1]/div[1]/div').click() //ใช้ได้แต่กันไว้ก่อน 25/11/2024 15:11
-                    self.driver.find_element(
-                        By.CSS_SELECTOR, 'div.eds-tabs__nav div.eds-tabs__nav-warp div div div.tab-label').click()
+                    
+                    # * ใช้ retry logic เพื่อป้องกัน NoSuchElementException เมื่อ auto_add_product กำลังทำงาน
+                    def click_tab():
+                        return self.driver.find_element(
+                            By.CSS_SELECTOR, 'div.eds-tabs__nav div.eds-tabs__nav-warp div div div.tab-label').click()
+                    
+                    self.retry_on_stale_element(click_tab)
                     #! ตรงนี้มันไม่ใช้แล้ว
                     # self.wait50.until(EC.text_to_be_present_in_element(
                     #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
@@ -3832,16 +3895,19 @@ class Bot_POS:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
 
                 try:
-                    # * กรอก order ลงในช่อง search
-                    self.search_elmt = self.wait50.until(EC.visibility_of_element_located(
-                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
-                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
-                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
-                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 19/09/2024 17:00
-                        # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 25/11/2024 15:11
-                        (By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
+                    # * กรอก order ลงในช่อง search - ใช้ retry logic เพื่อป้องกัน error จาก auto_add_product
+                    def find_search_element():
+                        return self.wait50.until(EC.visibility_of_element_located(
+                            # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[1]/span[2]/div/div[1]/div/div/input'))) เก่า ไม่น่าจะกลับมาใช้แล้ว
+                            # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div[1]/div[1]/div/span[2]/div/div[1]/div/div/input')))
+                            # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[1]/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input'))) พัง 28/08/2024 12:00 PM
+                            # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div/div[2]/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 19/09/2024 17:00
+                            # (By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[1]/div[1]/div/div/span[2]/div/div[1]/div/div/input') พัง 25/11/2024 15:11
+                            (By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
 
-                    ))
+                        ))
+                    
+                    self.search_elmt = self.retry_on_stale_element(find_search_element)
 
                     self.search_elmt.clear()
                     self.search_elmt.send_keys(self.app.cus_order.get())
@@ -4190,7 +4256,8 @@ class Bot_POS:
                     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
-                if not self.cus_search_input in self.driver.find_element(By.CSS_SELECTOR, "#select2-memberSearch-container").get_attribute("title"):
+                if not self.cus_search_input in self.driver.find_element(
+                        By.CSS_SELECTOR, "#select2-memberSearch-container").get_attribute("title"):
                     self.get_customer_name_ready(self.cus_search_input)
 
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
@@ -4328,9 +4395,15 @@ class Bot_POS:
                                 reload = True
 
                         if reload:
-                            self.last_page = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
-                            )
+                            while not self.operation_thread.is_set():
+                                try:
+                                    self.last_page = self.driver.find_element(
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
+                                    )
+                                    break
+                                except Exception as e:
+                                    print("Cannot reload last_page element:", e)
+                                    continue
 
                         if (self.last_page.text == "Payment:") or (self.last_page.text == "ชำระเงิน:"):
                             # Auto หน้าท้าย ทำได้ครั้งเดียว
@@ -5822,7 +5895,7 @@ class Bot_POS:
                     """ return document.querySelector("div[id='convertFullTaxModal']"); """)
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
-                print("is_final_page= ", is_final_page)
+                # print("is_final_page= ", is_final_page)
             except:
                 print("Element not found, continuing loop...")
                 continue

@@ -73,7 +73,7 @@ class AutoAddProduct:
                     # * Check if we really need to loop
                     if int(target_current_qty) < int(qty):
                         print(f"Quantity mismatch: current {target_current_qty} < needed {qty}. Starting increment loop.")
-                        while not self.bot.operation_thread.is_set() and int(target_current_qty) < int(qty):
+                        while not self.bot.auto_add_product_stop_flag.is_set() and int(target_current_qty) < int(qty):
                             print(f"target_current_qty and qty: {target_current_qty} and {qty}")
                             try:
                                 print("click increase button")
@@ -148,6 +148,9 @@ class AutoAddProduct:
     # * Main Process
     def auto_add_product(self, skus: list[str], qty: int = 1, srp: int = None, **kwargs):
         with self.driver_lock:
+            # * Clear stop flag ก่อนเริ่มทำงาน
+            self.bot.auto_add_product_stop_flag.clear()
+            
             print(f"incoming skus: {skus}")
             self.bot.get_tabs()
             merged_dict = self.bot.merged_dict
@@ -161,7 +164,7 @@ class AutoAddProduct:
                     By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
 
                 for sku in skus:
-                    while not self.bot.operation_thread.is_set():  # * ต้อง while เพราะ มันมีปัญหาคือ angular เปลี่ยนค่าไม่ติด ต้องเปลี่ยนจนกว่าจะติด
+                    while not self.bot.auto_add_product_stop_flag.is_set():  # * ต้อง while เพราะ มันมีปัญหาคือ angular เปลี่ยนค่าไม่ติด ต้องเปลี่ยนจนกว่าจะติด
                         try:
                             print("Processing SKU: ", sku, " with qty: ", qty)
                             self.driver.execute_script(
@@ -189,7 +192,7 @@ class AutoAddProduct:
 
                     skuInput_element.send_keys(Keys().ENTER)
                     print("Pressed Enter to submit SKU")
-                    time.sleep(0.25)
+                    time.sleep(0.175)
 
                     request_ids = []
                     target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
@@ -241,7 +244,7 @@ class AutoAddProduct:
                         if res:
                             print("ได้ response แล้ว")
                             break
-                        time.sleep(0.2)
+                        time.sleep(0.15)
 
                     self.price_setter(sku=product_from_response, srp=srp)
                     self.item_qty_setter(product_from_response, qty)
