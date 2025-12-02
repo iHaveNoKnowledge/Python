@@ -241,7 +241,7 @@ class AutoAddProduct:
                         if res:
                             print("ได้ response แล้ว")
                             break
-                        time.sleep(0.1)
+                        time.sleep(0.2)
 
                     self.price_setter(sku=product_from_response, srp=srp)
                     self.item_qty_setter(product_from_response, qty)

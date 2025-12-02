@@ -2108,8 +2108,9 @@ class MyApp:
                       self.shorter_thread_cycle)
 
         if is_current:
-            print(
-                f"check_threads: is_current={is_current}, shorter={shorter_thread_cycle.is_alive()}, longer={longer_thread_cycle.is_alive()}")
+            # print(
+            #     f"check_threads: is_current={is_current}, shorter={shorter_thread_cycle.is_alive()}, longer={longer_thread_cycle.is_alive()}")
+            pass
 
         # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
@@ -3103,10 +3104,8 @@ class Bot_POS:
             self.app.update_log("Operation thread is already set, skipping operation task")
 
     def set_cus_name_search_type(self):
-        self.wait50.until(
-            EC.element_to_be_clickable(
-                (By.XPATH,
-                 r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='E'")]''')))
+        self.wait50.until(EC.element_to_be_clickable(
+            (By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='N'")]''')))
         if self.app.tax_bool.get() == True:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             if self.app.marketplace_target.get() == "SHOPEE":
@@ -3119,15 +3118,19 @@ class Bot_POS:
                     By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
         elif self.app.tax_bool.get() == False:
             # ไม่ขอใบกำกับ
-            print("ไม่ขอใบกำกับใช้ N:")
+            # print("ไม่ขอใบกำกับใช้ N:")
+            # self.driver.find_element(By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='N'")]''').click()
+
+            # * สำหรับ SMCO 8.0.0
+            print("ไม่ขอใบกำกับใช้ C:")
             self.driver.find_element(
-                By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='N'")]''').click()
+                By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='C'")]''').click()
 
     def set_cus_name_search_type_last_page(self):
         self.wait50.until(
             EC.element_to_be_clickable(
                 (By.XPATH,
-                 r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='E'")]''')))
+                 r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='N'")]''')))
         if self.app.tax_bool.get() == True:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             if self.app.marketplace_target.get() == "SHOPEE":
@@ -3157,6 +3160,29 @@ class Bot_POS:
                 time.sleep(0.30)
                 continue
         return "dropdown is ready!"
+
+    def select_cusname_address_last_page(self):
+        if self.app.marketplace_target.get() == "SHOPEE":
+            self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+        elif self.app.marketplace_target.get() == "LAZADA":
+            self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+            ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+
+        # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
+        self.get_customer_name_ready(self.cus_search_input)
+
+        # * ใส่ตัวเช็คที่อยู่ลูกค้า
+        if self.app.tax_bool.get():
+            print("tax required, start address check and correct")
+            self.cus_name_span = self.driver.find_element(
+                By.XPATH, "//span[@id='select2-invAddressSelectFt-container']")
+            # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี ซึ่งปกติ element นี้จะแสดง attribute title ด้วยถ้ามีการเลือกที่อยู่ลูกค้าแล้ว ถ้าไม่เลือก attribute title จะไม่แสดงใน html
+            self.text_from_name_span = self.cus_name_span.get_attribute("title")
+            self.tax_address_corrector(self.text_from_name_span)
+
+        else:
+            print("no tax required, skip address check")
+        pass
 
     def get_customer_name_ready(self, cus_search_input):
         # * start Enter customer name here +++++++++++==================================================
@@ -4154,22 +4180,25 @@ class Bot_POS:
                 # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
                 # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
-                #! wip ตรงนี้ต้องปรับเป๋็น function สำหรับจัดการชื่อลูกค้าให้อยู่ใน input ให้เรียบร้อย
                 if self.app.marketplace_target.get() == "SHOPEE":
-                    self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+                    #! ver ต่ำกว่า 8.0.0
+                    # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+                    # / ver 8.0.0 ขึ้นไป
+                    self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else "CWI99"
                 elif self.app.marketplace_target.get() == "LAZADA":
                     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
                     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
-                self.get_customer_name_ready(self.cus_search_input)
+                if not self.cus_search_input in self.driver.find_element(By.CSS_SELECTOR, "#select2-memberSearch-container").get_attribute("title"):
+                    self.get_customer_name_ready(self.cus_search_input)
 
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.tax_bool.get():
                     print("tax required, start address check and correct")
                     self.cus_name_span = self.driver.find_element(
                         By.XPATH, "//span[@id='select2-memberSearch-container']")
-                    # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี
+                    # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี ซึ่งปกติ element นี้จะแสดง attribute title ด้วยถ้ามีการเลือกที่อยู่ลูกค้าแล้ว ถ้าไม่เลือก attribute title จะไม่แสดงใน html
                     self.text_from_name_span = self.cus_name_span.get_attribute("title")
                     self.tax_address_corrector(self.text_from_name_span)
 
@@ -4297,9 +4326,6 @@ class Bot_POS:
                                 reload = False
                             except StaleElementReferenceException:
                                 reload = True
-                            except Exception as err:
-                                logger.exception(err)
-                                raise
 
                         if reload:
                             self.last_page = self.driver.find_element(
@@ -5849,6 +5875,7 @@ class Bot_POS:
                             self.driver.execute_script(
                                 """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
                             self.set_cus_name_search_type_last_page()
+                            self.select_cusname_address_last_page()
                             break
                         except:
                             continue
