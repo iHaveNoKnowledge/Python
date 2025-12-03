@@ -404,11 +404,8 @@ class MyApp:
         # * Create widgets in the main window
         self.create_widgets()
 
-        # * start the scrollbar
-        # self.canvas.update_idletasks()
-        # self.canvas.config(scrollregion=self.canvas.bbox("all"))
-        # self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
-        # # self.canvas.bind("<Configure>", self.on_canvas_configure)
+        # * Setup smart mouse wheel scrolling
+        self._setup_smart_scroll()
 
     def on_frame_configure(self, event=None):
         # """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
@@ -418,6 +415,62 @@ class MyApp:
         # """ปรับขนาด canvas window เมื่อ canvas มีการ resize"""
         # ปรับความกว้างของ window ใน canvas ให้เท่ากับความกว้างของ canvas
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _setup_smart_scroll(self):
+        """
+        ตั้งค่า smart scroll ที่จะตรวจสอบว่า mouse อยู่ที่ widget ไหน
+        แล้วให้ widget นั้นรับ scroll event แทน
+        """
+        # Bind mouse wheel event to root window
+        self.root.bind_all("<MouseWheel>", self._on_mousewheel)
+        
+    def _on_mousewheel(self, event):
+        """
+        Handler สำหรับ mouse wheel event ที่จะตรวจสอบว่า mouse hover อยู่ที่ไหน
+        แล้วส่ง scroll event ไปให้ widget ที่เหมาะสม
+        """
+        # หา widget ที่ mouse กำลัง hover อยู่
+        widget = event.widget
+        
+        # ตรวจสอบว่า widget ที่ hover อยู่มี scrollbar ของตัวเองหรือไม่
+        # โดยการเช็คว่ามันเป็น Text widget, Listbox, หรือ widget อื่นที่มี scroll ได้
+        if self._widget_has_scrollbar(widget):
+            # ถ้า widget มี scrollbar ของตัวเอง ให้ส่ง event ไปให้มัน
+            try:
+                widget.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            except:
+                # ถ้า widget ไม่รองรับ yview_scroll ก็ไม่ทำอะไร
+                pass
+        else:
+            # ถ้าไม่มี scrollbar ให้ scroll main canvas แทน
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    
+    def _widget_has_scrollbar(self, widget):
+        """
+        ตรวจสอบว่า widget มี scrollbar ของตัวเองหรือไม่
+        Returns True ถ้ามี scrollbar, False ถ้าไม่มี
+        """
+        # เช็คว่าเป็น widget ประเภทที่มี scroll ได้หรือไม่
+        scrollable_types = ('Text', 'Listbox', 'Canvas', 'CTkTextbox', 'CTkScrollableFrame')
+        
+        # ตรวจสอบชื่อ class ของ widget
+        widget_class = widget.__class__.__name__
+        
+        # ถ้าเป็น Text widget หรือ Listbox ให้เช็คว่ามี scrollbar หรือไม่
+        if widget_class in scrollable_types:
+            # ตรวจสอบว่า widget มีความสูงเกินกว่าที่แสดงได้หรือไม่
+            try:
+                # สำหรับ Text widget
+                if hasattr(widget, 'yview'):
+                    yview = widget.yview()
+                    # ถ้า yview[1] < 1.0 แสดงว่ามีเนื้อหาที่ scroll ได้
+                    if yview[1] < 1.0:
+                        return True
+            except:
+                pass
+        
+        return False
+
 
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
