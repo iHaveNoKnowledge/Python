@@ -4431,27 +4431,33 @@ class Bot_POS:
                                 self.driver.find_element(
                                     By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
 
-                                # เลือกประเภทชำระเงิน
+                                # / เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
                                 if self.app.marketplace_target.get() == 'SHOPEE':
                                     try:
                                         channel = self.channel_options[f'{self.operation_states['purchased_channel']}']
                                         print("channel: ", channel)
-                                        # เลือก shopee
-                                        self.driver.find_element(By.XPATH, f"//a[contains(., '{channel}')]").click()
+                                        # / เลือก shopee
+                                        payment_type_btn_element = self.driver.find_element(
+                                            By.XPATH, f"//a[contains(., '{channel} ')] ")
+                                        self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
                                     except Exception as e:
-                                        self.driver.find_element(
-                                            By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']").click()
+                                        payment_type_btn_element = self.driver.find_element(
+                                            By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
+                                        self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
                                 elif self.app.marketplace_target.get() == 'LAZADA':
-                                    # เลือก lazada
-                                    self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]").click()
+                                    # / เลือก lazada
+                                    payment_type_btn_element = self.driver.find_element(
+                                        By.XPATH, "//a[contains(., 'LAZ')]")
+                                    self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
 
                                 # * PO No:
                                 try:
-                                    po_no_input_element = self.driver.find_element(
-                                        By.XPATH, "//input[@id='textbox81037000102']")
-                                    po_no_input_element.clear()
-                                    po_no_input_element.send_keys(self.app.cus_order.get())
+                                    po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                                    # po_no_input_element.clear()
+                                    # po_no_input_element.send_keys(self.app.cus_order.get())
+                                    value_to_input = self.app.cus_order.get()
+                                    self.driver.execute_script("arguments[0].value = arguments[1];", po_no_input_element, value_to_input)
                                 except Exception as e:
                                     print("Cannot fill PO No:", e)
 
@@ -4467,17 +4473,26 @@ class Bot_POS:
                                 except:
                                     print("ปุ่ม Brows() ไม่โผล่")
 
-                                # * ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ a
+                                # * ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ order แทน
                                 if self.app.cus_name.get():
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_name.get())
+                                    final_cus_name_input_element = self.driver.find_element(
+                                        By.XPATH,
+                                        '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
+                                    # final_cus_name_input_element.clear()
+                                    # final_cus_name_input_element.send_keys(self.app.cus_name.get())
+                                    value_to_input = self.app.cus_name.get()
+                                    self.driver.execute_script(
+                                        "arguments[0].value = arguments[1];", final_cus_name_input_element,
+                                        value_to_input)
                                 else:
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                                    final_cus_name_input_element = self.driver.find_element(
+                                        By.XPATH,
+                                        '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
+                                    value_to_input = self.app.cus_order.get()
+                                    # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                    # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
+                                    self.driver.execute_script("arguments[0].value = arguments[1];", final_cus_name_input_element,
+                                        value_to_input)
 
                             except Exception as err:
                                 print("Final page failed, skip to waiting for price")
