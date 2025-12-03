@@ -555,9 +555,13 @@ class MyApp:
                 text='ขึ้น', fg_color="#ED1C24", text_color="#080808", border_width=2, border_color="#969696",
                 command=lambda
                 idx=item_idx:
-                print(
-                    "OC Btn clicked for item:", ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'],
-                    "Adjust Amount:", self.adjust_amount_vars[idx].get()))
+                # print(
+                #     "OC Btn clicked for item:", ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'],
+                #     "Adjust Amount:", self.adjust_amount_vars[idx].get()))
+                self.bot.smco_set_overcharge_product(
+                    ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'],
+                    self.adjust_amount_vars[idx].get())
+            )
             self.widgets_adjust_price_oc_lst.append(self.oc_btn_widget)
 
             # * ปุ่ม DC ----------------------------------------------------------
@@ -3060,6 +3064,133 @@ class Bot_POS:
         cp_target_name = ""
 
     def cp_bringer(self):
+        #! wth is this function for?
+        pass
+
+    def sku_formater(self, sku_input: str):
+        """รับ string ที่มี sku หลายๆตัวมา แล้วจัด format ให้ถูกต้อง เช่น sp2-1703  -> SP2-001703 แล้ว return string ที่จัด format แล้วเฉยๆ ต้องไปแยกเป็น list เอง"""
+        prog = re.findall(r'[A-Za-z]{2,}[A-Za-z0-9]?-?\d{1,6}', sku_input)
+        result = ""
+        for item in prog:
+            prefix, number = item.split('-')  # แยกส่วนหน้า-หลัง
+            uppered_prefix = prefix.upper()  # เปลี่ยน prefix เป็นตัวพิมพ์ใหญ่
+            number_padded = number.zfill(6)   # เติมศูนย์จนเลขยาว 6 ตัว
+            result += f"{uppered_prefix}-{number_padded} "
+        return result.strip()
+
+    def oc_amounts_calculator(self, entered_data):
+        result = 0
+
+        if "+" in entered_data:
+            entered_data = entered_data.split("+")
+            for operand in entered_data:
+                result += int(operand)
+            return result
+
+        elif "-" in entered_data:
+            operands = [int(x.strip()) for x in entered_data.split("-")]
+            result = operands[0]  # ตัวแรกเป็นตัวตั้ง
+            for operand in operands[1:]:
+                result -= operand  # ลบแต่ตัวหลัง
+            return result
+
+        return entered_data
+
+    def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None):
+        """อันนี้เ based มาจาก smco_set_overcharge_product_v2 แต่ปรับให้มันรับ user_id กับ user_pw มาเอง"""
+        print("items_target: ", items_user_input)
+        print("oc_amounts_input: ", oc_amounts_input)
+        if items_user_input is None or oc_amounts_input is None:
+            print("เลขลำดับสินค้า หรือ จำนวนเงินที่ต้องการ ยังไม่ถูกกำหนด")
+            return
+
+        formatted_items_to_oc: list = self.sku_formater(items_user_input).split(" ")
+        oc_amounts_list_prog = str(oc_amounts_input).split()
+        oc_amounts_list = [self.oc_amounts_calculator(oc_amount) for oc_amount in oc_amounts_list_prog]
+        items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+
+        for idx, item in enumerate(formatted_items_to_oc):
+            print(f"item {idx+1} : {item}")
+            oc_amount = oc_amounts_list[0]
+            print("before: round:", idx+1, "oc_amount: ", oc_amount)
+            if idx > 0:
+                oc_amount = oc_amounts_list[idx]
+            print("after: round:", idx+1, "oc_amount: ", oc_amount)
+            for idx2, div in enumerate(items_list_element):
+                try:
+                    is_found = div.text.find(item)
+                    li_loc = idx2+1
+
+                    if is_found != -1:
+                        print("found at li no: ", li_loc)
+                        print("is_found: ", is_found)
+
+                        css_sel_loc = {
+                            'product_code': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div:nth-child(2) span:nth-child(1) a',
+                            'srp_btn': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div.panel-body:nth-child(1) div.row.col-sm-6:nth-child(2) > div:nth-child(1) div:nth-child(1) div a:nth-child(1)'
+                        }
+
+                        self.driver.find_element(By.CSS_SELECTOR, css_sel_loc['srp_btn']).click()
+                        # todo ถ้าไม่รอตรงนี้ code มันจะรันไปอย่างไว element มันยังไม่ทันขึ้น code รันเสร็จละ
+                        time.sleep(1.25)
+                        # changePriceInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
+                        changePriceInput = self.driver.find_element(By.XPATH, "//input[@ng-keyup='onPistive(oms)']")
+                        based_price = self.driver.execute_script(
+                            "return angular.element(arguments[0]).val();", changePriceInput)
+                        print("based_price extracted from form: ", based_price)
+                        new_price = float(based_price.replace(",", "")) + float(oc_amount)
+                        print("new_price calculated: ", new_price)
+                        self.driver.execute_script(
+                            "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                            changePriceInput, 0)
+                        self.driver.execute_script(
+                            "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                            changePriceInput, new_price)
+
+                        # / ใส่ พนักงาน
+                        user_id_input = self.driver.find_element(
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
+                        self.driver.execute_script("""
+                            arguments[0].value = arguments[1];
+                            arguments[0].dispatchEvent(new Event('input'));
+                            arguments[0].dispatchEvent(new Event('change'));
+                        """, user_id_input, self.app.user_id.get())
+
+                        # / ใส่ รหัสพนักงาน
+                        user_pw_input = self.driver.find_element(
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
+                        self.driver.execute_script("""
+                            arguments[0].value = arguments[1];
+                            arguments[0].dispatchEvent(new Event('input'));
+                            arguments[0].dispatchEvent(new Event('change'));
+                        """, user_pw_input, self.app.user_pw.get())
+
+                        # / ใส่ หมายเหตุ
+                        note_textarea = self.driver.find_element(
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
+                        self.driver.execute_script("""
+                            arguments[0].value = arguments[1];
+                            arguments[0].dispatchEvent(new Event('input'));
+                            arguments[0].dispatchEvent(new Event('change'));
+                            """, note_textarea, "Online")
+
+                        # / กด บันทึก button สีเขียว
+                        green_submit_btn = self.driver.find_element(
+                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')
+                        self.driver.execute_script("arguments[0].click();", green_submit_btn)
+
+                        break
+                    else:
+                        # print("ไม่เจอ", item, "นะ")
+                        pass
+                except Exception as err:
+                    print("smco_set_overcharge_product_v2_Error occurred: ", err)
+                    pass
+
+            print("css_sel_loc: ", css_sel_loc)
+
+        # Todo
+        #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
         pass
 
     def get_tabs(self):
@@ -3584,7 +3715,7 @@ class Bot_POS:
             try:
                 self.skuInput_element = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                # skuInput = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                # skuInput = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                 self.skuInput_element.clear()
 
                 self.skuInput_element.send_keys("SV0-000101")
@@ -3592,7 +3723,7 @@ class Bot_POS:
 
                 self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
-                # skuAddBtn = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                # skuAddBtn = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                 self.skuAddBtn.send_keys("\ue007")  # กด Enter
                 print("กด Enter ที่ช่อง SKU Input สำเร็จ")
 
@@ -3604,7 +3735,7 @@ class Bot_POS:
                 # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
                 self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                # self.definePrice_btn_element = driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+                # self.definePrice_btn_element = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
                 self.definePrice_btn_element.click()
                 time.sleep(1)
                 # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
@@ -3924,7 +4055,7 @@ class Bot_POS:
                         # By.XPATH, '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[5]/div/div/div[2]/div/div[1]/div/div/div[2]/button[1]' ใช้ได้อยู่ แต่กันไว้ก่อน พัง 25/11/2024 15:11
                         By.CSS_SELECTOR, 'div.order-search-buttons button.search-btn.eds-button.eds-button--primary.eds-button--normal.eds-button--outline'
                     )
-                    self.searchBtn.click()
+                    self.driver.execute_script("arguments[0].click();", self.searchBtn)
                 except:
                     print("cannot search order")
                     raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
@@ -4453,11 +4584,13 @@ class Bot_POS:
 
                                 # * PO No:
                                 try:
-                                    po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                                    po_no_input_element = self.driver.find_element(
+                                        By.XPATH, "//input[@id='textbox81037000102']")
                                     # po_no_input_element.clear()
                                     # po_no_input_element.send_keys(self.app.cus_order.get())
                                     value_to_input = self.app.cus_order.get()
-                                    self.driver.execute_script("arguments[0].value = arguments[1];", po_no_input_element, value_to_input)
+                                    self.driver.execute_script(
+                                        "arguments[0].value = arguments[1];", po_no_input_element, value_to_input)
                                 except Exception as e:
                                     print("Cannot fill PO No:", e)
 
@@ -4491,7 +4624,8 @@ class Bot_POS:
                                     value_to_input = self.app.cus_order.get()
                                     # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                     # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
-                                    self.driver.execute_script("arguments[0].value = arguments[1];", final_cus_name_input_element,
+                                    self.driver.execute_script(
+                                        "arguments[0].value = arguments[1];", final_cus_name_input_element,
                                         value_to_input)
 
                             except Exception as err:
@@ -4940,6 +5074,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5476,7 +5611,7 @@ class Bot_POS:
                 time.sleep(1)
                 continue
         # WebDriverWait(driver, 12).until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched")))
-        # driver.find_element(By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched").send_keys(self.app.tax_num.get())
+        # self.driver.find_element(By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched").send_keys(self.app.tax_num.get())
         WebDriverWait(
             self.driver, 12).until(
             EC.element_to_be_clickable(
