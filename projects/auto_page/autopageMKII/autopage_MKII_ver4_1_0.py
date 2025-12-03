@@ -552,7 +552,7 @@ class MyApp:
                 height=14
             )
             self.oc_btn_widget.configure(
-                text='ขึ้น', fg_color="#ED1C24", text_color="#080808", border_width=2, border_color="#969696",
+                text='ขึ้น', fg_color="#ED1C24", hover_color="#9A0C04", text_color="#080808", border_width=2, border_color="#969696",
                 command=lambda
                 idx=item_idx:
                 # print(
@@ -961,8 +961,9 @@ class MyApp:
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
         # * > Margetplace Products display Header purchased products list header
-        headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
-        self.row_header_maker(headers)
+        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
+                                     'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
+        self.row_header_maker(self.mimic_column_headers)
 
         # * > demonic cp segment
         # * >> Label
@@ -2155,7 +2156,8 @@ class MyApp:
         self.autofinal = False
 
         # * ลบ result products list เก่า
-        for widget in self.mp_products_list_frame.winfo_children()[6:]:
+        # * len(self.mimic_column_headers) เพราะ เวลาเพิ่มลด header มันจะได้ไม่พัง ตอนแรก header แม่งหาย งงเลย
+        for widget in self.mp_products_list_frame.winfo_children()[len(self.mimic_column_headers):]:
             widget.destroy()
 
         if self.is_accel_mode.get():
