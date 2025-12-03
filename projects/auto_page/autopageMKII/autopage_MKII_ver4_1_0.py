@@ -497,7 +497,7 @@ class MyApp:
             self.no_cell_value_widget.configure(
                 text=str(self.idx + 1),
                 fg_color="#81ed55", text_color="#1E1E1E", border_width=2, border_color="#969696",
-                command=lambda idx=item_idx: self.bot.AutoAddProduct.auto_add_product(
+                command=lambda idx=item_idx: self.auto_add_product_threaded(
                     self.correct_sku_pattern(ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']),
                     ordered_items[idx]['จำนวน'],
                     get_tabs=self.bot.get_tabs
@@ -536,7 +536,7 @@ class MyApp:
             self.widgets_total_rebt_prc_lst.append(self.total_rebate_price_cell_value_widget)
 
             # * ช่อง input สำหรับปรับราคา ----------------------------------------------------------
-            self.adjust_amount_vars[item_idx] = IntVar(value="0")
+            self.adjust_amount_vars[item_idx] = StringVar(value="0")
             self.adjust_price_cell_input_widget = CTkEntry(
                 self.mp_products_list_frame,
                 width=int(self.cols_width[6]),
@@ -2215,6 +2215,27 @@ class MyApp:
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
+    def auto_add_product_threaded(self, skus, qty, **kwargs):
+        """
+        Wrapper method สำหรับเรียก auto_add_product ใน thread แยก
+        เพื่อไม่ให้รบกวน threading cycle หลัก (longer_thread_cycle และ shorter_thread_cycle)
+        
+        Parameters:
+            skus: list of SKU codes
+            qty: quantity
+            **kwargs: additional arguments to pass to auto_add_product
+        """
+        def run_auto_add():
+            try:
+                self.bot.AutoAddProduct.auto_add_product(skus, qty, **kwargs)
+            except Exception as e:
+                print(f"Error in auto_add_product_threaded: {e}")
+        
+        # สร้าง daemon thread เพื่อไม่ให้รบกวน main threads
+        auto_add_thread = threading.Thread(target=run_auto_add, daemon=True, name="AutoAddProductThread")
+        auto_add_thread.start()
+        print(f"Started auto_add_product in separate thread: {auto_add_thread.name}")
+
     #! ตัวกากกว่า sku_formater,  sku_formaterเทพกว่า
     def correct_sku_pattern(self, text: str):
         result = []
@@ -3098,8 +3119,9 @@ class Bot_POS:
 
         return entered_data
 
+    #/ fcuntion overcharge product
     def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None):
-        """อันนี้เ based มาจาก smco_set_overcharge_product_v2 แต่ปรับให้มันรับ user_id กับ user_pw มาเอง"""
+        """อันนี้ based มาจาก smco_set_overcharge_product_v2จาก test_each_py_functions.ipynb แต่ปรับให้มันรับ user_id กับ user_pw มาเอง"""
         print("items_target: ", items_user_input)
         print("oc_amounts_input: ", oc_amounts_input)
         if items_user_input is None or oc_amounts_input is None:
@@ -3134,7 +3156,7 @@ class Bot_POS:
 
                         self.driver.find_element(By.CSS_SELECTOR, css_sel_loc['srp_btn']).click()
                         # todo ถ้าไม่รอตรงนี้ code มันจะรันไปอย่างไว element มันยังไม่ทันขึ้น code รันเสร็จละ
-                        time.sleep(1.25)
+                        time.sleep(0.5)
                         # changePriceInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
                         changePriceInput = self.driver.find_element(By.XPATH, "//input[@ng-keyup='onPistive(oms)']")
                         based_price = self.driver.execute_script(
