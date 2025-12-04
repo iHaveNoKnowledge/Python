@@ -3089,6 +3089,107 @@ class Bot_POS:
         #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
         pass
 
+    def smco_set_discount_product(
+            self, items_user_input: str = None, dc_amounts_input: str = None, qty: str = ["1"]):
+        #! WIP DC พอใช้ได้แต่ยังไม่เสร็จ อย่าเพิ่งรีบนะ
+        print("items_dc_target: ", items_user_input)
+        print("dc_amounts_input: ", dc_amounts_input)
+        if items_user_input is None or dc_amounts_input is None:
+            print("เลขลำดับสินค้า หรือ จำนวนเงินที่ต้องการ ยังไม่ถูกกำหนด")
+            return
+
+        formatted_items_to_dc: list = self.sku_formater(items_user_input).split(" ")
+        dc_amounts_list_prog = dc_amounts_input.split()  # * เอาไว้แยกทำลดพวกสินค้าที่สั่งมา 1 รายการแต่มีหลาย sku เช่น หมึก 4 สี
+        dc_amounts_list = [int(self.oc_amounts_calculator(dc_amount)) for dc_amount in dc_amounts_list_prog]
+        # * เอาไว้เก็บ element ของ item ทั้งหมดในหน้ายิงขาย
+        items_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+
+        for idx, item in enumerate(formatted_items_to_dc):  # * loop ไล่ itemที่ลูกค้าสั่งมา
+            print(f"item {idx+1} : {item}", )
+            dc_amount = dc_amounts_list[0]
+            print("before: round:", idx+1, "dc_amount: ", dc_amount)
+            if idx > 0:
+                dc_amount = dc_amounts_list[idx]
+                # try:
+                # * เนื่องจาก พวกสินค้ามีหลายตัวใน 1 รายการ แต่มันอาจจะลดแค่บางตัว ตัวที่ไม่ลดฉันจะให้ใส่ตัวที่แปลงค่าเป็น int ไม่ได้ เช่น "-" หรือ "x" มาแทน เช่น (sp2-1703 sp2-1704 ลด 100 บาท) ///แต่ (sp2-1705 sp2-1706 ไม่ลด) เราก็จะใส่ qty เป็น ["1","1","-","-"] แบบนี้
+                # qty = int(qtys[idx])
+                # except:
+                #     break
+            print("after: round:", idx+1, "dc_amount: ", dc_amount,
+                  "qty: ", qty, "dc_amount * int(qty): ", dc_amount * qty)
+            if dc_amount > 0:
+                for idx2, div in enumerate(items_list_elements):  # * loop ไล่ element บนหน้ายิงขาย
+                    try:
+                        is_found = div.text.find(item)
+                        li_loc = idx2+1
+
+                        if is_found != -1:
+                            print("found at li no: ", li_loc)
+                            print("is_found: ", is_found)
+
+                            css_sel_loc = {
+                                'product_code': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div:nth-child(2) span:nth-child(1) a',
+                                'total_net_btn': f'#bodyOfSku > div:nth-child({li_loc}) > div > div:nth-child(2) > div:nth-child(1) > div:nth-child(9) > a:nth-child(3)'
+                            }
+
+                            self.driver.find_element(By.CSS_SELECTOR, css_sel_loc['total_net_btn']).click()
+                            # todo ถ้าไม่รอตรงนี้ code มันจะรันไปอย่างไว element มันยังไม่ทันขึ้น code รันเสร็จละ
+                            time.sleep(0.5)
+
+                            manual_dc_Input = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(1) > div > div:nth-child(1) > input')
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                manual_dc_Input, 0)
+                            sum_dc_amount = dc_amount * qty
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                manual_dc_Input, sum_dc_amount)
+
+                            note_textarea = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(2) > div > div > textarea')
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, note_textarea, "Online")
+
+                            user_id_input = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(3) > div > div:nth-child(1) > input')
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, user_id_input, self.app.user_id.get())
+
+                            user_pw_input = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(3) > div > div:nth-child(2) > input')
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, user_pw_input, self.app.user_pw.get())
+
+                            green_btn_summit = self.driver.find_element(By.CSS_SELECTOR, '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')
+                            self.driver.execute_script("arguments[0].click();", green_btn_summit)
+                            
+                            break
+                        else:
+                            # print("ไม่เจอ", item, "นะ")
+                            pass
+                    except Exception as err:
+                        print("smco_set_discount_product_Error occurred: ", err)
+                        pass
+            print("smco_set_discount_product: for loop ended!")
+
+        # Todo
+        #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
+        pass
+
     def get_tabs(self):
         if self.parent.winfo_exists():
             print("รายงานจำนวนtabs")

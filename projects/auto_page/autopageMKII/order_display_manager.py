@@ -3,9 +3,10 @@ OrderDisplayManager - จัดการการแสดงผล order ที
 รวม header, data rows, และ summary section (ค่าขนส่ง, voucher, ราคารวม)
 """
 from tkinter import StringVar
+
 import customtkinter as ctk
-from customtkinter import CTkEntry, CTkButton
 import pandas as pd
+from customtkinter import CTkButton, CTkEntry
 
 
 class OrderDisplayManager:
@@ -121,7 +122,7 @@ class OrderDisplayManager:
             )
             product_name_entry.insert(
                 0,
-                f"{' '.join(self.app.correct_sku_pattern(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}"\
+                f"{' '.join(self.app.correct_sku_pattern(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}"
                 f"{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}"
             )
             row_widgets.append(product_name_entry)
@@ -203,9 +204,17 @@ class OrderDisplayManager:
                 text_color="#080808",
                 border_width=2,
                 border_color="#969696",
-                command=lambda idx=item_idx: print(
-                    "DC Btn clicked for item:",
-                    ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']
+                command=lambda idx=item_idx:
+                #     print(
+                #     "DC Btn clicked for item:",
+                #     ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'],
+                #     ordered_items[idx]['จำนวน']
+
+                # )
+                self.app.bot.smco_set_discount_product(
+                    ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)'],
+                    self.app.adjust_amount_vars[idx].get(),
+                    ordered_items[idx]['จำนวน']
                 )
             )
             row_widgets.append(dc_btn)
@@ -252,7 +261,7 @@ class OrderDisplayManager:
 
         if marketplace == 'SHOPEE':
             # SHOPEE: ค่าขนส่ง, Seller Voucher, ราคาที่ต้องออก, Shopee Voucher, ลูกค้าจ่ายทั้งหมด
-            
+
             # Row 1: ค่าขนส่ง
             total_price += ship_cost
             self._add_summary_row(
@@ -278,7 +287,8 @@ class OrderDisplayManager:
             )
 
             # Row 4: Shopee Voucher
-            shopee_voucher = nondistorted_data['โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)'] * -1
+            shopee_voucher = nondistorted_data[
+                'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)'] * -1
             self._add_summary_row(
                 summary_start_row + 3,
                 "Shopee Voucher",
@@ -296,7 +306,7 @@ class OrderDisplayManager:
 
         elif marketplace == 'LAZADA':
             # LAZADA: Seller Voucher, ราคาที่ต้องออก(Noขนส่ง), ค่าขนส่ง, ราคาที่ต้องออก(+ขนส่ง)
-            
+
             # Row 1: Seller Voucher
             total_price -= seller_voucher
             self._add_summary_row(
