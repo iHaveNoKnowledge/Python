@@ -374,12 +374,13 @@ class MyApp:
         )
         self.invoice_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
+        #! ปรับ ui ใหม่ ทำให้ตรงนี้ไม่ได้ใช้
         # > Frame5 Products Lists
-        self.products_list_frame = CTkFrame(
-            self.main_frame,
-            fg_color="#445"
-        )
-        self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
+        # self.products_list_frame = CTkFrame(
+        #     self.main_frame,
+        #     fg_color="#445"
+        # )
+        # self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
 
         # > Frame6 Marketplace(MP) Products Lists
         self.mp_products_list_frame = CTkFrame(
@@ -826,10 +827,12 @@ class MyApp:
         self.display_order_note.grid(row=3, column=7, padx=(1, 0), columnspan=1, sticky=W)
         self.display_order_note.tag_add("left", "1.0", "1.end")
 
+        #! ปรับ ui ใหม่ ทำให้ตรงนี้ไม่ได้ใช้
         # * > Customter Products List
-        self.label_cus_products = CTkLabel(self.products_list_frame, text="รายการสินค้า: ", fg_color="#FFF", height=1)
-        self.label_cus_products.pack()
+        # self.label_cus_products = CTkLabel(self.products_list_frame, text="รายการสินค้า: ", fg_color="#FFF", height=1)
+        # self.label_cus_products.pack()
 
+        #! ปรับ ui ใหม่ ทำให้ตรงนี้ไม่ได้ใช้
         # * >> สร้าง Treeview widget
         # self.tree = ttk.Treeview(self.products_list_frame, columns=(
         #     "Productname", "Price", "QTY"), show="headings", height=8)
