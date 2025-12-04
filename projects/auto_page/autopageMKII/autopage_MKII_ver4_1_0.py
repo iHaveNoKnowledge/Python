@@ -31,10 +31,10 @@ from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
-from order_display_manager import OrderDisplayManager
 from googletrans import Translator
 from loguru import logger
 from openpyxl import load_workbook
+from order_display_manager import OrderDisplayManager
 from PIL import Image, ImageTk
 from pypdf import PdfReader
 from selenium import webdriver
@@ -3249,7 +3249,8 @@ class Bot_POS:
 
     def select_cusname_address_last_page(self):
         if self.app.marketplace_target.get() == "SHOPEE":
-            self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+            self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
+            ) else self.app.cusNameFixer5(self.app.cus_name.get())
         elif self.app.marketplace_target.get() == "LAZADA":
             self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
             ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
@@ -4178,7 +4179,8 @@ class Bot_POS:
                 elif self.cus_name_span_x_btn_text == 'กรุณาเลือก':
                     self.is_reset = False
                 else:
-                    self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
+                    self.cus_name_span = self.driver.find_element(
+                        By.XPATH, "//span[@id='select2-memberSearch-container']")
                     if not self.app.is_tax_required.get() and "CWI99" in self.cus_name_span.get_attribute("title"):
                         self.is_reset = False
                         print("มีชื่อลูกค้าที่เหมาะสมอยู่แล้วไม่ต้องรี")
@@ -4285,8 +4287,8 @@ class Bot_POS:
                     # / ver 8.0.0 ขึ้นไป
                     self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
                 elif self.app.marketplace_target.get() == "LAZADA":
-                    self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-                    ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                    # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                    self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
 
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
                 if not self.cus_search_input in self.driver.find_element(
@@ -4437,7 +4439,7 @@ class Bot_POS:
                                     self.last_page = self.driver.find_element(
                                         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
                                     )
-                                    print("โหลด last_page สำเร็จ") 
+                                    print("โหลด last_page สำเร็จ")
                                     break
                                 except Exception as e:
                                     print("Cannot reload last_page element:", e)
@@ -4822,7 +4824,8 @@ class Bot_POS:
                 name = f"{name} (สาขา{self.app.tax_branch_num.get()})"
 
             tax_num = self.app.tax_num.get()
-            address = self.app.get_pure_address(self.app.address) if self.app.is_tax_required.get() else self.app.address
+            address = self.app.get_pure_address(
+                self.app.address) if self.app.is_tax_required.get() else self.app.address
             email = self.app.cus_email.get()
             phone = self.app.cus_tel.get()
             use_dropdown_address = True
@@ -4978,6 +4981,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
