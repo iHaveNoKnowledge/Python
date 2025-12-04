@@ -98,7 +98,7 @@ class MyApp:
         self.marketplace_target = StringVar(value="MarketPlace")
         self.bg_by_market_place = {'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
         self.cus_order = StringVar(value="")
-        self.tax_bool = BooleanVar(value=False)
+        self.is_tax_required = BooleanVar(value=False)
         self.tax_num = StringVar(value="")
         self.cus_tax_status = StringVar(value="")
         self.tax_branch_num = StringVar(value="")
@@ -424,7 +424,7 @@ class MyApp:
         """
         # Bind mouse wheel event to root window
         self.root.bind_all("<MouseWheel>", self._on_mousewheel)
-        
+
     def _on_mousewheel(self, event):
         """
         Handler สำหรับ mouse wheel event ที่จะตรวจสอบว่า mouse hover อยู่ที่ไหน
@@ -432,7 +432,7 @@ class MyApp:
         """
         # หา widget ที่ mouse กำลัง hover อยู่
         widget = event.widget
-        
+
         # ตรวจสอบว่า widget ที่ hover อยู่มี scrollbar ของตัวเองหรือไม่
         # โดยการเช็คว่ามันเป็น Text widget, Listbox, หรือ widget อื่นที่มี scroll ได้
         if self._widget_has_scrollbar(widget):
@@ -445,7 +445,7 @@ class MyApp:
         else:
             # ถ้าไม่มี scrollbar ให้ scroll main canvas แทน
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-    
+
     def _widget_has_scrollbar(self, widget):
         """
         ตรวจสอบว่า widget มี scrollbar ของตัวเองหรือไม่
@@ -453,10 +453,10 @@ class MyApp:
         """
         # เช็คว่าเป็น widget ประเภทที่มี scroll ได้หรือไม่
         scrollable_types = ('Text', 'Listbox', 'Canvas', 'CTkTextbox', 'CTkScrollableFrame')
-        
+
         # ตรวจสอบชื่อ class ของ widget
         widget_class = widget.__class__.__name__
-        
+
         # ถ้าเป็น Text widget หรือ Listbox ให้เช็คว่ามี scrollbar หรือไม่
         if widget_class in scrollable_types:
             # ตรวจสอบว่า widget มีความสูงเกินกว่าที่แสดงได้หรือไม่
@@ -469,9 +469,8 @@ class MyApp:
                         return True
             except:
                 pass
-        
-        return False
 
+        return False
 
     def measure_text(self, text):
         return font.Font().measure(str(text).strip())
@@ -850,7 +849,7 @@ class MyApp:
         # * > Margetplace Products display Header purchased products list header
         # * Initialize OrderDisplayManager
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
-        
+
         self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
                                      'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
@@ -892,7 +891,7 @@ class MyApp:
         self.result = ""
         self.table_location = ""
         self.cus_order.set("")
-        self.tax_bool.set(False)
+        self.is_tax_required.set(False)
         self.tax_num.set("")
         self.cus_email.set("")
         self.cus_tax_status.set("")
@@ -1648,16 +1647,16 @@ class MyApp:
 
                 # ถ้าเลขใบกำกับเป็น nan หรือ tax_num_only ไม่มีค่า
                 if tax_num_only == "ไม่มีเลข":
-                    self.tax_bool.set(False)
+                    self.is_tax_required.set(False)
                     self.cus_tax_status.set("ไม่ขอใบกำกับ")
                     self.display_is_tax.configure(fg_color="#6ec7ff", text_color="#000", font=("Chiller", 10, "normal"))
                     self.tax_num.set("")
                 elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
                     if len(tax_num_only) > 13:
-                        self.tax_bool.set(False)
+                        self.is_tax_required.set(False)
                         self.cus_tax_status.set("ขอ//เลขเกิน")
                     elif len(tax_num_only) < 13:
-                        self.tax_bool.set(False)
+                        self.is_tax_required.set(False)
                         self.cus_tax_status.set("ขอ//เลขไม่ครบ")
 
                     self.display_is_tax.configure(fg_color="#8502d1", text_color="#FFF", font=("Chiller", 10, "normal"))
@@ -1665,25 +1664,25 @@ class MyApp:
 
                 else:
                     if "สำนักงานใหญ่" in self.branch_type:
-                        self.tax_bool.set(True)
+                        self.is_tax_required.set(True)
                         self.cus_tax_status.set("ขอใบกำกับ สนงใหญ่")
                         self.display_is_tax.configure(fg_color="#ff0000", text_color="#FFF",
                                                       font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
-                        self.tax_bool.set(True)
+                        self.is_tax_required.set(True)
                         self.cus_tax_status.set("ขอใบกำกับ สาขาย่อย")
                         self.display_is_tax.configure(fg_color="#ff0055", text_color="#FFF",
                                                       font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
-                        self.tax_bool.set(True)
+                        self.is_tax_required.set(True)
                         self.cus_tax_status.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF",
                                                       font=("Chiller", 12, "bold"))
                         self.tax_num.set(tax_num_only)
 
-                if self.tax_bool.get() == True and len(tax_num_only) == 13:
+                if self.is_tax_required.get() == True and len(tax_num_only) == 13:
                     pass
 
                 # * ส่วนสำหรับการแสดงผล UI ------------------------------------------------------
@@ -1723,7 +1722,7 @@ class MyApp:
                         self.cleaned_address = self.cleaned_address.replace("จังหวัด", '')
                     self.search_result = {
                         "status": self.order_status,
-                        "is_tax": self.tax_bool.get(),
+                        "is_tax": self.is_tax_required.get(),
                         "address": self.cleaned_address,
                         "details": self.nondistortedData,
                         "items": self.items
@@ -1732,7 +1731,7 @@ class MyApp:
                 if self.marketplace_target.get() == 'SHOPEE':
                     self.cleaned_address = ""
                     # * ถ้าขอใบกำกับค่อยใส่ ถ้าไม่ ก็ "" ไป
-                    if self.tax_bool.get():
+                    if self.is_tax_required.get():
                         self.cleaned_address = f"""{
                             self.get_pure_address(self.clean_address(self.address))}  {
                             self.nondistortedData['แขวง/ตำบล']}  {
@@ -1744,7 +1743,7 @@ class MyApp:
                         self.cleaned_address = self.cleaned_address.replace("จังหวัด", '')
                     self.search_result = {
                         "status": self.order_status,
-                        "is_tax": self.tax_bool.get(),
+                        "is_tax": self.is_tax_required.get(),
                         "address": self.cleaned_address,
                         "details": self.nondistortedData,
                         "items": self.items,
@@ -1803,7 +1802,7 @@ class MyApp:
                 self.update_gui_note()
 
                 # * เก็บค่ารายละเอียดที่อยู่
-                if self.tax_bool.get():
+                if self.is_tax_required.get():
                     self.cus_province.set(self.nondistortedData['จังหวัด.1'].strip())
                     self.cus_district.set(self.nondistortedData['เขต/อำเภอ.1'].strip())
                 if self.cus_sub_district != "":
@@ -2090,7 +2089,7 @@ class MyApp:
         """
         Wrapper method สำหรับเรียก auto_add_product ใน thread แยก
         เพื่อไม่ให้รบกวน threading cycle หลัก (longer_thread_cycle และ shorter_thread_cycle)
-        
+
         Parameters:
             skus: list of SKU codes
             qty: quantity
@@ -2101,7 +2100,7 @@ class MyApp:
                 self.bot.AutoAddProduct.auto_add_product(skus, qty, **kwargs)
             except Exception as e:
                 print(f"Error in auto_add_product_threaded: {e}")
-        
+
         # สร้าง daemon thread เพื่อไม่ให้รบกวน main threads
         auto_add_thread = threading.Thread(target=run_auto_add, daemon=True, name="AutoAddProductThread")
         auto_add_thread.start()
@@ -2990,7 +2989,7 @@ class Bot_POS:
 
         return entered_data
 
-    #/ fcuntion overcharge product
+    # / fcuntion overcharge product
     def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None):
         """อันนี้ based มาจาก smco_set_overcharge_product_v2จาก test_each_py_functions.ipynb แต่ปรับให้มันรับ user_id กับ user_pw มาเอง"""
         print("items_target: ", items_user_input)
@@ -3193,7 +3192,7 @@ class Bot_POS:
     def set_cus_name_search_type(self):
         self.wait50.until(EC.element_to_be_clickable(
             (By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='N'")]''')))
-        if self.app.tax_bool.get() == True:
+        if self.app.is_tax_required.get() == True:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             if self.app.marketplace_target.get() == "SHOPEE":
                 print("ขอใบกำกับSHOPEE ใช้ T:")
@@ -3203,7 +3202,7 @@ class Bot_POS:
                 print("ขอใบกำกับLazada ใช้ T:")
                 self.driver.find_element(
                     By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
-        elif self.app.tax_bool.get() == False:
+        elif self.app.is_tax_required.get() == False:
             # ไม่ขอใบกำกับ
             # print("ไม่ขอใบกำกับใช้ N:")
             # self.driver.find_element(By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='N'")]''').click()
@@ -3218,7 +3217,7 @@ class Bot_POS:
             EC.element_to_be_clickable(
                 (By.XPATH,
                  r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='N'")]''')))
-        if self.app.tax_bool.get() == True:
+        if self.app.is_tax_required.get() == True:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             if self.app.marketplace_target.get() == "SHOPEE":
                 print("ขอใบกำกับSHOPEE ใช้ T:")
@@ -3228,7 +3227,7 @@ class Bot_POS:
                 print("ขอใบกำกับLazada ใช้ T:")
                 self.driver.find_element(
                     By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
-        elif self.app.tax_bool.get() == False:
+        elif self.app.is_tax_required.get() == False:
             # ไม่ขอใบกำกับ
             print("ไม่ขอใบกำกับใช้ N:")
             self.driver.find_element(
@@ -3250,16 +3249,16 @@ class Bot_POS:
 
     def select_cusname_address_last_page(self):
         if self.app.marketplace_target.get() == "SHOPEE":
-            self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+            self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else self.app.cusNameFixer5(self.app.cus_name.get())
         elif self.app.marketplace_target.get() == "LAZADA":
-            self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+            self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
             ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
         self.get_customer_name_ready(self.cus_search_input)
 
         # * ใส่ตัวเช็คที่อยู่ลูกค้า
-        if self.app.tax_bool.get():
+        if self.app.is_tax_required.get():
             print("tax required, start address check and correct")
             self.cus_name_span = self.driver.find_element(
                 By.XPATH, "//span[@id='select2-invAddressSelectFt-container']")
@@ -3373,7 +3372,7 @@ class Bot_POS:
 
     def add_new_customer(self, cb=None):
         # * ขอใบกำกับป่าว
-        if self.app.tax_bool.get():
+        if self.app.is_tax_required.get():
             print("Tax_needed")
             if self.app.marketplace_target.get() == 'SHOPEE':
                 self.addCustomer("tax")
@@ -4179,8 +4178,13 @@ class Bot_POS:
                 elif self.cus_name_span_x_btn_text == 'กรุณาเลือก':
                     self.is_reset = False
                 else:
-                    self.is_reset = True
-                    print("มีชื่อลูกค้าอยู่แล้ว")
+                    self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
+                    if not self.app.is_tax_required.get() and "CWI99" in self.cus_name_span.get_attribute("title"):
+                        self.is_reset = False
+                        print("มีชื่อลูกค้าที่เหมาะสมอยู่แล้วไม่ต้องรี")
+                    else:
+                        self.is_reset = True
+                        print("มีชื่อลูกค้าอยู่แล้ว")
 
                 try:
                     print("เช็คว่าต้องรีไหม", self.is_reset)
@@ -4256,7 +4260,7 @@ class Bot_POS:
                 # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
                 self.driver.find_element(
                     By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button").click()
-                print("self.app.tax_bool: ", self.app.tax_bool.get())
+                print("self.app.is_tax_required: ", self.app.is_tax_required.get())
 
                 # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ searchs
                 self.set_cus_name_search_type()
@@ -4265,23 +4269,23 @@ class Bot_POS:
                 # 09/11/2023 ใช้เลขใบกำกับเสิชไม่ได้แล้ว ฉะนั้นไม่ต้องเลือกแล้ว เอาชื่อเสิชให้หมดเลย
 
                 # if self.app.marketplace_target.get() == "SHOPEE":
-                #     self.cus_search_input = self.app.cus_email.get() if self.app.tax_bool.get(
+                #     self.cus_search_input = self.app.cus_email.get() if self.app.is_tax_required.get(
                 #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
                 # elif self.app.marketplace_target.get() == "LAZADA":
-                #     self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                #     self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
                 #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 # * 05/07/2024 Shopeeนั้นได้ลบ ชื่อลูกค้าแบบ ธรรมดา ออกไปอย่างถาวร จึงต้องปรับวิธีออกบิลให้กับแบบธรรมดาโดยการใช้ "account"+" ชื่อที่เป็นดอกจัน"+" หมายเลขโทรศัพท์"
-                # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
                 # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 if self.app.marketplace_target.get() == "SHOPEE":
                     #! ver ต่ำกว่า 8.0.0
-                    # self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else self.app.cusNameFixer5(self.app.cus_name.get())
+                    # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else self.app.cusNameFixer5(self.app.cus_name.get())
                     # / ver 8.0.0 ขึ้นไป
-                    self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get() else "CWI99"
+                    self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
                 elif self.app.marketplace_target.get() == "LAZADA":
-                    self.cus_search_input = self.app.tax_num.get() if self.app.tax_bool.get(
+                    self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
                     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
@@ -4290,7 +4294,7 @@ class Bot_POS:
                     self.get_customer_name_ready(self.cus_search_input)
 
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
-                if self.app.tax_bool.get():
+                if self.app.is_tax_required.get():
                     print("tax required, start address check and correct")
                     self.cus_name_span = self.driver.find_element(
                         By.XPATH, "//span[@id='select2-memberSearch-container']")
@@ -4415,20 +4419,25 @@ class Bot_POS:
 
                         # ? ลองของใหม่
                         if not hasattr(self, "last_page") or not isinstance(self.last_page, WebElement):
+                            print("ไม่เคยตเข้า last_page มาก่อน")
                             reload = True
                         else:
                             try:
                                 _ = self.last_page.text
+                                print("มี last_page อยู่แล้ว")
                                 reload = False
                             except StaleElementReferenceException:
+                                print("last_page เก่า ใช้ไม่ได้  ต้องโหลดใหม่")
                                 reload = True
 
                         if reload:
+                            print("โหลด last_page ใหม่")
                             while not self.operation_thread.is_set():
                                 try:
                                     self.last_page = self.driver.find_element(
                                         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
                                     )
+                                    print("โหลด last_page สำเร็จ") 
                                     break
                                 except Exception as e:
                                     print("Cannot reload last_page element:", e)
@@ -4813,7 +4822,7 @@ class Bot_POS:
                 name = f"{name} (สาขา{self.app.tax_branch_num.get()})"
 
             tax_num = self.app.tax_num.get()
-            address = self.app.get_pure_address(self.app.address) if self.app.tax_bool.get() else self.app.address
+            address = self.app.get_pure_address(self.app.address) if self.app.is_tax_required.get() else self.app.address
             email = self.app.cus_email.get()
             phone = self.app.cus_tel.get()
             use_dropdown_address = True
@@ -4969,7 +4978,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5970,7 +5978,7 @@ class Bot_POS:
             elif convert_full_tax_modal_element.is_displayed():
                 # while not self.operation_thread.is_set():
                 #     print("convertFullTaxModal displayed")
-                #     if not self.is_old_tax_form and self.app.tax_bool.get():
+                #     if not self.is_old_tax_form and self.app.is_tax_required.get():
                 #         try:
                 #             # * ต้องการใบกำกับ
                 #             self.driver.execute_script(
@@ -5990,7 +5998,7 @@ class Bot_POS:
                 #             continue
                 while not self.operation_thread.is_set() and convert_full_tax_modal_element.is_displayed():
                     print("หน้าเลือกแบบย่อแบบเต็มยังแสดงผลอยู่")
-                    if self.app.tax_bool.get():
+                    if self.app.is_tax_required.get():
                         try:
                             # * ต้องการใบกำกับ
                             el = self.driver.find_element(
