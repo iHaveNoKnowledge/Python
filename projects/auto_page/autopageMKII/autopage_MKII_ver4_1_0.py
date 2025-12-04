@@ -381,7 +381,7 @@ class MyApp:
         )
         self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
 
-        # > Frame6 Margetplace(MP) Products Lists
+        # > Frame6 Marketplace(MP) Products Lists
         self.mp_products_list_frame = CTkFrame(
             self.main_frame,
             fg_color="#444"
