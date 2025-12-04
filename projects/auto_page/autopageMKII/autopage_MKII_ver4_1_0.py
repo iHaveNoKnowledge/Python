@@ -3010,7 +3010,7 @@ class Bot_POS:
             print(f"item {idx+1} : {item}")
             oc_amount = oc_amounts_list[0]
             print("before: round:", idx+1, "oc_amount: ", oc_amount)
-            if idx > 0:
+            if len(oc_amounts_list) > 1:
                 oc_amount = oc_amounts_list[idx]
             print("after: round:", idx+1, "oc_amount: ", oc_amount)
             if oc_amount > 0:
@@ -3108,7 +3108,7 @@ class Bot_POS:
             print(f"item {idx+1} : {item}", )
             dc_amount = dc_amounts_list[0]
             print("before: round:", idx+1, "dc_amount: ", dc_amount)
-            if idx > 0:
+            if len(dc_amounts_list) > 1:
                 dc_amount = dc_amounts_list[idx]
                 # try:
                 # * เนื่องจาก พวกสินค้ามีหลายตัวใน 1 รายการ แต่มันอาจจะลดแค่บางตัว ตัวที่ไม่ลดฉันจะให้ใส่ตัวที่แปลงค่าเป็น int ไม่ได้ เช่น "-" หรือ "x" มาแทน เช่น (sp2-1703 sp2-1704 ลด 100 บาท) ///แต่ (sp2-1705 sp2-1706 ไม่ลด) เราก็จะใส่ qty เป็น ["1","1","-","-"] แบบนี้
@@ -3174,9 +3174,11 @@ class Bot_POS:
                                 arguments[0].dispatchEvent(new Event('change'));
                             """, user_pw_input, self.app.user_pw.get())
 
-                            green_btn_summit = self.driver.find_element(By.CSS_SELECTOR, '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')
+                            green_btn_summit = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')
                             self.driver.execute_script("arguments[0].click();", green_btn_summit)
-                            
+
                             break
                         else:
                             # print("ไม่เจอ", item, "นะ")
@@ -5084,7 +5086,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
