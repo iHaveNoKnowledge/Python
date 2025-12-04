@@ -3000,7 +3000,7 @@ class Bot_POS:
 
         formatted_items_to_oc: list = self.sku_formater(items_user_input).split(" ")
         oc_amounts_list_prog = str(oc_amounts_input).split()
-        oc_amounts_list = [self.oc_amounts_calculator(oc_amount) for oc_amount in oc_amounts_list_prog]
+        oc_amounts_list = [int(self.oc_amounts_calculator(oc_amount)) for oc_amount in oc_amounts_list_prog]
         items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
 
         for idx, item in enumerate(formatted_items_to_oc):
@@ -3081,8 +3081,6 @@ class Bot_POS:
                     except Exception as err:
                         print("smco_set_overcharge_product_v2_Error occurred: ", err)
                         pass
-
-            print("css_sel_loc: ", css_sel_loc)
 
         # Todo
         #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
@@ -6210,6 +6208,7 @@ if __name__ == "__main__":
     #         event.widget.event_generate("<<Copy>>")
 
     # * เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
+    # / มีไว้รองรับภาษาอื่นๆ ที่ไม่ใช่ภาษาอังกฤษโดยเฉพาะ เช่น ภาษาไทย
     def _onKeyRelease(event):
         # print("press :", event.keysym)
         ctrl = (event.state & 0x4) != 0
