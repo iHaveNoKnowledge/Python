@@ -51,8 +51,9 @@ class AutoAddProduct:
             time.sleep(0.5)
 
             # * Update XPath to exclude hidden elements
-            current_qty_elements = self.driver.find_elements(By.XPATH, "//span[@class='col-sm-4 ng-binding' and not(contains(@class, 'ng-hide'))]")
-            
+            current_qty_elements = self.driver.find_elements(
+                By.XPATH, "//span[@class='col-sm-4 ng-binding' and not(contains(@class, 'ng-hide'))]")
+
             if target_idx >= len(current_qty_elements):
                 print(
                     f"Error: target_idx {target_idx} out of range for current_qty_elements (len={len(current_qty_elements)})")
@@ -69,10 +70,11 @@ class AutoAddProduct:
                     # * Update XPath to exclude hidden elements for buttons too, just in case
                     item_qty_elements = self.driver.find_elements(
                         By.XPATH, "//button[@ng-click='incrementMainQty(true, x)' and not(contains(@class, 'ng-hide'))]")
-                    
+
                     # * Check if we really need to loop
                     if int(target_current_qty) < int(qty):
-                        print(f"Quantity mismatch: current {target_current_qty} < needed {qty}. Starting increment loop.")
+                        print(
+                            f"Quantity mismatch: current {target_current_qty} < needed {qty}. Starting increment loop.")
                         while not self.bot.auto_add_product_stop_flag.is_set() and int(target_current_qty) < int(qty):
                             print(f"target_current_qty and qty: {target_current_qty} and {qty}")
                             try:
@@ -80,9 +82,10 @@ class AutoAddProduct:
                                 if target_idx < len(item_qty_elements):
                                     item_qty_elements[target_idx].click()
                                 else:
-                                    print(f"Error: Button index {target_idx} out of range (buttons={len(item_qty_elements)})")
+                                    print(
+                                        f"Error: Button index {target_idx} out of range (buttons={len(item_qty_elements)})")
                                     break
-                                
+
                                 # * Re-read quantity
                                 target_current_qty = current_qty_elements[target_idx].text
                                 if int(target_current_qty) >= int(qty):
@@ -93,7 +96,8 @@ class AutoAddProduct:
                                 time.sleep(0.25)
                                 continue
                     else:
-                        print(f"Quantity match or exceed: current {target_current_qty} >= needed {qty}. No action needed.")
+                        print(
+                            f"Quantity match or exceed: current {target_current_qty} >= needed {qty}. No action needed.")
 
                 except Exception as e:
                     print(f"Error in item_qty_setter loop: {e}")
@@ -150,7 +154,7 @@ class AutoAddProduct:
         with self.driver_lock:
             # * Clear stop flag ก่อนเริ่มทำงาน
             self.bot.auto_add_product_stop_flag.clear()
-            
+
             print(f"incoming skus: {skus}")
             self.bot.get_tabs()
             merged_dict = self.bot.merged_dict
@@ -236,7 +240,8 @@ class AutoAddProduct:
 
                                 break
                             except Exception as e:
-                                print(f"Request {req_id} ยังไม่มี response: {e}")
+                                # print(f"Request {req_id} ยังไม่มี response: {e}")
+                                print(f"Request {req_id} ยังไม่มี")
                                 continue
 
                         # print("resp: ", res)

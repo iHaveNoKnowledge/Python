@@ -3010,76 +3010,77 @@ class Bot_POS:
             if idx > 0:
                 oc_amount = oc_amounts_list[idx]
             print("after: round:", idx+1, "oc_amount: ", oc_amount)
-            for idx2, div in enumerate(items_list_element):
-                try:
-                    is_found = div.text.find(item)
-                    li_loc = idx2+1
+            if oc_amount > 0:
+                for idx2, div in enumerate(items_list_element):
+                    try:
+                        is_found = div.text.find(item)
+                        li_loc = idx2+1
 
-                    if is_found != -1:
-                        print("found at li no: ", li_loc)
-                        print("is_found: ", is_found)
+                        if is_found != -1:
+                            print("found at li no: ", li_loc)
+                            print("is_found: ", is_found)
 
-                        css_sel_loc = {
-                            'product_code': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div:nth-child(2) span:nth-child(1) a',
-                            'srp_btn': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div.panel-body:nth-child(1) div.row.col-sm-6:nth-child(2) > div:nth-child(1) div:nth-child(1) div a:nth-child(1)'
-                        }
+                            css_sel_loc = {
+                                'product_code': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div:nth-child(2) span:nth-child(1) a',
+                                'srp_btn': f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div.panel-body:nth-child(1) div.row.col-sm-6:nth-child(2) > div:nth-child(1) div:nth-child(1) div a:nth-child(1)'
+                            }
 
-                        self.driver.find_element(By.CSS_SELECTOR, css_sel_loc['srp_btn']).click()
-                        # todo ถ้าไม่รอตรงนี้ code มันจะรันไปอย่างไว element มันยังไม่ทันขึ้น code รันเสร็จละ
-                        time.sleep(0.5)
-                        # changePriceInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
-                        changePriceInput = self.driver.find_element(By.XPATH, "//input[@ng-keyup='onPistive(oms)']")
-                        based_price = self.driver.execute_script(
-                            "return angular.element(arguments[0]).val();", changePriceInput)
-                        print("based_price extracted from form: ", based_price)
-                        new_price = float(based_price.replace(",", "")) + float(oc_amount)
-                        print("new_price calculated: ", new_price)
-                        self.driver.execute_script(
-                            "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                            changePriceInput, 0)
-                        self.driver.execute_script(
-                            "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                            changePriceInput, new_price)
+                            self.driver.find_element(By.CSS_SELECTOR, css_sel_loc['srp_btn']).click()
+                            # todo ถ้าไม่รอตรงนี้ code มันจะรันไปอย่างไว element มันยังไม่ทันขึ้น code รันเสร็จละ
+                            time.sleep(0.5)
+                            # changePriceInput = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
+                            changePriceInput = self.driver.find_element(By.XPATH, "//input[@ng-keyup='onPistive(oms)']")
+                            based_price = self.driver.execute_script(
+                                "return angular.element(arguments[0]).val();", changePriceInput)
+                            print("based_price extracted from form: ", based_price)
+                            new_price = float(based_price.replace(",", "")) + float(oc_amount)
+                            print("new_price calculated: ", new_price)
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                changePriceInput, 0)
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                changePriceInput, new_price)
 
-                        # / ใส่ พนักงาน
-                        user_id_input = self.driver.find_element(
-                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
-                        self.driver.execute_script("""
-                            arguments[0].value = arguments[1];
-                            arguments[0].dispatchEvent(new Event('input'));
-                            arguments[0].dispatchEvent(new Event('change'));
-                        """, user_id_input, self.app.user_id.get())
+                            # / ใส่ พนักงาน
+                            user_id_input = self.driver.find_element(
+                                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, user_id_input, self.app.user_id.get())
 
-                        # / ใส่ รหัสพนักงาน
-                        user_pw_input = self.driver.find_element(
-                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
-                        self.driver.execute_script("""
-                            arguments[0].value = arguments[1];
-                            arguments[0].dispatchEvent(new Event('input'));
-                            arguments[0].dispatchEvent(new Event('change'));
-                        """, user_pw_input, self.app.user_pw.get())
+                            # / ใส่ รหัสพนักงาน
+                            user_pw_input = self.driver.find_element(
+                                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, user_pw_input, self.app.user_pw.get())
 
-                        # / ใส่ หมายเหตุ
-                        note_textarea = self.driver.find_element(
-                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
-                        self.driver.execute_script("""
-                            arguments[0].value = arguments[1];
-                            arguments[0].dispatchEvent(new Event('input'));
-                            arguments[0].dispatchEvent(new Event('change'));
-                            """, note_textarea, "Online")
+                            # / ใส่ หมายเหตุ
+                            note_textarea = self.driver.find_element(
+                                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                                """, note_textarea, "Online")
 
-                        # / กด บันทึก button สีเขียว
-                        green_submit_btn = self.driver.find_element(
-                            By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')
-                        self.driver.execute_script("arguments[0].click();", green_submit_btn)
+                            # / กด บันทึก button สีเขียว
+                            green_submit_btn = self.driver.find_element(
+                                By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')
+                            self.driver.execute_script("arguments[0].click();", green_submit_btn)
 
-                        break
-                    else:
-                        # print("ไม่เจอ", item, "นะ")
+                            break
+                        else:
+                            # print("ไม่เจอ", item, "นะ")
+                            pass
+                    except Exception as err:
+                        print("smco_set_overcharge_product_v2_Error occurred: ", err)
                         pass
-                except Exception as err:
-                    print("smco_set_overcharge_product_v2_Error occurred: ", err)
-                    pass
 
             print("css_sel_loc: ", css_sel_loc)
 
