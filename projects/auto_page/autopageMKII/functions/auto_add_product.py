@@ -161,7 +161,7 @@ class AutoAddProduct:
             self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
             try:
                 # * SKU input location
-                skuInput_element = self.wait50.until(EC.visibility_of_element_located(
+                sku_input_element = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
                 # skuInput = self.driver.find_element(By.CSS_SELECTOR,'input.arFilterBox-search.ng-valid.ng-dirty.ng-empty.ng-touched')
                 sku_qty_element = self.driver.find_element(
@@ -190,11 +190,11 @@ class AutoAddProduct:
                     self.driver.get_log("performance")
                     print("Cleared performance logs")
 
-                    skuInput_element.clear()
-                    skuInput_element.send_keys(sku)
+                    sku_input_element.clear()
+                    sku_input_element.send_keys(sku)
                     print(f"Placing SKU Input with {sku} success")
 
-                    skuInput_element.send_keys(Keys().ENTER)
+                    sku_input_element.send_keys(Keys().ENTER)
                     print("Pressed Enter to submit SKU")
                     time.sleep(0.175)
 

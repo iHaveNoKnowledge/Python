@@ -3252,35 +3252,36 @@ class Bot_POS:
         self.operation_thread = event
         if not self.operation_thread.is_set():
             try:
+
                 # * เริ่มการทำงาน Operation Start
                 if self.app.order != "" and not self.operation_thread.is_set():
-
+                    self.operation_start()
                     logger.info(f"Order: {self.app.order} Start!!")
 
-                    # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
-                    max_retries = 3
-                    retry_delay = 1.0  # วินาที
+                    # # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
+                    # max_retries = 3
+                    # retry_delay = 1.0  # วินาที
 
-                    for attempt in range(max_retries):
-                        try:
-                            self.operation_start()
-                            break  # สำเร็จแล้ว ออกจาก loop
-                        except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as err:
-                            if attempt < max_retries - 1:
-                                logger.warning(
-                                    f"Order: {self.app.order} Retry attempt {attempt + 1}/{max_retries} due to: {type(err).__name__}: {err}")
-                                print(
-                                    f"⚠️  Retrying operation_start (attempt {attempt + 1}/{max_retries}) due to: {type(err).__name__}")
-                                time.sleep(retry_delay)
-                                continue
-                            else:
-                                # ครบจำนวน retry แล้ว ให้ raise exception
-                                logger.error(f"Order: {self.app.order} Max retries reached. Final error: {err}")
-                                raise
-                        except Exception as err:
-                            # Exception อื่นๆ ที่ไม่ใช่ element not found ให้ raise ทันที
-                            logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
-                            raise
+                    # for attempt in range(max_retries):
+                    #     try:
+                    #         self.operation_start()
+                    #         break  # สำเร็จแล้ว ออกจาก loop
+                    #     except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as err:
+                    #         if attempt < max_retries - 1:
+                    #             logger.warning(
+                    #                 f"Order: {self.app.order} Retry attempt {attempt + 1}/{max_retries} due to: {type(err).__name__}: {err}")
+                    #             print(
+                    #                 f"⚠️  Retrying operation_start (attempt {attempt + 1}/{max_retries}) due to: {type(err).__name__}")
+                    #             time.sleep(retry_delay)
+                    #             continue
+                    #         else:
+                    #             # ครบจำนวน retry แล้ว ให้ raise exception
+                    #             logger.error(f"Order: {self.app.order} Max retries reached. Final error: {err}")
+                    #             raise
+                    #     except Exception as err:
+                    #         # Exception อื่นๆ ที่ไม่ใช่ element not found ให้ raise ทันที
+                    #         logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
+                    #         raise
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
                     self.app.search_complete.set()
@@ -3713,12 +3714,9 @@ class Bot_POS:
     def add_shipping_cost(self):
         if int(self.app.cus_ship_cost.get()) != int(0):
             try:
-                self.skuInput_element = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                self.sku_input_element = self.driver.find_element(By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
                 # skuInput = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.skuInput_element.clear()
-
-                self.skuInput_element.send_keys("SV0-000101")
+                self.driver.execute_script("arguments[0].value = 'SV0-000101';", self.sku_input_element)
                 print("กรอก Code ขนส่งสำเร็จ")
 
                 self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located(
@@ -4005,8 +4003,10 @@ class Bot_POS:
                 print("switch to 'Seller Centre'")
                 time.sleep(1)
                 # self.wait5.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')))
-                shopee_sub_account_name_element = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')
-                self.operation_states['purchased_channel'] = self.driver.execute_script("return arguments[0].innerText;", shopee_sub_account_name_element)
+                shopee_sub_account_name_element = self.driver.find_element(
+                    By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')
+                self.operation_states['purchased_channel'] = self.driver.execute_script(
+                    "return arguments[0].innerText;", shopee_sub_account_name_element)
                 # self.operation_states['purchased_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
                 print(f"self.operation_states['purchased_channel']: {self.operation_states['purchased_channel']}")
                 cur_url = self.driver.current_url
@@ -5086,6 +5086,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
