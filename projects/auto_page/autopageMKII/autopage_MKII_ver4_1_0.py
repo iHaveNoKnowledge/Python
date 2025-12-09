@@ -3102,7 +3102,7 @@ class Bot_POS:
         dc_amounts_list_prog = dc_amounts_input.split()  # * เอาไว้แยกทำลดพวกสินค้าที่สั่งมา 1 รายการแต่มีหลาย sku เช่น หมึก 4 สี
         dc_amounts_list = [int(self.oc_amounts_calculator(dc_amount)) for dc_amount in dc_amounts_list_prog]
         # * เอาไว้เก็บ element ของ item ทั้งหมดในหน้ายิงขาย
-        items_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
 
         for idx, item in enumerate(formatted_items_to_dc):  # * loop ไล่ itemที่ลูกค้าสั่งมา
             print(f"item {idx+1} : {item}", )
@@ -3118,7 +3118,7 @@ class Bot_POS:
             print("after: round:", idx+1, "dc_amount: ", dc_amount,
                   "qty: ", qty, "dc_amount * int(qty): ", dc_amount * qty)
             if dc_amount > 0:
-                for idx2, div in enumerate(items_list_elements):  # * loop ไล่ element บนหน้ายิงขาย
+                for idx2, div in enumerate(item_elements):  # * loop ไล่ element บนหน้ายิงขาย
                     try:
                         is_found = div.text.find(item)
                         li_loc = idx2+1
@@ -3712,7 +3712,18 @@ class Bot_POS:
                     continue
 
     def add_shipping_cost(self):
-        if int(self.app.cus_ship_cost.get()) != int(0):
+        has_shpping_cost = False
+        try:
+            item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+            for item_element in item_elements:
+                item_sku_name_element = item_element.find_element(By.CSS_SELECTOR, "div:nth-child(2) span:nth-child(1) a")
+                sku_name = self.driver.execute_script("return arguments[0].value;", item_sku_name_element)
+                print("sku_name: ", sku_name)
+
+            has_shpping_cost = True
+        except:
+            has_shpping_cost = False
+        if int(self.app.cus_ship_cost.get()) != int(0) and not has_shpping_cost:
             try:
                 self.sku_input_element = self.driver.find_element(By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
                 # skuInput = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')

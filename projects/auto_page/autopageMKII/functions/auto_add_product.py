@@ -159,6 +159,7 @@ class AutoAddProduct:
             self.bot.get_tabs()
             merged_dict = self.bot.merged_dict
             self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
+            
             try:
                 # * SKU input location
                 sku_input_element = self.wait50.until(EC.visibility_of_element_located(
