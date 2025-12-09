@@ -147,8 +147,8 @@ class MyApp:
         # * 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
         self.bot = Bot_POS(self.root, self)
 
-    def demonic_cp_selection(self):
-        self.bot.demonic_cp_bot(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
+    def cp_sonic_blow_handler(self):
+        self.bot.cp_sonic_blow_process(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
 
     def reset_browser_memory(self):
         """Callback สำหรับปุ่ม 'Reset Memory' Button"""
@@ -876,7 +876,7 @@ class MyApp:
         self.demonicCp_btn = CTkButton(
             self.demonic_frame,
             text="SonicBlow!",
-            command=self.demonic_cp_selection,
+            command=self.cp_sonic_blow_handler,
             width=60,
             height=4
         )
@@ -2880,7 +2880,7 @@ class Bot_POS:
         except Exception as e:
             print(f"Error in reset_all_tabs_memory: {e}")
 
-    def demonic_cp_bot(self, item_no: int, cp_no: int):
+    def cp_sonic_blow_process(self, item_no: int, cp_no: int):
         self.item_no = int(item_no)-1
         self.cp_no = int(cp_no)
         cp_target_name = ""
