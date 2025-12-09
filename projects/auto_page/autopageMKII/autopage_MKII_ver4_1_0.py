@@ -2937,7 +2937,7 @@ class Bot_POS:
                                 if cp_target_name in element.text.replace(" ", ""):
                                     self.cp_no = idx+1
                         # selected_btn_loc = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{self.cp_no}]/div[1]/button''' # ! >> old fashion way
-                        
+
                         self.driver.find_elements(By.XPATH, selected_cp_btn_loc)[self.cp_no-1].click()
 
                         # * เก็บชื่อ CP ที่เลือก
@@ -4526,30 +4526,31 @@ class Bot_POS:
                         self.is_input_empty = ""
 
                     # * หน้ารายการยิงของ (หน้าแรก)
+                    # ! Deprecated
                     # * /update/ แต่สมัยนี้มันไม่มีหน้า SN แล้วนี่หว่า มันย้ายไปเปนหน้าใหม่เลย popup-sn เลยหายไปละ /ปัญหา/แก้ bot ดับจาก alert หน้ารายการยิงของ (หน้าแรก)
-                    while not self.operation_thread.is_set():
-                        time.sleep(0.55)
-                        try:
-                            sn_window = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')  # * ส่วนลด pop up
-                            # print("SN_window is still there")
-                            if sn_window.is_displayed():
-                                # print("หน้า SN กำลังโชว์")
-                                # if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
-                                continue
+                    # while not self.operation_thread.is_set():
+                    #     time.sleep(0.55)
+                    #     try:
+                    #         sn_window = self.driver.find_element(
+                    #             By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[7]/div/div/div[1]')  # * ส่วนลด pop up
+                    #         # print("SN_window is still there")
+                    #         if sn_window.is_displayed():
+                    #             # print("หน้า SN กำลังโชว์")
+                    #             # if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
+                    #             continue
 
-                            else:
-                                # print("หน้า SN ไม่ได้โ๙ว์")
-                                break
-                        except Exception as err:
-                            # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
-                            # print("alertทั้งหมดคือไร", err)
-                            print("Show only the part of obj err", err.alert_text)
-                            self.app.POP_UP.show("SN Duplicate", f'{err.alert_text}', "alert")
-                            # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-                            # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
-                            # print("Popupโผล่")
-                            continue
+                    #         else:
+                    #             # print("หน้า SN ไม่ได้โ๙ว์")
+                    #             break
+                    #     except Exception as err:
+                    #         # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
+                    #         # print("alertทั้งหมดคือไร", err)
+                    #         print("Show only the part of obj err", err)
+                    #         # self.app.POP_UP.show("SN Duplicate", f'{err}', "alert")
+                    #         # self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                    #         # WebDriverWait(self.driver, 3).until(EC.alert_is_present())
+                    #         # print("Popupโผล่")
+                    #         continue
 
                     # * เอาไว้ใช้เพื่อจบการทำงาน เมื่ออกบืล เดิมทีค่าที่เป็นชื่อลูกค้ามันจะหายไป แต่ปัจจุบันไม่มีชื่อลูกค้าแล้ว เลยไปใช้ชื่อพนักงาน แต่ชื่อพนักงานมันจะหายไหมนะ?
                     if self.is_input_empty == "" and is_final_page_displayed == False:
@@ -4769,7 +4770,7 @@ class Bot_POS:
                             #             break
 
                             # * สำหรับรอ final pop-up after click the green btn
-                            self.final_popup_after_green_btn_handler()
+                            self.final_popup_after_green_btn_handler(is_etax)
                             # * ไม่แน่ใจ
                             continue
                         else:
@@ -5124,7 +5125,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -6076,7 +6076,7 @@ class Bot_POS:
 
         return result
 
-    def final_popup_after_green_btn_handler(self):
+    def final_popup_after_green_btn_handler(self, is_etax):
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
         loop_counter = 0  # * Counter for GC
@@ -6196,9 +6196,9 @@ class Bot_POS:
                     time.sleep(1)
 
                     alert_text = self.driver.find_element(
-                        By().XPATH, """//div[@class = 'swal2-content']""").text  # อันนี้น่าจะใช้ไม่ได้ละ
+                        By().XPATH, """//div[@class = 'swal2-content']""").text  # * ตำแหน่งแสดงเลขบิล
 
-                    match = re.search(r'B\d+-\w.*\d+-\d+', alert_text)
+                    match = re.search(r'(?:ABB-)?B\d+-\w.*\d+-\d+', alert_text)
                     print("match: ", match)
                     # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
                     inv_number = match.group()
