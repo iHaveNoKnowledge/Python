@@ -2885,6 +2885,9 @@ class Bot_POS:
         self.cp_no = int(cp_no)
         cp_target_name = ""
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
+        selected_cp_btn_loc = f'''
+                            //div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']
+                            '''
         cp_name_elements_list = self.driver.find_elements(By.XPATH, cp_name_loc)
         print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.demonic_ordered_items_list = self.app.correct_sku_pattern(
@@ -2899,9 +2902,6 @@ class Bot_POS:
         # cp_btn_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[3]/div[1]/a' # ! >> old fashion way
         # green_agree_btn_xpath = '/html/body/div[2]/div[3]/div[11]/div/div[1]/span/div[2]/button[1]'   # ! >> old fashion way ปุ่มยืนยันสีเขียว
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
-        item_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-        item_list_cp_btn_elements = self.driver.find_elements(
-            By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
 
         try:
             # * ก่อน SMCOver 6.3.3
@@ -2911,13 +2911,13 @@ class Bot_POS:
             cp_list = self.driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[9]/div/div[2]/div[2]')
 
         for idx, item in enumerate(self.demonic_ordered_items_list):
+            item_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+            item_list_cp_btn_elements = self.driver.find_elements(
+                By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
             item_position = idx+1
             print("จำนวน skus in SMCO POS ", len(item_list_elements))
             print("item จาก demonic_ordered_items_list", item)
-            if cp_target_name != "":
-                for idx, element in enumerate(self.driver.find_elements(By.XPATH, cp_name_loc)):
-                    if cp_target_name in element.text.replace(" ", ""):
-                        self.cp_no = idx+1
+
             for idx2, div in enumerate(item_list_elements):
                 print("loop item บน smco")
                 li_position = idx2+1
@@ -2932,11 +2932,13 @@ class Bot_POS:
 
                         # * CP list page-------------------------------------
                         # * เลือก cp เป้าหมาย
+                        if cp_target_name != "":
+                            for idx, element in enumerate(self.driver.find_elements(By.XPATH, cp_name_loc)):
+                                if cp_target_name in element.text.replace(" ", ""):
+                                    self.cp_no = idx+1
                         # selected_btn_loc = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{self.cp_no}]/div[1]/button''' # ! >> old fashion way
-                        selected_btn_loc = f'''
-                            //div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']
-                            '''
-                        self.driver.find_elements(By.XPATH, selected_btn_loc)[self.cp_no-1].click()
+                        
+                        self.driver.find_elements(By.XPATH, selected_cp_btn_loc)[self.cp_no-1].click()
 
                         # * เก็บชื่อ CP ที่เลือก
                         if cp_target_name == "":
@@ -2962,6 +2964,12 @@ class Bot_POS:
     def cp_bringer(self):
         #! wth is this function for?
         pass
+
+    def smco_pos_item_list_srp_bringer(self, sku: str):
+        """return srp โดยดึงจากหน้า pos (ฉะนั้นในposต้องมี sku อยู่ก่อนนะ)ตาม sku ที่เราใส่เข้ามาใน fn นี้"""
+        srp = 0
+
+        return srp
 
     def sku_formater(self, sku_input: str):
         """รับ string ที่มี sku หลายๆตัวมา แล้วจัด format ให้ถูกต้อง เช่น sp2-1703  -> SP2-001703 แล้ว return string ที่จัด format แล้วเฉยๆ ต้องไปแยกเป็น list เอง"""
@@ -3712,28 +3720,48 @@ class Bot_POS:
                     continue
 
     def add_shipping_cost(self):
+        shipping_cost = self.app.cus_ship_cost.get()
         has_shpping_cost = False
-        try:
-            item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-            for item_element in item_elements:
-                item_sku_name_element = item_element.find_element(By.CSS_SELECTOR, "div:nth-child(2) span:nth-child(1) a")
-                sku_name = self.driver.execute_script("return arguments[0].value;", item_sku_name_element)
-                print("sku_name: ", sku_name)
+        print("มี item ใน listไหม")
+        item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+        if len(item_elements) > 0:
+            print("มี item ใน list")
+            for idx, item_element in enumerate(item_elements):
 
-            has_shpping_cost = True
-        except:
+                item_sku_name_element = item_element.find_element(By.CSS_SELECTOR, "u.ng-binding")
+                item_srp_element = item_element.find_element(By.XPATH, "//span[@class='font-color-base ng-binding']")
+                item_sku_name = self.driver.execute_script("return arguments[0].textContent;", item_sku_name_element)
+                item_srp = self.driver.execute_script("return arguments[0].textContent;", item_srp_element)
+                if item_sku_name == 'SV0-000101' and item_srp == shipping_cost:
+                    print("shpping cost has been corrected")
+                    has_shpping_cost = True
+                else:
+                    print("shpping cost has not been corrected")
+                    item_delete_btn_element = item_element.find_element(
+                        By.XPATH, "//button[@class='btn btn-danger btn-sm ng-scope']")
+                    item_delete_btn_element.click()
+                    pass
+
+        else:
+            print("ไม่เคยมี item ใน list มาก่อน")
             has_shpping_cost = False
-        if int(self.app.cus_ship_cost.get()) != int(0) and not has_shpping_cost:
+        if int(shipping_cost) != int(0) and not has_shpping_cost:
             try:
-                self.sku_input_element = self.driver.find_element(By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
+                self.sku_input_element = self.driver.find_element(
+                    By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
                 # skuInput = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.driver.execute_script("arguments[0].value = 'SV0-000101';", self.sku_input_element)
+                self.driver.execute_script("""
+                    arguments[0].value = 'SV0-000101';
+                    arguments[0].dispatchEvent(new Event('input'));
+                    arguments[0].dispatchEvent(new Event('change'));
+                """, self.sku_input_element)
+
+                self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
 
-                self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
+                # self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuAddBtn = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.skuAddBtn.send_keys("\ue007")  # กด Enter
+                # self.skuAddBtn.send_keys("\ue007")  # กด Enter
                 print("กด Enter ที่ช่อง SKU Input สำเร็จ")
 
                 #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
@@ -3754,10 +3782,10 @@ class Bot_POS:
                     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
                 self.changePriceInput.clear()
                 # self.changePriceInput.send_keys(69)
-                # self.changePriceInput.send_keys(int(self.app.cus_ship_cost.get()))
+                # self.changePriceInput.send_keys(int(shipping_cost))
                 self.driver.execute_script(
                     "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                    self.changePriceInput, self.app.cus_ship_cost.get())
+                    self.changePriceInput, shipping_cost)
                 self.driver.find_element(
                     By().XPATH,
                     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
@@ -4507,14 +4535,13 @@ class Bot_POS:
                             # print("SN_window is still there")
                             if sn_window.is_displayed():
                                 # print("หน้า SN กำลังโชว์")
-
                                 # if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
                                 continue
 
                             else:
                                 # print("หน้า SN ไม่ได้โ๙ว์")
                                 break
-                        except UnexpectedAlertPresentException as err:
+                        except Exception as err:
                             # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
                             # print("alertทั้งหมดคือไร", err)
                             print("Show only the part of obj err", err.alert_text)
