@@ -4004,10 +4004,10 @@ class Bot_POS:
                 self.driver.switch_to.window(self.merged_dict['Seller Centre'])
                 print("switch to 'Seller Centre'")
                 time.sleep(1)
-                self.wait5.until(EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')))
-                self.operation_states['purchased_channel'] = self.driver.find_element(
-                    By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
+                # self.wait5.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')))
+                shopee_sub_account_name_element = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')
+                self.operation_states['purchased_channel'] = self.driver.execute_script("return arguments[0].innerText;", shopee_sub_account_name_element)
+                # self.operation_states['purchased_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
                 print(f"self.operation_states['purchased_channel']: {self.operation_states['purchased_channel']}")
                 cur_url = self.driver.current_url
 
