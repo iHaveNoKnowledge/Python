@@ -1,26 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title></title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="css/style.css" rel="stylesheet">
-    </head>
-    <body>
-        <p style="text-align:center"><span style="font-size:48px">
+
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <p style="text-align:center"><span style="font-size:48px">
             <!-- <strong>กรอกข้อมูลลงทะเบียนเพื่อรับโค้ดสิทธิพิเศษฟรี!</strong></span><br />
             
             <a href="https://thunpacked.seasamsungcampaign.com/?cid=partner-online-itcity">กรอกข้อมูลที่นี่</a> -->
             <span style="font-size:36px"></span>
-            <iframe src="https://thunpacked.seasamsungcampaign.com/?cid=partner-online-itcity" style="width: 100%; height: 1400px"></iframe> 
-            </span>
-        </p>
-        <!-- <p style="text-align:center"><iframe align="top" frameborder="1" height="1400px" scrolling="no" src="http://rms.itcity.co.th/checkwarr/stchkwarr.aspx" width="100%"></iframe></p> -->
-        <p style="text-align:center"><span style="font-size:48px">
+            <iframe src="https://thunpacked.seasamsungcampaign.com/?cid=partner-online-itcity"
+                style="width: 100%; height: 1400px"></iframe>
+        </span>
+    </p>
+    <!-- <p style="text-align:center"><iframe align="top" frameborder="1" height="1400px" scrolling="no" src="http://rms.itcity.co.th/checkwarr/stchkwarr.aspx" width="100%"></iframe></p> -->
+    <p style="text-align:center"><span style="font-size:48px">
             <span style="font-size:36px">
-            <iframe src="https://www.samsung.com/th/unpacked/?cid=th_ow_affiliate_itcity-home-banner_f2h24_tease_t1-handraiser_link-post_kv-regist-promo-240626_none" style="width: 100%; height: 1400px"></iframe> 
+                <iframe
+                    src="https://www.samsung.com/th/unpacked/?cid=th_ow_affiliate_itcity-home-banner_f2h24_tease_t1-handraiser_link-post_kv-regist-promo-240626_none"
+                    style="width: 100%; height: 1400px"></iframe>
             </span>
-        </p>
-    
-    </body>
+    </p>
+
+</body>
+
+<!-- ----------------------------------- -->
+
+<div ng-repeat="x in posbook.data.dataOfDetail | filter : {status : {lookupMasterId : '!10830004'}}"
+    class="col-sm-12 panel panel-default ng-scope" style="padding-top:0px;padding-bottom:0px;margin-bottom: 5px;">
+    <div class="panel-body" style="padding-top:3px;padding-bottom:3px;padding-left: 0px;padding-right: 0px">
+        <div class="row col-sm-6">
+            <div class="col-sm-2  col-xs-3 text-center" style="padding:0px">
+                <div class="center">
+                    <a href="/smartcore/smartinfo/sellingguidesku.htm?productId=19154&amp;productCode=" target="_blank">
+                        <img class="imageskudisplay-h1-small"
+                            style="max-width: 90%; width: 80px; max-height: 100%; height: 90px; opacity: 0.5;filter: alpha(opacity=50);"
+                            data-src="/smartcore/images/not-available-small.png"
+                            src="/smartcore/images/not-available-small.png">
+                    </a>
+                </div>
+            </div>
+            <div class="col-sm-9 col-xs-8 wrap-text" style="padding:0px ">
+                <span ng-click="productNameChangeChk(x)"
+                    ng-show="x.productNameChange == undefined || x.productNameChange == ''"><a><u
+                            class="ng-binding">SV0-000101</u></a></span>
+                <span ng-click="productNameChangeChk(x)"
+                    ng-show="x.productNameChange != undefined &amp;&amp; x.productNameChange != ''" class="ng-hide"><a
+                        style="color:red;" class="blink"><u class="ng-binding">SV0-000101</u></a></span>
+                <span class="font-color-secondary ng-binding">Online Transportation</span>
+                <br>
+                <span class="label ng-binding label-success"
+                    ng-class="{'label-danger': !x.pricePolicy, 'label-success': x.pricePolicy}" data-toggle="tooltip"
+                    data-placement="top" title="Tooltip on top">SRP</span><span>&nbsp;<span
+                        class="label label-danger ng-hide" ng-show="!x.pricePolicy">Price expire</span></span> <span
+                    class="font-color-base ng-binding">75.00.-</span>
+                <span ng-show="!x.pricePolicy"
+                    ng-class="{'font-expired': !x.pricePolicy, 'font-color-secondary': x.pricePolicy}"
+                    class="ng-binding ng-hide font-color-secondary">(08/01/2019, 00:00:00 - Now)</span>
+                <span ng-show="!x.pricePolicy"
+                    ng-class="{'font-expired': !x.pricePolicy, 'font-color-secondary': x.pricePolicy}"
+                    ng-init="x.lenPriceDesc = 50; x.moreFlag = true;" class="ng-binding ng-hide font-color-secondary">
+                    &nbsp;SRP
+                    <a href="" ng-click="x.lenPriceDesc = 500; x.moreFlag = !x.moreFlag;"
+                        ng-show="x.priceCtrlDesc.length &gt; 50 &amp;&amp; x.moreFlag" class="ng-hide">More</a>
+                    <a href="" ng-click="x.lenPriceDesc = 50; x.moreFlag = !x.moreFlag;"
+                        ng-show="x.priceCtrlDesc.length &gt; 50 &amp;&amp; !x.moreFlag" class="ng-hide">Hide</a>
+                </span>
+                <span class="font-color-secondary ng-binding ng-hide"
+                    ng-show="x.warrantys[0].warrantyId === undefined &amp;&amp; x.product.warrantyTemp != undefined&amp;&amp; x.product.warrantyTemp != ''"><br>Warranty
+                </span>
+                <!-- ngRepeat: war in x.warrantys |  orderBy : 'groupName'  -->
+                <h5 ng-show="x.stockableFlag !== undefined &amp;&amp; x.stockableFlag == true" class="ng-hide">
+                    Stock Qty :
+                    <span
+                        ng-class="{'font-color-secondary-red fade ng-redalert' : ((stockTByWarehouse(x.productStocks)&lt;x.productQty) &amp;&amp; x.stockableFlag === true)}"
+                        class="ng-binding">
+                        0
+                    </span>
+                </h5>
+
+                <!-- ngRepeat: uCoupon in x.dataOfCoupon | uCouponFilter | orderBy: 'couponCode' -->
+                <div id="collapseKit0" class="xcollapse">
+                    <!-- ngRepeat: kitP in x.dataOfProductKit -->
+                </div>
+                <div>
+                    <a ng-show="(x.dataOfSerial.length&gt;0 || x.dataOfSerialImport.id !== undefined)"
+                        class="btn btn-primary btn-xs ng-binding ng-hide" role="button" aria-expanded="false"
+                        data-toggle="collapse" aria-controls="collapseSerial0" href="#collapseSerial0">
+                        Serials ()
+                    </a>
+                </div>
+                <div id="collapseSerial0" class="collapse">
+                    <!-- ngRepeat: uSerial in x.dataOfSerial| filter:{activeFlag:true,mainFlag:true} -->
+                    <div ng-show="x.dataOfSerialImport" style="margin-right:0px; margin-left:0px;" class="ng-hide">
+                        <span class="font-color-secondary">หมายเลขอ้างอิงนำเข้า </span><a
+                            ng-click="downloadSerialImport(x.dataOfSerialImport.id, 1)" class="ng-binding"></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row col-sm-6"
+            style="padding:0px;display: flex;justify-content: space-between;align-content: center;">
+            <div class="col-sm-4" style="padding:0px">
+                <div class="row" style="">
+                    <span class="col-sm-6 font-color-secondary text-right">Amount :</span>
+                    <div>
+                        <a ng-show="(posbook.data.cnFormPaymentId === undefined &amp;&amp; posbook.data.quotationBy.id === undefined &amp;&amp; (posbook.data.flowApprFlag == undefined || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag !== true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)) )"
+                            class="col-sm-6 text-right font-color-base ng-binding"
+                            ng-click="displayChangePrice(x, $index)">
+                            75.00 </a>
+                        <a ng-show="(posbook.data.cnFormPaymentId !== undefined || posbook.data.quotationBy.id !== undefined || (checkInPosFlag !== undefined &amp;&amp; checkInPosFlag == true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820008))"
+                            class="col-sm-6 text-right font-color-base ng-binding ng-hide">
+                            75.00 </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <span class="col-sm-6 font-color-secondary text-right">Disc. :</span> <span
+                        class="col-sm-6 font-color-secondary-red text-right ng-binding">-0.00</span>
+                </div>
+                <div class="row">
+                    <span class="col-sm-6 font-color-secondary ng-hide" ng-show="x.vatRate===undefined">Not Vat</span>
+                </div>
+                <div class="row" style="">
+                    <span class="col-sm-6 font-color-secondary text-right">Total :</span>
+                    <a ng-show="(posbook.data.cnFormPaymentId === undefined &amp;&amp; posbook.data.quotationBy.id === undefined &amp;&amp; (posbook.data.flowApprFlag == undefined || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag !== true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)))"
+                        class="col-sm-6 text-right font-color-base ng-binding" ng-click="displayPrice(x, $index)">
+                        75.00</a>
+                    <a ng-show="(posbook.data.cnFormPaymentId !== undefined || posbook.data.quotationBy.id !== undefined  || (checkInPosFlag !== undefined &amp;&amp; checkInPosFlag == true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820008))"
+                        class="col-sm-6 text-right font-color-base ng-binding ng-hide">
+                        75.00</a>
+
+                </div>
+                <div class="row">
+                    <span class="col-sm-6 font-color-secondary text-right ng-hide" ng-show="x.discountEx">Cash Discount
+                        <span ng-show="x.discExPercent !== undefined &amp;&amp; x.discExPercent !== '' "
+                            class="font-color-base ng-binding ng-hide">(%)</span> :</span>
+                    <span class="col-sm-6 text-right font-color-secondary-red ng-binding ng-hide"
+                        ng-show="x.discountEx"> -0.00</span>
+                </div>
+                <div class="row">
+                    <span class="col-sm-6 font-color-secondary text-right ng-hide" ng-show="x.tradeinAmt">Trade-In
+                        Discount :</span>
+                    <span class="col-sm-6 text-right font-color-secondary-red ng-binding ng-hide"
+                        ng-show="x.tradeinAmt"> -</span>
+                </div>
+                <div class="row">
+                    <span class="col-sm-6 font-color-secondary text-right ng-hide" ng-show="x.moCamAmt">MC Discount
+                        :</span>
+                    <span class="col-sm-6 text-right font-color-secondary-red ng-binding ng-hide" ng-show="x.moCamAmt">
+                        -</span>
+                </div>
+                <div class="row" style="">
+                    <span class="col-sm-6 font-color-secondary text-right ng-hide" ng-show="x.ecomDiscAmt">E-Commerce
+                        Discount :</span>
+                    <span class="col-sm-6 text-right font-color-secondary-red ng-binding ng-hide"
+                        ng-show="x.ecomDiscAmt"> -</span>
+                </div>
+                <div class="row" style="">
+                    <span class="col-sm-12 font-color-secondary-red  ng-binding ng-hide"
+                        ng-show="x.overwriteVat===true">Vat (7%)</span>
+                    <span class="col-sm-6 font-color-secondary text-right">Total Net:</span>
+                    <a ng-show="(posbook.data.cnFormPaymentId === undefined &amp;&amp; posbook.data.quotationBy.id === undefined &amp;&amp; (posbook.data.flowApprFlag == undefined || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag !== true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)))"
+                        class="col-sm-6 text-right font-color-base ng-binding" ng-click="displayPrice(x, $index)">
+                        75.00 </a>
+                    <a ng-show="(posbook.data.cnFormPaymentId !== undefined || posbook.data.quotationBy.id !== undefined  || (checkInPosFlag !== undefined &amp;&amp; checkInPosFlag == true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId == 10820007))"
+                        class="col-sm-6 text-right font-color-base ng-binding ng-hide">
+                        75.00 </a>
+                </div>
+            </div>
+            <div class="col-sm-4 text-center" style="padding:0px">
+
+
+                <div class="col-sm-4" style="padding-right : 0px; margin-top : 4px">
+                    <button type="button" class="btn btn-danger btn-sm"
+                        ng-show="!posbook.data.cnModePartialFlag &amp;&amp; (posbook.data.orderType.category.lookupMasterId === 10980001 || (posbook.data.orderType.typeId.lookupMasterId === 90022217 &amp;&amp; posbook.data.orderType.category.lookupMasterId === 10980002)) &amp;&amp; !(posbook.data.transactionTypeId === 91200006 &amp;&amp; secChangeDepositOffset.val === 'N') &amp;&amp; !posbook.data.quotationBy"
+                        ng-click="incrementMainQty(false, x)" ng-disabled="
+                                                        x.productQty === 1
+                                                        || (checkInPosFlag !== undefined &amp;&amp; checkInPosFlag == true)
+                                                        || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820008)
+                                                        || (posbook.data.transactionTypeId === 91200006 &amp;&amp; secChangeDepositOffset.val === 'N')
+                                                        || posPaymentPage.createdPaymentFlag
+                                                    " disabled="disabled">
+                        -
+                    </button>
+                </div>
+
+                <span class="col-sm-4 ng-binding" style="color:#2a337c; font-size:26px; padding : 0px"
+                    ng-show="!posbook.data.cnModePartialFlag">
+                    1
+                </span>
+
+                <div class="col-sm-4" style="padding-left : 0px; margin-top : 4px">
+                    <button type="button" class="btn btn-success btn-sm"
+                        ng-show="!posbook.data.cnModePartialFlag &amp;&amp; (posbook.data.orderType.category.lookupMasterId === 10980001 || (posbook.data.orderType.typeId.lookupMasterId === 90022217 &amp;&amp; posbook.data.orderType.category.lookupMasterId === 10980002)) &amp;&amp; !(posbook.data.transactionTypeId === 91200006 &amp;&amp; secChangeDepositOffset.val === 'N') &amp;&amp; !posbook.data.quotationBy"
+                        ng-click="incrementMainQty(true, x)" ng-disabled="
+                                                        (checkInPosFlag !== undefined &amp;&amp; checkInPosFlag == true)
+                                                        || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820008)
+                                                        || (posbook.data.transactionTypeId === 91200006 &amp;&amp; secChangeDepositOffset.val === 'N')
+                                                        || posPaymentPage.createdPaymentFlag
+                                                    ">
+                        +
+                    </button>
+                </div>
+
+
+
+
+
+                <span class="col-sm-6 ng-hide" style="font-size:26px" ng-show="posbook.data.cnModePartialFlag">
+                    <a ng-click="openCnQty(x, $index)" style="color:red;"
+                        ng-disabled="posbook.data.orderStatus.lookupMasterId === 10820007 || (x.productQtyBef - x.partialQty === 1)"
+                        class="ng-binding">
+                        1
+                    </a>
+                </span>
+
+
+                <span class="col-sm-6 ng-binding ng-hide" style="font-size:26px"
+                    ng-show="(posbook.data.cnModePartialFlag)&amp;&amp;(x.productQtyBef&gt;=x.productQty)">
+                    ()
+                </span>
+            </div>
+            <div class="col-sm-4 text-right row" style="padding:0px; height : 70px">
+                <div class="col-sm-4 nopadding" ng-show="posbook.data.orderType.category.lookupMasterId !== 10980002">
+                    <button ng-disabled="
+                                                    (posbook.data.depositFormPaymentId !== undefined &amp;&amp; secChangeDepositOffset.val === 'N')
+                                                    || (checkInPosFlag !== undefined &amp;&amp; checkInPosFlag == true)
+                                                    || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820008)
+                                                    " ng-click="displayCoupon(x, $index)" type="button"
+                        ng-show="(x.productCouponDetail!==undefined || x.productCouponDetail.length&gt;0) &amp;&amp; (posbook.data.cnFormPaymentId===undefined &amp;&amp; posbook.data.quotationBy === undefined)"
+                        class="btn-coupon btn btn-sm btn-primary">Coupon</button>
+                </div>
+                <div class="col-sm-5 nopadding"
+                    ng-show="posbook.data.orderType.category.lookupMasterId === 10980001 &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007 "
+                    style="padding: 0px; text-align: center">
+
+
+
+
+                    <button type="button" id="_switchToInsertBtn_17653475432911765354514038"
+                        name="_switchToInsertBtn_17653475432911765354514038" ng-selling-insert-serial-init="" ng-show="
+                                                        (posbook.data.cnFormPaymentId === undefined &amp;&amp; !(x.dataOfProductKit !== undefined || x.dataOfProductKit.length &gt; 0))
+                                                        &amp;&amp; !checkPolicyOfSerial_isDisable(x, undefined)
+                                                        &amp;&amp; !(posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.category !== undefined &amp;&amp; posbook.data.orderType.category.lookupMasterId === 10980001 &amp;&amp; posbook.data.flowApprFlag &amp;&amp; x.isSerialBtn)
+                                                        &amp;&amp; !(posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.paymentSource !== undefined &amp;&amp; posbook.data.orderType.paymentSource.lookupMasterId  === 10930002 &amp;&amp; (secCreditShipending !== undefined &amp;&amp; secCreditShipending.val === 'N'))
+                                                        &amp;&amp; !(posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.paymentSource !== undefined &amp;&amp; posbook.data.orderType.paymentSource.lookupMasterId  === 10930001 &amp;&amp; (secCashShipending.val !== undefined &amp;&amp; secCashShipending.val === 'N'))
+                                                        &amp;&amp; !(posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.onAcctFlag)
+                                                        || (!checkPolicyOfSerial_isDisable(x, undefined) &amp;&amp; (posbook.data.transactionTypeId === 91200004 || posbook.data.transactionTypeId === 91200006 || posbook.data.transactionTypeId === 91200007) &amp;&amp; posbook.data.orderStatus.lookupMasterId === 10820008)
+                                                    " ng-disabled="x.dataOfProductKit !== undefined
+                                                                || checkPolicyOfSerial_isDisable(x, undefined)
+                                                                || (posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.paymentSource !== undefined &amp;&amp; posbook.data.orderType.paymentSource.lookupMasterId  === 10930002 &amp;&amp; (secCreditShipending !== undefined &amp;&amp; secCreditShipending.val === 'N'))
+                                                                || (posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.paymentSource !== undefined &amp;&amp; posbook.data.orderType.paymentSource.lookupMasterId  === 10930001 &amp;&amp; (secCashShipending.val !== undefined &amp;&amp; secCashShipending.val === 'N'))
+                                                                || posbook.data.orderType.onAcctFlag
+                                                                || posPaymentPage.createdPaymentFlag
+                                                                " ng-click="_initialDataForInsertSerial(posbook.data)"
+                        class="btn-serial btn btn-sm btn-outline btn-primary ng-hide" serial-page-type="'pos'"
+                        serial-transaction-id="x.saleOrderId" serial-transaction-line-id=""
+                        serial-transaction-source-id="40010012"
+                        serial-so-transaction-inv-type="posbook.data.transactionTypeId"
+                        serial-detail-status-id="x.status.lookupMasterId" serial-main-flag="true"
+                        serial-kit-flag="false" serial-lang-code="langCode" serial-ssdc-confirm="x.ssdc"
+                        serial-ssdc-main="posbook.data.ssdcMain" serial-ssdc-auth="posbook.data.ssdcAuth"
+                        serial-ssdc-page="posbook.data.ssdcPage" serial-read-only="_readOnlyPage"
+                        serial-store="posbook.data.storeCustom.id"
+                        serial-branch-custom="posbook.data.storeCustom.branchCustom"
+                        serial-warehouse-custom="posbook.data.storeCustom.dataOfDefualWarehouse.warehouseId"
+                        serial-saleorder-detail="posbook.data.dataOfDetail" serial-detail-list="x"
+                        serial-detail-product-kit-list="" serial-product="x.product"
+                        serial-product-name="x.productName ? x.productName : x.product.productName"
+                        serial-product-code="x.productCode ? x.productCode : x.product.productCode"
+                        serial-doa-id="x.doaId" serial-warr-id="x.warrId" serial-data-of-coupon="x.dataOfCoupon"
+                        serial-product-qty="x.productQty" serial-product-coupon-detail="x.productCouponDetail"
+                        serial-product-time-server="x.product.timeServer" serial-serial-keepings="x.serialKeepings"
+                        serial-order-type="posbook.data.orderType"
+                        serial-deposit-from-payment-id="posbook.data.depositFormPaymentId"
+                        serial-deposit-from-payment-detail-id="x.idTemp" serial-order-shooting-list="x.dataOfSerial"
+                        disabled="disabled">
+                        Serial
+                    </button>
+                    <span
+                        ng-show="posbook.data.cnFormPaymentId===undefined &amp;&amp; (posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.paymentSource !== undefined &amp;&amp; posbook.data.orderType.paymentSource.lookupMasterId  !== 10930002)"></span>
+
+                </div>
+
+                <div class="col-sm-4 nopadding ng-hide"
+                    ng-show="posbook.data.orderType.category.lookupMasterId === 10980002 || posbook.data.orderStatus.lookupMasterId === 10820007">
+
+
+
+                    <button type="button" id="_switchToViewSerialBtn_17653475432911765354514038"
+                        name="_switchToViewSerialBtn_17653475432911765354514038" ng-init-pos-view-serial-by-bill=""
+                        ng-show="
+                                                        posbook.data.cnFormPaymentId !== undefined
+                                                        &amp;&amp; !(x.dataOfProductKit !== undefined &amp;&amp; x.dataOfProductKit.length &gt; 0)
+                                                        &amp;&amp; !checkPolicyOfSerial_isDisable(x, undefined)
+                                                        &amp;&amp; !(posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.onAcctFlag)
+                                                        || (posbook.data.orderType !== undefined &amp;&amp; posbook.data.orderType.category !== undefined &amp;&amp; posbook.data.orderType.category.lookupMasterId === 10980001
+                                                            &amp;&amp; posbook.data.flowApprFlag
+                                                            &amp;&amp; x.isSerialBtn
+                                                            &amp;&amp; x.dataOfProductKit === undefined
+                                                        )"
+                        ng-disabled="x.dataOfProductKit !== undefined || x.isSerialBtn === false || posPaymentPage.createdPaymentFlag"
+                        ng-click="_openSerialPage()" class="btn btn-sm btn-primary ng-hide" serial-page-type="'pos'"
+                        serial-is-credit-note-func="true" serial-transaction-id="" serial-transaction-line-id=""
+                        serial-transaction-source-id="40010012" serial-detail-list="x" serial-product="x.product"
+                        serial-product-kit="x.product.kitFlag" serial-product-name="x.product.productName"
+                        serial-product-code="x.product.productCode">
+                        Serial
+                    </button>
+                </div>
+
+
+
+                <div class="col-sm-4 nopadding ng-hide"
+                    ng-show="posbook.data.orderType.category.lookupMasterId === 10980002" style="padding : 0px">
+                    <button type="button" id="_switchToCnPartialBtn_17653475432911765354514038"
+                        name="_switchToCnPartialeBtn_17653475432911765354514038" ng-cn-partial-serial-init=""
+                        class="btn-serial btn btn-sm btn-primary ng-hide"
+                        ng-show="posbook.data.cnFormPaymentId !== undefined &amp;&amp; (posbook.data.cnModePartialFlag !== undefined &amp;&amp; posbook.data.cnModePartialFlag === true) &amp;&amp; !checkPolicyOfSerial_isDisable(x, undefined) &amp;&amp; !(posbook.data.orderStatus !== undeined &amp;&amp; posbook.data.orderStatus.lookupMasterId === 10820007)"
+                        ng-disabled="x.dataOfProductKit !== undefined || checkPolicyOfSerial_isDisable(x, undefined) || posbook.data.orderType.onAcctFlag || posPaymentPage.createdPaymentFlag"
+                        ng-click="_initialDataForCnPartial(); removeAlertBtn_cnNormal(x)"
+                        serial-index-of-product="$index" serial-page-type="'pos'"
+                        serial-transaction-id="posbook.data.cnFormPaymentId"
+                        serial-transaction-line-id="x.refCnRecordDetailId" serial-transaction-source-id="40010012"
+                        serial-main-flag="true" serial-is-confirm="x.isConfirm" serial-lang-code="langCode"
+                        serial-ssdc-confirm="x.ssdc" serial-store="posbook.data.storeCustom.id"
+                        serial-branch-custom="posbook.data.storeCustom.branchCustom"
+                        serial-warehouse-custom="posbook.data.storeCustom.dataOfDefualWarehouse.warehouseId"
+                        serial-saleorder-detail="posbook.data.dataOfDetail" serial-detail-list="x"
+                        serial-saleorder-detail-product-kit-list="x.dataOfProductKit" serial-product="x.product"
+                        serial-product-name="x.productName ? x.productName : x.product.productName"
+                        serial-product-code="x.productCode ? x.productCode : x.product.productCode"
+                        serial-doa-id="x.doaId" serial-warr-id="x.warrId" serial-product-qty="x.productQty"
+                        serial-product-coupon-detail="x.productCouponDetail"
+                        serial-product-time-server="x.product.timeServer" serial-serial-keepings="x.serialKeepings"
+                        serial-order-type="posbook.data.orderType" disabled="disabled">
+                        CN
+                    </button>
+                </div>
+                <div class="col-sm-3 nopadding" ng-hide="(posbook.data.orderStatus.lookupMasterId === 10820007)">
+                    <!-- ngIf: handleShowTrashCnPartial() -->
+                    <!-- ngIf: posbook.data.cnFormPaymentId === undefined
+                                                        && posbook.data.quotationBy.id === undefined
+                                                        && posbook.data.depositFormPaymentId===undefined
+                                                        && (posbook.data.orderStatus == undefined || (posbook.data.orderStatus !== undefined && posbook.data.orderStatus.lookupMasterId !== 10820007))
+                                                        && !(posbook.data.transactionTypeId === 91200004 && trueLengthDataOfDetail() <= 1)
+                                                        || (secChangeDepositOffset.val === 'Y' && posbook.data.depositFormPaymentId !== undefined && trueLengthDataOfDetail() > 1)
+                                                     --><button
+                        ng-click="x.id===undefined?deleteItem($index,x):deleteItem($index,x)"
+                        class="btn btn-danger btn-sm ng-scope" ng-disabled="posPaymentPage.createdPaymentFlag" ng-if="posbook.data.cnFormPaymentId === undefined
+                                                        &amp;&amp; posbook.data.quotationBy.id === undefined
+                                                        &amp;&amp; posbook.data.depositFormPaymentId===undefined
+                                                        &amp;&amp; (posbook.data.orderStatus == undefined || (posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007))
+                                                        &amp;&amp; !(posbook.data.transactionTypeId === 91200004 &amp;&amp; trueLengthDataOfDetail() &lt;= 1)
+                                                        || (secChangeDepositOffset.val === 'Y' &amp;&amp; posbook.data.depositFormPaymentId !== undefined &amp;&amp; trueLengthDataOfDetail() &gt; 1)
+                                                    " title=""><i class="fa fa-trash"></i></button><!-- end ngIf: posbook.data.cnFormPaymentId === undefined
+                                                        && posbook.data.quotationBy.id === undefined
+                                                        && posbook.data.depositFormPaymentId===undefined
+                                                        && (posbook.data.orderStatus == undefined || (posbook.data.orderStatus !== undefined && posbook.data.orderStatus.lookupMasterId !== 10820007))
+                                                        && !(posbook.data.transactionTypeId === 91200004 && trueLengthDataOfDetail() <= 1)
+                                                        || (secChangeDepositOffset.val === 'Y' && posbook.data.depositFormPaymentId !== undefined && trueLengthDataOfDetail() > 1)
+                                                     -->
+                </div>
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="word-break: break-all">
+                    <p class="text-left" style="margin: 0px">Sale Person.</p>
+                    <p class="text-left ng-hide"
+                        ng-show="posbook.data.cnFormPaymentId !== undefined || posbook.data.quotationBy.id !== undefined">
+                        62078-Satawad Tantitrakool</p>
+                    <div class="text-left"
+                        ng-show="posbook.data.cnFormPaymentId===undefined &amp;&amp; posbook.data.quotationBy.id === undefined">
+                        <select id="salePersonSearch17653475432911765354514038"
+                            class="form-control validate select2-hidden-accessible"
+                            ng-disabled="(posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820008)"
+                            ng-auto-select2="" ui-model-index="17653475432911765354514038"
+                            ui-model-ngrepeat="smartbook.dataOfDetail" ui-model-attr="x.salePerson"
+                            ui-model-display="firshnamEn" ui-model-display1="lastnameEn"
+                            ui-model-display-code="employeeNo" ui-model-identity="id"
+                            ui-url="/smartcore/sas/security/getEmployeeAutoSearch.htm"
+                            data-select2-id="salePersonSearch17653475432911765354514038" tabindex="-1"
+                            aria-hidden="true">
+                            <option value="2452" data-select2-id="198">62078-Satawad Tantitrakool</option>
+                        </select><span class="select2 select2-container select2-container--default" dir="ltr"
+                            data-select2-id="199" style="width: 129px;"><span class="selection"><span
+                                    class="select2-selection select2-selection--single" role="combobox"
+                                    aria-haspopup="true" aria-expanded="false" tabindex="0"
+                                    aria-labelledby="select2-salePersonSearch17653475432911765354514038-container"><span
+                                        class="select2-selection__rendered"
+                                        id="select2-salePersonSearch17653475432911765354514038-container" role="textbox"
+                                        aria-readonly="true" title="62078-Satawad Tantitrakool"><span
+                                            class="select2-selection__clear" data-select2-id="200">×</span>62078-Satawad
+                                        Tantitrakool</span><span class="select2-selection__arrow" role="presentation"><b
+                                            role="presentation"></b></span></span></span><span class="dropdown-wrapper"
+                                aria-hidden="true"></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12">
+            <!-- ngRepeat: cdt in x.productCouponDetail|couponautoSerial -->
+
+            <!-- ngRepeat: cdt in x.productCouponDetail|couponauto -->
+        </div>
+    </div>
+</div>
+
 </html>

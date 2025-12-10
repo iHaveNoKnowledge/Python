@@ -39,6 +39,7 @@ from PIL import Image, ImageTk
 from pypdf import PdfReader
 from selenium import webdriver
 from selenium.common.exceptions import (StaleElementReferenceException,
+                                        TimeoutException,
                                         UnexpectedAlertPresentException)
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
@@ -272,8 +273,8 @@ class MyApp:
         )
 
         # * ตั้งค่าขนาดและตำแหน่งหน้าต่าง
-        window_width = min(int(1000 * scaling_factor), screen_width - 100)
-        window_height = min(int(900 * scaling_factor), screen_height - 100)
+        window_width = min(int(975 * scaling_factor), screen_width - 100)
+        window_height = min(int(750 * scaling_factor), screen_height - 100)
         x_position = max(0, min(
             (screen_width - window_width) // 2,
             screen_width - window_width - 20
@@ -410,12 +411,13 @@ class MyApp:
         self._setup_smart_scroll()
 
     def on_frame_configure(self, event=None):
-        # """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
+        """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
+        # อัพเดท scroll region ให้ตรงกับขนาดของ main_frame
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def on_canvas_configure(self, event):
-        # """ปรับขนาด canvas window เมื่อ canvas มีการ resize"""
-        # ปรับความกว้างของ window ใน canvas ให้เท่ากับความกว้างของ canvas
+        """ปรับขนาด canvas window เมื่อ canvas มีการ resize"""
+        # อัพเดท scroll region
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def _setup_smart_scroll(self):
@@ -430,22 +432,86 @@ class MyApp:
         """
         Handler สำหรับ mouse wheel event ที่จะตรวจสอบว่า mouse hover อยู่ที่ไหน
         แล้วส่ง scroll event ไปให้ widget ที่เหมาะสม
+
+        - Scroll ปกติ: เลื่อนแนวตั้ง (vertical)
+        - Shift + Scroll: เลื่อนแนวนอน (horizontal)
         """
         # หา widget ที่ mouse กำลัง hover อยู่
         widget = event.widget
+
+        # ตรวจสอบว่ากด Shift หรือไม่
+        is_shift_pressed = (event.state & 0x0001) != 0
+
+        # คำนวณทิศทางการ scroll
+        scroll_amount = int(-1 * (event.delta / 120))
 
         # ตรวจสอบว่า widget ที่ hover อยู่มี scrollbar ของตัวเองหรือไม่
         # โดยการเช็คว่ามันเป็น Text widget, Listbox, หรือ widget อื่นที่มี scroll ได้
         if self._widget_has_scrollbar(widget):
             # ถ้า widget มี scrollbar ของตัวเอง ให้ส่ง event ไปให้มัน
             try:
-                widget.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                if is_shift_pressed:
+                    # Shift + Scroll = เลื่อนแนวนอน
+                    if self._can_scroll(widget, 'x', scroll_amount):
+                        widget.xview_scroll(scroll_amount, "units")
+                else:
+                    # Scroll ปกติ = เลื่อนแนวตั้ง
+                    if self._can_scroll(widget, 'y', scroll_amount):
+                        widget.yview_scroll(scroll_amount, "units")
             except:
-                # ถ้า widget ไม่รองรับ yview_scroll ก็ไม่ทำอะไร
+                # ถ้า widget ไม่รองรับ xview_scroll/yview_scroll ก็ไม่ทำอะไร
                 pass
         else:
             # ถ้าไม่มี scrollbar ให้ scroll main canvas แทน
-            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            if is_shift_pressed:
+                # Shift + Scroll = เลื่อนแนวนอน
+                if self._can_scroll(self.canvas, 'x', scroll_amount):
+                    self.canvas.xview_scroll(scroll_amount, "units")
+            else:
+                # Scroll ปกติ = เลื่อนแนวตั้ง
+                if self._can_scroll(self.canvas, 'y', scroll_amount):
+                    self.canvas.yview_scroll(scroll_amount, "units")
+
+    def _can_scroll(self, widget, direction, amount):
+        """
+        ตรวจสอบว่าสามารถ scroll ได้หรือไม่โดยไม่เกินจุดเริ่มต้น (origin)
+
+        Args:
+            widget: widget ที่จะ scroll
+            direction: 'x' สำหรับแนวนอน, 'y' สำหรับแนวตั้ง
+            amount: จำนวนที่จะ scroll (บวก = scroll ลง/ขวา, ลบ = scroll ขึ้น/ซ้าย)
+
+        Returns:
+            True ถ้าสามารถ scroll ได้, False ถ้าจะเกินจุดเริ่มต้น
+        """
+        try:
+            if direction == 'y':
+                # ตรวจสอบแนวตั้ง
+                view = widget.yview()
+                # view[0] = ตำแหน่งบนสุดที่แสดง (0.0 = บนสุด)
+                # view[1] = ตำแหน่งล่างสุดที่แสดง (1.0 = ล่างสุด)
+
+                if amount < 0:  # scroll ขึ้น
+                    # ป้องกันการ scroll ขึ้นเกินจุดบนสุด (origin)
+                    return view[0] > 0.0
+                else:  # scroll ลง
+                    # อนุญาตให้ scroll ลงได้เสมอ (เพื่อดู content ที่อยู่ล่าง viewport)
+                    return view[1] < 1.0
+            else:  # direction == 'x'
+                # ตรวจสอบแนวนอน
+                view = widget.xview()
+                # view[0] = ตำแหน่งซ้ายสุดที่แสดง (0.0 = ซ้ายสุด)
+                # view[1] = ตำแหน่งขวาสุดที่แสดง (1.0 = ขวาสุด)
+
+                if amount < 0:  # scroll ซ้าย
+                    # ป้องกันการ scroll ซ้ายเกินจุดซ้ายสุด (origin)
+                    return view[0] > 0.0
+                else:  # scroll ขวา
+                    # อนุญาตให้ scroll ขวาได้เสมอ (เพื่อดู content ที่อยู่ขวา viewport)
+                    return view[1] < 1.0
+        except:
+            # ถ้าเกิด error ให้อนุญาต scroll (เผื่อ widget ไม่รองรับ)
+            return True
 
     def _widget_has_scrollbar(self, widget):
         """
@@ -3004,7 +3070,7 @@ class Bot_POS:
     def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None):
         """อันนี้ based มาจาก smco_set_overcharge_product_v2จาก test_each_py_functions.ipynb แต่ปรับให้มันรับ user_id กับ user_pw มาเอง"""
         print("items_target: ", items_user_input)
-        print("oc_amounts_input: ", oc_amounts_input)
+        print("oc_amounts_input: ", oc_amounts_input, "Type: ", type(oc_amounts_input))
         if items_user_input is None or oc_amounts_input is None:
             print("เลขลำดับสินค้า หรือ จำนวนเงินที่ต้องการ ยังไม่ถูกกำหนด")
             return
@@ -3354,10 +3420,10 @@ class Bot_POS:
                 print("li_locators.text: ", li_locators[0].text)
                 if not "Searching" in li_locators[0].text:
                     break
-                time.sleep(0.30)
+                time.sleep(0.3)
 
             except:
-                time.sleep(0.30)
+                time.sleep(0.45)
                 continue
         return "dropdown is ready!"
 
@@ -3720,31 +3786,55 @@ class Bot_POS:
                     continue
 
     def add_shipping_cost(self):
-        shipping_cost = self.app.cus_ship_cost.get()
+        shipping_cost = int(self.app.cus_ship_cost.get())
         has_shpping_cost = False
         print("มี item ใน listไหม")
         item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
         if len(item_elements) > 0:
-            print("มี item ใน list")
+            print("มี item ใน list", len(item_elements))
             for idx, item_element in enumerate(item_elements):
-
+                item_sku_name = ''
                 item_sku_name_element = item_element.find_element(By.CSS_SELECTOR, "u.ng-binding")
-                item_srp_element = item_element.find_element(By.XPATH, "//span[@class='font-color-base ng-binding']")
                 item_sku_name = self.driver.execute_script("return arguments[0].textContent;", item_sku_name_element)
+                print(f"""sku name: {item_sku_name}""")
+
+                item_srp = 0
+                item_srp_element = item_element.find_element(By.XPATH, ".//span[@class='font-color-base ng-binding']")
                 item_srp = self.driver.execute_script("return arguments[0].textContent;", item_srp_element)
-                if item_sku_name == 'SV0-000101' and item_srp == shipping_cost:
+                before_decimal = item_srp.split('.')[0]
+                clean_item_srp = int(re.sub(r'[^0-9]', '', before_decimal))
+                print(f"""srp: {clean_item_srp}""")
+
+                if item_sku_name != 'SV0-000101':
+                    continue
+                elif item_sku_name == 'SV0-000101' and clean_item_srp == shipping_cost:
                     print("shpping cost has been corrected")
                     has_shpping_cost = True
-                else:
-                    print("shpping cost has not been corrected")
+                    return
+                elif item_sku_name == 'SV0-000101' and clean_item_srp != shipping_cost:
+                    print(
+                        f"shpping cost has not been corrected: {item_sku_name}:  {clean_item_srp}  != {shipping_cost}: {clean_item_srp != shipping_cost}")
+                    # ! item_elements ต้องอ่านค่าใหม่เพราะ ทันทีที่กดลบ element นี้มันจะไม่เหมือนเดิมเพราะมันลบ chirldren node ออก
+                    item_elements = self.driver.find_elements(
+                        By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
                     item_delete_btn_element = item_element.find_element(
-                        By.XPATH, "//button[@class='btn btn-danger btn-sm ng-scope']")
+                        By.XPATH, ".//button[@class='btn btn-danger btn-sm ng-scope']")
                     item_delete_btn_element.click()
+                    # while not self.operation_thread.is_set():
+                    #     try:
+                    #         item_element.is_enabled()
+                    #         continue
+                    #     except:
+                    #         time.sleep(2)
+                    #         break
+                    has_shpping_cost = False
                     pass
-
+                else:
+                    has_shpping_cost = False
         else:
             print("ไม่เคยมี item ใน list มาก่อน")
             has_shpping_cost = False
+
         if int(shipping_cost) != int(0) and not has_shpping_cost:
             try:
                 self.sku_input_element = self.driver.find_element(
@@ -3755,7 +3845,6 @@ class Bot_POS:
                     arguments[0].dispatchEvent(new Event('input'));
                     arguments[0].dispatchEvent(new Event('change'));
                 """, self.sku_input_element)
-
                 self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
 
@@ -3768,49 +3857,55 @@ class Bot_POS:
                 # logger.info(f"Order: {self.app.order} 1/2Finished!!")
                 # return
                 time.sleep(2)
+                self.smco_set_overcharge_product('SV0-000101', shipping_cost)
 
-                # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                # self.definePrice_btn_element = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
-                self.definePrice_btn_element.click()
-                time.sleep(1)
-                # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-                print("Successfully clicked on SKU ELEMENT 1")
+                # item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                # for idx, item_element in enumerate(item_elements):
+                #     item_sku_name_element = item_element.find_element(By.CSS_SELECTOR, "u.ng-binding")
+                #     item_sku_name = self.driver.execute_script("return arguments[0].textContent;", item_sku_name_element)
+                #     if item_sku_name == 'SV0-000101':
+                #         # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
+                #         self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located(
+                #             (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
+                #         # self.definePrice_btn_element = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
+                # self.definePrice_btn_element.click()
+                # time.sleep(1)
+                # # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
+                # print("Successfully clicked on SKU ELEMENT 1")
 
-                self.changePriceInput = self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
-                self.changePriceInput.clear()
-                # self.changePriceInput.send_keys(69)
-                # self.changePriceInput.send_keys(int(shipping_cost))
-                self.driver.execute_script(
-                    "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                    self.changePriceInput, shipping_cost)
-                self.driver.find_element(
-                    By().XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
+                # self.changePriceInput = self.driver.find_element(
+                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
+                # self.changePriceInput.clear()
+                # # self.changePriceInput.send_keys(69)
+                # # self.changePriceInput.send_keys(int(shipping_cost))
+                # self.driver.execute_script(
+                #     "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                #     self.changePriceInput, shipping_cost)
+                # self.driver.find_element(
+                #     By().XPATH,
+                #     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
+                # self.driver.find_element(
+                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
 
-                self.driver.find_element(
-                    By().XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
+                # self.driver.find_element(
+                #     By().XPATH,
+                #     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
+                # self.driver.find_element(
+                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
 
-                self.driver.find_element(
-                    By().XPATH,
-                    '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
+                # self.driver.find_element(
+                #     By().XPATH,
+                #     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
+                # self.driver.find_element(
+                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
 
-                self.driver.find_element(
-                    By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
-                # try:
-                #     print("Waiting for element to disappear")
-                #     self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
-                # except:
-                #     print("No need to wait")
+                # self.driver.find_element(
+                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
+                # # try:
+                # #     print("Waiting for element to disappear")
+                # #     self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
+                # # except:
+                # #     print("No need to wait")
             except Exception as err:
                 print("Shipment cost skipped")
                 print(err)
@@ -4521,9 +4616,9 @@ class Bot_POS:
                     #! matched_obj = re.search("^C[0-9]+", title_attribute) เลิกใช้ เพราะบางชื่อมันไม่ขึ้นต้นด้วย C
                     matched_obj = re.search(r"^[0-9]+-", title_attribute)
                     try:
-                        self.is_input_empty = matched_obj.group()
+                        self.emp_name_from_element = matched_obj.group()
                     except:
-                        self.is_input_empty = ""
+                        self.emp_name_from_element = ""
 
                     # * หน้ารายการยิงของ (หน้าแรก)
                     # ! Deprecated
@@ -4553,7 +4648,7 @@ class Bot_POS:
                     #         continue
 
                     # * เอาไว้ใช้เพื่อจบการทำงาน เมื่ออกบืล เดิมทีค่าที่เป็นชื่อลูกค้ามันจะหายไป แต่ปัจจุบันไม่มีชื่อลูกค้าแล้ว เลยไปใช้ชื่อพนักงาน แต่ชื่อพนักงานมันจะหายไหมนะ?
-                    if self.is_input_empty == "" and is_final_page_displayed == False:
+                    if self.emp_name_from_element == "" and is_final_page_displayed == False:
                         print("Emp name disappeared")
                         break
                     elif (not "Select " in self.saler_name_input_element.text or not "กรุณาเลือก" in self.saler_name_input_element.text) and is_final_page_displayed == False:
@@ -5125,6 +5220,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -6151,12 +6247,14 @@ class Bot_POS:
                             el = self.driver.find_element(
                                 By.CSS_SELECTOR, "input[name='radioConvertFullTaxModal'][ng-value='93003002']")
                             self.driver.execute_script("arguments[0].click();", el)
-                            if not self.driver.find_element(
-                                    By.XPATH, "select2-memberSearchft-container").get_attribute('title'):
+                            if not self.driver.find_element(By.XPATH, "select2-memberSearchft-container").get_attribute(
+                                    'title'):  # ! ตรงนี้แม่ง err จริงๆด้วย แต่ก่อนหน้านี้แม่งใช้ได้นะ งงจัด
+                                print("ยังไม่ได้เลือกใบกำกับ")
                                 self.set_cus_name_search_type_last_page()
                                 self.select_cusname_address_last_page()
                             break
-                        except:
+                        except Exception as err:
+                            print("radioConvertFulltallModalErr: ", err)
                             time.sleep(0.5)
                             continue
                     else:
@@ -6296,7 +6394,7 @@ class Bot_POS:
                             By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[1]').text)):
                     print("ไปหน้าสุดท้าย จบ loop")
                     break
-                elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.is_input_empty == "":
+                elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.emp_name_from_element == "":
                     print("มันจบละ")
                     break
                 elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
