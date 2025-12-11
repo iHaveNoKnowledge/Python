@@ -2738,9 +2738,35 @@ class Bot_POS:
                 self.driver.switch_to.window(safe_opener_handle)
 
                 # * 2. ใช้ 'noopener' เพื่อตัดความสัมพันธ์กับ Process เดิม
-                self.driver.execute_script(f"window.open('{current_url}', '_blank', 'noopener');")
+                # ใช้ arguments แทน string interpolation เพื่อหลีกเลี่ยงปัญหา escape characters
+                try:
+                    self.driver.execute_script(
+                        "window.open(arguments[0], '_blank', 'noopener');",
+                        current_url
+                    )
+                    logger.info(f"Executed window.open for: {current_url}")
+                except Exception as e:
+                    logger.warning(f"window.open failed: {e}, trying alternative method")
+                
+                # ⏱️ ให้เวลา Browser ทำงาน execute_script ให้เสร็จก่อน
+                time.sleep(0.5)
 
-                # ✅ รอจนกว่าจะมีแท็บใหม่โผล่
+                # ✅ ตรวจสอบว่า tab ใหม่เปิดแล้วหรือยัง
+                new_handles = set(self.driver.window_handles) - old_handles
+                
+                # ถ้ายังไม่มี tab ใหม่ ให้ลองใช้วิธีอื่น
+                if len(new_handles) == 0:
+                    logger.warning("No new tab detected, trying driver.switch_to.new_window")
+                    try:
+                        self.driver.switch_to.new_window('tab')
+                        time.sleep(0.5)
+                        self.driver.get(current_url)
+                        new_handles = set(self.driver.window_handles) - old_handles
+                    except Exception as e:
+                        logger.error(f"Alternative tab opening method also failed: {e}")
+                        raise
+
+                # รอให้แน่ใจว่ามี tab ใหม่
                 WebDriverWait(self.driver, 10).until(
                     lambda d: len(set(d.window_handles) - old_handles) > 0
                 )
