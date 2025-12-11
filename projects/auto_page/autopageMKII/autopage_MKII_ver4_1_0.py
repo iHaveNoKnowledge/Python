@@ -3419,6 +3419,8 @@ class Bot_POS:
                 By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='C'")]''').click()
 
     def set_cus_name_search_type_last_page(self):
+        #! ต้องเช็คก่อนว่าเปน T ยัง ถ้าเปนแล้ว ข้ามไม่ต้องกด
+        
         cus_type_btn = self.driver.find_element(
             By.XPATH,
             r"""//div[@ng-show='posPaymentHead.data.taxinvTypeId == 93003002 && posPaymentHead.data.taxInvFtPermission == true']//button[@class='btn btn-outline-secondary dropdown-toggle ng-binding']""")
