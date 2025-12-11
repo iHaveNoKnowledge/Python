@@ -2747,13 +2747,13 @@ class Bot_POS:
                     logger.info(f"Executed window.open for: {current_url}")
                 except Exception as e:
                     logger.warning(f"window.open failed: {e}, trying alternative method")
-                
+
                 # ⏱️ ให้เวลา Browser ทำงาน execute_script ให้เสร็จก่อน
                 time.sleep(0.5)
 
                 # ✅ ตรวจสอบว่า tab ใหม่เปิดแล้วหรือยัง
                 new_handles = set(self.driver.window_handles) - old_handles
-                
+
                 # ถ้ายังไม่มี tab ใหม่ ให้ลองใช้วิธีอื่น
                 if len(new_handles) == 0:
                     logger.warning("No new tab detected, trying driver.switch_to.new_window")
@@ -3419,6 +3419,10 @@ class Bot_POS:
                 By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='C'")]''').click()
 
     def set_cus_name_search_type_last_page(self):
+        cus_type_btn = self.driver.find_element(
+            By.XPATH,
+            r"""//div[@ng-show='posPaymentHead.data.taxinvTypeId == 93003002 && posPaymentHead.data.taxInvFtPermission == true']//button[@class='btn btn-outline-secondary dropdown-toggle ng-binding']""")
+        self.driver.execute_script("arguments[0].click();", cus_type_btn)
         self.wait50.until(
             EC.element_to_be_clickable(
                 (By.XPATH,
@@ -3810,6 +3814,13 @@ class Bot_POS:
 
                 except:
                     continue
+
+    def open_old_tax_form(self):
+        try:
+            self.driver.find_element(
+                By.XPATH, "//button[@class='btn btn-primary' and @ng-click='abbCustomerFlag = false;']").click()
+        except:
+            print("Cannot click 'ค้นหาลูกค้า'")
 
     def add_shipping_cost(self):
         shipping_cost = int(self.app.cus_ship_cost.get())
@@ -4417,18 +4428,15 @@ class Bot_POS:
             # * ใส่ รหัสพนักงาน ===============================================================================
             self.insert_emp()
 
-            # ! wip test new class
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
             # self.cus_name_span_elmt_loc = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[2]/form/div/span/span[1]/span/span[1]'
             self.cus_name_span_elmt_loc = '//span[@id="select2-memberSearch-container"]'
             self.cus_name_span_x_btn_text = ""
             self.is_reset = False
-            try:
-                self.driver.find_element(
-                    By.XPATH, "//button[@class='btn btn-primary' and @ng-click='abbCustomerFlag = false;']").click()
-            except:
-                print("Cannot click 'ค้นหาลูกค้า'")
 
+            # Todo ทดสอบก่อน
+            # * เปิด form ใส่ชื่อลูกค้าแบบเก่า
+            # self.open_old_tax_form()
             while not self.operation_thread.is_set():
                 try:
                     self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc)
@@ -4684,9 +4692,9 @@ class Bot_POS:
                     if self.emp_name_from_element == "" and is_final_page_displayed == False:
                         print("Emp name disappeared")
                         break
-                    elif (not "Select " in self.saler_name_input_element.text or not "กรุณาเลือก" in self.saler_name_input_element.text) and is_final_page_displayed == False:
+                    elif (not "Select " in self.saler_name_input_element.get_attribute("title") or not "กรุณาเลือก" in self.saler_name_input_element.get_attribute("title")) and is_final_page_displayed == False:
                         continue
-                    elif (not "Select " in self.saler_name_input_element.text or not "กรุณาเลือก" in self.saler_name_input_element.text) and is_final_page_displayed == True:
+                    elif (not "Select " in self.saler_name_input_element.get_attribute("title") or not "กรุณาเลือก" in self.saler_name_input_element.get_attribute("title")) and is_final_page_displayed == True:
                         self.app.is_bot_browser_busy.set(True)
                         time.sleep(0.55)
                         print("Page Payment")
@@ -6284,8 +6292,13 @@ class Bot_POS:
                             el = self.driver.find_element(
                                 By.CSS_SELECTOR, "input[name='radioConvertFullTaxModal'][ng-value='93003002']")
                             self.driver.execute_script("arguments[0].click();", el)
-                            if not self.driver.find_element(By.XPATH, "select2-memberSearchft-container").get_attribute(
-                                    'title'):  # ! ตรงนี้แม่ง err จริงๆด้วย แต่ก่อนหน้านี้แม่งใช้ได้นะ งงจัด
+                            cus_name_element = self.driver.find_element(
+                                By.XPATH, "//span[@id='select2-memberSearchft-container']")
+                            convert_tax_cus_name = None
+                            convert_tax_cus_name = self.driver.execute_script(
+                                "return arguments[0].getAttribute('title');", cus_name_element)
+                            print("convert_tax_cus_name: ", convert_tax_cus_name)
+                            if convert_tax_cus_name == None:  # ! ตรงนี้แม่ง err จริงๆด้วย แต่ก่อนหน้านี้แม่งใช้ได้นะ งงจัด
                                 print("ยังไม่ได้เลือกใบกำกับ")
                                 self.set_cus_name_search_type_last_page()
                                 self.select_cusname_address_last_page()
