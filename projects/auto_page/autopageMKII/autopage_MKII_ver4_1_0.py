@@ -3419,31 +3419,33 @@ class Bot_POS:
                 By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='C'")]''').click()
 
     def set_cus_name_search_type_last_page(self):
-        #! ต้องเช็คก่อนว่าเปน T ยัง ถ้าเปนแล้ว ข้ามไม่ต้องกด
-        
         cus_type_btn = self.driver.find_element(
             By.XPATH,
             r"""//div[@ng-show='posPaymentHead.data.taxinvTypeId == 93003002 && posPaymentHead.data.taxInvFtPermission == true']//button[@class='btn btn-outline-secondary dropdown-toggle ng-binding']""")
-        self.driver.execute_script("arguments[0].click();", cus_type_btn)
-        self.wait50.until(
-            EC.element_to_be_clickable(
-                (By.XPATH,
-                 r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='N'")]''')))
-        if self.app.is_tax_required.get() == True:
-            # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
-            if self.app.marketplace_target.get() == "SHOPEE":
-                print("ขอใบกำกับSHOPEE ใช้ T:")
+        current_search_type = self.driver.execute_script("return arguments[0].innerText;", cus_type_btn)
+        if not 'T' in current_search_type:
+            self.driver.execute_script("arguments[0].click();", cus_type_btn)
+            self.wait50.until(
+                EC.element_to_be_clickable(
+                    (By.XPATH,
+                     r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='N'")]''')))
+            if self.app.is_tax_required.get() == True:
+                # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
+                if self.app.marketplace_target.get() == "SHOPEE":
+                    print("ขอใบกำกับSHOPEE ใช้ T:")
+                    self.driver.find_element(
+                        By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
+                elif self.app.marketplace_target.get() == "LAZADA":
+                    print("ขอใบกำกับLazada ใช้ T:")
+                    self.driver.find_element(
+                        By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
+            elif self.app.is_tax_required.get() == False:
+                # ไม่ขอใบกำกับ
+                print("ไม่ขอใบกำกับใช้ N:")
                 self.driver.find_element(
-                    By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
-            elif self.app.marketplace_target.get() == "LAZADA":
-                print("ขอใบกำกับLazada ใช้ T:")
-                self.driver.find_element(
-                    By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='T'")]''').click()
-        elif self.app.is_tax_required.get() == False:
-            # ไม่ขอใบกำกับ
-            print("ไม่ขอใบกำกับใช้ N:")
-            self.driver.find_element(
-                By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click,"st='N'")]''').click()
+                    By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click,"st='N'")]''').click()
+
+        print("set_cus_name_search_type_last_page ends.")
 
     def dropdown_handler(self):
         while not self.operation_thread.is_set():
@@ -3460,6 +3462,7 @@ class Bot_POS:
         return "dropdown is ready!"
 
     def select_cusname_address_last_page(self):
+        is_last_page = True
         if self.app.marketplace_target.get() == "SHOPEE":
             self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
             ) else self.app.cusNameFixer5(self.app.cus_name.get())
@@ -3468,7 +3471,7 @@ class Bot_POS:
             ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
-        self.get_customer_name_ready(self.cus_search_input)
+        self.get_customer_name_ready(self.cus_search_input, is_last_page)
 
         # * ใส่ตัวเช็คที่อยู่ลูกค้า
         if self.app.is_tax_required.get():
@@ -3483,7 +3486,7 @@ class Bot_POS:
             print("no tax required, skip address check")
         pass
 
-    def get_customer_name_ready(self, cus_search_input):
+    def get_customer_name_ready(self, cus_search_input, is_last_page:bool=False):
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
             self.enter_cus_name(cus_search_input)
@@ -5267,7 +5270,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
