@@ -4093,6 +4093,7 @@ class Bot_POS:
                                             return exe_path
                             except (FileNotFoundError, OSError, PermissionError, KeyError):
                                 print("continue")
+                                time.sleep(0.50)
                                 continue
                 except FileNotFoundError:
                     continue
@@ -4397,10 +4398,11 @@ class Bot_POS:
             self.cus_name_span_x_btn_text = ""
             self.is_reset = False
             try:
-                self.driver.find_element(By.XPATH, "//button[@class='btn btn-primary' and @ng-click='abbCustomerFlag = false;']").click()
+                self.driver.find_element(
+                    By.XPATH, "//button[@class='btn btn-primary' and @ng-click='abbCustomerFlag = false;']").click()
             except:
                 print("Cannot click 'ค้นหาลูกค้า'")
-            
+
             while not self.operation_thread.is_set():
                 try:
                     self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc)
@@ -4672,8 +4674,9 @@ class Bot_POS:
                                 _ = self.last_page.text
                                 print("มี last_page อยู่แล้ว")
                                 reload = False
-                            except StaleElementReferenceException:
+                            except Exception as err:
                                 print("last_page เก่า ใช้ไม่ได้  ต้องโหลดใหม่")
+                                print(err)
                                 reload = True
 
                         if reload:
@@ -4747,7 +4750,8 @@ class Bot_POS:
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
                                 # * ผมใช้เอง
                                 if self.app.user_id.get() == "62078":
-                                    self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
+                                    cn_flag_element = self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag')
+                                    self.driver.execute_script("""arguments[0].click();""", cn_flag_element)
 
                                 try:
                                     # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
@@ -4905,6 +4909,8 @@ class Bot_POS:
             print("No sale type selected, selecting now")
             self.select_sale_type()
         print("opening customer form initializing")
+
+        time.sleep(1)
 
         # * มันมีปุ่มบางอย่างที่มันอาจจะทำให้มีปัญหาในการจัดการชื่อลูกค้าได้ มันจะแสดงผลในหน้าใหม่เท่านั้น หน้าเก่าไม่แสดง เลยต้อง try-except ไว้ เพราะมันอาจจะมีหรือไม่มีก็ได้
         try:
