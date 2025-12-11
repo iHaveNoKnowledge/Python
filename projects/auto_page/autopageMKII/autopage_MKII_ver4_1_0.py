@@ -4396,6 +4396,11 @@ class Bot_POS:
             self.cus_name_span_elmt_loc = '//span[@id="select2-memberSearch-container"]'
             self.cus_name_span_x_btn_text = ""
             self.is_reset = False
+            try:
+                self.driver.find_element(By.XPATH, "//button[@class='btn btn-primary' and @ng-click='abbCustomerFlag = false;']").click()
+            except:
+                print("Cannot click 'ค้นหาลูกค้า'")
+            
             while not self.operation_thread.is_set():
                 try:
                     self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc)
