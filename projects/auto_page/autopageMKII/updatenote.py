@@ -203,6 +203,7 @@
 # ! 200 /Issue/ มสินค้าบางรายการสั่งซื้อใน shopee นอกจากจะเปนของ sku code เดียวกัน+หลายตัวอย่างพวกหมึก spx แล้ว ยังมีแบบที่ sku คนละ code อีกด้วย เช่น co6-ceI อาจจะต้องใช้วิธี inputแบบแยก เช่น inputแรกใส่ idx เลือกสินค้า, inputสองใส่ multiindex เว้นด้วย \s เช่น [1 2] ตัวแรกใส่ cpลำดับ1 อีกตัวใส่ cpลำดับ2
 # * 201 /Feated/ 4.1.0 ใช้ได้ละ /Required/ ทำ cache ให้กับตำแหน่ง sumatra pdf ไม่ต้องให้มันหาใหม่ทุกรอบ
 # ! 202 /Required/ sonic blow with multi cp at once
+# ! 203 /Issue/ ile คลิกไม่ได้บางครั้ง autopage_MKII_ver4_1_0.py", line 4065, in get_pdf_src_and_print self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
