@@ -2545,6 +2545,7 @@ class Bot_POS:
             'itcity': 'SHOPEE',
             'shp_wisegadget_master': 'SHOPEE Wise Gadget',
         }
+        self.sumatra_path = ""
 
         self.wait50 = WebDriverWait(self.driver, 50)
         self.wait5 = WebDriverWait(self.driver, 5)
@@ -2555,7 +2556,7 @@ class Bot_POS:
         self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
         self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app, self)
 
-        # Memory management tracking
+        #/ Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
         self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
@@ -4112,6 +4113,8 @@ class Bot_POS:
             r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
             r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
         ]
+        if self.sumatra_path != "":
+            return self.sumatra_path
 
         for reg_root in [winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER]:
             for reg_path in reg_paths:
@@ -4132,7 +4135,8 @@ class Bot_POS:
                                         exe_path = os.path.join(install_location, "SumatraPDF.exe")
                                         print("smt path: ", exe_path)
                                         if os.path.isfile(exe_path):
-                                            return exe_path
+                                            self.sumatra_path = exe_path
+                                            return self.sumatra_path
                             except (FileNotFoundError, OSError, PermissionError, KeyError):
                                 print("continue")
                                 time.sleep(0.50)
