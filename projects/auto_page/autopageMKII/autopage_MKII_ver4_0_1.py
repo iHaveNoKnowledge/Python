@@ -3567,8 +3567,7 @@ class Bot_POS:
                 time.sleep(1)
                 self.wait5.until(EC.presence_of_element_located(
                     (By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')))
-                self.operation_states['purchase_channel'] = self.driver.find_element(
-                    By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
+                self.operation_states['purchase_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
                 print(f"self.operation_states['purchase_channel']: {self.operation_states['purchase_channel']}")
                 cur_url = self.driver.current_url
 

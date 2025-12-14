@@ -4766,7 +4766,8 @@ class Bot_POS:
                                         print("channel: ", channel)
                                         # / เลือก shopee
                                         payment_type_btn_element = self.driver.find_element(
-                                            By.XPATH, f"//a[contains(., '{channel} ')] ")
+                                            # By.XPATH, f"//a[contains(., '{channel}')]")
+                                            By.XPATH, f"//a//label[text()='{channel}']")
                                         self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
                                     except Exception as e:
                                         payment_type_btn_element = self.driver.find_element(
