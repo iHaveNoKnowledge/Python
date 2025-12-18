@@ -5,6 +5,7 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
+from functions.network_response_utils import NetworkResponseCapture
 
 
 class AutoAddProduct:
@@ -14,6 +15,7 @@ class AutoAddProduct:
         self.app = app
         self.bot = parent
         self.driver_lock = parent.driver_lock
+        self.network_capture = NetworkResponseCapture(driver)
 
     # * Utils
     def idx_of_target_element(self, sku: str):
@@ -159,17 +161,16 @@ class AutoAddProduct:
             self.bot.get_tabs()
             merged_dict = self.bot.merged_dict
             self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
-            
+
             try:
                 # * SKU input location
                 sku_input_element = self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
-                # skuInput = self.driver.find_element(By.CSS_SELECTOR,'input.arFilterBox-search.ng-valid.ng-dirty.ng-empty.ng-touched')
                 sku_qty_element = self.driver.find_element(
                     By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
 
                 for sku in skus:
-                    while not self.bot.auto_add_product_stop_flag.is_set():  # * ต้อง while เพราะ มันมีปัญหาคือ angular เปลี่ยนค่าไม่ติด ต้องเปลี่ยนจนกว่าจะติด
+                    while not self.bot.auto_add_product_stop_flag.is_set():
                         try:
                             print("Processing SKU: ", sku, " with qty: ", qty)
                             self.driver.execute_script(
@@ -186,71 +187,40 @@ class AutoAddProduct:
                         except Exception as err:
                             print("auto_add_product - set qty error: ", err)
                             continue
-
-                    # * Clear performance logs to avoid reading stale requests
-                    self.driver.get_log("performance")
-                    print("Cleared performance logs")
-
+                    
+                    # * ใช้ NetworkResponseCapture utility แทนโค้ดเดิม
+                    target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
+                    
+                    
+                    # * Clear logs ก่อนส่ง request
+                    self.network_capture.clear_logs()
+                    
+                    # * เตรียม SKU input
                     sku_input_element.clear()
                     sku_input_element.send_keys(sku)
                     print(f"Placing SKU Input with {sku} success")
-
+                    
+                    # * ส่ง request
                     sku_input_element.send_keys(Keys().ENTER)
                     print("Pressed Enter to submit SKU")
-                    time.sleep(0.175)
-
-                    request_ids = []
-                    target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
-                    times = 0
-                    # * จับ requestId หลัง submit form: โดยเราจะดูว่า request ที่ browser ส่งออกไป มี url ตรงกับ request url ที่เราตั้งใจส่ง และรอดูผลลัพหรือไม่ ซึ่งในที่นี้คือ target_url_part
-                    for _ in range(50):  # poll 5 วิ
-                        logs = self.driver.get_log("performance")
-                        for entry in logs:
-                            # print("entry: ", entry)
-                            msg = json.loads(entry["message"])["message"]
-                            if msg["method"] == "Network.requestWillBeSent":  # * ตรวจดู เมื่อ browser กำลังจะส่ง request ออกไป
-                                url = msg["params"]["request"]["url"]
-                                if target_url_part in url:
-                                    request_ids.append(msg["params"]["requestId"])
-                                    # print("msg from target url req:", msg)
-                                    break
-
-                        # * ถ้าใช้ตรงนี้มันจะเร็วเกินไป ทำให้ response ยังไม่มา รอ 5 วิ พอเป็นพิธี
-                        if len(request_ids) > 0:
-                            print("request_ids: ", request_ids)
-                            break
-
-                        time.sleep(0.1)
-                        times += 1
-                        if times % 10 == 0 and times >= 10:
-                            print("time: ", math.floor(times/10), "วินาที")
-
+                    time.sleep(0.2)
+                    
+                    # * ดึง response ด้วย utility
+                    response_data = self.network_capture.capture_response(target_url_part, max_attempts=20)
+                    
                     product_from_response = None
-                    # * ดึง response จาก requestId: เป็นการดูว่า request ที่เราสนใจ มี response กลับมาแล้วหรือยัง มันจะส่งกลับมา 200 เสมอ ถ้ามีของกลับมา
-                    for _ in range(50):  # poll 10 วิ
-                        res = None
-                        for req_id in request_ids:
-                            try:
-                                res = self.driver.execute_cdp_cmd("Network.getResponseBody", {"requestId": req_id})
-                                # print(f"Response for {req_id} = {res}")
-                                try:
-                                    product_from_response = json.loads(res['body'])[0]['productCode']
-                                except Exception as err:
-                                    print("Cannot parse product from response: ", err)
-                                    product_from_response = None
-
-                                break
-                            except Exception as e:
-                                # print(f"Request {req_id} ยังไม่มี response: {e}")
-                                print(f"Request {req_id} ยังไม่มี")
-                                continue
-
-                        # print("resp: ", res)
-                        print("sku from res: ", product_from_response)
-                        if res:
-                            print("ได้ response แล้ว")
-                            break
-                        time.sleep(0.15)
+                    if response_data:
+                        try:
+                            product_from_response = response_data[0]['productCode']
+                            print(f"Got product: {product_from_response}")
+                        except Exception as err:
+                            print(f"Cannot parse product: {err}")
+                            product_from_response = None
+                    else:
+                        print("No response received")
+                    
+                    # * Clear logs หลังใช้งาน
+                    self.network_capture.clear_logs()
 
                     self.price_setter(sku=product_from_response, srp=srp)
                     self.item_qty_setter(product_from_response, qty)

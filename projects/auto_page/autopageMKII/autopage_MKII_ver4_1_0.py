@@ -81,6 +81,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * Variables------------------------------------------------------------------------------------
+
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
         self.is_bot_running = BooleanVar(value=False)
@@ -1329,6 +1330,11 @@ class MyApp:
         )
 
     def get_pure_address(self, cus_address):
+        """
+            •นำคีเวิร์ดไปหาใน string cus_address ว่าเจอไหม ถ้าเจอให้เก็บตำแหน่งที่เจอมา
+            \n•แล้วเลือกเอาตำแหน่งตัวอักษรใน string cus_address ตั้งแต่แรก[0, found_keyword]จนสิ้นสุดที่ตำแหน่งที่เจอค่า keyword
+            \n•!ปัญหาคือใช้ได้กับเฉพาะภาษาไทย
+        """
         # สร้างรายชื่อของตำแหน่งที่พบคำใน customer_address
         keywords = ["เขต", "แขวง", "ต.", "ตำบล",
                     "อ.", "อำเภอ", "จ.", "จังหวัด"]
@@ -2556,7 +2562,27 @@ class Bot_POS:
         self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
         self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app, self)
 
-        #/ Memory management tracking
+        # * Network Response Capture utility
+        from functions.network_response_utils import NetworkResponseCapture
+        self.network_capture = NetworkResponseCapture(self.driver)
+
+        # * Load address translation data from Excel
+        try:
+            import os
+
+            import pandas as pd
+
+            # ใช้ absolute path โดยอิงจาก directory ของไฟล์นี้
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            excel_path = os.path.join(current_dir, 'tables', 'Addresscleaner_TambonData.xlsx')
+            self.address_data = pd.read_excel(excel_path, dtype=str)
+            print(f"Loaded address data from: {excel_path}")
+            print(f"Total rows: {len(self.address_data)}")
+        except Exception as e:
+            print(f"Warning: Could not load address data: {e}")
+            self.address_data = None
+
+        # / Memory management tracking
         self.operation_count = 0
         self.memory_check_interval = 10  # ตรวจสอบทุก 10 operations (ปรับได้ตามต้องการ)
         self.max_memory_mb = 70  # ถ้า tab ใช้เกิน 800MB ให้ reset (ปรับได้ 500-1500MB)
@@ -2576,6 +2602,7 @@ class Bot_POS:
 
         os.environ["WDM_LOCAL"] = self.custom_path
         # print("มีไรบ้างใน obj Options:", dir(self.opt))
+        # * ใช้ goog:loggingPrefs แต่จะ clear logs ทันทีหลังใช้ใน auto_add_product เพื่อลด RAM
         self.opt.set_capability("goog:loggingPrefs", {"performance": "ALL"})
         self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
         self.opt.add_argument("--disable-popup-blocking")
@@ -2976,20 +3003,20 @@ class Bot_POS:
     def cp_sonic_blow_process(self, item_no: int, cp_no: str):
         """
         เลือก coupon สำหรับสินค้าที่ระบุ รองรับการเลือกหลาย coupon ในครั้งเดียว
-        
+
         Args:
             item_no (int): เลขลำดับสินค้า (1-indexed)
             cp_no (str): เลขลำดับ coupon ที่ต้องการเลือก สามารถใส่หลายค่าแยกด้วยช่องว่าง เช่น "1 5" หรือ "2"
         """
         self.item_no = int(item_no)-1
-        
+
         # * แปลง cp_no จาก string เป็น list ของ integers เพื่อรองรับหลายค่า
         # * ตัวอย่าง: "1 5" -> [1, 5], "3" -> [3]
         cp_no_list = [int(x.strip()) for x in str(cp_no).split() if x.strip()]
-        
+
         # * เก็บชื่อ coupon ที่เลือกแต่ละตัว
         cp_target_names = []
-        
+
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
         selected_cp_btn_loc = f'''
                             //div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']
@@ -3035,12 +3062,12 @@ class Bot_POS:
                     # print("is_found: ", is_found)
                     if is_found == True:
                         # cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'''
-                        
+
                         # * คลิกปุ่ม coupon เพื่อเปิดหน้ารายการ coupon (เปิดครั้งเดียว)
                         cp_btn_xpath = item_list_cp_btn_elements[idx2]
                         cp_btn_xpath.click()
                         time.sleep(0.3)  # * รอให้หน้า coupon list โหลด
-                        
+
                         # * Loop ผ่านแต่ละ coupon number ที่ต้องการเลือก
                         for cp_idx, current_cp_no in enumerate(cp_no_list):
                             print(f"กำลังเลือก coupon ลำดับที่ {current_cp_no} สำหรับ item: {item}")
@@ -3070,7 +3097,7 @@ class Bot_POS:
                         print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {cp_no_list}")
                         self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
                         time.sleep(0.25)  # * รอให้มัน process หน่อย
-                        
+
                         break  # * ออกจาก loop ของ item_list_elements เมื่อเจอ item ที่ต้องการแล้ว
                         # print(div.text)
                     else:
@@ -3080,7 +3107,7 @@ class Bot_POS:
                     # Todo มันไม่ใช่เรื่องใหญ่อะไร exception นี้มักจะเกิดจาก elementที่เคยเลือกไปแล้วมันเปลี่ยนโครงสร้างแต่ elementใน item_list_elements ที่แกะมา ลูบทีละตัวมันเปนค่าเดิม ทำให้ loop รอบถัดไป error ที่ elementเดิมที่เคยเลือก cp ไปก่อนหน้า เช่น รับเข้ามา (<em>(1), <em>(2), <em>(3)) พอเลือก cp มันจะเป็นแบบนี้แทน (<em>(1CP), <em>(2), <em>(3)) แต่ตอน loop เราใช้ค่า <em>(1) ไปหา มันจะ error เพราะในหน้าเว็บมันกลายเปน <em>(1CP) ไปแล้ว
                     print("Demonic CP Bot inner Exception Error:", err)
                     pass
-        
+
         # * ล้างค่า cp_target_names เมื่อเสร็จสิ้น
         print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
 
@@ -3517,7 +3544,7 @@ class Bot_POS:
             print("no tax required, skip address check")
         pass
 
-    def get_customer_name_ready(self, cus_search_input, is_last_page:bool=False):
+    def get_customer_name_ready(self, cus_search_input, is_last_page: bool = False):
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
             self.enter_cus_name(cus_search_input)
@@ -5235,40 +5262,55 @@ class Bot_POS:
                         self.driver.find_element(By.XPATH, "//*[text()='Thailand' or text()='ไทย']").click()
 
                     # * Province dropdown
-                    self.driver.find_element(By.CSS_SELECTOR, 'span #select2-province-container').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(province)
-                    self.dropdown_handler()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    province_dropdown_btn = self.driver.find_element(
+                        By.CSS_SELECTOR, 'span #select2-province-container')
+                    province_dropdown_btn.click()
+                    province_input = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
+
+                    # ใช้ helper method เพื่อเลือกจาก API response
+                    self.select_dropdown_from_response(
+                        input_element=province_input,
+                        search_value=province,
+                        th_field='provinceNameTh',
+                        en_field='provinceNameEn',
+                        place_type='province'
+                    )
 
                     # * District dropdown
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(district)
-                    self.dropdown_handler()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    district_dropdown_btn = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[1]/div/span/span[1]/span/span[1]')
+                    district_dropdown_btn.click()
+                    district_input = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
+
+                    # ใช้ helper method เพื่อเลือกจาก API response
+                    self.select_dropdown_from_response(
+                        input_element=district_input,
+                        search_value=district,
+                        th_field='districtNameTh',
+                        en_field='districtNameEn',
+                        place_type='district'
+                    )
 
                     # * SubDistrict dropdown
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(sub_district)
-                    self.dropdown_handler()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    subdistrict_dropdown_btn = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[12]/div[3]/div/span/span[1]/span/span[1]')
+                    # คลิก 3 ครั้งเพื่อให้แน่ใจว่า dropdown เปิด
+                    subdistrict_dropdown_btn.click()
+                    subdistrict_dropdown_btn.click()
+                    subdistrict_dropdown_btn.click()
+                    subdistrict_input = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
+
+                    # ใช้ helper method เพื่อเลือกจาก API response
+                    self.select_dropdown_from_response(
+                        input_element=subdistrict_input,
+                        search_value=sub_district,
+                        th_field='subdistrictNameTh',
+                        en_field='subdistrictNameEn',
+                        place_type='subdistrict'
+                    )
 
                 print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
                 self.customer_class_selector(is_functionworking)
@@ -5305,6 +5347,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5363,6 +5406,179 @@ class Bot_POS:
         customer_id = cus_data['id'] or False
         # print("customer_id: ", cus_data['id'])
         return customer_id
+
+    def is_english(self, text):
+        """
+        ตรวจสอบว่าข้อความเป็นภาษาอังกฤษหรือไม่
+
+        Args:
+            text: ข้อความที่ต้องการตรวจสอบ
+
+        Returns:
+            bool: True ถ้าเป็นภาษาอังกฤษ, False ถ้าเป็นภาษาไทย
+        """
+        import re
+        if not text:
+            return False
+        # นับตัวอักษร a-z
+        english_chars = len(re.findall(r'[a-zA-Z]', text))
+        # ถ้ามีตัวอักษรอังกฤษมากกว่า 50% = ภาษาอังกฤษ
+        return english_chars > len(text) * 0.5
+
+    def translate_eng_to_thai_place(self, eng_name, place_type='district'):
+        """
+        แปลงชื่อสถานที่จากภาษาอังกฤษเป็นภาษาไทย
+        โดยค้นหาจาก Addresscleaner_TambonData.xlsx
+
+        Args:
+            eng_name: ชื่อภาษาอังกฤษ (เช่น "Watthana")
+            place_type: ประเภท ('province', 'district', 'subdistrict')
+
+        Returns:
+            str: ชื่อภาษาไทย หรือ eng_name เดิมถ้าหาไม่เจอ
+        """
+        if self.address_data is None:
+            print("Address data not loaded, returning original name")
+            return eng_name
+
+        try:
+            # กำหนด column names ตาม place_type
+            column_mapping = {
+                'province': ('ProvinceEng', 'ProvinceThai'),
+                'district': ('DistrictEngShort', 'DistrictThaiShort'),
+                'subdistrict': ('TambonEngShort', 'TambonThaiShort')
+            }
+
+            # ลองหลาย pattern ของ column names
+            possible_en_cols = [
+                column_mapping.get(place_type, ('', ''))[0],
+                f'{place_type}_en',
+                f'{place_type}NameEn',
+                f'{place_type.capitalize()}_EN'
+            ]
+
+            possible_th_cols = [
+                column_mapping.get(place_type, ('', ''))[1],
+                f'{place_type}_th',
+                f'{place_type}NameTh',
+                f'{place_type.capitalize()}_TH'
+            ]
+
+            # หา column ที่มีอยู่จริง
+            en_col = None
+            th_col = None
+
+            for col in possible_en_cols:
+                print("col: ", col)
+                if col in self.address_data.columns:
+                    en_col = col
+                    break
+
+            for col in possible_th_cols:
+                print("col: ", col)
+                if col in self.address_data.columns:
+                    th_col = col
+                    break
+
+            if not en_col or not th_col:
+                print(f"Columns not found for {place_type}")
+                print(f"en_col: {en_col}, th_col: {th_col}")
+                print(f"Available columns: {self.address_data.columns.tolist()}")
+                return eng_name
+
+            # ค้นหาชื่อภาษาอังกฤษ (case-insensitive)
+            mask = self.address_data[en_col].str.lower() == eng_name.lower()
+            matches = self.address_data[mask]
+
+            if not matches.empty:
+                thai_name = matches.iloc[0][th_col]
+                print(f"Translated '{eng_name}' → '{thai_name}'")
+                return thai_name
+            else:
+                print(f"No translation found for '{eng_name}', using original")
+                return eng_name
+
+        except Exception as e:
+            print(f"Error in translation: {e}")
+            return eng_name
+
+    def select_dropdown_from_response(self, input_element, search_value, th_field, en_field, place_type='district'):
+        """
+        เลือก dropdown โดยใช้ข้อมูลจาก API response
+        แก้ปัญหาการเลือกผิดเมื่อเว็บเป็น EN version แต่ลูกค้ากรอกภาษาไทย
+        รองรับการกรอกภาษาอังกฤษโดยแปลงเป็นภาษาไทยก่อน
+
+        Args:
+            input_element: Input element ของ dropdown
+            search_value: ค่าที่ต้องการค้นหา (ภาษาไทยหรืออังกฤษ)
+            th_field: ชื่อ field ภาษาไทยใน response (เช่น 'provinceNameTh')
+            en_field: ชื่อ field ภาษาอังกฤษใน response (เช่น 'provinceNameEn')
+            place_type: ประเภทสถานที่ ('province', 'district', 'subdistrict')
+
+        Returns:
+            bool: True ถ้าเลือกสำเร็จ, False ถ้าไม่พบ
+        """
+        try:
+            # ตรวจสอบว่าเป็นภาษาอังกฤษหรือไม่
+            if self.is_english(search_value):
+                print(f"Detected English input: '{search_value}'")
+                # แปลงเป็นภาษาไทยก่อน
+                thai_value = self.translate_eng_to_thai_place(search_value, place_type)
+                search_value = thai_value
+                print(f"Will search with Thai name: '{search_value}'")
+            # Clear logs ก่อนส่ง request
+            self.network_capture.clear_logs()
+
+            # Clear และ type ค่าเพื่อ trigger API call
+            input_element.clear()
+            input_element.send_keys(search_value)
+            print(f"Typed '{search_value}' to trigger API")
+
+            # รอ dropdown พร้อม
+            time.sleep(0.3)
+
+            # จับ response จาก API
+            api_url_part = "/getCountryInfomation.htm"
+            response_data = self.network_capture.capture_response(api_url_part, max_attempts=15)
+
+            if response_data:
+                print(f"Got {len(response_data)} items from API")
+
+                # หาค่าที่ตรงกับ search_value
+                matched_item = None
+                for item in response_data:
+                    if item.get(th_field) == search_value:
+                        matched_item = item
+                        print(f"Matched: {item.get(th_field)} ({item.get(en_field)})")
+                        break
+
+                if matched_item:
+                    # เลือกโดยกด Enter (dropdown จะเลือกตัวแรกที่ตรง)
+                    input_element.send_keys(Keys().ENTER)
+                    print(f"Selected '{search_value}' successfully")
+
+                    # Clear logs หลังใช้งาน
+                    self.network_capture.clear_logs()
+                    return True
+                else:
+                    print(f"No match found for '{search_value}'")
+            else:
+                print("No response from API, using fallback")
+
+            # Fallback: กด Enter ตามปกติ
+            input_element.send_keys(Keys().ENTER)
+            self.network_capture.clear_logs()
+            return False
+
+        except Exception as e:
+            print(f"Error in select_dropdown_from_response: {e}")
+            # Fallback: กด Enter
+            try:
+                input_element.send_keys(Keys().ENTER)
+            except:
+                pass
+            self.network_capture.clear_logs()
+            return False
 
     def smco_req_find_cus_address(self, cus_id: int = None):
         max_retries = 3
@@ -5651,14 +5867,15 @@ class Bot_POS:
         # print("cus_address_to_compare: ", cus_address_to_compare)
 
         self.current_address = cus_address_to_compare
-        self.desired_address = re.sub(
+        self.desired_address = re.sub(r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}""".replace('\u200b', ''))
+        self.desired_address = re.sub(r'\s{2,}', ' ', self.desired_address)
+        print("self.desired_address: ", self.desired_address.replace(' ', ''))
+        
+        self.desired_full_address = re.sub(
             r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}  {self.app.nondistortedData['แขวง/ตำบล']}
             {self.app.nondistortedData['เขต/อำเภอ.1']}  {self.app.nondistortedData['จังหวัด.1']}
             {self.app.nondistortedData['รหัสไปรษณีย์.1']} """.replace('\u200b', ''))
-        self.desired_address = re.sub(r'\s{2,}', ' ', self.desired_address)
-        print("self.desired_address: ", self.desired_address.replace(' ', ''))
-
-        self.desired_full_address = self.desired_address.replace(
+        self.desired_full_address = self.desired_full_address.replace(
             "อำเภอ", "").replace(
             "เขต", "").replace(
             "อ.", "").replace(
@@ -5732,35 +5949,42 @@ class Bot_POS:
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
 
-                    # * District drop
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
+                    # * District dropdown
+                    district_dropdown_btn = self.driver.find_element(
+                        By.XPATH,
+                        '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]')
+                    district_dropdown_btn.click()
+                    district_input = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input')
 
-                    # * District fill and enter
-                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
-                        self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""))  # District
-                    time.sleep(1.75)
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    # ใช้ helper method เพื่อเลือกจาก API response
+                    self.select_dropdown_from_response(
+                        input_element=district_input,
+                        search_value=self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""),
+                        th_field='districtNameTh',
+                        en_field='districtNameEn',
+                        place_type='district'
+                    )
 
-                    # * SubDistrict drop
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]').click()
+                    # * SubDistrict dropdown
+                    subdistrict_dropdown_btn = self.driver.find_element(
+                        By.XPATH,
+                        '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]')
+                    # คลิก 3 ครั้งเพื่อให้แน่ใจว่า dropdown เปิด
+                    subdistrict_dropdown_btn.click()
+                    subdistrict_dropdown_btn.click()
+                    subdistrict_dropdown_btn.click()
+                    subdistrict_input = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input')
 
-                    # * SubDistrict fill and enter
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-                    self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
-                        self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""))  # SubDistrict
-                    time.sleep(1.75)
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
+                    # ใช้ helper method เพื่อเลือกจาก API response
+                    self.select_dropdown_from_response(
+                        input_element=subdistrict_input,
+                        search_value=self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""),
+                        th_field='subdistrictNameTh',
+                        en_field='subdistrictNameEn',
+                        place_type='subdistrict'
+                    )
 
                     print(f"""{self.app.cus_order.get()}: Address Revise Complete""")
                     is_address_revice_end = True
