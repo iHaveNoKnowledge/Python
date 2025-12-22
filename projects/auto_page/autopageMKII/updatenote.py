@@ -228,3 +228,7 @@
 #!--------------------- Auto Export Data --------------------------------
 # * AED1.1 ดึง Data จาก Marketplace อัตโนมัติ โดย ต้องใช้ (xpath, '//div//div[@class="tab-label"]//span[contains(text(),"ที่ต้องจัดส่ง")]')
 # * AED1.2 ดึง Data จาก Marketplace อัตโนมัติ โดย ต้องใช้ automation workflow
+
+#!---------------------AI------------------------------
+#/ สำหรับใช้ google gemini-ai โดยเราจะเอา prompt ไปใส่ต่อจาก link ด้านล่างนี่ เพื่อให้ ai ตอบเป็น object ที่กำหนด แล้วใช้ beutifulsoup ดึงobjectค่าออกมา
+#* https://www.google.com/search?csuir=1&udm=50&aep=28&mstk=AUtExfAzLi6DDivOTWbfX6I1b_e_OUh2ZsMgTMW_Mlx6lcY7rWpN7sTWqL_M7fKjmqLrmQadfqU52O5b21aKvi2Ajc0iuHkyrIinNb8hmWz2qdgenYl1oKCbLVTqgh44x9whExZ00GlB4JLc-bX1Pc2MV8VKgP8ixoJmwvSKK6QTAeq5JqGN8LUWczQsjGVD-hTKy2N7uulpr5PrK2Z6fgXSAJ-0byfbVG7QE4Wzw6cH3JHU5MOlvkWQemQdFV8I_mXkHGNtljcX46YgOt65mSEKc4_R94wJpeAiNWCEP_xvwi7yyW5VDmzUQfLbMqx0t1QS3KqgRH_fyCaZ0Ho3VKDo5Cxj7KJnlnRijQJLWgMPzkY8ryD5Zz1By-Nu-d4viIbK1HH5uqKQntzAj_xoLzKyz_yIjFT8ZKFAdGhoplSgAHxvvVTB3K43xQ&q=
