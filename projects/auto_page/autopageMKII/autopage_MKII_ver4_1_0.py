@@ -1788,6 +1788,7 @@ class MyApp:
                 #     self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
                 # else:
                 #     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))}"""
+
                 # ? แบบที่2 ไม่แบ่ง Channel
                 if self.marketplace_target.get() == 'LAZADA':
                     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
@@ -4686,14 +4687,14 @@ class Bot_POS:
 
             # todo for testing
             # * Update Accel file //////////////////////
-            # try:
-            #     self.app.accel_mode.deduct_accel_file_data(
-            #         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            # except Exception as err:
-            #     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+            try:
+                self.app.accel_mode.deduct_accel_file_data(
+                    self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            except Exception as err:
+                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            # logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
-            # return
+            logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
+            return
 
             # with self.driver_lock:
             self.autofinal = True
@@ -5175,8 +5176,8 @@ class Bot_POS:
                 name = f"{name} (สาขา{self.app.tax_branch_num.get()})"
 
             tax_num = self.app.tax_num.get()
-            address = self.app.get_pure_address(
-                self.app.address) if self.app.is_tax_required.get() else self.app.address
+            address = self.app.get_pure_address(self.app.clean_address(
+                self.app.address)) if self.app.is_tax_required.get() else self.app.address
             email = self.app.cus_email.get()
             phone = self.app.cus_tel.get()
             use_dropdown_address = True
@@ -5518,6 +5519,7 @@ class Bot_POS:
         Returns:
             bool: True ถ้าเลือกสำเร็จ, False ถ้าไม่พบ
         """
+
         try:
             # ตรวจสอบว่าเป็นภาษาอังกฤษหรือไม่
             if self.is_english(search_value):
@@ -5540,21 +5542,24 @@ class Bot_POS:
             # จับ response จาก API
             api_url_part = "/getCountryInfomation.htm"
             response_data = self.network_capture.capture_response(api_url_part, max_attempts=15)
+            li_dropdowns = self.driver.find_elements(By.XPATH, "//li[@role='treeitem']")
 
             if response_data:
                 print(f"Got {len(response_data)} items from API")
 
                 # หาค่าที่ตรงกับ search_value
                 matched_item = None
-                for item in response_data:
+                for idx, item in enumerate(response_data):
                     if item.get(th_field) == search_value:
                         matched_item = item
+                        matched_item_idx = idx
                         print(f"Matched: {item.get(th_field)} ({item.get(en_field)})")
                         break
 
                 if matched_item:
                     # เลือกโดยกด Enter (dropdown จะเลือกตัวแรกที่ตรง)
-                    input_element.send_keys(Keys().ENTER)
+                    # input_element.send_keys(Keys().ENTER)
+                    li_dropdowns[matched_item_idx].click()
                     print(f"Selected '{search_value}' successfully")
 
                     # Clear logs หลังใช้งาน
@@ -5867,10 +5872,11 @@ class Bot_POS:
         # print("cus_address_to_compare: ", cus_address_to_compare)
 
         self.current_address = cus_address_to_compare
-        self.desired_address = re.sub(r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}""".replace('\u200b', ''))
+        self.desired_address = re.sub(
+            r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}""".replace('\u200b', ''))
         self.desired_address = re.sub(r'\s{2,}', ' ', self.desired_address)
         print("self.desired_address: ", self.desired_address.replace(' ', ''))
-        
+
         self.desired_full_address = re.sub(
             r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}  {self.app.nondistortedData['แขวง/ตำบล']}
             {self.app.nondistortedData['เขต/อำเภอ.1']}  {self.app.nondistortedData['จังหวัด.1']}
