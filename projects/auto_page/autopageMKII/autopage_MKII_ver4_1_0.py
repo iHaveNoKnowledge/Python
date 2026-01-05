@@ -2553,6 +2553,12 @@ class Bot_POS:
             'shp_wisegadget_master': 'SHOPEE Wise Gadget',
         }
         self.sumatra_path = ""
+        # * Initialize Sumatra PDF cache file path
+        self.sumatra_cache_file = os.path.join(os.path.dirname(__file__), "sumatra_pdf_cache.txt")
+        # * Load cached Sumatra PDF path or search for it
+        if not self.load_sumatra_cache():
+            # If cache is empty or invalid, search for Sumatra PDF
+            self.find_sumatra_from_registry()
 
         self.wait50 = WebDriverWait(self.driver, 50)
         self.wait5 = WebDriverWait(self.driver, 5)
@@ -2569,8 +2575,6 @@ class Bot_POS:
 
         # * Load address translation data from Excel
         try:
-            import os
-
             import pandas as pd
 
             # ใช้ absolute path โดยอิงจาก directory ของไฟล์นี้
@@ -4166,6 +4170,37 @@ class Bot_POS:
         except OSError as err:
             print(f"(silence_mode)No PDF Reader found: {err}")
 
+    def load_sumatra_cache(self):
+        """Load Sumatra PDF path from cache file if it exists and is valid"""
+        try:
+            if os.path.exists(self.sumatra_cache_file):
+                with open(self.sumatra_cache_file, 'r', encoding='utf-8') as f:
+                    cached_path = f.read().strip()
+                
+                # Verify the cached path still exists
+                if cached_path and os.path.isfile(cached_path):
+                    self.sumatra_path = cached_path
+                    print(f"Loaded Sumatra PDF path from cache: {cached_path}")
+                    return True
+                else:
+                    print("Cached Sumatra PDF path is invalid, will search again")
+                    # Delete invalid cache
+                    os.remove(self.sumatra_cache_file)
+        except Exception as e:
+            print(f"Error loading Sumatra PDF cache: {e}")
+        
+        return False
+
+    def save_sumatra_cache(self):
+        """Save Sumatra PDF path to cache file"""
+        try:
+            if self.sumatra_path:
+                with open(self.sumatra_cache_file, 'w', encoding='utf-8') as f:
+                    f.write(self.sumatra_path)
+                print(f"Saved Sumatra PDF path to cache: {self.sumatra_path}")
+        except Exception as e:
+            print(f"Error saving Sumatra PDF cache: {e}")
+
     def find_sumatra_from_registry(self):
         reg_paths = [
             r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
@@ -4194,6 +4229,7 @@ class Bot_POS:
                                         print("smt path: ", exe_path)
                                         if os.path.isfile(exe_path):
                                             self.sumatra_path = exe_path
+                                            self.save_sumatra_cache()  # Save to cache
                                             return self.sumatra_path
                             except (FileNotFoundError, OSError, PermissionError, KeyError):
                                 print("continue")
@@ -4211,6 +4247,24 @@ class Bot_POS:
             print("SMT Printing silently complete.")
         except Exception as e:
             print(f"sumatra Silent print failed: {e}")
+            
+            # Invalidate cache and retry
+            if self.sumatra_path:
+                print("Invalidating Sumatra PDF cache and searching again...")
+                self.sumatra_path = ""
+                if os.path.exists(self.sumatra_cache_file):
+                    os.remove(self.sumatra_cache_file)
+                
+                # Retry finding Sumatra
+                sumatra_path = self.find_sumatra_from_registry()
+                if sumatra_path:
+                    try:
+                        subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
+                        print("SMT Printing silently complete after cache invalidation.")
+                        return
+                    except Exception as retry_error:
+                        print(f"Retry also failed: {retry_error}")
+            
             raise ValueError("Sumatra was not found")
 
     def operation_start(self):
