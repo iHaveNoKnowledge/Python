@@ -2,10 +2,10 @@ import json
 import math
 import time
 
+from functions.network_response_utils import NetworkResponseCapture
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-from functions.network_response_utils import NetworkResponseCapture
 
 
 class AutoAddProduct:
@@ -46,7 +46,7 @@ class AutoAddProduct:
             target_idx = item_identifier
 
             if target_idx is None:
-                print(f"Error: Could not find element index for identifier '{item_identifier}'")
+                print(f"Error, Could not find element index for identifier:  '{item_identifier}'")
                 return
 
             # * Wait for DOM to settle
@@ -187,27 +187,26 @@ class AutoAddProduct:
                         except Exception as err:
                             print("auto_add_product - set qty error: ", err)
                             continue
-                    
+
                     # * ใช้ NetworkResponseCapture utility แทนโค้ดเดิม
                     target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
-                    
-                    
+
                     # * Clear logs ก่อนส่ง request
                     self.network_capture.clear_logs()
-                    
+
                     # * เตรียม SKU input
                     sku_input_element.clear()
                     sku_input_element.send_keys(sku)
                     print(f"Placing SKU Input with {sku} success")
-                    
+
                     # * ส่ง request
                     sku_input_element.send_keys(Keys().ENTER)
                     print("Pressed Enter to submit SKU")
                     time.sleep(0.2)
-                    
+
                     # * ดึง response ด้วย utility
                     response_data = self.network_capture.capture_response(target_url_part, max_attempts=20)
-                    
+
                     product_from_response = None
                     if response_data:
                         try:
@@ -218,7 +217,7 @@ class AutoAddProduct:
                             product_from_response = None
                     else:
                         print("No response received")
-                    
+
                     # * Clear logs หลังใช้งาน
                     self.network_capture.clear_logs()
 
