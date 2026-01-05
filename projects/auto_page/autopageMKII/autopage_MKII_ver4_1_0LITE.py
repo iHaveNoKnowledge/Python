@@ -148,6 +148,9 @@ class MyApp:
 
         # * 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
         self.bot = Bot_POS(self.root, self)
+        
+        # * 3)Create caches
+        cache_dir = os.path.join(current_directory, f"""caches.json""")
 
     def cp_sonic_blow_handler(self):
         self.bot.cp_sonic_blow_process(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
