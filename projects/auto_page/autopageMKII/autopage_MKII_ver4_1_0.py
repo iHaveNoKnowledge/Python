@@ -5324,7 +5324,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_dropdown_from_response(
+                    self.select_li_from_dropdown(
                         input_element=province_input,
                         search_value=province,
                         th_field='provinceNameTh',
@@ -5340,7 +5340,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_dropdown_from_response(
+                    self.select_li_from_dropdown(
                         input_element=district_input,
                         search_value=district,
                         th_field='districtNameTh',
@@ -5359,7 +5359,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_dropdown_from_response(
+                    self.select_li_from_dropdown(
                         input_element=subdistrict_input,
                         search_value=sub_district,
                         th_field='subdistrictNameTh',
@@ -5557,7 +5557,7 @@ class Bot_POS:
             print(f"Error in translation: {e}")
             return eng_name
 
-    def select_dropdown_from_response(self, input_element, search_value, th_field, en_field, place_type='district'):
+    def select_li_from_dropdown(self, input_element, search_value, th_field, en_field, place_type='district'):
         """
         เลือก dropdown โดยใช้ข้อมูลจาก API response
         แก้ปัญหาการเลือกผิดเมื่อเว็บเป็น EN version แต่ลูกค้ากรอกภาษาไทย
@@ -5630,7 +5630,7 @@ class Bot_POS:
             return False
 
         except Exception as e:
-            print(f"Error in select_dropdown_from_response: {e}")
+            print(f"Error in select_li_from_dropdown: {e}")
             # Fallback: กด Enter
             try:
                 input_element.send_keys(Keys().ENTER)
@@ -6018,7 +6018,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_dropdown_from_response(
+                    self.select_li_from_dropdown(
                         input_element=district_input,
                         search_value=self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""),
                         th_field='districtNameTh',
@@ -6038,7 +6038,7 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_dropdown_from_response(
+                    self.select_li_from_dropdown(
                         input_element=subdistrict_input,
                         search_value=self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""),
                         th_field='subdistrictNameTh',
