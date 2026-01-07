@@ -208,6 +208,12 @@
 # ? 205 /???/ ตรวจสอบวิธีการปรับราคาดูว่มันปรับเปนลำดับหรือปรับจาก sku ที่ใส่ลงไป ถ้าปรับตามลำดับมีโอกาสผิด แต่ต้องปรับตาม sku มันจะแม่นกว่า เพราะใน smco อาจจะแสดง sku ไม่เปนไปตามลำดับที่กรอกก็ได้
 # ! 206 /Issue/ req smco_req_find_cus_address ไม่มี address กลับมาทำให้ต้อง readdress ทำงานตลอด งงเลย
 # ! 207 /Issus/ ย้ายตัวหา printer ไปไว้ตอนเริ่ม จะได้ไม่ต้งเสียเวลา
+# ! 208 /Issue/ autoadd มีปัญหา nosuch elemennt "incoming skus: ['SP2-001414', 'SP2-001415', 'SP2-001416', 'SP2-001417']
+#! Started auto_add_product in separate thread: AutoAddProductThread
+#! รายงานจำนวนtabs
+#! driver is still running
+#! self.driver.title:  SMCO :: เปิดการขาย
+#! operation_task_thread, An error occirred: Message: no such element: element not found"
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
