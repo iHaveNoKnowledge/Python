@@ -4243,8 +4243,17 @@ class Bot_POS:
     def print_pdf_silence_sumatra(self, pdf_path):
         try:
             sumatra_path = self.find_sumatra_from_registry()
-            subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
-            print("SMT Printing silently complete.")
+            # Use subprocess.run() to wait for completion (blocking)
+            result = subprocess.run([sumatra_path, '-print-to-default', pdf_path], 
+                                  shell=False, 
+                                  capture_output=True, 
+                                  timeout=30)  # 30 second timeout
+            if result.returncode == 0:
+                print("SMT Printing silently complete.")
+            else:
+                print(f"SMT Printing completed with return code: {result.returncode}")
+        except subprocess.TimeoutExpired:
+            print("SMT Printing timed out after 30 seconds")
         except Exception as e:
             print(f"sumatra Silent print failed: {e}")
             
@@ -4259,8 +4268,12 @@ class Bot_POS:
                 sumatra_path = self.find_sumatra_from_registry()
                 if sumatra_path:
                     try:
-                        subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
-                        print("SMT Printing silently complete after cache invalidation.")
+                        result = subprocess.run([sumatra_path, '-print-to-default', pdf_path], 
+                                              shell=False, 
+                                              capture_output=True, 
+                                              timeout=30)
+                        if result.returncode == 0:
+                            print("SMT Printing silently complete after cache invalidation.")
                         return
                     except Exception as retry_error:
                         print(f"Retry also failed: {retry_error}")

@@ -4246,8 +4246,17 @@ class Bot_POS:
     def print_pdf_silence_sumatra(self, pdf_path):
         try:
             sumatra_path = self.find_sumatra_from_registry()
-            subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
-            print("SMT Printing silently complete.")
+            # Use subprocess.run() to wait for completion (blocking)
+            result = subprocess.run([sumatra_path, '-print-to-default', pdf_path], 
+                                  shell=False, 
+                                  capture_output=True, 
+                                  timeout=30)  # 30 second timeout
+            if result.returncode == 0:
+                print("SMT Printing silently complete.")
+            else:
+                print(f"SMT Printing completed with return code: {result.returncode}")
+        except subprocess.TimeoutExpired:
+            print("SMT Printing timed out after 30 seconds")
         except Exception as e:
             print(f"sumatra Silent print failed: {e}")
             
@@ -4262,8 +4271,12 @@ class Bot_POS:
                 sumatra_path = self.find_sumatra_from_registry()
                 if sumatra_path:
                     try:
-                        subprocess.Popen([sumatra_path, '-print-to-default', pdf_path], shell=False)
-                        print("SMT Printing silently complete after cache invalidation.")
+                        result = subprocess.run([sumatra_path, '-print-to-default', pdf_path], 
+                                              shell=False, 
+                                              capture_output=True, 
+                                              timeout=30)
+                        if result.returncode == 0:
+                            print("SMT Printing silently complete after cache invalidation.")
                         return
                     except Exception as retry_error:
                         print(f"Retry also failed: {retry_error}")
@@ -4953,8 +4966,7 @@ class Bot_POS:
                             try:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
-                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
-                                               ) - self.app.cus_seller_voucher.get()
+                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                                 self.driver.find_element(
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
                                 self.driver.find_element(
@@ -6563,9 +6575,8 @@ class Bot_POS:
                 # print("auto click Before print loop")
                 # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
                 final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
-                # convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
-                convert_full_tax_modal_element = self.driver.execute_script(
-                    """ return document.querySelector("div[id='convertFullTaxModal']"); """)
+                +# convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
+                convert_full_tax_modal_element = self.driver.execute_script(""" return document.querySelector("div[id='convertFullTaxModal']"); """)
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
                 # print("is_final_page= ", is_final_page)
