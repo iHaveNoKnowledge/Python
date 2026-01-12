@@ -4244,10 +4244,12 @@ class Bot_POS:
         try:
             sumatra_path = self.find_sumatra_from_registry()
             # Use subprocess.run() to wait for completion (blocking)
-            result = subprocess.run([sumatra_path, '-print-to-default', pdf_path], 
-                                  shell=False, 
-                                  capture_output=True, 
-                                  timeout=30)  # 30 second timeout
+            result = subprocess.run(
+                [sumatra_path, '-print-to-default', pdf_path], 
+                shell=False, 
+                capture_output=True, 
+                timeout=30 # 30 second timeout
+            )
             if result.returncode == 0:
                 print("SMT Printing silently complete.")
             else:
@@ -4255,7 +4257,8 @@ class Bot_POS:
         except subprocess.TimeoutExpired:
             print("SMT Printing timed out after 30 seconds")
         except Exception as e:
-            print(f"sumatra Silent print failed: {e}")
+            #! ถ้าเป็น error เรื่องการหา path จะมา error นี้ ขึน้ว่า expected str, not NoneType  เพราะใน find_sumatra_from_registry() มัน return None เมื่อหาไม่เจอ
+            print(f"sumatra Silent print failed: {e}") 
             
             # Invalidate cache and retry
             if self.sumatra_path:
@@ -4268,10 +4271,12 @@ class Bot_POS:
                 sumatra_path = self.find_sumatra_from_registry()
                 if sumatra_path:
                     try:
-                        result = subprocess.run([sumatra_path, '-print-to-default', pdf_path], 
-                                              shell=False, 
-                                              capture_output=True, 
-                                              timeout=30)
+                        result = subprocess.run(
+                            [sumatra_path, '-print-to-default', pdf_path], 
+                            shell=False, 
+                            capture_output=True, 
+                            timeout=30
+                        )
                         if result.returncode == 0:
                             print("SMT Printing silently complete after cache invalidation.")
                         return

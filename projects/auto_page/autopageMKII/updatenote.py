@@ -214,6 +214,7 @@
 #! driver is still running
 #! self.driver.title:  SMCO :: เปิดการขาย
 #! operation_task_thread, An error occirred: Message: no such element: element not found"
+#!!!! 209 /ISSUE/ fn เลือกชื่อลูกค้าจาก li dropdown กรณีลูกค้าสาขาย่อย มันต้องเลือกโดยดูด้วยว่ามีสาขาที่ถูกต้องหรือไม่ ซับซ้อนนิดนึง
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
