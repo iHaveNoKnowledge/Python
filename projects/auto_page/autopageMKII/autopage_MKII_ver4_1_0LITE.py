@@ -1697,6 +1697,7 @@ class MyApp:
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
+                print("self.branch_type: ", self.branch_type, type(self.branch_type), len(self.branch_type))
                 print("รหัสประจำสาขา= ", self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
                 branch = self.find_branch(str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch_num.set(branch)
@@ -1754,7 +1755,6 @@ class MyApp:
                                                       font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
-                        print("self.branch_type: ", self.branch_type)
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF",
@@ -3589,15 +3589,19 @@ class Bot_POS:
                 customer_name_dropdown_lis = customer_name_input_ul.find_elements(
                     By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
+                
                 # * เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
                 if len(customer_name_dropdown_lis) > 1:
                     print("มากกว่า 1")
                     cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
                     self.select_cus_name_from_lis(
                         self.app.cus_name.get(),
-                        cus_found_names_list, self.select_cus_name_from_lis)
+                        cus_found_names_list, 
+                        self.select_cus_name_from_lis
+                    )
                     print("click แล้ว")
                     break
+                
                 else:
                     self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
                     print("Click the cusname li result")
@@ -3639,7 +3643,7 @@ class Bot_POS:
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
         # * clear ชื่อ เก่า
-        self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
+        self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).click()
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_open = True if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul) else False
@@ -4567,8 +4571,8 @@ class Bot_POS:
             self.insert_emp()
 
             # * ดูก่อนว่าเคลียชื่อลูกค้าแล้วเหรอยัง
-            # self.cus_name_span_elmt_loc = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[2]/form/div/span/span[1]/span/span[1]'
-            self.cus_name_span_elmt_loc = '//span[@id="select2-memberSearch-container"]'
+            # self.cus_name_dropdown_elmt_loc = '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[6]/div[2]/form/div/span/span[1]/span/span[1]'
+            self.cus_name_dropdown_elmt_loc = '//span[@id="select2-memberSearch-container"]'
             self.cus_name_span_x_btn_text = ""
             self.is_reset = False
 
@@ -4577,7 +4581,7 @@ class Bot_POS:
             # self.open_old_tax_form()
             while not self.operation_thread.is_set():
                 try:
-                    self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc)
+                    self.cus_name_span_elmt = self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc)
                     self.cus_name_span_x_btn_text = self.cus_name_span_elmt.text
                     print("found element cus_name_span_elmt ")
                     break
@@ -4588,7 +4592,7 @@ class Bot_POS:
 
             # * เพราะวิธีออกใบกำกับมันยังไม่แน่นอนมีทั้งแบบเก่าและแบบใหม่ แบบเก่ามันจะทำโดยขั้นตอนด้านล่างนี่ แต่ถ้าเป็นแบบใหม่มันจะย้ายไปทำหน้าท้าย ซึ่งไม่รู้จะย้ายไปไม
             self.is_old_tax_form = False
-            if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
+            if self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).is_displayed():
                 self.is_old_tax_form = True
                 print("element cus_name_span_elmt is displayed")
 
@@ -4613,12 +4617,12 @@ class Bot_POS:
                     print("เช็คว่าต้องรีไหม", self.is_reset)
                     if self.is_reset:
                         print("รีนี่หว่า, กดรีเลย")
-                        self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
+                        self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).click()
                         items_list = self.driver.find_elements(
                             By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
                         if len(items_list) == 0:
                             # * คลิกเพื่อให้ปิด droprdown
-                            self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
+                            self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).click()
                             print("ปิด dropwdown กรณีไม่มีสินค้า")
                         else:
                             # * ถ้ามีสินค้าจะ error คลิกไม่ได้จะกลายเป็น except
@@ -4648,7 +4652,7 @@ class Bot_POS:
                                     print("Click OK(except)")
                             # * ถ้ามีสินค้าแล้วกดลบชื่อ มันจะมีชื่อค้างอยู่แต่สินค้าหายต้องกดอีกรอบ
                             try:
-                                self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click()
+                                self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).click()
                                 print("Cusname still appear, the btn 'x' is available.")
                             except:
                                 print("Cusname has disappeared, no 'x' to press.")
@@ -4813,7 +4817,7 @@ class Bot_POS:
                     #         # print("SN_window is still there")
                     #         if sn_window.is_displayed():
                     #             # print("หน้า SN กำลังโชว์")
-                    #             # if self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).is_displayed():
+                    #             # if self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).is_displayed():
                     #             continue
 
                     #         else:
@@ -6105,7 +6109,7 @@ class Bot_POS:
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
             # ? /lasted update/ปัจจุบันหากผลลัพเปนอันเดิมมันจะไม่ resetละทำให้code ส่วนนี้อาจจะไร้ประโยชน์  ปิดไว้ก่อย/todo/เพื่อ reset ค่า address ให้เป็น lasted update
-            # self.driver.find_element(By.XPATH, self.cus_name_span_elmt_loc).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
+            # self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
             # self.driver.find_element(By.XPATH, '//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button').click() #* กด dropdown เพื่อดู list ประเภทของการ query data ลูกค้า
             # self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
             # self.driver.find_element(By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
@@ -6576,7 +6580,7 @@ class Bot_POS:
                 # print("auto click Before print loop")
                 # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
                 final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
-                +# convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
+                # convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
                 convert_full_tax_modal_element = self.driver.execute_script(""" return document.querySelector("div[id='convertFullTaxModal']"); """)
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
