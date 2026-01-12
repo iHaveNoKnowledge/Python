@@ -1754,6 +1754,7 @@ class MyApp:
                                                       font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
+                        print("self.branch_type: ", self.branch_type)
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF",

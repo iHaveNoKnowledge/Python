@@ -1751,6 +1751,7 @@ class MyApp:
                                                       font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
+                        print("self.branch_type: ", self.branch_type)
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ไม่ขอแต่มีเลข")
                         self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF",
@@ -3582,8 +3583,7 @@ class Bot_POS:
             try:
                 # * หา li ไปตรวจสอบว่ามี len เท่าไหร่
                 customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
-                customer_name_dropdown_lis = customer_name_input_ul.find_elements(
-                    By.CSS_SELECTOR, '.select2-results__option')
+                customer_name_dropdown_lis = customer_name_input_ul.find_elements(By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
                 # * เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
                 if len(customer_name_dropdown_lis) > 1:
