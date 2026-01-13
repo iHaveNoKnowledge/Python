@@ -3781,6 +3781,21 @@ class Bot_POS:
         # * เอา array มาหาดูว่าจะต้องเลือกชื่อไหน เอา idx ที่ได้ไช้ระบุ locator ที่ต้อง click
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
+            
+            if self.branch_type == "สาขาย่อย" and self.app.tax_branch_num.get() in name:
+                print("ชื่อที่ต้องการสาขาย่อย อยู่ใน li")
+                while not self.operation_thread.is_set():
+                    try:
+                        print("เลือกชื่อลูกค้า", cus_name_list[i])
+                        # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
+                        self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+                        break
+
+                    except:
+                        print("No customer sub branch found.")
+                        continue
+                return
+                
             if cus_desire_name in name:
                 print("ชื่อที่ต้องการ อยู่ใน li")
                 while not self.operation_thread.is_set():
