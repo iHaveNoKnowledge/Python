@@ -3579,21 +3579,21 @@ class Bot_POS:
                 break
 
         # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
-        self.find_selectable_cus_name_li()  # *เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
+        self.ensure_cus_name_li_ready()  # *เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
 
         # * is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
         while not self.operation_thread.is_set():
             try:
                 # * หา li ไปตรวจสอบว่ามี len เท่าไหร่
-                customer_name_input_ul = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
-                customer_name_dropdown_lis = customer_name_input_ul.find_elements(
+                customer_name_input_ul_from_dropdown = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
+                customer_name_lis_from_dropdown = customer_name_input_ul_from_dropdown.find_elements(
                     By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
                 
                 # * เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
-                if len(customer_name_dropdown_lis) > 1:
+                if len(customer_name_lis_from_dropdown) > 1:
                     print("มากกว่า 1")
-                    cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
+                    cus_found_names_list = [element.text for element in customer_name_lis_from_dropdown]
                     self.select_cus_name_from_lis(
                         self.app.cus_name.get(),
                         cus_found_names_list, 
@@ -3685,7 +3685,7 @@ class Bot_POS:
         except Exception as err:
             print("No duplicate!", err)
 
-    def find_selectable_cus_name_li(self):
+    def ensure_cus_name_li_ready(self):
         """
         li ที่จะแสดงใน ul นั้นมันไม่ได้มีแค่ชื่อลูกค้า แต่มันมี สถานะเช่น "กำลังหา" หรือ "หาไม่เจอ" ซึ่งทำให้กดเลือกชื่อลูกค้าจาก li ไม่ได้ทันที จึงต้อง handle ส่วนนี้โดยทำให้ค่าที่โผล่ใน li นั้นเป็น ชื่อลูกค้าแล้วจริงๆแล้วไปยังขั้นตอนต่อไป (functionนี้ยังไม่มีการเลือกliนะ)
         มันเปนการกรอกชื่อและดูผลลัพของ li ต่างๆว่า แสดงผลอย่างไร มันจะมีกรณีแสดง li เดียวแล่้วถูก,  แสดง li เดียวแต่เปนการบอกว่าไม่มีชื่อ, แสดง li จำนวนมาก แต่มีตัวถูก, แสดง li จำนวนมาก แต่ไม่มีตัวถูก
@@ -3737,7 +3737,7 @@ class Bot_POS:
                     time.sleep(1)
                     continue
                 else:
-                    print("Found customer name:", self.searching_condition.text)
+                    print("Found a customer name:", self.searching_condition.text)
                     self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                     break
             print("addcustomer and select While end!")
