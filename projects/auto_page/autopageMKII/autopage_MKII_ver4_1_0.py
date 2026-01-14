@@ -1249,8 +1249,7 @@ class MyApp:
                     self.file_path, dtype=self.columns_preset)
                 self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
             elif self.marketplace_target.get() == 'LAZADA':
-                self.data_frame = self.group_by_order(
-                    self.file_path, self.columns_preset)
+                self.data_frame = self.group_by_order(self.file_path, self.columns_preset)
 
                 self.data_frame['โค้ดส่วนลดชำระโดยผู้ขาย'].astype(float)
                 self.data_frame['หมายเลขประจำตัวผู้เสียภาษี'].astype(str)
