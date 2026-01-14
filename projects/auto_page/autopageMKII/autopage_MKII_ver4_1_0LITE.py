@@ -1113,8 +1113,7 @@ class MyApp:
         # *> 'ราคาขายสุทธิ'
         # total_per_order_df = df.groupby('orderNumber')[
         #     'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
-        result_count['ราคาขายสุทธิ'] = result_count["จำนวน"] * \
-            result_count["unitPrice"]
+        result_count['ราคาขายสุทธิ'] = result_count["จำนวน"] * result_count["unitPrice"]
 
         # *> 'ชื่อผู้รับ'
         result_count['ชื่อผู้รับ'] = df['billingName']
@@ -1123,8 +1122,7 @@ class MyApp:
         result_count['หมายเลขโทรศัพท์'] = df['billingPhone']
 
         # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
-        total_sellerDiscountTotal_df = df.groupby('orderNumber')[
-            'sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
+        total_sellerDiscountTotal_df = df.groupby('orderNumber')['sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
         total_sellerDiscountTotal_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
 
         # *> 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
