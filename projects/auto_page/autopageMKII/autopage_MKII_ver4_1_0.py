@@ -5278,7 +5278,7 @@ class Bot_POS:
             tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch.get())
             name = tax_info['name']
 
-            # Add branch info for lazada tax customers
+            #* Add branch info for lazada tax customers
             if self.app.branch_type == 'สำนักงานใหญ่':
                 self.app.tax_branch.set(self.app.nondistortedData['ประเภทสาขา'])
                 if name.startswith("บริษัท") or "จำกัด" in name:

@@ -5282,7 +5282,7 @@ class Bot_POS:
             tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
             name = tax_info['name']
 
-            # Add branch info for lazada tax customers
+            #* Add branch info for lazada tax customers
             if self.app.branch_type == 'สำนักงานใหญ่':
                 self.app.tax_branch_num.set(self.app.nondistortedData['ประเภทสาขา'])
                 if name.startswith("บริษัท") or "จำกัด" in name:
@@ -6307,8 +6307,9 @@ class Bot_POS:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 # print("ได้ไรออกมา", soup)
                 # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
-                menu_elements = soup.select('tr[class^="text-md-center ant-table-row"]')
+                menu_elements = soup.select('//tr[@class="ant-table-row"]')
                 is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
+                next_page_loc = """//li[@class='pagination-next']//a[@aria-label=' page']""" #* xpath ของปุ่ม next page แบบหน้าเวอชันใหม่
                 print("มีหลายหน้า?: ", bool(is_many_page))
                 search_result = []
                 output = ""
@@ -6323,7 +6324,7 @@ class Bot_POS:
                             "branch": "",
                             "name": "",
                             "address": "",
-                            "postal_code": ""
+                            # "postal_code": "" #! deprecated ในเว็บ vatinfo ไม่มี field นี้แล้ว
                         }
 
                         # print(menu_element) <<หาทั้งหมด
@@ -6331,19 +6332,20 @@ class Bot_POS:
                         # * ในแต่ละ <tr> มี <td> หลายอัน
                         tds = menu_element.find_all('td')
                         for idx, key in enumerate(result_data):
-                            b = tds[idx].find('b')
-                            result = b.find('font').text.strip()
+                            # b = tds[idx].find('b')
+                            # result = b.find('font').text.strip()
+                            result = tds[idx].text.strip()
                             result = re.sub(r"\s{2,}", " ", result)
 
                             # * ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
                             if idx == 1 and len(result) > 13:
-                                result = result[-13:]
+                                result = re.sub(r"\-", "", result)
 
                             print(result)
                             result_data[key] = result
                         print(" ")
                         search_result.append(result_data)
-
+#! wipp กำลังแก้ถึงนี่ละยังไม่ได้เทส
                     # * เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
                     for item in search_result:
                         if item['branch'] == self.app.branch_type:
