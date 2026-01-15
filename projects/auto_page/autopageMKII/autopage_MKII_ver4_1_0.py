@@ -1143,6 +1143,30 @@ class MyApp:
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
 
+        # * New Logic: Split address by U+00B7 (·)
+        def split_lazada_address_special_char(row):
+            addr = str(row['รายละเอียดที่อยู่'])
+            current_sub_district = row['billingAddr2']  # แขวง/ตำบล
+            
+            if '\u00B7' in addr:
+                parts = addr.split('\u00B7')
+                if len(parts) >= 2:
+                    main_addr = parts[0].strip()
+                    sub_part = parts[1].strip()
+                    
+                    # Clean English part from sub_part (e.g. "สระตะเคียน/ Sa Takhian")
+                    if '/' in sub_part:
+                        sub_part = sub_part.split('/')[0].strip()
+                        
+                    return main_addr, sub_part
+            
+            return addr, current_sub_district
+
+        # Apply the splitting logic
+        address_split_result = result_df.apply(split_lazada_address_special_char, axis=1, result_type='expand')
+        result_df['รายละเอียดที่อยู่'] = address_split_result[0]
+        result_df['billingAddr2'] = address_split_result[1]
+
         result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
         print("result_df d-type", type(result_df['ประเภทสาขา']))
 
@@ -1155,20 +1179,9 @@ class MyApp:
             lambda row: "" if row == "สำนักงานใหญ่" else row)
 
         # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย" (มีค่าเป็นเลขสาขา จะ return เป็น สาขาย่อย)
+        # * ใช้ผลลัพธ์จาก find_branch เพื่อกำหนดประเภทสาขา
         result_df['ประเภทสาขา'] = extracted_branch_df.map(
             lambda row: "สำนักงานใหญ่" if row == "สำนักงานใหญ่" else "สาขาย่อย")
-
-        # * แยกย่อยออกมาจาก บรรทัดบนเพื่อ กรองส่วนที่ไม่มีเลขให้เป็นคำว่า สาขาย่อย เพราอันบน มันจะเปนสำนักงานใหญ่หมดถ้าหากหาค่าไม่ได้
-        # result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
-        #     lambda row: "สาขาย่อย" if len(row) == 0 else "สำนักงานใหญ่")
-        result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
-            lambda row: "สาขาย่อย" if (isinstance(row, str) and len(row) == 0) else "สำนักงานใหญ่")
-        # result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
-        #     lambda row: print("ทำไมไม่ได้สาขาย่อยวะ", row) if (isinstance(row, str) and len(row) == 0) else print("ทำไมไม่ได้สาขาย่อยวะ", type(row)))
-        result_df['ประเภทสาขา'] = result_df['taxCode'].apply(
-            lambda row: "สาขาย่อย" if (pd.notna(row) and isinstance(row, str) and len(
-                row) == 0) else "สำนักงานใหญ่" if isinstance(row, str) else "สาขาย่อย"
-        )
 
         # * เปลี่ยนค่าใน Col billingAddrs ตัดภาษาอังกฤษออก เนื่องจาก ที่อยู่ที่ได้จาก exportfile laz จะมี pattern เป็น ไทย/ อังกิก เช่น "บางปะกง/ Bang Pakong"
         # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
@@ -6240,34 +6253,32 @@ class Bot_POS:
         print("cookies for reqtaxinfo: ", self.app.cookies['vatinfo'])
 
         headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Cache-Control': 'max-age=0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9,th;q=0.8',
+            'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            # 'Cookie': 'JSESSIONID=0000afl1mgz_VGdxFmh7f5mQJqf:-1',
-            'Origin': 'https://vsreg.rd.go.th',
-            'Referer': 'https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
+            'Content-Type': 'application/json',
+            'Origin': 'https://vsinter.rd.go.th',
+            'Pragma': 'no-cache',
+            'Referer': 'https://vsinter.rd.go.th/rd-webcontent-web/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-            'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
         }
 
         params = ''
 
-        data = {
-            'operation': 'searchByTin',
-            'goto_page': '',
-            'tin': 'on',
-            'txtTin': tax_input,
-            'branotxt': '',
-            'fname': 'null',
-            'lname': 'null',
+        json_data = {
+            'nid': f'{tax_input}',
+            'brano': '',
+            'searchType': '1',
+            'firNam': '',
+            'midNam': '',
+            'lasNam': '',
         }
 
         times = 1
@@ -6286,7 +6297,7 @@ class Bot_POS:
             if times == 1:
                 print("times = 1")
                 response = session.post('https://vsreg.rd.go.th/VATINFOWSWeb/jsp/VATInfoWSServlet',
-                                        cookies=self.app.cookies['vatinfo'], params=params, headers=headers, data=data)
+                                        cookies=self.app.cookies['vatinfo'], params=params, headers=headers, data=json_data)
 
                 # Todo มันมีการตรวจสอบ cookies ตลอดเวลา แต่ครั้งแรกreqไปมันจะตรวจสอบก่อน ถ้าไม่มีมันจะ return มาให้  ครั้งถัดไปมันจะตรวจอีกถ้ามี"แล้วยังใช้ได้" มันจะไม่ return ให้ ถ้าใช้ไม่ได้มันจะ return ตัวใหม่ให้
                 try:
