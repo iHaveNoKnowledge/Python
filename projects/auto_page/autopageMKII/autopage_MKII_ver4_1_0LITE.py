@@ -6254,7 +6254,7 @@ class Bot_POS:
 
         # เราจะไม่ใช้ cookies แต่จะใช้ค่าจาก class แรกสุด เพราะ
         # cookies = self.app.cookies['vatinfo']
-        print("cookies for reqtaxinfo: ", self.app.cookies['vatinfo'])
+        # print("cookies for reqtaxinfo: ", self.app.cookies['vatinfo'])
 
         headers = {
             'Accept': 'application/json, text/plain, */*',
@@ -6298,9 +6298,12 @@ class Bot_POS:
         }
 
         while not self.operation_thread.is_set():
-
             print("times = 1")
-            response = session.post(r"""https://vsinter.rd.go.th/rd-webcontent-web/#/vatsearch""", headers=headers, data=json_data)
+            response = session.post(
+                'https://vsinter.rd.go.th/rd-commoninter-service/subother/vatsbtsearch/getVatInfo',
+                headers=headers,
+                json=json_data,
+            )
 
             try:
                 response.raise_for_status()
@@ -6315,55 +6318,56 @@ class Bot_POS:
                 output = ""
 
                 # * ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
-                if len(menu_elements):
-                    # * มี <tr>
-                    for menu_element in menu_elements:
-                        result_data = {
-                            "no": "",
-                            "tax_num": "",
-                            "branch": "",
-                            "name": "",
-                            "address": "",
-                            # "postal_code": "" #! deprecated ในเว็บ vatinfo ไม่มี field นี้แล้ว
-                        }
+                #! Deprecated ดึง json มาโดนตรง 
+                # if len(menu_elements):
+                #     # * มี <tr>
+                #     for menu_element in menu_elements:
+                #         result_data = {
+                #             "no": "",
+                #             "tax_num": "",
+                #             "branch": "",
+                #             "name": "",
+                #             "address": "",
+                #             # "postal_code": "" #! deprecated ในเว็บ vatinfo ไม่มี field นี้แล้ว
+                #         }
 
-                        # print(menu_element) <<หาทั้งหมด
-                        # * tr = menu_element.find('tr')
-                        # * ในแต่ละ <tr> มี <td> หลายอัน
-                        tds = menu_element.find_all('td')
-                        for idx, key in enumerate(result_data):
-                            # b = tds[idx].find('b')
-                            # result = b.find('font').text.strip()
-                            result = tds[idx].text.strip()
-                            result = re.sub(r"\s{2,}", " ", result)
+                #         # print(menu_element) <<หาทั้งหมด
+                #         # * tr = menu_element.find('tr')
+                #         # * ในแต่ละ <tr> มี <td> หลายอัน
+                #         tds = menu_element.find_all('td')
+                #         for idx, key in enumerate(result_data):
+                #             # b = tds[idx].find('b')
+                #             # result = b.find('font').text.strip()
+                #             result = tds[idx].text.strip()
+                #             result = re.sub(r"\s{2,}", " ", result)
 
-                            # * ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
-                            if idx == 1 and len(result) > 13:
-                                result = re.sub(r"\-", "", result)
+                #             # * ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
+                #             if idx == 1 and len(result) > 13:
+                #                 result = re.sub(r"\-", "", result)
 
-                            print(result)
-                            result_data[key] = result
-                        print(" ")
-                        search_result.append(result_data)
-#! wipp กำลังแก้ถึงนี่ละยังไม่ได้เทส
-                    # * เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
-                    for item in search_result:
-                        if item['branch'] == self.app.branch_type:
-                            output = item
-                            print("เกบค่าลง dict result ลง output", output)
-                            break
-                    if bool(output) == False:
-                        print("ว่างต้องวนใหม่")
-                        times += 1
-                        continue
-                    else:
-                        print("ใช้ได้", output)
-                        break
+                #             print(result)
+                #             result_data[key] = result
+                #         print(" ")
+                #         search_result.append(result_data)
+                #     #! wipp กำลังแก้ถึงนี่ละยังไม่ได้เทส
+                #     # * เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
+                #     for item in search_result:
+                #         if item['branch'] == self.app.branch_type:
+                #             output = item
+                #             print("เกบค่าลง dict result ลง output", output)
+                #             break
+                #     if bool(output) == False:
+                #         print("ว่างต้องวนใหม่")
+                #         times += 1
+                #         continue
+                #     else:
+                #         print("ใช้ได้", output)
+                #         break
 
-                elif bool(menu_elements) == False:
-                    # ไม่มี <tr>
-                    print("ไม่มีใบกำกับจาก request", output)
-                    break
+                # elif bool(menu_elements) == False:
+                #     # ไม่มี <tr>
+                #     print("ไม่มีใบกำกับจาก request", output)
+                #     break
 
             except session.exceptions.HTTPError as e:
                 print(f"HTTP Error occurred: {e}")
