@@ -6211,7 +6211,8 @@ class Bot_POS:
                 'body div.swal2-container div.swal2-modal.show-swal2.visible button.swal2-confirm.styled').click()
         except:
             pass
-
+        
+#! Deprecated: data ที่ดึงมาโดยตรงมันแยก part ที่อยู่สวยงามอยู่ละ ไม่ต้องตัดแต่ง มั้ง
 # * function แยก address:str ที่ได้จาก vatinfo ให้เป็น part ย่อย (เขต, แขวง, จังหวัด, ปณ.)-------------------------------------
     def classify_vatinfo_address(self, input):
         try:
@@ -6219,9 +6220,10 @@ class Bot_POS:
             result = input
             print("resultสำหรับ classify คือไร :", result)
 
+             
             # Remove the "ตำบล" and everything after it from the address
-            address_only = re.compile(r'(?:ตำบล|ต\.).*')
-            result['address_shortened'] = address_only.sub('', result['address']).strip()
+            # address_only = re.compile(r'(?:ตำบล|ต\.).*')
+            # result['address_shortened'] = address_only.sub('', result['address']).strip()
 
             # Define the regular expression pattern
             pattern = re.compile(r'ตำบล/แขวง\s+(\S+).*?เขต\s+(\S+).*?จังหวัด\s+(\S+)')
@@ -6310,10 +6312,10 @@ class Bot_POS:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 # print("ได้ไรออกมา", soup)
                 # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
-                menu_elements = soup.select('//tr[@class="ant-table-row"]')
-                is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
+                # menu_elements = soup.select('//tr[@class="ant-table-row"]')
+                # is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
                 next_page_loc = """//li[@class='pagination-next']//a[@aria-label=' page']""" #* xpath ของปุ่ม next page แบบหน้าเวอชันใหม่
-                print("มีหลายหน้า?: ", bool(is_many_page))
+                # print("มีหลายหน้า?: ", bool(is_many_page))
                 search_result = []
                 output = ""
 
@@ -6375,8 +6377,8 @@ class Bot_POS:
                 print(f"An error occured: {e}")
             break
 
-        output = self.classify_vatinfo_address(output)
-        print("output: ", output)
+        # output = self.classify_vatinfo_address(output)
+        # print("output: ", output)
         return output
 
     def google_for_tambon(self, address, possible_tambons):
