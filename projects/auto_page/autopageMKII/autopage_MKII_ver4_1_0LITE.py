@@ -6309,8 +6309,6 @@ class Bot_POS:
 
             try:
                 response.raise_for_status()
-                
-                
                 # soup = BeautifulSoup(response.content, 'html.parser')
                 # print("ได้ไรออกมา", soup)
                 # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
@@ -6526,6 +6524,9 @@ class Bot_POS:
     def get_vatinfo_data(self, tax_num, branch="สำนักงานใหญ่"):
         #* value of branch can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
         print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
+        branch_for_search_from_res = branch
+        if branch == "สำนักงานใหญ่":
+            branch_for_search_from_res = "00000"
 
         # * หาชื่อใบกำกับจาก vatinfo
         result = self.get_res_vatinfo(str(tax_num), str(branch))
