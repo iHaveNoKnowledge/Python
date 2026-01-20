@@ -6259,7 +6259,7 @@ class Bot_POS:
         # print("cookies for reqtaxinfo: ", self.app.cookies['vatinfo'])
 
         headers = {
-            'Accept': 'application/json, text/plain, */*',
+            'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9,th;q=0.8',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
@@ -6309,7 +6309,9 @@ class Bot_POS:
 
             try:
                 response.raise_for_status()
-                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                
+                # soup = BeautifulSoup(response.content, 'html.parser')
                 # print("ได้ไรออกมา", soup)
                 # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
                 # menu_elements = soup.select('//tr[@class="ant-table-row"]')
@@ -6318,7 +6320,11 @@ class Bot_POS:
                 # print("มีหลายหน้า?: ", bool(is_many_page))
                 search_result = []
                 output = ""
-
+                if response.status_code == 200:
+                    print("Request สำเร็จ")
+                    output = response.json()
+                else:
+                    print(f"Error: Request failed with status code {response.status_code}")
                 # * ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
                 #! Deprecated ดึง json มาโดนตรง 
                 # if len(menu_elements):
