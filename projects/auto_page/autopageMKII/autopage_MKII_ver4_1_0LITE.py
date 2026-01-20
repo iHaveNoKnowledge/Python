@@ -5279,7 +5279,7 @@ class Bot_POS:
             sub_district = self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", "")
 
         elif customer_type == "tax_laz":
-            tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
+            tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get()) #* value of self.app.tax_branch_num.get() can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
             name = tax_info['name']
 
             #* Add branch info for lazada tax customers
@@ -6524,6 +6524,7 @@ class Bot_POS:
             print("ไม่เจอOrder")
 
     def get_vatinfo_data(self, tax_num, branch="สำนักงานใหญ่"):
+        #* value of branch can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
         print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
 
         # * หาชื่อใบกำกับจาก vatinfo
