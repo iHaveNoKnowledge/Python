@@ -6322,7 +6322,8 @@ class Bot_POS:
                 output = ""
                 if response.status_code == 200:
                     print("Request สำเร็จ")
-                    output = response.json()
+                    json_data = response.json() 
+                    output = json_data.get('data')
                 else:
                     print(f"Error: Request failed with status code {response.status_code}")
                 # * ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
