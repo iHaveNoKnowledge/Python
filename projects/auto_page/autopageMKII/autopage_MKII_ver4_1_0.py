@@ -1143,7 +1143,7 @@ class MyApp:
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
 
-        # * New Logic: Split address by U+00B7 (·)
+        # * New Logic: Split address by U+00B7 (·) and clean company/branch info
         def split_lazada_address_special_char(row):
             addr = str(row['รายละเอียดที่อยู่'])
             current_sub_district = row['billingAddr2']  # แขวง/ตำบล
@@ -1158,9 +1158,50 @@ class MyApp:
                     if '/' in sub_part:
                         sub_part = sub_part.split('/')[0].strip()
                         
-                    return main_addr, sub_part
+                    addr = main_addr
+                else:
+                    addr = parts[0].strip()
             
-            return addr, current_sub_district
+            # Remove company name patterns - more precise matching
+            # Match "บริษัท ... จำกัด" or "บริษัท ... Ltd." but stop at address keywords
+            company_patterns = [
+                # Thai company patterns - match until จำกัด or common endings
+                r'บริษัท\s+[^\s]+(?:\s+[^\s]+){0,5}?\s+จำกัด\s*(?:\(มหาชน\))?\s*',
+                r'บจก\.?\s+[^\s]+(?:\s+[^\s]+){0,5}?\s*',
+                r'บมจ\.?\s+[^\s]+(?:\s+[^\s]+){0,5}?\s*',
+                # English company patterns
+                r'\b(?:Company|Co\.?,?\s*Ltd\.?|Corporation|Corp\.?|Inc\.?)\b\s*',
+            ]
+            
+            for pattern in company_patterns:
+                addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
+            
+            # Remove any remaining "บริษัท" or company markers at the start
+            addr = re.sub(r'^\s*บริษัท\s+', '', addr)
+            addr = re.sub(r'^\s*บ\.?\s+', '', addr)
+            
+            # Remove branch indicators (Thai and English)
+            branch_patterns = [
+                r'\(?\s*สำนักงานใหญ่\s*\)?',
+                r'\(?\s*สนง\.?\s*ใหญ่\s*\)?',
+                r'\(?\s*สนญ\.?\s*\)?',
+                r'\(?\s*Head\s+Office\s*\)?',
+                r'\(?\s*HQ\s*\)?',
+                r'\(?\s*สาขา\s*\d+\s*\)?',
+                r'\(?\s*Branch\s*\d+\s*\)?',
+                r'\(?\s*สาขาที่\s*\d+\s*\)?',
+                r'\bสาขา\d+\b',
+            ]
+            
+            for pattern in branch_patterns:
+                addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
+            
+            # Clean up remaining empty parentheses and extra spaces
+            addr = re.sub(r'\(\s*\)', '', addr)  # Remove empty parentheses
+            addr = re.sub(r'\s+', ' ', addr)      # Replace multiple spaces with single space
+            addr = addr.strip()                    # Trim leading/trailing spaces
+            
+            return addr, current_sub_district if '\u00B7' in str(row['รายละเอียดที่อยู่']) and len(str(row['รายละเอียดที่อยู่']).split('\u00B7')) >= 2 else current_sub_district
 
         # Apply the splitting logic
         address_split_result = result_df.apply(split_lazada_address_special_char, axis=1, result_type='expand')
@@ -6499,8 +6540,11 @@ class Bot_POS:
         try:
             base_path = sys._MEIPASS
         except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
+            # Use the directory where the script is located instead of current working directory
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        result = os.path.join(base_path, relative_path)
+        print("resource_path: ", result)
+        return result
 
     def address_seperator(self, df, order):
         # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ

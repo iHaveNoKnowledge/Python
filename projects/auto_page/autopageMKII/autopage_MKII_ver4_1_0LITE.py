@@ -1103,8 +1103,7 @@ class MyApp:
             'createTime': 'first',
             'branchNumber': 'first'
         })
-        result_with_additional_columns_df = result_with_additional_columns_df.astype(
-            {'billingAddr5': str, 'billingPhone': str})
+        result_with_additional_columns_df = result_with_additional_columns_df.astype({'billingAddr5': str, 'billingPhone': str})
 
         # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
 
@@ -1145,7 +1144,7 @@ class MyApp:
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
 
-        # * New Logic: Split address by U+00B7 (·)
+        # * New Logic: Split address by U+00B7 (·) and clean company/branch info
         def split_lazada_address_special_char(row):
             addr = str(row['รายละเอียดที่อยู่'])
             current_sub_district = row['billingAddr2']  # แขวง/ตำบล
@@ -1160,9 +1159,50 @@ class MyApp:
                     if '/' in sub_part:
                         sub_part = sub_part.split('/')[0].strip()
                         
-                    return main_addr, sub_part
+                    addr = main_addr
+                else:
+                    addr = parts[0].strip()
             
-            return addr, current_sub_district
+            # Remove company name patterns - more precise matching
+            # Match "บริษัท ... จำกัด" or "บริษัท ... Ltd." but stop at address keywords
+            company_patterns = [
+                # Thai company patterns - match until จำกัด or common endings
+                r'บริษัท\s+[^\s]+(?:\s+[^\s]+){0,5}?\s+จำกัด\s*(?:\(มหาชน\))?\s*',
+                r'บจก\.?\s+[^\s]+(?:\s+[^\s]+){0,5}?\s*',
+                r'บมจ\.?\s+[^\s]+(?:\s+[^\s]+){0,5}?\s*',
+                # English company patterns
+                r'\b(?:Company|Co\.?,?\s*Ltd\.?|Corporation|Corp\.?|Inc\.?)\b\s*',
+            ]
+            
+            for pattern in company_patterns:
+                addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
+            
+            # Remove any remaining "บริษัท" or company markers at the start
+            addr = re.sub(r'^\s*บริษัท\s+', '', addr)
+            addr = re.sub(r'^\s*บ\.?\s+', '', addr)
+            
+            # Remove branch indicators (Thai and English)
+            branch_patterns = [
+                r'\(?\s*สำนักงานใหญ่\s*\)?',
+                r'\(?\s*สนง\.?\s*ใหญ่\s*\)?',
+                r'\(?\s*สนญ\.?\s*\)?',
+                r'\(?\s*Head\s+Office\s*\)?',
+                r'\(?\s*HQ\s*\)?',
+                r'\(?\s*สาขา\s*\d+\s*\)?',
+                r'\(?\s*Branch\s*\d+\s*\)?',
+                r'\(?\s*สาขาที่\s*\d+\s*\)?',
+                r'\bสาขา\d+\b',
+            ]
+            
+            for pattern in branch_patterns:
+                addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
+            
+            # Clean up remaining empty parentheses and extra spaces
+            addr = re.sub(r'\(\s*\)', '', addr)  # Remove empty parentheses
+            addr = re.sub(r'\s+', ' ', addr)      # Replace multiple spaces with single space
+            addr = addr.strip()                    # Trim leading/trailing spaces
+            
+            return addr, current_sub_district if '\u00B7' in str(row['รายละเอียดที่อยู่']) and len(str(row['รายละเอียดที่อยู่']).split('\u00B7')) >= 2 else current_sub_district
 
         # Apply the splitting logic
         address_split_result = result_df.apply(split_lazada_address_special_char, axis=1, result_type='expand')
@@ -1177,8 +1217,7 @@ class MyApp:
 
         # * เปลี่ยน ค่าใน col branchNumber ให้กลายเป็นบอกเฉพาะเลขสาขาถ้าเป็นสาขาย่อย และ เป็นค่าว่างถ้าเป็นสำนักงานใหญ่
         result_df['branchNumber'] = extracted_branch_df.copy()
-        result_df['branchNumber'] = result_df['branchNumber'].map(
-            lambda row: "" if row == "สำนักงานใหญ่" else row)
+        result_df['branchNumber'] = result_df['branchNumber'].map(lambda row: "" if row == "สำนักงานใหญ่" else row)
 
         # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย" (มีค่าเป็นเลขสาขา จะ return เป็น สาขาย่อย)
         # * ใช้ผลลัพธ์จาก find_branch เพื่อกำหนดประเภทสาขา
@@ -1188,8 +1227,7 @@ class MyApp:
         # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
         address_divs = ['billingAddr4', 'billingAddr3']
         for address_div in address_divs:
-            result_df[f'{address_div}'] = result_df[f'{address_div}'].map(
-                lambda row: row.split('/')[0].strip())
+            result_df[f'{address_div}'] = result_df[f'{address_div}'].map(lambda row: row.split('/')[0].strip())
 
         # * เปลี่ยน Dtype ของ Column ['createTime'] (วันที่ทำการสั่งซื้อ) จาก Series ให้เป็นobjวันที่ เนื่องจากอันเดิมมันเอาไป Sort ไม่ได้ เวลาออกเป็นตาราง
         result_df['createTime'] = pd.to_datetime(
@@ -6505,8 +6543,11 @@ class Bot_POS:
         try:
             base_path = sys._MEIPASS
         except Exception:
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
+            # Use the directory where the script is located instead of current working directory
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        result = os.path.join(base_path, relative_path)
+        print("resource_path: ", result)
+        return result
 
     def address_seperator(self, df, order):
         # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ
@@ -6612,6 +6653,7 @@ class Bot_POS:
 
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
+            print("no data from vatinfo, use manual data from excel instead")
             # * หาตำบล จาก address ที่ลูกค้าให้มา
             cus_address_from_table = self.address_seperator(
                 self.app.data_frame, self.app.cus_order.get())
