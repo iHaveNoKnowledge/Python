@@ -6249,9 +6249,9 @@ class Bot_POS:
             print("Input is empty. Cannot be classify, result = ", result)
             return result
 
-    def get_res_vatinfo(self, tax_num, tax_branch):
+    def get_res_vatinfo(self, tax_num, tax_branch_number):
         tax_input = str(tax_num)
-        branch = str(tax_branch)
+        branch = str(tax_branch_number)
         jsession_id = ''
 
         # เราจะไม่ใช้ cookies แต่จะใช้ค่าจาก class แรกสุด เพราะ
@@ -6280,7 +6280,7 @@ class Bot_POS:
 
         json_data = {
             'nid': f'{tax_input}',
-            'brano': '',
+            'brano': f'{tax_branch_number}',
             'searchType': '1',
             'firNam': '',
             'midNam': '',
@@ -6309,82 +6309,161 @@ class Bot_POS:
 
             try:
                 response.raise_for_status()
-                # soup = BeautifulSoup(response.content, 'html.parser')
-                # print("ได้ไรออกมา", soup)
-                # หาว่า response มี <tr> หรือไม่ มีเท่าไหร่
-                # menu_elements = soup.select('//tr[@class="ant-table-row"]')
-                # is_many_page = soup.select("""span[onclick^="gotoPage('"]""")
-                next_page_loc = """//li[@class='pagination-next']//a[@aria-label=' page']""" #* xpath ของปุ่ม next page แบบหน้าเวอชันใหม่
-                # print("มีหลายหน้า?: ", bool(is_many_page))
-                search_result = []
-                output = ""
-                if response.status_code == 200:
-                    print("Request สำเร็จ")
-                    json_data = response.json() 
-                    output = json_data.get('data')
+                # * Parse JSON response directly
+                json_response = response.json()
+                print("JSON response from VAT API:", json_response)
+                
+                # * Check if we have data
+                if json_response and isinstance(json_response, list) and len(json_response) > 0:
+                    # * Find the matching branch or use the first one
+                    output_item = None
+                    for item in json_response:
+                        if item.get('brano', '') == tax_branch_number:
+                            output_item = item
+                            break
+                    
+                    # * If no exact match, use first item
+                    if not output_item:
+                        output_item = json_response[0]
+                    
+                    # * Normalize the data structure
+                    output = self.normalize_vat_api_data(output_item, tax_branch_number)
+                    print("Normalized output:", output)
+                    break
                 else:
-                    print(f"Error: Request failed with status code {response.status_code}")
-                # * ตรวจหา element รายการข้อมูลใบกำกับ ซึ่งมันจะมี class ชื่อ trmenu
-                #! Deprecated ดึง json มาโดนตรง 
-                # if len(menu_elements):
-                #     # * มี <tr>
-                #     for menu_element in menu_elements:
-                #         result_data = {
-                #             "no": "",
-                #             "tax_num": "",
-                #             "branch": "",
-                #             "name": "",
-                #             "address": "",
-                #             # "postal_code": "" #! deprecated ในเว็บ vatinfo ไม่มี field นี้แล้ว
-                #         }
-
-                #         # print(menu_element) <<หาทั้งหมด
-                #         # * tr = menu_element.find('tr')
-                #         # * ในแต่ละ <tr> มี <td> หลายอัน
-                #         tds = menu_element.find_all('td')
-                #         for idx, key in enumerate(result_data):
-                #             # b = tds[idx].find('b')
-                #             # result = b.find('font').text.strip()
-                #             result = tds[idx].text.strip()
-                #             result = re.sub(r"\s{2,}", " ", result)
-
-                #             # * ช่วงใบกำกับ จะตัดเอาค่า 13 หลักจากด้านหลัง เพราะไอ 10 หลักตอนแรกมันคือไรไม่รู้
-                #             if idx == 1 and len(result) > 13:
-                #                 result = re.sub(r"\-", "", result)
-
-                #             print(result)
-                #             result_data[key] = result
-                #         print(" ")
-                #         search_result.append(result_data)
-                #     #! wipp กำลังแก้ถึงนี่ละยังไม่ได้เทส
-                #     # * เอา search_result มาดูว่าตรงกับสาขาที่ต้องการหรือไม่
-                #     for item in search_result:
-                #         if item['branch'] == self.app.branch_type:
-                #             output = item
-                #             print("เกบค่าลง dict result ลง output", output)
-                #             break
-                #     if bool(output) == False:
-                #         print("ว่างต้องวนใหม่")
-                #         times += 1
-                #         continue
-                #     else:
-                #         print("ใช้ได้", output)
-                #         break
-
-                # elif bool(menu_elements) == False:
-                #     # ไม่มี <tr>
-                #     print("ไม่มีใบกำกับจาก request", output)
-                #     break
+                    print("No VAT info found from API")
+                    output = {}
+                    break
 
             except session.exceptions.HTTPError as e:
                 print(f"HTTP Error occurred: {e}")
+                output = {}
+                break
             except Exception as e:
                 print(f"An error occured: {e}")
-            break
+                print(f"Traceback: {traceback.format_exc()}")
+                output = {}
+                break
 
-        # output = self.classify_vatinfo_address(output)
-        # print("output: ", output)
         return output
+
+    def normalize_vat_api_data(self, api_item, requested_branch):
+        """
+        Transform VAT API JSON response to standardized dictionary format.
+        
+        Args:
+            api_item (dict): Single item from VAT API response list
+            requested_branch (str): The branch number that was requested
+        
+        Returns:
+            dict: Standardized dictionary with keys:
+                tax_num, branch, name, address, address_shortened,
+                province, district, sub_district, postal_code
+        """
+        try:
+            # * Extract เลขผู้เสียภาษี
+            tax_num = api_item.get('nid', '') or api_item.get('pin', '')
+            
+            # * Extract สาขา and map to Thai
+            branch_num = api_item.get('brano', '00000')
+            if branch_num == '00000':
+                branch = 'สำนักงานใหญ่'
+            else:
+                branch = f'สาขา {branch_num}'
+            
+            # * Extract ชื่อ
+            name_title = api_item.get('bratitle', '') or api_item.get('title', '')
+            name_body = api_item.get('branam', '') or api_item.get('firnam', '')
+            name = f"{name_title}{name_body}".strip()
+            
+            # * Build full address from components
+            address_parts = []
+            
+            # Building name
+            bldgnam = api_item.get('bldgnam', '')
+            if bldgnam and bldgnam != '-':
+                address_parts.append(bldgnam)
+            
+            # Room and floor
+            roomno = api_item.get('roomno', '')
+            floorno = api_item.get('floorno', '')
+            if roomno and roomno != '-':
+                address_parts.append(f"ห้อง {roomno}")
+            if floorno and floorno != '-':
+                address_parts.append(f"ชั้น {floorno}")
+            
+            # Address number
+            addno = api_item.get('addno', '')
+            if addno:
+                address_parts.append(addno)
+            
+            # Moo
+            moono = api_item.get('moono', '')
+            if moono and moono != '-':
+                address_parts.append(f"หมู่ {moono}")
+            
+            # Village
+            village = api_item.get('village', '')
+            if village and village != '-':
+                address_parts.append(village)
+            
+            # Soi
+            soinam = api_item.get('soinam', '')
+            if soinam and soinam != '-':
+                address_parts.append(f"ซอย{soinam}")
+            
+            # Yaek
+            yaek = api_item.get('brano', '')
+            if yaek and yaek != '-':
+                address_parts.append(f"แยก{yaek}")
+            
+            # Road
+            thnnam = api_item.get('thnnam', '')
+            if thnnam and thnnam != '-':
+                address_parts.append(f"ถนน{thnnam}")
+            
+            # Province, district, subdistrict components
+            tamnam = api_item.get('tamnam', '')  # Sub-district
+            ampnam = api_item.get('ampnam', '')  # District
+            provnam = api_item.get('provnam', '')  # Province
+            poscod = api_item.get('poscod', '')  # Postal code
+            
+            # * Build address_shortened (without tambon/district/province)
+            address_shortened = ' '.join(address_parts)
+            
+            # * Build full address (with tambon/district/province)
+            full_address_parts = address_parts.copy()
+            if tamnam:
+                full_address_parts.append(f"ตำบล/แขวง {tamnam}")
+            if ampnam:
+                full_address_parts.append(f"เขต {ampnam}")
+            if provnam:
+                full_address_parts.append(f"จังหวัด {provnam}")
+            if poscod:
+                full_address_parts.append(poscod)
+            
+            full_address = ' '.join(full_address_parts)
+            
+            # * Return standardized structure
+            result = {
+                'tax_num': tax_num,
+                'branch': branch,
+                'name': name,
+                'address': full_address,
+                'address_shortened': address_shortened,
+                'province': provnam,
+                'district': ampnam,
+                'sub_district': tamnam,
+                'postal_code': poscod,
+            }
+            
+            print(f"Normalized VAT data: {result}")
+            return result
+            
+        except Exception as e:
+            print(f"Error normalizing VAT API data: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+            return {}
 
     def google_for_tambon(self, address, possible_tambons):
         # Todo address รับค่าเป็น dict
@@ -6529,7 +6608,7 @@ class Bot_POS:
             branch_for_search_from_res = "00000"
 
         # * หาชื่อใบกำกับจาก vatinfo
-        result = self.get_res_vatinfo(str(tax_num), str(branch))
+        result = self.get_res_vatinfo(str(tax_num), str(branch_for_search_from_res))
 
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
