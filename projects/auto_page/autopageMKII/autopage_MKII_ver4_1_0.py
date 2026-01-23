@@ -6165,15 +6165,13 @@ class Bot_POS:
             "แขวง", "").replace(
             "ต.", "").replace(
             "จังหวัด", "").replace(
-            "จ.", "")
+            "จ.", "").replace("เลขที่", "")
 
         print("compare self.current_address & self.desired_full_address")
         print(self.current_address.replace(' ', ''))
         print(self.desired_full_address.replace(' ', ''))
 
-        if not self.current_address.replace(
-                ' ', '') == self.desired_full_address.replace(
-                ' ', ''):  # * ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
+        if not self.current_address.replace(' ', '').replace('เลขที่', '') == self.desired_full_address.replace(' ', '').replace('เลขที่', ''):  # * ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
             # * เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
             logger.info(f"{self.app.cus_order.get()}: compare self.current_address & self.desired_full_address")
             logger.info(self.current_address.replace(' ', ''))
