@@ -1147,6 +1147,7 @@ class MyApp:
         def split_lazada_address_special_char(row):
             addr = str(row['รายละเอียดที่อยู่'])
             current_sub_district = row['billingAddr2']  # แขวง/ตำบล
+            extracted_sub_district = current_sub_district  # Default to current value
             
             if '\u00B7' in addr:
                 parts = addr.split('\u00B7')
@@ -1157,18 +1158,21 @@ class MyApp:
                     # Clean English part from sub_part (e.g. "สระตะเคียน/ Sa Takhian")
                     if '/' in sub_part:
                         sub_part = sub_part.split('/')[0].strip()
-                        
+                    
                     addr = main_addr
+                    extracted_sub_district = sub_part  # Save the extracted sub-district
                 else:
                     addr = parts[0].strip()
             
             # Remove company name patterns - more precise matching
-            # Match "บริษัท ... จำกัด" or "บริษัท ... Ltd." but stop at address keywords
+            # Match "บริษัท ... จำกัด" with or without spaces (handles concatenated text)
             company_patterns = [
-                # Thai company patterns - match until จำกัด or common endings
+                # Thai company patterns - with spaces
                 r'บริษัท\s+[^\s]+(?:\s+[^\s]+){0,5}?\s+จำกัด\s*(?:\(มหาชน\))?\s*',
-                r'บจก\.?\s+[^\s]+(?:\s+[^\s]+){0,5}?\s*',
-                r'บมจ\.?\s+[^\s]+(?:\s+[^\s]+){0,5}?\s*',
+                # Thai company patterns - without spaces (concatenated like บริษัทXXXจำกัด)
+                r'บริษัท[\u0E00-\u0E7Fa-zA-Z0-9\.]+จำกัด\s*(?:\(มหาชน\))?\s*',
+                r'บจก\.?\s*[\u0E00-\u0E7Fa-zA-Z0-9\.]+\s*',
+                r'บมจ\.?\s*[\u0E00-\u0E7Fa-zA-Z0-9\.]+\s*',
                 # English company patterns
                 r'\b(?:Company|Co\.?,?\s*Ltd\.?|Corporation|Corp\.?|Inc\.?)\b\s*',
             ]
@@ -1177,8 +1181,8 @@ class MyApp:
                 addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
             
             # Remove any remaining "บริษัท" or company markers at the start
-            addr = re.sub(r'^\s*บริษัท\s+', '', addr)
-            addr = re.sub(r'^\s*บ\.?\s+', '', addr)
+            addr = re.sub(r'^\s*บริษัท\s*', '', addr)
+            addr = re.sub(r'^\s*บ\.\s*', '', addr)  # Only match 'บ.' with dot, not 'บ' alone
             
             # Remove branch indicators (Thai and English)
             branch_patterns = [
@@ -1201,12 +1205,109 @@ class MyApp:
             addr = re.sub(r'\s+', ' ', addr)      # Replace multiple spaces with single space
             addr = addr.strip()                    # Trim leading/trailing spaces
             
-            return addr, current_sub_district if '\u00B7' in str(row['รายละเอียดที่อยู่']) and len(str(row['รายละเอียดที่อยู่']).split('\u00B7')) >= 2 else current_sub_district
+            return addr, extracted_sub_district
 
         # Apply the splitting logic
         address_split_result = result_df.apply(split_lazada_address_special_char, axis=1, result_type='expand')
         result_df['รายละเอียดที่อยู่'] = address_split_result[0]
         result_df['billingAddr2'] = address_split_result[1]
+        
+        # * Fill missing sub-district (แขวง/ตำบล) data by querying from Excel file
+        try:
+            # Load address data file
+            address_data_path = os.path.join(os.path.dirname(__file__), 'tables', 'Addresscleaner_TambonData.xlsx')
+            address_df = pd.read_excel(address_data_path, dtype=str)
+            print(f"Loaded address data: {len(address_df)} rows")
+            print(f"Columns: {address_df.columns.tolist()}")
+            
+            # Function to lookup missing sub-district
+            def fill_missing_subdistrict(row):
+                # If sub-district is already filled, return as is
+                if pd.notna(row['billingAddr2']) and str(row['billingAddr2']).strip() != '':
+                    return row['billingAddr2']
+                
+                # Try to find matching record
+                district = str(row['billingAddr4']).strip() if pd.notna(row['billingAddr4']) else ''
+                province = str(row['billingAddr3']).strip() if pd.notna(row['billingAddr3']) else ''
+                zipcode = str(row['billingAddr5']).strip() if pd.notna(row['billingAddr5']) else ''
+                
+                print(f"Looking up: district='{district}', province='{province}', zipcode='{zipcode}'")
+                
+                matches = pd.DataFrame()
+                
+                if district and province:
+                    # Query the address data - use correct column names from Excel
+                    matches = address_df[
+                        (address_df['DistrictThaiShort'].str.strip() == district) & 
+                        (address_df['ProvinceThai'].str.strip() == province)
+                    ]
+                    print(f"  Match by district+province: {len(matches)} rows")
+                    
+                    # If no match, try without "เมือง" prefix if applicable
+                    if matches.empty and district.startswith('เมือง'):
+                        short_district = district[len('เมือง'):]
+                        matches = address_df[
+                            (address_df['DistrictThaiShort'].str.strip() == short_district) & 
+                            (address_df['ProvinceThai'].str.strip() == province)
+                        ]
+                        print(f"  Match without เมือง prefix: {len(matches)} rows")
+                
+                # If still no match but zipcode available, try zipcode only
+                if matches.empty and zipcode:
+                    matches = address_df[address_df['PostCodeMain'].str.strip() == zipcode]
+                    print(f"  Match by zipcode only: {len(matches)} rows")
+                
+                # If zipcode is available, use it for more precise matching
+                if zipcode and not matches.empty and len(matches) > 1:
+                    zipcode_matches = matches[matches['PostCodeMain'].str.strip() == zipcode]
+                    if not zipcode_matches.empty:
+                        matches = zipcode_matches
+                        print(f"  Refined by zipcode: {len(matches)} rows")
+                
+                # Return the first match if found (use TambonThaiShort column)
+                if not matches.empty:
+                    result = matches.iloc[0]['TambonThaiShort']
+                    print(f"  Found: '{result}'")
+                    return result
+                
+                print(f"  No match found")
+                return row['billingAddr2']
+            
+            # Apply the lookup
+            result_df['billingAddr2'] = result_df.apply(fill_missing_subdistrict, axis=1)
+            
+        except FileNotFoundError:
+            print(f"Warning: Addresscleaner_TambonData.xlsx not found at {address_data_path}")
+        except Exception as e:
+            import traceback
+            print(f"Warning: Error loading address data: {e}")
+            traceback.print_exc()
+        
+        # * Remove redundant administrative keywords from รายละเอียดที่อยู่
+        def remove_redundant_keywords(row):
+            addr = str(row['รายละเอียดที่อยู่'])
+            
+            # List of redundant patterns to remove (with word boundaries where appropriate)
+            redundant_patterns = [
+                r'\bตำบล[^\s]*',     # ตำบล followed by any non-space characters
+                r'\bต\.[^\s]*',      # ต. followed by any non-space characters  
+                r'\bอำเภอ[^\s]*',    # อำเภอ followed by any non-space characters
+                r'\bอ\.[^\s]*',      # อ. followed by any non-space characters
+                r'\bแขวง[^\s]*',     # แขวง followed by any non-space characters
+                r'\bเขต[^\s]*',      # เขต followed by any non-space characters
+                r'\bจังหวัด[^\s]*',  # จังหวัด followed by any non-space characters
+                r'\bจ\.[^\s]*',      # จ. followed by any non-space characters
+            ]
+            
+            for pattern in redundant_patterns:
+                addr = re.sub(pattern, '', addr)
+            
+            # Clean up extra spaces
+            addr = re.sub(r'\s+', ' ', addr).strip()
+            
+            return addr
+        
+        result_df['รายละเอียดที่อยู่'] = result_df.apply(remove_redundant_keywords, axis=1)
 
         result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
         print("result_df d-type", type(result_df['ประเภทสาขา']))
@@ -6348,18 +6449,29 @@ class Bot_POS:
                 json_response = response.json()
                 print("JSON response from VAT API:", json_response)
                 
+                # * Extract data from response (handle both dict and list formats)
+                data_list = None
+                if isinstance(json_response, dict):
+                    # * API returns dict with 'data' key
+                    data_list = json_response.get('data', [])
+                    status = json_response.get('status', '')
+                    print(f"API Status: {status}")
+                elif isinstance(json_response, list):
+                    # * API returns list directly
+                    data_list = json_response
+                
                 # * Check if we have data
-                if json_response and isinstance(json_response, list) and len(json_response) > 0:
+                if data_list and isinstance(data_list, list) and len(data_list) > 0:
                     # * Find the matching branch or use the first one
                     output_item = None
-                    for item in json_response:
+                    for item in data_list:
                         if item.get('brano', '') == branch:
                             output_item = item
                             break
                     
                     # * If no exact match, use first item
                     if not output_item:
-                        output_item = json_response[0]
+                        output_item = data_list[0]
                     
                     # * Normalize the data structure
                     output = self.normalize_vat_api_data(output_item, branch)
@@ -6550,8 +6662,8 @@ class Bot_POS:
         # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ
         print("assign_address order:", order)
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
-        df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(str)
-        df['หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(str)
+        df.loc[:, 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(str)
+        df.loc[:, 'หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(str)
 
         # * หาตำบลจากไฟล์
         target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
