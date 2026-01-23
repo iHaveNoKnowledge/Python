@@ -1,1 +1,2 @@
-google_for_tambon
+
+                if not "Searching" in li_locators[0].text:

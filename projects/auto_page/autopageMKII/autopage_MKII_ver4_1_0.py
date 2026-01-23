@@ -1112,11 +1112,9 @@ class MyApp:
         result_count['ราคาขายสุทธิ'] = result_count["จำนวน"] * \
             result_count["unitPrice"]
 
-        # *> 'ชื่อผู้รับ'
-        result_count['ชื่อผู้รับ'] = df['billingName']
-
-        # *> 'หมายเลขโทรศัพท์'
-        result_count['หมายเลขโทรศัพท์'] = df['billingPhone']
+        # *> 'ชื่อผู้รับ' AND 'หมายเลขโทรศัพท์' - REMOVED BUGGY ASSIGNMENT
+        # These were assigned by index which caused mismatch. 
+        # They will be assigned correctly after merge from result_with_additional_columns_df
 
         # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
         total_sellerDiscountTotal_df = df.groupby('orderNumber')[
@@ -1142,6 +1140,10 @@ class MyApp:
 
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
+
+        # * Fix: Assign 'ชื่อผู้รับ' and 'หมายเลขโทรศัพท์' correctly from merged data
+        result_df['ชื่อผู้รับ'] = result_df['billingName'].copy()
+        result_df['หมายเลขโทรศัพท์'] = result_df['billingPhone'].copy()
 
         # * New Logic: Split address by U+00B7 (·) and clean company/branch info
         def split_lazada_address_special_char(row):
@@ -5531,7 +5533,7 @@ class Bot_POS:
                         self.driver.find_element(
                             By.XPATH, "/html/body/div[2]/div[3]/div[13]/span/span/span[2]/ul/li[2]").click()
                     else:  # tax_laz
-                        self.driver.find_element(By.XPATH, "//*[text()='Thailand' or text()='ไทย']").click()
+                        self.driver.find_element(By.XPATH, "//li[text()='Thailand' or text()='ไทย']").click()
 
                     # * Province dropdown
                     province_dropdown_btn = self.driver.find_element(
@@ -6554,9 +6556,9 @@ class Bot_POS:
             # * Extract สาขา and map to Thai
             branch_num = api_item.get('brano', '00000')
             if branch_num == '00000':
-                branch = 'สำนักงานใหญ่'
+                branch = '(สำนักงานใหญ่)'
             else:
-                branch = f'สาขา {branch_num}'
+                branch = f'(สาขา{branch_num})'
             
             # * Extract ชื่อ
             name_title = api_item.get('bratitle', '') or api_item.get('title', '')
