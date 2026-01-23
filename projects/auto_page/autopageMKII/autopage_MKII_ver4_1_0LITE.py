@@ -1223,14 +1223,19 @@ class MyApp:
             
             # Function to lookup missing sub-district
             def fill_missing_subdistrict(row):
-                # If sub-district is already filled, return as is
-                if pd.notna(row['billingAddr2']) and str(row['billingAddr2']).strip() != '':
-                    return row['billingAddr2']
+                # Always re-calculate sub-district to fix potential errors in pre-filled data
+                # if pd.notna(row['billingAddr2']) and str(row['billingAddr2']).strip() != '':
+                #     return row['billingAddr2']
                 
-                # Try to find matching record
-                district = str(row['billingAddr4']).strip() if pd.notna(row['billingAddr4']) else ''
-                province = str(row['billingAddr3']).strip() if pd.notna(row['billingAddr3']) else ''
+                # Extract and clean District/Province (remove English part if present)
+                district = str(row['billingAddr4']).split('/')[0].strip() if pd.notna(row['billingAddr4']) else ''
+                province = str(row['billingAddr3']).split('/')[0].strip() if pd.notna(row['billingAddr3']) else ''
                 zipcode = str(row['billingAddr5']).strip() if pd.notna(row['billingAddr5']) else ''
+                full_address = str(row['billingAddr']) if pd.notna(row['billingAddr']) else ''
+                
+                # Clean prefixes from district and province for better matching
+                district = re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*', '', district)
+                province = re.sub(r'^(?:จังหวัด|จ\.)\s*', '', province)
                 
                 print(f"Looking up: district='{district}', province='{province}', zipcode='{zipcode}'")
                 
@@ -1258,18 +1263,60 @@ class MyApp:
                     matches = address_df[address_df['PostCodeMain'].str.strip() == zipcode]
                     print(f"  Match by zipcode only: {len(matches)} rows")
                 
-                # If zipcode is available, use it for more precise matching
-                if zipcode and not matches.empty and len(matches) > 1:
-                    zipcode_matches = matches[matches['PostCodeMain'].str.strip() == zipcode]
-                    if not zipcode_matches.empty:
-                        matches = zipcode_matches
-                        print(f"  Refined by zipcode: {len(matches)} rows")
-                
-                # Return the first match if found (use TambonThaiShort column)
+                possible_tambons = []
                 if not matches.empty:
-                    result = matches.iloc[0]['TambonThaiShort']
-                    print(f"  Found: '{result}'")
-                    return result
+                    possible_tambons = matches['TambonThaiShort'].unique().tolist()
+                    # Sort by length descending to match longest first
+                    possible_tambons.sort(key=len, reverse=True)
+                    
+                    # 2. Check if any candidate exists in the Full Tax Invoice Address (billingAddr)
+                    # Prioritize candidates that are NOT the district name to avoid false positives
+                    # (e.g. "Ban Khai" district appearing in address causing "Ban Khai" sub-district match)
+                    
+                    candidates_not_district = [t for t in possible_tambons if t != district]
+                    candidates_is_district = [t for t in possible_tambons if t == district]
+                    
+                    # First pass: Check non-district candidates
+                    for tambon in candidates_not_district:
+                        if pd.isna(tambon): continue
+                        if tambon in full_address:
+                            print(f"  Match found in full address: '{tambon}'")
+                            return tambon
+                            
+                    # Second pass: Check district candidates with stricter rules
+                    for tambon in candidates_is_district:
+                        if pd.isna(tambon): continue
+                        
+                        # Rule 1: Check for explicit Tambon prefix
+                        if re.search(r'(?:ต\.|ตำบล|แขวง)\s*' + re.escape(tambon), full_address):
+                            print(f"  Match found with prefix: '{tambon}'")
+                            return tambon
+                            
+                        # Rule 2: Check if it appears more than once (once as district, once as sub-district)
+                        # This assumes the district name is present in the address
+                        if full_address.count(tambon) >= 2:
+                            print(f"  Match found (appears multiple times): '{tambon}'")
+                            return tambon
+                
+                # 3. Fallback to Google Search
+                print("  No match in full address, asking Google...")
+                
+                # Prepare address dict for google_for_tambon
+                # It expects: cleaned_address, amphoe, province, postal
+                address_dict = {
+                    "cleaned_address": row['รายละเอียดที่อยู่'], # Use the cleaned address for search query
+                    "amphoe": district,
+                    "province": province,
+                    "postal": zipcode
+                }
+                
+                if possible_tambons:
+                    try:
+                        google_result = self.google_for_tambon(address_dict, possible_tambons)
+                        if google_result:
+                            return google_result
+                    except Exception as e:
+                        print(f"Google search error: {e}")
                 
                 print(f"  No match found")
                 return row['billingAddr2']
