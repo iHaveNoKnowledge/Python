@@ -1347,6 +1347,9 @@ class MyApp:
             # Clean up extra spaces
             addr = re.sub(r'\s+', ' ', addr).strip()
             
+            # Remove trailing hyphen (e.g. "58 หมู่ 9 -")
+            addr = re.sub(r'\s*-\s*$', '', addr)
+            
             return addr
         
         result_df['รายละเอียดที่อยู่'] = result_df.apply(remove_redundant_keywords, axis=1)
