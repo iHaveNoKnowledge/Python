@@ -122,7 +122,7 @@ class OrderDisplayManager:
             )
             product_name_entry.insert(
                 0,
-                f"{' '.join(self.app.correct_sku_pattern(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}"
+                f"{' '.join(self.app.sku_formater(str(row['เลขอ้างอิง SKU (SKU Reference No.)'])))}"
                 f"{' : ' + str(row['ชื่อตัวเลือก']) if not pd.isna(row['ชื่อตัวเลือก']) else ''} : {str(row['ชื่อสินค้า'])}"
             )
             row_widgets.append(product_name_entry)
