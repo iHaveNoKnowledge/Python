@@ -1439,12 +1439,13 @@ class MyApp:
         print('self.marketplace_target.get()', self.marketplace_target.get())
         shopee = {'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str,
                   'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str,
-                  'ประเภทสาขา': str, 'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str}
+                  'ประเภทสาขา': str, 'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str,
+                  'orderNumber': str}
         lazada = {
             'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str,
             'จำนวน': int, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 'แขวง/ตำบล': str,
             'ประเภทสาขา': str, 'สาขาย่อย': str, 'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str,
-            'taxCode': str}
+            'taxCode': str, 'orderNumber': str}
         self.columns_preset = shopee if self.marketplace_target.get(
         ) == 'SHOPEE' else lazada if self.marketplace_target.get() == 'LAZADA' else ''
         try:
@@ -2801,6 +2802,9 @@ class Bot_POS:
         # คำอธิบาย:
         # - memory_check_interval: ยิ่งน้อยยิ่งตรวจบ่อย แต่จะช้าลง (แนะนำ 5-20)
         # - max_memory_mb: ขึ้นกับสเปคคอม และความต้องการ (แนะนำ 500-1000MB)
+        
+        #/ utils variables
+        self.is_random_subdistrict_used = False  # ใช้ใน address cleaner
 
     def setup_chrome(self):
         self.opt = Options()
@@ -5262,7 +5266,8 @@ class Bot_POS:
                             # * สำหรับรอ final pop-up after click the green btn
                             self.final_popup_after_green_btn_handler(is_etax)
                             # * ไม่แน่ใจ
-                            continue
+                            self.autofinal = False
+                            break
                         else:
                             print("จบสูตร")
                         self.autofinal = False
@@ -6124,9 +6129,21 @@ class Bot_POS:
                     time.sleep(0.75)
             else:
                 time.sleep(0.75)
+                
+    def should_skip_address_correction(self):
+        if self.is_random_subdistrict_used:
+            self.is_random_subdistrict_used = False
+            return True
+        return False
 
     def tax_address_corrector(self, cus_name):
         print("cus_name: ", cus_name)
+        
+        # random จะเป็นการที่ user เลือกเองฉะนั้นไม่ต้องตรวจซ้ำ
+        if self.should_skip_address_correction():
+            print("Random subdistrict used, skipping address correction")
+            return
+        
         # match = re.search(r'C\d*(?=-)', cus_name) #! อันนี้ถ้าหากมีคนตั้งชื่อเหมือนรหัสมันจะเจอสองจุดแต่ patternจริงๆแล้วนั้นรหัสมันจะต้องขึ้นต้นก่อนเสมอฉะนั้นต้องปรับ
         match = re.search(r'^C\d{1,}(?=-)', cus_name)  # * for customer code
         self.cus_code = match.group()
@@ -6173,7 +6190,16 @@ class Bot_POS:
         print(self.current_address.replace(' ', ''))
         print(self.desired_full_address.replace(' ', ''))
 
-        if not self.current_address.replace(' ', '').replace('เลขที่', '') == self.desired_full_address.replace(' ', '').replace('เลขที่', ''):  # * ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
+        # * Helper to normalize 'Moo' (Village No.) for comparison
+        def normalize_moo(address):
+            # Replace 'หมู่ที่', 'ม.', 'หมู่' followed by digits with 'หมู่' + digits
+            # Strictly look for digits after the Moo keyword to avoid matching "หมู่บ้าน" (Village Name)
+            return re.sub(r'(?:หมู่ที่|หมู่|ม\.)\s*(\d+)', r'หมู่\1', address)
+
+        current_addr_norm = normalize_moo(self.current_address)
+        desired_addr_norm = normalize_moo(self.desired_full_address)
+
+        if not current_addr_norm.replace(' ', '').replace('เลขที่', '') == desired_addr_norm.replace(' ', '').replace('เลขที่', ''):  # * ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
             # * เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
             logger.info(f"{self.app.cus_order.get()}: compare self.current_address & self.desired_full_address")
             logger.info(self.current_address.replace(' ', ''))
@@ -6776,7 +6802,8 @@ class Bot_POS:
                     address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
-                self.app.POP_UP.show("Caution!!", f""""ตำบล"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", "alert")
+                self.app.POP_UP.show("Caution!!", f""""ตำบล/แขวง"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", "alert")
+                self.is_random_subdistrict_used = True
 
             # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
