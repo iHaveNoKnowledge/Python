@@ -824,6 +824,16 @@ class MyApp:
             corner_radius=4
         )
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
+        
+        # * > Customer Name display component
+        # * >> Labels
+        self.label_cus_name = CTkLabel(
+            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
+        # * >> Value display
+        self.display_cus_name = CTkEntry(
+            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
+        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
 
         # * > Tax Number display component
         # >> Labels
@@ -845,15 +855,7 @@ class MyApp:
             state="readonly", corner_radius=4)
         self.display_cus_email.grid(row=2, column=7, padx=(1, 4), sticky='ew')
 
-        # * > Customer Name display component
-        # * >> Labels
-        self.label_cus_name = CTkLabel(
-            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
-        # * >> Value display
-        self.display_cus_name = CTkEntry(
-            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
-        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
+
 
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
@@ -1947,20 +1949,17 @@ class MyApp:
                     if "สำนักงานใหญ่" in self.branch_type:
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ขอใบกำกับ สนงใหญ่")
-                        self.display_is_tax.configure(fg_color="#ff0000", text_color="#FFF",
-                                                      font=("Chiller", 10, "bold"))
+                        self.display_is_tax.configure(fg_color="#ff0000", text_color="#FFF",font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
                         self.is_tax_required.set(True)
-                        self.cus_tax_status.set("ขอใบกำกับ สาขาย่อย")
-                        self.display_is_tax.configure(fg_color="#ff0055", text_color="#FFF",
-                                                      font=("Chiller", 10, "bold"))
+                        self.cus_tax_status.set(f"ใบกำกับ สาขา{branch}")
+                        self.display_is_tax.configure(fg_color="#ff0055", text_color="#FFF", font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
                     else:
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ไม่ขอแต่มีเลข")
-                        self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF",
-                                                      font=("Chiller", 12, "bold"))
+                        self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF", font=("Chiller", 12, "bold"))
                         self.tax_num.set(tax_num_only)
 
                 if self.is_tax_required.get() == True and len(tax_num_only) == 13:
@@ -2218,7 +2217,7 @@ class MyApp:
             if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
                 name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
         elif name_edited.startswith(("บจก", "บริษัท", "บ.")) or name_edited.endswith("จำกัด"):
-            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.?|จก\.)', '', name_edited).strip()
+            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.)', '', name_edited).strip()
             # ถ้าไม่มี "บริษัท" หรือ "จำกัด" อยู่แล้ว ให้เพิ่ม
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
@@ -4243,7 +4242,7 @@ class Bot_POS:
         self.action01.perform()
 
     #! deprecated?
-    def justPressP(self):
+    def just_press_p(self):
         time.sleep(1)
         self.wsh.SendKeys("P")
         time.sleep(1.55)
@@ -4318,6 +4317,8 @@ class Bot_POS:
         # * get base64_str
         self.base64_pdf_data = self.get_base64_from_ui()
 
+
+
         # * แปลง base64 back to binary data and write down to pdf
         self.base64_to_pdf(self.base64_pdf_data, self.pdf_path)
         self.bin_pdf_data = base64.b64decode(self.base64_pdf_data)  # ! ทำไรวะ
@@ -4343,7 +4344,10 @@ class Bot_POS:
                 self.get_pdf_src_and_print(inv_number, retry_count+1)
 
         # * กดปุ่มแดงปิดหน้า print
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
+        try:
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
+        except Exception as e:
+            print(f"Error closing print window: {e}")
 
     def get_base64_from_ui(self):
         try:
@@ -7043,7 +7047,7 @@ class Bot_POS:
 
                     #! วิธี print แบบเก่า
                     # self.printtingPage()
-                    # self.justPressP()
+                    # self.just_press_p()
                     # * วิธี print แบบใหม่
                     self.printing_thread = threading.Thread(
                         target=self.get_pdf_src_and_print, args=(inv_number,))
@@ -7085,7 +7089,7 @@ class Bot_POS:
                 # self.driver.find_element(
                 #     By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
                 # self.printtingPage()
-                # self.justPressP()
+                # self.just_press_p()
                 # break
 
             # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม

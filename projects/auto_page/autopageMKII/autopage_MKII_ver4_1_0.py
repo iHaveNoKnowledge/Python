@@ -807,6 +807,16 @@ class MyApp:
             corner_radius=4
         )
         self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
+        
+        # * > Customer Name display component
+        # * >> Labels
+        self.label_cus_name = CTkLabel(
+            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
+        # * >> Value display
+        self.display_cus_name = CTkEntry(
+            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
+        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
 
         # * > Is Tax?? display component
         # * >> Labels
@@ -841,15 +851,7 @@ class MyApp:
             state="readonly", corner_radius=4)
         self.display_cus_email.grid(row=2, column=7, padx=(1, 4), sticky='ew')
 
-        # * > Customer Name display component
-        # * >> Labels
-        self.label_cus_name = CTkLabel(
-            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
-        # * >> Value display
-        self.display_cus_name = CTkEntry(
-            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
-        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
+
 
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
@@ -1946,7 +1948,7 @@ class MyApp:
                         self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
                         self.is_tax_required.set(True)
-                        self.cus_tax_status.set("ขอใบกำกับ สาขาย่อย")
+                        self.cus_tax_status.set(f"ใบกำกับ สาขา{branch}")
                         self.display_is_tax.configure(fg_color="#ff0055", text_color="#FFF",
                                                       font=("Chiller", 10, "bold"))
                         self.tax_num.set(tax_num_only)
@@ -2213,7 +2215,7 @@ class MyApp:
             if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
                 name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
         elif name_edited.startswith(("บจก", "บริษัท", "บ.")) or name_edited.endswith("จำกัด"):
-            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.?|จก\.)', '', name_edited).strip()
+            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.)', '', name_edited).strip()
             # ถ้าไม่มี "บริษัท" หรือ "จำกัด" อยู่แล้ว ให้เพิ่ม
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
@@ -4332,7 +4334,12 @@ class Bot_POS:
                 self.get_pdf_src_and_print(inv_number, retry_count+1)
 
         # * กดปุ่มแดงปิดหน้า print
-        self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
+        try:
+            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
+        except Exception as e:
+            print(f"Error closing print window: {e}")
+
+
 
     def get_base64_from_ui(self):
         try:
