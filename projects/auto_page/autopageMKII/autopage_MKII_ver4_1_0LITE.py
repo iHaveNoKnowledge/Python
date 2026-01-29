@@ -2907,6 +2907,22 @@ class Bot_POS:
                     print(f"Max retries ({max_retries}) reached. Giving up.")
                     raise last_exception
 
+    def is_driver_alive(self):
+        """
+        ตรวจสอบว่า WebDriver ยังทำงานอยู่หรือไม่
+        
+        Returns:
+            bool: True ถ้า driver ยังทำงานได้, False ถ้า connection หาย
+        """
+        try:
+            # ลองเข้าถึง driver โดยการเรียก current_url
+            _ = self.driver.current_url
+            return True
+        except Exception as e:
+            print(f"Driver is not alive: {type(e).__name__}: {e}")
+            logger.error(f"Driver connection lost: {type(e).__name__}: {e}")
+            return False
+
     def get_current_tab_memory_usage(self):
         """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
         try:
@@ -3657,6 +3673,14 @@ class Bot_POS:
                     self.app.update_log("กรุณากรอก Order ก่อน")
                     self.app.search_complete.set()
 
+            except ConnectionError as err:
+                # WebDriver connection error - ให้ข้อความที่ชัดเจน
+                error_msg = f"WebDriver connection lost: {err}"
+                print(f"operation_task_thread, Connection Error: {error_msg}")
+                logger.error(f"Order: {self.app.order} - {error_msg}")
+                self.app.update_log("❌ Browser connection lost. Please restart the browser.")
+                self.app.display_bot_status_label.configure(
+                    text=f"Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
             except Exception as err:
                 traceback_str = traceback.format_exc()
                 print(f"operation_task_thread, An error occirred: {err}")
@@ -4504,6 +4528,16 @@ class Bot_POS:
             raise ValueError("Sumatra was not found")
 
     def operation_start(self):
+        # ตรวจสอบ driver ก่อนเริ่มทำงาน
+        if not self.is_driver_alive():
+            error_msg = "WebDriver connection lost. Browser may have crashed or been closed."
+            print(error_msg)
+            logger.error(f"Order: {self.app.order} - {error_msg}")
+            self.app.update_log(error_msg)
+            self.app.display_bot_status_label.configure(
+                text=f"Bot Status: ❌ Driver Error", fg_color="#ff2b2b", text_color="#FFF")
+            raise ConnectionError("WebDriver is not alive. Cannot proceed with operation.")
+        
         self.app.is_bot_browser_busy.set(True)
         self.is_forbid = False
         is_etax = False
@@ -5187,10 +5221,8 @@ class Bot_POS:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
                                 final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
+                                self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
                             except Exception as e:
                                 print("auto_final_price broken", e)
                             # *Auto price มันมีสองอันได้ไง
@@ -5270,8 +5302,7 @@ class Bot_POS:
                             # * สำหรับรอ final pop-up after click the green btn
                             self.final_popup_after_green_btn_handler(is_etax)
                             # * ไม่แน่ใจ
-                            self.autofinal = False
-                            break
+
                         else:
                             print("จบสูตร")
                         self.autofinal = False
