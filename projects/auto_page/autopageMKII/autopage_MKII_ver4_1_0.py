@@ -7143,9 +7143,40 @@ class Bot_POS:
 
 if __name__ == "__main__":
     def on_closing():
+        """Properly cleanup all resources before closing the application"""
         print("Tkinter window is closing")
-        root.destroy()
-        PopUp.destroy_all()
+        
+        try:
+            # Stop all operation threads
+            if hasattr(app, 'bot') and hasattr(app.bot, 'operation_thread'):
+                print("Stopping operation threads...")
+                app.bot.operation_thread.set()
+            
+            # Wait for printing thread to complete if it exists
+            if hasattr(app, 'bot') and hasattr(app.bot, 'printing_thread'):
+                if app.bot.printing_thread and app.bot.printing_thread.is_alive():
+                    print("Waiting for printing thread to complete...")
+                    app.bot.printing_thread.join(timeout=2.0)
+            
+            # Properly quit Selenium WebDriver
+            if hasattr(app, 'bot') and hasattr(app.bot, 'driver'):
+                try:
+                    print("Closing WebDriver...")
+                    app.bot.driver.quit()
+                    print("WebDriver closed successfully")
+                except Exception as e:
+                    print(f"Error closing WebDriver: {e}")
+            
+            # Give threads time to finish cleanup
+            time.sleep(0.5)
+            
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+        finally:
+            # Destroy all popup windows
+            PopUp.destroy_all()
+            # Destroy the main window
+            root.destroy()
 
     # def ctrl_saraea_copy(event):
     #     ctrl_state = event.state & 0x4 != 0  # 0x4 คือ flag สำหรับ Control key
