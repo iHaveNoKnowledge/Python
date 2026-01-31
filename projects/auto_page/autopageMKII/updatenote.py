@@ -216,11 +216,12 @@
 #! operation_task_thread, An error occirred: Message: no such element: element not found"
 #!!!! 209 /ISSUE/ fn เลือกชื่อลูกค้าจาก li dropdown กรณีลูกค้าสาขาย่อย มันต้องเลือกโดยดูด้วยว่ามีสาขาที่ถูกต้องหรือไม่ ซับซ้อนนิดนึง ตัวอย่างเคส 0945482000011 จาก order 260112T9NVA9T7 2026-01-12
 #!!!! 210 /ISSUE/ Lazada เลือกลูกค้าสาขาไม่ได้เพราะมันแยกสาขาย่อยไม่ได้ ไม่มี data สาขาย่อยถูกสกัดออกมาอย่างถูกต้อง
-#! 211 /Request/ Shopee Lenovo มาแล้วนะ ทำตัวเลือก payment type lenovo ด้วย 
+#! 211 /Request/ Shopee Lenovo มาแล้วนะ ทำตัวเลือก payment type lenovo ด้วย
 #!!212 /ISSUE/ บางครั้งเลข order ไม่ถูกใส่ลงไปใน remark ต้องมีตัวเช็ค
 #! 213 /ISSUE/ ตอน add ชื่อใหม่ มันได้รับ cusname li เดิม ทำให้ไม่สามารถเช็คได้ว่ามีของใหม่มาแล้ว ทำให้การ add ชื่อลูกค้ามันวนซ้ำ แบบ requiem
-#? 214 /Fixed?/ 4.1.0 แก้ใน function on_closing() มีปัญหาเกี่ยวกับ race condition ทำให้เกิดปัญหาเกี่ยวกับ GIL 
+# ? 214 /Fixed?/ 4.1.0 แก้ใน function on_closing() มีปัญหาเกี่ยวกับ race condition ทำให้เกิดปัญหาเกี่ยวกับ GIL
 #! 215 /ISSUE/ กรณีลูกค้าขอใบกำกับสาขา หากค่าใน li ตอนเสิชลูกค้า มีค่าเดียวมันจะข้าม logic การเลือกสาขาไป แล้วเลือกอันที่ 1 ทันที แม้สาขาจะไม่ตรงก็ตาม
+# * 216 /FIXED/ 4.1.1 setup_chrome() อันเดิมมันจะมีปัญหาที่ chromdriver.exe ไม่ตรงกับ version chrome ที่ติดตั้งในเครื่อง ทำให้เกิด error ตอนเริ่ม bot
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
@@ -245,7 +246,5 @@
 # * AED1.2 ดึง Data จาก Marketplace อัตโนมัติ โดย ต้องใช้ automation workflow
 
 #!---------------------AI------------------------------
-#/ สำหรับใช้ google gemini-ai โดยเราจะเอา prompt ไปใส่ต่อจาก link ด้านล่างนี่ เพื่อให้ ai ตอบเป็น object ที่กำหนด แล้วใช้ beutifulsoup ดึงobjectค่าออกมา
-#* https://www.google.com/search?csuir=1&udm=50&aep=28&mstk=AUtExfAzLi6DDivOTWbfX6I1b_e_OUh2ZsMgTMW_Mlx6lcY7rWpN7sTWqL_M7fKjmqLrmQadfqU52O5b21aKvi2Ajc0iuHkyrIinNb8hmWz2qdgenYl1oKCbLVTqgh44x9whExZ00GlB4JLc-bX1Pc2MV8VKgP8ixoJmwvSKK6QTAeq5JqGN8LUWczQsjGVD-hTKy2N7uulpr5PrK2Z6fgXSAJ-0byfbVG7QE4Wzw6cH3JHU5MOlvkWQemQdFV8I_mXkHGNtljcX46YgOt65mSEKc4_R94wJpeAiNWCEP_xvwi7yyW5VDmzUQfLbMqx0t1QS3KqgRH_fyCaZ0Ho3VKDo5Cxj7KJnlnRijQJLWgMPzkY8ryD5Zz1By-Nu-d4viIbK1HH5uqKQntzAj_xoLzKyz_yIjFT8ZKFAdGhoplSgAHxvvVTB3K43xQ&q=
-
-
+# / สำหรับใช้ google gemini-ai โดยเราจะเอา prompt ไปใส่ต่อจาก link ด้านล่างนี่ เพื่อให้ ai ตอบเป็น object ที่กำหนด แล้วใช้ beutifulsoup ดึงobjectค่าออกมา
+# * https://www.google.com/search?csuir=1&udm=50&aep=28&mstk=AUtExfAzLi6DDivOTWbfX6I1b_e_OUh2ZsMgTMW_Mlx6lcY7rWpN7sTWqL_M7fKjmqLrmQadfqU52O5b21aKvi2Ajc0iuHkyrIinNb8hmWz2qdgenYl1oKCbLVTqgh44x9whExZ00GlB4JLc-bX1Pc2MV8VKgP8ixoJmwvSKK6QTAeq5JqGN8LUWczQsjGVD-hTKy2N7uulpr5PrK2Z6fgXSAJ-0byfbVG7QE4Wzw6cH3JHU5MOlvkWQemQdFV8I_mXkHGNtljcX46YgOt65mSEKc4_R94wJpeAiNWCEP_xvwi7yyW5VDmzUQfLbMqx0t1QS3KqgRH_fyCaZ0Ho3VKDo5Cxj7KJnlnRijQJLWgMPzkY8ryD5Zz1By-Nu-d4viIbK1HH5uqKQntzAj_xoLzKyz_yIjFT8ZKFAdGhoplSgAHxvvVTB3K43xQ&q=
