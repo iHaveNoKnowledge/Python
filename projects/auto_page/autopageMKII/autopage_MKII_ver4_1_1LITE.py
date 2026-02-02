@@ -4341,7 +4341,8 @@ class Bot_POS:
 
         # * กดปุ่มแดงปิดหน้า print
         try:
-            self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
+            cancel_btn_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a')
+            self.driver.execute_script("arguments[0].click();", cancel_btn_element)
         except Exception as e:
             print(f"Error closing print window: {e}")
 
@@ -7059,11 +7060,11 @@ class Bot_POS:
                     #! วิธี print แบบเก่า
                     # self.printtingPage()
                     # self.just_press_p()
-                    # * วิธี print แบบใหม่
-                    self.printing_thread = threading.Thread(
-                        target=self.get_pdf_src_and_print, args=(inv_number,))
-                    self.printing_thread.start()
-                    #! self.get_pdf_src_and_print(inv_number) ถ้าบรรทัดข้างบนใช้ได้มึงโดนโละแน่
+                    # ! วิธี print แบบใหม่ // 2/2/2026 พัง มันจะมี thread ใหม่ทำงานชนกับ thread เก่า ทำให้ ปิดหน้า print ไม่ได้ ตอใช้ accel mode
+                    # self.printing_thread = threading.Thread(
+                    #     target=self.get_pdf_src_and_print, args=(inv_number,))
+                    # self.printing_thread.start()
+                    self.get_pdf_src_and_print(inv_number) 
 
                     # * Update Accel file //////////////////////
                     try:
