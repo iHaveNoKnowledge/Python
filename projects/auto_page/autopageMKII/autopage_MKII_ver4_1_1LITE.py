@@ -5141,11 +5141,10 @@ class Bot_POS:
                                 try:
                                     po_no_input_element = self.driver.find_element(
                                         By.XPATH, "//input[@id='textbox81037000102']")
-                                    # po_no_input_element.clear()
-                                    # po_no_input_element.send_keys(self.app.cus_order.get())
+                                    po_no_input_element.clear()
+                                    po_no_input_element.send_keys(self.app.cus_order.get())
                                     value_to_input = self.app.cus_order.get()
-                                    self.driver.execute_script(
-                                        "arguments[0].value = arguments[1];", po_no_input_element, value_to_input)
+                                    # self.driver.execute_script("arguments[0].value = arguments[1];", po_no_input_element, value_to_input) #! มันเปลี่ยนค่าที่แสดงผลเฉยๆ แต่ state มันไม่เปลี่ยน มันเลยดูเหมือนใส่แล้วแต่ไม่ได้ใส่
                                 except Exception as e:
                                     print("Cannot fill PO No:", e)
 
@@ -5167,22 +5166,20 @@ class Bot_POS:
                                     final_cus_name_input_element = self.driver.find_element(
                                         By.XPATH,
                                         '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
-                                    # final_cus_name_input_element.clear()
-                                    # final_cus_name_input_element.send_keys(self.app.cus_name.get())
-                                    value_to_input = self.app.cus_name.get()
-                                    self.driver.execute_script(
-                                        "arguments[0].value = arguments[1];", final_cus_name_input_element,
-                                        value_to_input)
+                                    final_cus_name_input_element.clear()
+                                    final_cus_name_input_element.send_keys(self.app.cus_name.get())
+                                    # value_to_input = self.app.cus_name.get()
+                                    # self.driver.execute_script("arguments[0].value = arguments[1];", final_cus_name_input_element, value_to_input)
                                 else:
                                     final_cus_name_input_element = self.driver.find_element(
                                         By.XPATH,
                                         '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
                                     value_to_input = self.app.cus_order.get()
-                                    # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
-                                    # self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
-                                    self.driver.execute_script(
-                                        "arguments[0].value = arguments[1];", final_cus_name_input_element,
-                                        value_to_input)
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                    self.driver.find_element(
+                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(value_to_input)
+                                    # self.driver.execute_script("arguments[0].value = arguments[1];", final_cus_name_input_element, value_to_input)
 
                             except Exception as err:
                                 print("Final page failed, skip to waiting for price")
@@ -5649,7 +5646,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

@@ -772,7 +772,8 @@ class MyApp:
         self.label_cus_products.pack()
 
         # * >> สร้าง Treeview widget
-        self.tree = ttk.Treeview(self.products_list_frame, columns=("Productname", "Price", "QTY"), show="headings", height=8)
+        self.tree = ttk.Treeview(self.products_list_frame, columns=(
+            "Productname", "Price", "QTY"), show="headings", height=8)
         self.tree.column("Productname", anchor=W, width=350)
         self.tree.column("Price", width=self.measure_text("Price")+10)
         self.tree.column("QTY", width=self.measure_text("QTY")+10)
@@ -782,7 +783,7 @@ class MyApp:
 
         self.y_scrollbar = ttk.Scrollbar(self.products_list_frame, command=self.tree.yview)
         self.y_scrollbar.pack(side="right", fill="y")
-        
+
         self.tree.pack(side='bottom', fill=X)
         self.tree.config(yscrollcommand=self.y_scrollbar.set)
 
@@ -2957,7 +2958,8 @@ class Bot_POS:
                 if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]/div[6]").is_displayed():
                     # * ถ้ามี ปิด แล้วเริ่มไปกรอกชื่อใหม่
                     self.driver.find_element(
-                        By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
+                        By.XPATH,
+                        "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
                     continue
                 # * ไม่มี pop-up ให้ break
                 break
@@ -3006,7 +3008,8 @@ class Bot_POS:
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
         if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
             try:
-                self.driver.find_element(By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
+                self.driver.find_element(
+                    By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
                 self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
             except:
@@ -3567,7 +3570,8 @@ class Bot_POS:
                 time.sleep(1)
                 self.wait5.until(EC.presence_of_element_located(
                     (By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name')))
-                self.operation_states['purchase_channel'] = self.driver.find_element(By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
+                self.operation_states['purchase_channel'] = self.driver.find_element(
+                    By.CSS_SELECTOR, 'div.subaccount-info span.subaccount-name').text
                 print(f"self.operation_states['purchase_channel']: {self.operation_states['purchase_channel']}")
                 cur_url = self.driver.current_url
 
@@ -3844,7 +3848,8 @@ class Bot_POS:
                             print("wait for pop-up(try)")
                             # ระบุปุ่ม ok
                             if self.driver.find_element(
-                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
+                                    By.XPATH,
+                                    """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
                                 print("has pop-up(try)")
                                 self.driver.find_element(
                                     By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
@@ -3854,7 +3859,8 @@ class Bot_POS:
                             time.sleep(1)
                             # * ระบุปุ่ม ok
                             if self.driver.find_element(
-                                    By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
+                                    By.XPATH,
+                                    """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""):
                                 print("has pop-up(except)")
                                 self.driver.find_element(
                                     By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
@@ -4088,7 +4094,7 @@ class Bot_POS:
                                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[3]/div[2]/div[1]/div[2]/input').send_keys(self.app.cus_order.get())
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
-                                #* ผมใช้เอง
+                                # * ผมใช้เอง
                                 self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag').click()
 
                                 try:
@@ -4568,7 +4574,8 @@ class Bot_POS:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
         try:
-            self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+            self.driver.find_element(
+                By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
             logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
             print(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
         except:
@@ -5301,7 +5308,8 @@ class Bot_POS:
         # * ระบุตัวตนของ pop-up
         self.cus_code_element = popup_dup_element
         self.dup_popup_content = self.cus_code_element.text
-        self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+        self.driver.find_element(
+            By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
             logger.info(f"{self.app.cus_order.get()}: After adding cusname, the cusname is Not Duplicated")
