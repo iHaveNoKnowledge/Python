@@ -3615,8 +3615,9 @@ class Bot_POS:
 
                 # * เริ่มการทำงาน Operation Start
                 if self.app.order != "" and not self.operation_thread.is_set():
-                    self.operation_start()
                     logger.info(f"Order: {self.app.order} Start!!")
+                    self.operation_start()
+                    
 
                     # # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
                     # max_retries = 3
@@ -5015,7 +5016,8 @@ class Bot_POS:
                             is_final_page_displayed = self.driver.find_element(
                                 By.XPATH, "//*[contains(text(),' Payment: ') or  contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]").is_displayed()
                             break
-                        except:
+                        except Exception as err:
+                            print("cannot see elements from final page", err)
                             # * ไม่มี element ให้วนเรื่อยๆ
                             time.sleep(0.55)
                             continue
@@ -5273,8 +5275,8 @@ class Bot_POS:
                             #             break
 
                             # * สำหรับรอ final pop-up after click the green btn
-                            self.final_popup_after_green_btn_handler(is_etax)
-                            # * ไม่แน่ใจ
+                            self.final_popup_after_green_btn_handler(is_etax, self)
+                            break
 
                         else:
                             print("จบสูตร")
@@ -6882,7 +6884,7 @@ class Bot_POS:
 
         return result
 
-    def final_popup_after_green_btn_handler(self, is_etax):
+    def final_popup_after_green_btn_handler(self, is_etax, operation_obj):
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
         loop_counter = 0  # * Counter for GC
@@ -7113,7 +7115,8 @@ class Bot_POS:
                     print("มันจบละ")
                     break
                 elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
-                    print("กลับมาหน้าเดิม")
+                    print(f"กลับมาหน้าเดิม : {operation_obj.autofinal}")
+                    operation_obj.autofinal = True #* ถ้าอันนี้ยัง true แปลว่าหน้าท้ายยัง loop อยู่น่าจะทำให้กลับหน้าเก่าได้
                     break
 
             else:
