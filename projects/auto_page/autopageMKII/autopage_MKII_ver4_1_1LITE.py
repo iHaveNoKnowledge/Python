@@ -3950,7 +3950,7 @@ class Bot_POS:
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
         # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
         print("incoming cus_desire_name: ", cus_desire_name)
-        pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
+        pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'
 
         cus_desire_name = re.sub(pattern, '', cus_desire_name)
@@ -3962,8 +3962,7 @@ class Bot_POS:
 
         is_branched = self.app.branch_type == "สาขาย่อย"
 
-        print(
-            f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} and self.cus_name_span_elmt.text: {self.cus_name_span_elmt.text}")
+        print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} /// self.cus_name_span_elmt.text: {self.cus_name_span_elmt.text}")
         if cus_desire_name in self.cus_name_span_elmt.text and self.app.tax_branch_num.get() in self.cus_name_span_elmt.text:
             while not self.operation_thread.is_set():
                 try:
@@ -5621,7 +5620,7 @@ class Bot_POS:
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 
-                # Wait for save to complete
+                #* Wait for saving process to complete
                 while is_functionworking and not self.operation_thread.is_set():
                     try:
                         self.wait50.until(EC.invisibility_of_element_located(
