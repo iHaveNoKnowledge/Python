@@ -216,11 +216,11 @@
 # ? operation_task_thread, An error occirred: Message: no such element: element not found"
 
 #* 209 /Fixed/ 4.1.1 ปรับให้เลือกตามสาขาแล้ว /ISSUE/ fn เลือกชื่อลูกค้าจาก li dropdown กรณีลูกค้าสาขาย่อย มันต้องเลือกโดยดูด้วยว่ามีสาขาที่ถูกต้องหรือไม่ ซับซ้อนนิดนึง ตัวอย่างเคส 0945482000011 จาก order 260112T9NVA9T7 2026-01-12
-#!!!! 210 /ISSUE/ Lazada เลือกลูกค้าสาขาไม่ได้เพราะมันแยกสาขาย่อยไม่ได้ ไม่มี data สาขาย่อยถูกสกัดออกมาอย่างถูกต้อง
-#! 211 /Request/ Shopee Lenovo มาแล้วนะ ทำตัวเลือก payment type lenovo ด้วย
+#* 210 /Fixed/ 4.1.1 ปรับให้แยกสาขาออกมาแล้ว /ISSUE/ Lazada เลือกลูกค้าสาขาไม่ได้เพราะมันแยกสาขาย่อยไม่ได้ ไม่มี data สาขาย่อยถูกสกัดออกมาอย่างถูกต้อง
+#* 211 /Feat/ 4.1.2 ปีับให้ทำงานกับ lenovo ได้แล้ว /Request/ Shopee Lenovo มาแล้วนะ ทำตัวเลือก payment type lenovo ด้วย
 #!!212 /ISSUE/ บางครั้งเลข order ไม่ถูกใส่ลงไปใน remark ต้องมีตัวเช็ค
 #! 213 /ISSUE/ ตอน add ชื่อใหม่ มันได้รับ cusname li เดิม ทำให้ไม่สามารถเช็คได้ว่ามีของใหม่มาแล้ว ทำให้การ add ชื่อลูกค้ามันวนซ้ำ แบบ requiem
-# ? 214 /Fixed?/ 4.1.0 แก้ใน function on_closing() มีปัญหาเกี่ยวกับ race condition ทำให้เกิดปัญหาเกี่ยวกับ GIL
+#* 214 /Resolved/ มันเปน error ที่เกิดหลังจาก conflict ของ verison missmatch ระหว่วง chromedriver และ chromebrowser /Fixed?/ 4.1.0 แก้ใน function on_closing() มีปัญหาเกี่ยวกับ race condition ทำให้เกิดปัญหาเกี่ยวกับ GIL
 #! 215 /ISSUE/ กรณีลูกค้าขอใบกำกับสาขา หากค่าใน li ตอนเสิชลูกค้า มีค่าเดียวมันจะข้าม logic การเลือกสาขาไป แล้วเลือกอันที่ 1 ทันที แม้สาขาจะไม่ตรงก็ตาม
 # * 216 /FIXED/ 4.1.1 setup_chrome() อันเดิมมันจะมีปัญหาที่ chromdriver.exe ไม่ตรงกับ version chrome ที่ติดตั้งในเครื่อง ทำให้เกิด error ตอนเริ่ม bot
 #! 217 /ISSUE/ address_corretor() ยังมีคำว่า ซอย กับ ซ. อยู่ ที่ยังมีปัญหา
