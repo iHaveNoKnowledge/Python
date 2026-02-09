@@ -3409,29 +3409,32 @@ class Bot_POS:
                             # / ใส่ พนักงาน
                             user_id_input = self.driver.find_element(
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
-                            self.driver.execute_script("""
-                                arguments[0].value = arguments[1];
-                                arguments[0].dispatchEvent(new Event('input'));
-                                arguments[0].dispatchEvent(new Event('change'));
-                            """, user_id_input, self.app.user_id.get())
+                            # self.driver.execute_script("""
+                            #     arguments[0].value = arguments[1];
+                            #     arguments[0].dispatchEvent(new Event('input'));
+                            #     arguments[0].dispatchEvent(new Event('change'));
+                            # """, user_id_input, self.app.user_id.get())
+                            self.js_input_value(user_id_input, self.app.user_id.get())
 
                             # / ใส่ รหัสพนักงาน
                             user_pw_input = self.driver.find_element(
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
-                            self.driver.execute_script("""
-                                arguments[0].value = arguments[1];
-                                arguments[0].dispatchEvent(new Event('input'));
-                                arguments[0].dispatchEvent(new Event('change'));
-                            """, user_pw_input, self.app.user_pw.get())
+                            # self.driver.execute_script("""
+                            #     arguments[0].value = arguments[1];
+                            #     arguments[0].dispatchEvent(new Event('input'));
+                            #     arguments[0].dispatchEvent(new Event('change'));
+                            # """, user_pw_input, self.app.user_pw.get())
+                            self.js_input_value(user_pw_input, self.app.user_pw.get())
 
                             # / ใส่ หมายเหตุ
                             note_textarea = self.driver.find_element(
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
-                            self.driver.execute_script("""
-                                arguments[0].value = arguments[1];
-                                arguments[0].dispatchEvent(new Event('input'));
-                                arguments[0].dispatchEvent(new Event('change'));
-                                """, note_textarea, "Online")
+                            # self.driver.execute_script("""
+                            #     arguments[0].value = arguments[1];
+                            #     arguments[0].dispatchEvent(new Event('input'));
+                            #     arguments[0].dispatchEvent(new Event('change'));
+                            #     """, note_textarea, "Online")
+                            self.js_input_value(note_textarea, "Online")
 
                             # / กด บันทึก button สีเขียว
                             green_submit_btn = self.driver.find_element(
@@ -5110,13 +5113,20 @@ class Bot_POS:
                                 #     self.driver.find_element(
                                 #         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
-                                # ถ้าไม่มี seller ก็ไปกรอก remark ได้เลย
+                                # /กรอก remark 
                                 time.sleep(0.75)
-                                self.driver.find_element(
-                                    By.XPATH,
-                                    "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
-                                self.driver.find_element(
-                                    By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(self.app.cus_order.get())
+                                remark_text = self.app.cus_order.get()
+                                textarea_element = self.driver.find_element(By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+                                
+                                #! classic way
+                                # self.driver.find_element(
+                                #     By.XPATH,
+                                #     "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
+                                # self.driver.find_element(
+                                #     By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(remark_text)
+                                
+                                #/ Final way ใช้ function ที่เขียนแยกไว้
+                                self.js_input_value(textarea_element, remark_text)
 
                                 # / เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
@@ -5141,12 +5151,15 @@ class Bot_POS:
 
                                 # * PO No:
                                 try:
-                                    po_no_input_element = self.driver.find_element(
-                                        By.XPATH, "//input[@id='textbox81037000102']")
-                                    po_no_input_element.clear()
-                                    po_no_input_element.send_keys(self.app.cus_order.get())
+                                    po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
                                     value_to_input = self.app.cus_order.get()
-                                    # self.driver.execute_script("arguments[0].value = arguments[1];", po_no_input_element, value_to_input) #! มันเปลี่ยนค่าที่แสดงผลเฉยๆ แต่ state มันไม่เปลี่ยน มันเลยดูเหมือนใส่แล้วแต่ไม่ได้ใส่
+                                    #! classic way
+                                    # po_no_input_element.clear()
+                                    # po_no_input_element.send_keys(value_to_input)
+                                    
+                                    #! CAUTION หากไม่ใช้ trgigger event input and change มันเปลี่ยนค่าที่แสดงผลบน html เฉยๆ แต่ state มันไม่เปลี่ยน มันเลยดูเหมือนใส่แล้วแต่ไม่ได้ใส่                                    
+                                    #* Final way ใช้ function ที่เขียนแยกไว้
+                                    self.js_input_value(po_no_input_element, value_to_input)
                                 except Exception as e:
                                     print("Cannot fill PO No:", e)
 
@@ -5168,20 +5181,24 @@ class Bot_POS:
                                     final_cus_name_input_element = self.driver.find_element(
                                         By.XPATH,
                                         '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
-                                    final_cus_name_input_element.clear()
-                                    final_cus_name_input_element.send_keys(self.app.cus_name.get())
-                                    # value_to_input = self.app.cus_name.get()
-                                    # self.driver.execute_script("arguments[0].value = arguments[1];", final_cus_name_input_element, value_to_input)
+                                    value_to_input = self.app.cus_name.get()
+                                    
+                                    #! classic way
+                                    # final_cus_name_input_element.clear()
+                                    # final_cus_name_input_element.send_keys(self.app.cus_name.get())
+                                    
+                                    #* Final way ใช้ function ที่เขียนแยกไว้
+                                    self.js_input_value(final_cus_name_input_element, value_to_input)
                                 else:
                                     final_cus_name_input_element = self.driver.find_element(
                                         By.XPATH,
                                         '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
                                     value_to_input = self.app.cus_order.get()
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
-                                    self.driver.find_element(
-                                        By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(value_to_input)
-                                    # self.driver.execute_script("arguments[0].value = arguments[1];", final_cus_name_input_element, value_to_input)
+                                    # self.driver.find_element(
+                                    #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                    # self.driver.find_element(
+                                    #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(value_to_input)
+                                    self.js_input_value(final_cus_name_input_element, value_to_input)
 
                             except Exception as err:
                                 print("Final page failed, skip to waiting for price")
@@ -5192,12 +5209,11 @@ class Bot_POS:
                             try:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
-                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
-                                               ) - self.app.cus_seller_voucher.get()
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
-                                self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                final_price_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input')
+                                final_price_element.clear()
+                                self.js_input_value(final_price_element, final_price)
+                                
                             except Exception as e:
                                 print("auto_final_price broken", e)
                             # *Auto price มันมีสองอันได้ไง
@@ -5645,6 +5661,18 @@ class Bot_POS:
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
         return (self.splited)
+    
+    def js_input_value(self, element, value):
+        """
+        ฟังก์ชันสำหรับกรอกค่าลงใน Element โดยใช้ JavaScript
+        พร้อมสั่ง Trigger Event เพื่อให้ Framework ของหน้าเว็บรับรู้
+        """
+        script = """
+            arguments[0].value = arguments[1];
+            arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+            arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+        """
+        self.driver.execute_script(script, element, value)
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
