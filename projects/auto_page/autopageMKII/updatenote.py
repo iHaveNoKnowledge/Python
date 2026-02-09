@@ -208,13 +208,14 @@
 # * 205 /Feat/ 4.1.1 ตามลำดับของ data จากไฟล์ /???/ ตรวจสอบวิธีการปรับราคาดูว่มันปรับเปนลำดับหรือปรับจาก sku ที่ใส่ลงไป ถ้าปรับตามลำดับมีโอกาสผิด แต่ต้องปรับตาม sku มันจะแม่นกว่า เพราะใน smco อาจจะแสดง sku ไม่เปนไปตามลำดับที่กรอกก็ได้
 # ! 206 /Issue/ req smco_req_find_cus_address ไม่มี address กลับมาทำให้ต้อง readdress ทำงานตลอด งงเลย
 # * 207 /Feated/ 4.1.0 ย้ายแล้ว /Issus/ ย้ายตัวหา printer ไปไว้ตอนเริ่ม จะได้ไม่ต้งเสียเวลา
-# ! 208 /Issue/ autoadd มีปัญหา nosuch elemennt "incoming skus: ['SP2-001414', 'SP2-001415', 'SP2-001416', 'SP2-001417']
-#! Started auto_add_product in separate thread: AutoAddProductThread
-#! รายงานจำนวนtabs
-#! driver is still running
-#! self.driver.title:  SMCO :: เปิดการขาย
-#! operation_task_thread, An error occirred: Message: no such element: element not found"
-#!!!! 209 /ISSUE/ fn เลือกชื่อลูกค้าจาก li dropdown กรณีลูกค้าสาขาย่อย มันต้องเลือกโดยดูด้วยว่ามีสาขาที่ถูกต้องหรือไม่ ซับซ้อนนิดนึง ตัวอย่างเคส 0945482000011 จาก order 260112T9NVA9T7 2026-01-12
+# ? 208 /???/ ไม่เจอปัญหานี้ /Issue/ autoadd มีปัญหา nosuch elemennt "incoming skus: ['SP2-001414', 'SP2-001415', 'SP2-001416', 'SP2-001417']
+# ? Started auto_add_product in separate thread: AutoAddProductThread
+# ? รายงานจำนวนtabs
+# ? driver is still running
+# ? self.driver.title:  SMCO :: เปิดการขาย
+# ? operation_task_thread, An error occirred: Message: no such element: element not found"
+
+#* 209 /Fixed/ 4.1.1 ปรับให้เลือกตามสาขาแล้ว /ISSUE/ fn เลือกชื่อลูกค้าจาก li dropdown กรณีลูกค้าสาขาย่อย มันต้องเลือกโดยดูด้วยว่ามีสาขาที่ถูกต้องหรือไม่ ซับซ้อนนิดนึง ตัวอย่างเคส 0945482000011 จาก order 260112T9NVA9T7 2026-01-12
 #!!!! 210 /ISSUE/ Lazada เลือกลูกค้าสาขาไม่ได้เพราะมันแยกสาขาย่อยไม่ได้ ไม่มี data สาขาย่อยถูกสกัดออกมาอย่างถูกต้อง
 #! 211 /Request/ Shopee Lenovo มาแล้วนะ ทำตัวเลือก payment type lenovo ด้วย
 #!!212 /ISSUE/ บางครั้งเลข order ไม่ถูกใส่ลงไปใน remark ต้องมีตัวเช็ค

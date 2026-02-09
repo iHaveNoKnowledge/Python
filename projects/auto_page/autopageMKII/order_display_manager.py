@@ -106,8 +106,7 @@ class OrderDisplayManager:
                 border_width=2,
                 border_color="#969696",
                 command=lambda idx=item_idx: self.app.auto_add_product_threaded(
-                    self.app.correct_sku_pattern(
-                        ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']),
+                    self.app.correct_sku_pattern(ordered_items[idx]['เลขอ้างอิง SKU (SKU Reference No.)']),
                     ordered_items[idx]['จำนวน'],
                     get_tabs=self.app.bot.get_tabs
                 )
