@@ -5254,7 +5254,8 @@ class Bot_POS:
                             #             break
 
                             # * สำหรับรอ final pop-up after click the green btn
-                            self.final_popup_after_green_btn_handler(is_etax)
+                            self.final_popup_after_green_btn_handler(is_etax, self)
+                            continue
                             # * ไม่แน่ใจ
                         else:
                             print("จบสูตร")

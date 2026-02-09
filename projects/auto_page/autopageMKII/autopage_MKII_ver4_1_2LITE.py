@@ -5012,7 +5012,8 @@ class Bot_POS:
                         # * รอ elementก่อน ถ้ามีค่อยออกจาก loop
                         try:
                             self.saler_name_input_element = self.driver.find_element(
-                                By.CSS_SELECTOR, '#select2-salePersonSearch-container')
+                                By.CSS_SELECTOR, '#select2-salePersonSearch-container'
+                            )
                             title_attribute = self.saler_name_input_element.get_attribute("title")
 
                             # * ตรวจสอบว่าหน้าสุดท้ายหรือยัง
@@ -5285,7 +5286,7 @@ class Bot_POS:
 
                             # * สำหรับรอ final pop-up after click the green btn
                             self.final_popup_after_green_btn_handler(is_etax, self)
-                            break
+                            continue
 
                         else:
                             print("จบสูตร")
@@ -6919,12 +6920,10 @@ class Bot_POS:
                 gc.collect()
 
             try:
-                # print("auto click Before print loop")
-                # final_popup = self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""") #! ปุ่มนี้น่าจะหายไปละ
                 final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
-                # convert_full_tax_modal_element = self.driver.find_element(By.XPATH, "//div[@id = 'convertFullTaxModal']")
                 convert_full_tax_modal_element = self.driver.execute_script(
-                    """ return document.querySelector("div[id='convertFullTaxModal']"); """)
+                    """ return document.querySelector("div[id='convertFullTaxModal']"); """
+                )
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
                 # print("is_final_page= ", is_final_page)
