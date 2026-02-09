@@ -5119,7 +5119,7 @@ class Bot_POS:
                                         By.XPATH, "//a[contains(., 'LAZ')]")
                                     self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
 
-                                # * PO No:
+                                # / PO No:
                                 try:
                                     po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
                                     value_to_input = self.app.cus_order.get()
@@ -5134,7 +5134,7 @@ class Bot_POS:
                                     print("Cannot fill PO No:", e)
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
-                                # * ผมใช้เอง
+                                # / ผมใช้เอง
                                 if self.app.user_id.get() == "62078":
                                     cn_flag_element = self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag')
                                     self.driver.execute_script("""arguments[0].click();""", cn_flag_element)
@@ -5146,29 +5146,22 @@ class Bot_POS:
                                 except:
                                     print("ปุ่ม Brows() ไม่โผล่")
 
-                                # * ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ order แทน
+                                #/ input 'Name:'
+                                # / ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ order แทน
                                 if self.app.cus_name.get():
-                                    final_cus_name_input_element = self.driver.find_element(
-                                        By.XPATH,
-                                        '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
                                     value_to_input = self.app.cus_name.get()
-                                    
-                                    #! classic way
-                                    # final_cus_name_input_element.clear()
-                                    # final_cus_name_input_element.send_keys(self.app.cus_name.get())
-                                    
-                                    #* Final way ใช้ function ที่เขียนแยกไว้
-                                    self.js_input_value(final_cus_name_input_element, value_to_input)
                                 else:
-                                    final_cus_name_input_element = self.driver.find_element(
-                                        By.XPATH,
-                                        '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input')
                                     value_to_input = self.app.cus_order.get()
-                                    # self.driver.find_element(
-                                    #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
-                                    # self.driver.find_element(
-                                    #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(value_to_input)
-                                    self.js_input_value(final_cus_name_input_element, value_to_input)
+                                
+                                #! classic way
+                                # self.driver.find_element(
+                                #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
+                                # self.driver.find_element(
+                                #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(value_to_input)
+                                
+                                #* Final way ใช้ function ที่เขียนแยกไว้
+                                final_cus_name_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+                                self.js_input_value(final_cus_name_input_element, value_to_input)
 
                             except Exception as err:
                                 print("Final page failed, skip to waiting for price")
@@ -5180,7 +5173,7 @@ class Bot_POS:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
                                 final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
-                                final_price_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input')
+                                final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
                                 final_price_element.clear()
                                 self.js_input_value(final_price_element, final_price)
                                 
@@ -5191,8 +5184,8 @@ class Bot_POS:
                             # print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
                             # final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                             # if self.app.user_id.get() in self.app.dev_account:
-                            #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').clear()
-                            #     self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[1]/div[1]/input').send_keys(final_price)
+                            #     self.driver.find_element(By.XPATH, "//input[@id='ripCash00']").clear()
+                            #     self.driver.find_element(By.XPATH, "//input[@id='ripCash00']").send_keys(final_price)
 
                             #! deprecated มันเหมือนมีไรสักอย่างที่มันจะแสดงชื่อลูกค้า แต่ตอนนี้เหมือนจะไม่มีละ
                             # # * ค้นหา element โดยใช้ XPath
