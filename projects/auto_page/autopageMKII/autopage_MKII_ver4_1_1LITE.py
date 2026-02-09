@@ -924,8 +924,7 @@ class MyApp:
         # * Initialize OrderDisplayManager
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
 
-        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
-                                     'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
+        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
 
         # * > demonic cp segment
@@ -2373,6 +2372,7 @@ class MyApp:
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
+    #* ส่งไปแปะไว้ที่ order_display_manager.py
     def auto_add_product_threaded(self, skus, qty, **kwargs):
         """
         Wrapper method สำหรับเรียก auto_add_product ใน thread แยก

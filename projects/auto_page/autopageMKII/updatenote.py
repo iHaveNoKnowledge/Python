@@ -203,11 +203,11 @@
 # ! 200 /Issue/ มสินค้าบางรายการสั่งซื้อใน shopee นอกจากจะเปนของ sku code เดียวกัน+หลายตัวอย่างพวกหมึก spx แล้ว ยังมีแบบที่ sku คนละ code อีกด้วย เช่น co6-ceI อาจจะต้องใช้วิธี inputแบบแยก เช่น inputแรกใส่ idx เลือกสินค้า, inputสองใส่ multiindex เว้นด้วย \s เช่น [1 2] ตัวแรกใส่ cpลำดับ1 อีกตัวใส่ cpลำดับ2
 # * 201 /Feated/ 4.1.0 ใช้ได้ละ /Required/ ทำ cache ให้กับตำแหน่ง sumatra pdf ไม่ต้องให้มันหาใหม่ทุกรอบ
 # * 202 /Feated/ 4.1.0 ใช้ได้ละสามารถรับหลายค่า แบ่งแต่ละค่าด้วย " " แล้วมันจะเลือกจนครบแล้ว ออกจากหน้า cp /Required/ sonic blow with multi cp at once ตัวอย่าง เคส 251213831CXKGR	2025-12-13 05:35 MNL-002091
-# ! 203 /Issue/ ile คลิกไม่ได้บางครั้ง autopage_MKII_ver4_1_0.py", line 4065, in get_pdf_src_and_print self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
+# * 203 /Fixed/ 4.1.1  /Issue/ คลิกไม่ได้บางครั้ง autopage_MKII_ver4_1_0.py", line 4065, in get_pdf_src_and_print self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a').click()
 # ? 204 /???/ การใช้ sumatra ใน ver 4.0.1 นั้นเร็วกว่าใน 4.1.0 ได้ไง
-# ? 205 /???/ ตรวจสอบวิธีการปรับราคาดูว่มันปรับเปนลำดับหรือปรับจาก sku ที่ใส่ลงไป ถ้าปรับตามลำดับมีโอกาสผิด แต่ต้องปรับตาม sku มันจะแม่นกว่า เพราะใน smco อาจจะแสดง sku ไม่เปนไปตามลำดับที่กรอกก็ได้
+# * 205 /Feat/ 4.1.1 ตามลำดับของ data จากไฟล์ /???/ ตรวจสอบวิธีการปรับราคาดูว่มันปรับเปนลำดับหรือปรับจาก sku ที่ใส่ลงไป ถ้าปรับตามลำดับมีโอกาสผิด แต่ต้องปรับตาม sku มันจะแม่นกว่า เพราะใน smco อาจจะแสดง sku ไม่เปนไปตามลำดับที่กรอกก็ได้
 # ! 206 /Issue/ req smco_req_find_cus_address ไม่มี address กลับมาทำให้ต้อง readdress ทำงานตลอด งงเลย
-# ! 207 /Issus/ ย้ายตัวหา printer ไปไว้ตอนเริ่ม จะได้ไม่ต้งเสียเวลา
+# * 207 /Feated/ 4.1.0 ย้ายแล้ว /Issus/ ย้ายตัวหา printer ไปไว้ตอนเริ่ม จะได้ไม่ต้งเสียเวลา
 # ! 208 /Issue/ autoadd มีปัญหา nosuch elemennt "incoming skus: ['SP2-001414', 'SP2-001415', 'SP2-001416', 'SP2-001417']
 #! Started auto_add_product in separate thread: AutoAddProductThread
 #! รายงานจำนวนtabs
