@@ -6873,7 +6873,7 @@ class Bot_POS:
 
         return result
 
-    def final_popup_after_green_btn_handler(self, is_etax):
+    def final_popup_after_green_btn_handler(self, is_etax, operation_obj):
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
         loop_counter = 0  # * Counter for GC
