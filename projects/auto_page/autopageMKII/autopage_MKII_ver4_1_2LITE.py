@@ -7128,7 +7128,7 @@ class Bot_POS:
                 if bool(
                     re.search(
                         r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(
-                            By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[1]').text)):
+                            By.XPATH, "//div[@id='printZone']//div[@class='panel-title ng-binding']").text)):
                     print("ไปหน้าสุดท้าย จบ loop")
                     break
                 elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.emp_name_from_element == "":

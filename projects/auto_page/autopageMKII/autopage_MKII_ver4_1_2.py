@@ -1840,7 +1840,7 @@ class MyApp:
         ]
 
         if self.order != "":
-            print("self.order err?: ", self.order, type(self.order))
+            # print("self.order err?: ", self.order, type(self.order))
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
                 self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)]
@@ -1896,8 +1896,8 @@ class MyApp:
                 # * เราดูว่าขอใบกำกับหรือไม่ จากที่ว่า 1)มีเลขผู้เสียภาษี 2)มี branch_type
                 # * เลือก Column และ row ที่เฉพาะเจาะจง มาแสดงผล โดยการใช้ ['ชื่อคอลั่ม'].iloc[0]
                 self.branch_type = str(self.nondistortedData['ประเภทสาขา'])
-                print("self.branch_type: ", self.branch_type)
-                print("รหัสประจำสาขา= ", self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
+                # print("self.branch_type: ", self.branch_type)
+                # print("รหัสประจำสาขา= ", self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])
                 branch = self.find_branch(str(self.nondistortedData['รหัสประจำสาขา']))
                 self.tax_branch_num.set(branch)
                 
@@ -3596,9 +3596,9 @@ class Bot_POS:
 
                 # * เริ่มการทำงาน Operation Start
                 if self.app.order != "" and not self.operation_thread.is_set():
-                    self.operation_start()
                     logger.info(f"Order: {self.app.order} Start!!")
-
+                    self.operation_start()
+                    
                     # # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
                     # max_retries = 3
                     # retry_delay = 1.0  # วินาที
@@ -3676,8 +3676,7 @@ class Bot_POS:
             self.driver.execute_script("arguments[0].click();", cus_type_btn)
             self.wait50.until(
                 EC.element_to_be_clickable(
-                    (By.XPATH,
-                     r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='N'")]''')))
+                    (By.XPATH, r'''//div[contains(@id, "convertFullTaxModal")]//a[contains(@ng-click, "st='N'")]''')))
             if self.app.is_tax_required.get() == True:
                 # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
                 if self.app.marketplace_target.get() == "SHOPEE":
@@ -7095,16 +7094,15 @@ class Bot_POS:
             elif is_final_page.is_displayed() == False:
                 print("End or back")
                 if bool(
-                    re.search(
-                        r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(
-                            By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[1]').text)):
+                    re.search(r"\w{5}\-\w{3}-\w{10}", self.driver.find_element(By.XPATH, "//div[@id='printZone']//div[@class='panel-title ng-binding']").text)):
                     print("ไปหน้าสุดท้าย จบ loop")
                     break
                 elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label') and self.emp_name_from_element == "":
                     print("มันจบละ")
                     break
                 elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
-                    print("กลับมาหน้าเดิม")
+                    print(f"กลับมาหน้าเดิม : {operation_obj.autofinal}")
+                    operation_obj.autofinal = True #* ถ้าอันนี้ยัง true แปลว่าหน้าท้ายยัง loop อยู่น่าจะทำให้กลับหน้าเก่าได้
                     break
 
             else:
