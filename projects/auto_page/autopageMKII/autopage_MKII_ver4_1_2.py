@@ -2332,7 +2332,18 @@ class MyApp:
         if hasattr(self, 'operation_thread') and self.operation_thread is not None:
             print("Stopping previous threads...")
             self.operation_thread.set()
-            time.sleep(1)  # Give them time to die
+            self.stop_operation()
+            # รอให้ old threads ตายจริงก่อนสร้าง thread ใหม่ (แก้ race condition บน self.operation_thread)
+            if hasattr(self, 'longer_thread_cycle') and self.longer_thread_cycle.is_alive():
+                print("Waiting for longer_thread_cycle to die...")
+                self.longer_thread_cycle.join(timeout=5)
+                if self.longer_thread_cycle.is_alive():
+                    print("⚠️ longer_thread_cycle didn't die in time!")
+            if hasattr(self, 'shorter_thread_cycle') and self.shorter_thread_cycle.is_alive():
+                print("Waiting for shorter_thread_cycle to die...")
+                self.shorter_thread_cycle.join(timeout=5)
+                if self.shorter_thread_cycle.is_alive():
+                    print("⚠️ shorter_thread_cycle didn't die in time!")
 
         self.operation_thread = threading.Event()
         self.order_Search_thread = threading.Event()
@@ -2739,6 +2750,51 @@ class UserAccount:
             self.pass_input.configure(show="")  # แสดงรหัสผ่าน
         else:
             self.pass_input.configure(show="*")  # ซ่อนรหัสผ่าน
+
+
+class ThreadEventRouter:
+    """Route is_set() ตาม thread ID ของ caller
+    แต่ละ thread จะเช็ค Event ของตัวเอง ไม่กระทบ thread อื่น
+    Object นี้จะไม่ถูก replace บน self.operation_thread — ใช้ register() แทน"""
+    def __init__(self):
+        self._thread_events = {}  # thread_id -> event
+        self._latest_event = None
+        self._lock = threading.Lock()
+
+    def register(self, event):
+        """ลงทะเบียน Event สำหรับ thread ปัจจุบัน"""
+        tid = threading.current_thread().ident
+        with self._lock:
+            self._thread_events[tid] = event
+            self._latest_event = event
+            # ลบ thread ที่ตายแล้วออก
+            alive_tids = {t.ident for t in threading.enumerate()}
+            dead = [t for t in self._thread_events if t not in alive_tids]
+            for t in dead:
+                del self._thread_events[t]
+
+    def is_set(self):
+        """เช็คว่า thread ที่เรียกควรหยุดหรือไม่"""
+        tid = threading.current_thread().ident
+        with self._lock:
+            if tid in self._thread_events:
+                return self._thread_events[tid].is_set()
+            if self._latest_event:
+                return self._latest_event.is_set()
+            return True
+
+    def set(self):
+        """Set ทุก Event (หยุดทุก thread)"""
+        with self._lock:
+            for event in self._thread_events.values():
+                event.set()
+            if self._latest_event:
+                self._latest_event.set()
+
+    def clear(self):
+        """Clear event ล่าสุด"""
+        if self._latest_event:
+            self._latest_event.clear()
 
 
 class Bot_POS:
@@ -3590,7 +3646,10 @@ class Bot_POS:
                                                 StaleElementReferenceException,
                                                 TimeoutException)
 
-        self.operation_thread = event
+        # ใช้ ThreadEventRouter: ไม่ replace self.operation_thread แต่ register Event ตาม thread ID
+        if not hasattr(self, 'operation_thread') or not isinstance(self.operation_thread, ThreadEventRouter):
+            self.operation_thread = ThreadEventRouter()
+        self.operation_thread.register(event)
         if not self.operation_thread.is_set():
             try:
 
