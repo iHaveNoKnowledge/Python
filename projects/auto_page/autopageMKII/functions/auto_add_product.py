@@ -158,7 +158,7 @@ class AutoAddProduct:
             self.bot.auto_add_product_stop_flag.clear()
 
             print(f"incoming skus: {skus}")
-            self.bot.get_tabs()
+            # self.bot.get_tabs() #! ใน thread หลักมันจะทำงานเช็ค element ตลอด ทำให้การกด get_tabs มันจะทำให้ focus tab เปลี่ยนทำให้ logic การตรวจสอบหน้า 'SMCO :: เปิดการขาย' ไปตรวจสอบหน้าอื่นๆเพราะ get_tabs จะพา foucus ไปtab อื่น ทำให้เกิด race condition ได้
             merged_dict = self.bot.merged_dict
             self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
 
