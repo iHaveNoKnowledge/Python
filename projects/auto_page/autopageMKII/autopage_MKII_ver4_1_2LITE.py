@@ -2758,49 +2758,23 @@ class UserAccount:
             self.pass_input.configure(show="*")  # ซ่อนรหัสผ่าน
 
 
-class ThreadEventRouter:
-    """Route is_set() ตาม thread ID ของ caller
-    แต่ละ thread จะเช็ค Event ของตัวเอง ไม่กระทบ thread อื่น
-    Object นี้จะไม่ถูก replace บน self.operation_thread — ใช้ register() แทน"""
-    def __init__(self):
-        self._thread_events = {}  # thread_id -> event
-        self._latest_event = None
-        self._lock = threading.Lock()
-
-    def register(self, event):
-        """ลงทะเบียน Event สำหรับ thread ปัจจุบัน"""
-        tid = threading.current_thread().ident
-        with self._lock:
-            self._thread_events[tid] = event
-            self._latest_event = event
-            # ลบ thread ที่ตายแล้วออก
-            alive_tids = {t.ident for t in threading.enumerate()}
-            dead = [t for t in self._thread_events if t not in alive_tids]
-            for t in dead:
-                del self._thread_events[t]
+class StopEvent:
+    """Wrapper ที่ proxy threading.Event แต่เพิ่ม generation check
+    เมื่อ thread ใหม่เริ่ม (generation เปลี่ยน), is_set() จะ return True อัตโนมัติ
+    ทำให้ old thread หยุดโดยไม่ต้องแก้ 40+ จุดที่เช็ค self.operation_thread.is_set()"""
+    def __init__(self, event, bot, generation):
+        self._event = event
+        self._bot = bot # เอาไว้ดู ว่า generation ปัจจุบันของ bot เป็นเท่าไหร่
+        self._generation = generation # gen ของ thread นี้
 
     def is_set(self):
-        """เช็คว่า thread ที่เรียกควรหยุดหรือไม่"""
-        tid = threading.current_thread().ident
-        with self._lock:
-            if tid in self._thread_events:
-                return self._thread_events[tid].is_set()
-            if self._latest_event:
-                return self._latest_event.is_set()
-            return True
+        return self._event.is_set() or self._bot._active_generation != self._generation
 
     def set(self):
-        """Set ทุก Event (หยุดทุก thread)"""
-        with self._lock:
-            for event in self._thread_events.values():
-                event.set()
-            if self._latest_event:
-                self._latest_event.set()
+        self._event.set()
 
     def clear(self):
-        """Clear event ล่าสุด"""
-        if self._latest_event:
-            self._latest_event.clear()
+        self._event.clear()
 
 
 class Bot_POS:
@@ -3667,10 +3641,10 @@ class Bot_POS:
                                                 StaleElementReferenceException,
                                                 TimeoutException)
 
-        # ใช้ ThreadEventRouter: ไม่ replace self.operation_thread แต่ register Event ตาม thread ID
-        if not hasattr(self, 'operation_thread') or not isinstance(self.operation_thread, ThreadEventRouter):
-            self.operation_thread = ThreadEventRouter()
-        self.operation_thread.register(event)
+        # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
+        self._active_generation = getattr(self, '_active_generation', 0) + 1
+        my_generation = self._active_generation
+        self.operation_thread = StopEvent(event, self, my_generation)
         if not self.operation_thread.is_set():
             try:
 
