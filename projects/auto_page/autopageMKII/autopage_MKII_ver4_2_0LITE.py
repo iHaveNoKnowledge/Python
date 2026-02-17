@@ -1059,24 +1059,11 @@ class MyApp:
             'unitPrice': float}
         df = df.astype(data_types)
 
-        # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้
-        #! คำเตือน ถ้าใช้ parameter inplace= ห้ามเก็บค่าเข้าตัวแปรเดิมเด็ดขาด ไม่งั้นมันจะพัง มันจะ error nontype รัวๆ
-        # df['variation'].fillna(value="-", inplace=True)
-        # ตรวจสอบ columntype
-        column_type = df.dtypes
-        print("createTime: ", column_type['createTime'])
-        print("createTimeerr?:", df['createTime'])
-        print("column_type: ", column_type['variation'])
-        for column in df.columns:
-            # print("ทำไมคืนค่า0: ", column_type[column])
-            if column_type[column] == 'float':
-                df[column] = df[column].replace(np.nan, 0)
-            elif column_type[column] == 'object':
-                df[column] = df[column].replace('nan', '')
-            elif column_type[column] == 'str':
-                df[column] = df[column].replace('nan', '')
-            else:
-                df.fillna(np.nan, inplace=True)
+        # อุดค่าว่างก่อนไม่งั้น จะใช้ size() ไม่ได้ (vectorized แทน loop)
+        float_cols = df.select_dtypes(include=['float']).columns
+        str_cols = df.select_dtypes(include=['object']).columns
+        df[float_cols] = df[float_cols].fillna(0)
+        df[str_cols] = df[str_cols].replace('nan', '').fillna('')
 
         # เพิ่มส่วนที่ไม่มี แต่สามารถหาคำนวณเพิ่มเองได้
         result_count = df.groupby(['orderNumber', 'sellerSku', 'itemName',
@@ -1107,13 +1094,9 @@ class MyApp:
         result_with_additional_columns_df = result_with_additional_columns_df.astype(
             {'billingAddr5': str, 'billingPhone': str})
 
-        # เก็บไว้ก่อน['billingName', 'billingAddr', 'billingAddr2', 'billingAddr4', 'billingAddr3', 'billingAddr5', 'taxCode', 'billingPhone', 'customerName', 'paidPrice', 'createTime', 'branchNumber']
-
         # ** ปรับแต่ง Column สำหรับ LAZADA--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # * สร้าง sum_column  ขึ้นมาใหม่ --------------------------------------------------------
         # *> 'ราคาขายสุทธิ'
-        # total_per_order_df = df.groupby('orderNumber')[
-        #     'unitPrice'].sum().reset_index(name='ราคาขายสุทธิ')
         result_count['ราคาขายสุทธิ'] = result_count["จำนวน"] * result_count["unitPrice"]
 
         # *> 'ชื่อผู้รับ' AND 'หมายเลขโทรศัพท์' - REMOVED BUGGY ASSIGNMENT
@@ -1121,26 +1104,23 @@ class MyApp:
         # They will be assigned correctly after merge from result_with_additional_columns_df
 
         # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
-        total_sellerDiscountTotal_df = df.groupby(
-            'orderNumber')['sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
-        total_sellerDiscountTotal_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
+        seller_discount_df = df.groupby('orderNumber')['sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
+        seller_discount_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
 
         # *> 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
-        total_shippingfee_df = df.groupby('orderNumber')['shippingFee'].sum(
+        shipping_fee_df = df.groupby('orderNumber')['shippingFee'].sum(
         ).reset_index(name='ค่าจัดส่งที่ชำระโดยผู้ซื้อ')
 
         # * ปรับแต่งค่าใน Column
         # result_with_additional_columns_df = result_with_additional_columns_df['branchNumber'].map(lambda x: )
 
         # *  รวม dataframe เป็น dataframe ใหม่
-        # merge1_df = pd.merge(result_count, total_per_order_df,
-        #                      on='orderNumber', how='left')
-        merge2_df = pd.merge(result_count, total_sellerDiscountTotal_df, on='orderNumber', how='left')
-        merge3_df = pd.merge(
-            merge2_df, result_with_additional_columns_df, on='orderNumber', how='left')
-        result_df = pd.merge(merge3_df, total_shippingfee_df, on='orderNumber', how='left')
-        # result_df = pd.concat([result_count, total_per_order_df,
-        #                    total_sellerDiscountTotal_df, total_shippingfee_df], ignore_index=True)
+        result_df = (
+            result_count
+            .merge(seller_discount_df, on='orderNumber', how='left')
+            .merge(result_with_additional_columns_df, on='orderNumber', how='left')
+            .merge(shipping_fee_df, on='orderNumber', how='left')
+        )
 
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
@@ -1149,188 +1129,17 @@ class MyApp:
         result_df['ชื่อผู้รับ'] = result_df['billingName'].copy()
         result_df['หมายเลขโทรศัพท์'] = result_df['billingPhone'].copy()
 
-        # * New Logic: Split address by U+00B7 (·) and clean company/branch info
-        def split_lazada_address_special_char(row):
-            addr = str(row['รายละเอียดที่อยู่'])
-            current_sub_district = row['billingAddr2']  # แขวง/ตำบล
-            extracted_sub_district = current_sub_district  # Default to current value
-
-            if '\u00B7' in addr:
-                parts = addr.split('\u00B7')
-                if len(parts) >= 2:
-                    main_addr = parts[0].strip()
-                    sub_part = parts[1].strip()
-
-                    # Clean English part from sub_part (e.g. "สระตะเคียน/ Sa Takhian")
-                    if '/' in sub_part:
-                        sub_part = sub_part.split('/')[0].strip()
-
-                    addr = main_addr
-                    extracted_sub_district = sub_part  # Save the extracted sub-district
-                else:
-                    addr = parts[0].strip()
-
-            # Remove company name patterns - more precise matching
-            # Match "บริษัท ... จำกัด" with or without spaces (handles concatenated text)
-            company_patterns = [
-                # Thai company patterns - with spaces
-                r'บริษัท\s+[^\s]+(?:\s+[^\s]+){0,5}?\s+จำกัด\s*(?:\(มหาชน\))?\s*',
-                # Thai company patterns - without spaces (concatenated like บริษัทXXXจำกัด)
-                r'บริษัท[\u0E00-\u0E7Fa-zA-Z0-9\.]+จำกัด\s*(?:\(มหาชน\))?\s*',
-                r'บจก\.?\s*[\u0E00-\u0E7Fa-zA-Z0-9\.]+\s*',
-                r'บมจ\.?\s*[\u0E00-\u0E7Fa-zA-Z0-9\.]+\s*',
-                # English company patterns
-                r'\b(?:Company|Co\.?,?\s*Ltd\.?|Corporation|Corp\.?|Inc\.?)\b\s*',
-            ]
-
-            for pattern in company_patterns:
-                addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
-
-            # Remove any remaining "บริษัท" or company markers at the start
-            addr = re.sub(r'^\s*บริษัท\s*', '', addr)
-            addr = re.sub(r'^\s*บ\.\s*', '', addr)  # Only match 'บ.' with dot, not 'บ' alone
-
-            # Remove branch indicators (Thai and English)
-            branch_patterns = [
-                r'\(?\s*สำนักงานใหญ่\s*\)?',
-                r'\(?\s*สนง\.?\s*ใหญ่\s*\)?',
-                r'\(?\s*สนญ\.?\s*\)?',
-                r'\(?\s*Head\s+Office\s*\)?',
-                r'\(?\s*HQ\s*\)?',
-                r'\(?\s*สาขา\s*\d+\s*\)?',
-                r'\(?\s*Branch\s*\d+\s*\)?',
-                r'\(?\s*สาขาที่\s*\d+\s*\)?',
-                r'\bสาขา\d+\b',
-            ]
-
-            for pattern in branch_patterns:
-                addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
-
-            # Clean up remaining empty parentheses and extra spaces
-            addr = re.sub(r'\(\s*\)', '', addr)  # Remove empty parentheses
-            addr = re.sub(r'\s+', ' ', addr)      # Replace multiple spaces with single space
-            addr = addr.strip()                    # Trim leading/trailing spaces
-
-            return addr, extracted_sub_district
-
-        # Apply the splitting logic
-        address_split_result = result_df.apply(split_lazada_address_special_char, axis=1, result_type='expand')
+        # Clean ที่อยู่: แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขา
+        address_split_result = result_df.apply(self._split_lazada_address, axis=1, result_type='expand')
         result_df['รายละเอียดที่อยู่'] = address_split_result[0]
         result_df['billingAddr2'] = address_split_result[1]
 
         # * Fill missing sub-district (แขวง/ตำบล) data by querying from Excel file
         try:
-            # Load address data file
             address_data_path = os.path.join(os.path.dirname(__file__), 'tables', 'Addresscleaner_TambonData.xlsx')
             address_df = pd.read_excel(address_data_path, dtype=str)
-            print(f"Loaded address data: {len(address_df)} rows")
-            print(f"Columns: {address_df.columns.tolist()}")
-
-            # Function to lookup missing sub-district
-            def fill_missing_subdistrict(row):
-                # Always re-calculate sub-district to fix potential errors in pre-filled data
-                # if pd.notna(row['billingAddr2']) and str(row['billingAddr2']).strip() != '':
-                #     return row['billingAddr2']
-
-                # Extract and clean District/Province (remove English part if present)
-                district = str(row['billingAddr4']).split('/')[0].strip() if pd.notna(row['billingAddr4']) else ''
-                province = str(row['billingAddr3']).split('/')[0].strip() if pd.notna(row['billingAddr3']) else ''
-                zipcode = str(row['billingAddr5']).strip() if pd.notna(row['billingAddr5']) else ''
-                full_address = str(row['billingAddr']) if pd.notna(row['billingAddr']) else ''
-
-                # Clean prefixes from district and province for better matching
-                district = re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*', '', district)
-                province = re.sub(r'^(?:จังหวัด|จ\.)\s*', '', province)
-
-                print(f"Looking up: district='{district}', province='{province}', zipcode='{zipcode}'")
-
-                matches = pd.DataFrame()
-
-                if district and province:
-                    # Query the address data - use correct column names from Excel
-                    matches = address_df[
-                        (address_df['DistrictThaiShort'].str.strip() == district) &
-                        (address_df['ProvinceThai'].str.strip() == province)
-                    ]
-                    print(f"  Match by district+province: {len(matches)} rows")
-
-                    # If no match, try without "เมือง" prefix if applicable
-                    if matches.empty and district.startswith('เมือง'):
-                        short_district = district[len('เมือง'):]
-                        matches = address_df[
-                            (address_df['DistrictThaiShort'].str.strip() == short_district) &
-                            (address_df['ProvinceThai'].str.strip() == province)
-                        ]
-                        print(f"  Match without เมือง prefix: {len(matches)} rows")
-
-                # If still no match but zipcode available, try zipcode only
-                if matches.empty and zipcode:
-                    matches = address_df[address_df['PostCodeMain'].str.strip() == zipcode]
-                    print(f"  Match by zipcode only: {len(matches)} rows")
-
-                possible_tambons = []
-                if not matches.empty:
-                    possible_tambons = matches['TambonThaiShort'].unique().tolist()
-                    # Sort by length descending to match longest first
-                    possible_tambons.sort(key=len, reverse=True)
-
-                    # 2. Check if any candidate exists in the Full Tax Invoice Address (billingAddr)
-                    # Prioritize candidates that are NOT the district name to avoid false positives
-                    # (e.g. "Ban Khai" district appearing in address causing "Ban Khai" sub-district match)
-
-                    candidates_not_district = [t for t in possible_tambons if t != district]
-                    candidates_is_district = [t for t in possible_tambons if t == district]
-
-                    # First pass: Check non-district candidates
-                    for tambon in candidates_not_district:
-                        if pd.isna(tambon):
-                            continue
-                        if tambon in full_address:
-                            print(f"  Match found in full address: '{tambon}'")
-                            return tambon
-
-                    # Second pass: Check district candidates with stricter rules
-                    for tambon in candidates_is_district:
-                        if pd.isna(tambon):
-                            continue
-
-                        # Rule 1: Check for explicit Tambon prefix
-                        if re.search(r'(?:ต\.|ตำบล|แขวง)\s*' + re.escape(tambon), full_address):
-                            print(f"  Match found with prefix: '{tambon}'")
-                            return tambon
-
-                        # Rule 2: Check if it appears more than once (once as district, once as sub-district)
-                        # This assumes the district name is present in the address
-                        if full_address.count(tambon) >= 2:
-                            print(f"  Match found (appears multiple times): '{tambon}'")
-                            return tambon
-
-                # 3. Fallback to Google Search
-                print("  No match in full address, asking Google...")
-
-                # Prepare address dict for google_for_tambon
-                # It expects: cleaned_address, amphoe, province, postal
-                address_dict = {
-                    "cleaned_address": row['รายละเอียดที่อยู่'],  # Use the cleaned address for search query
-                    "amphoe": district,
-                    "province": province,
-                    "postal": zipcode
-                }
-
-                if possible_tambons:
-                    try:
-                        google_result = self.google_for_tambon(address_dict, possible_tambons)
-                        if google_result:
-                            return google_result
-                    except Exception as e:
-                        print(f"Google search error: {e}")
-
-                print(f"  No match found")
-                return row['billingAddr2']
-
-            # Apply the lookup
-            result_df['billingAddr2'] = result_df.apply(fill_missing_subdistrict, axis=1)
-
+            result_df['billingAddr2'] = result_df.apply(
+                lambda row: self._fill_missing_subdistrict(row, address_df), axis=1)
         except FileNotFoundError:
             print(f"Warning: Addresscleaner_TambonData.xlsx not found at {address_data_path}")
         except Exception as e:
@@ -1338,37 +1147,10 @@ class MyApp:
             print(f"Warning: Error loading address data: {e}")
             traceback.print_exc()
 
-        # * Remove redundant administrative keywords from รายละเอียดที่อยู่
-        def remove_redundant_keywords(row):
-            addr = str(row['รายละเอียดที่อยู่'])
-
-            # List of redundant patterns to remove (with word boundaries where appropriate)
-            redundant_patterns = [
-                r'\bตำบล[^\s]*',     # ตำบล followed by any non-space characters
-                r'\bต\.[^\s]*',      # ต. followed by any non-space characters
-                r'\bอำเภอ[^\s]*',    # อำเภอ followed by any non-space characters
-                r'\bอ\.[^\s]*',      # อ. followed by any non-space characters
-                r'\bแขวง[^\s]*',     # แขวง followed by any non-space characters
-                r'\bเขต[^\s]*',      # เขต followed by any non-space characters
-                r'\bจังหวัด[^\s]*',  # จังหวัด followed by any non-space characters
-                r'\bจ\.[^\s]*',      # จ. followed by any non-space characters
-            ]
-
-            for pattern in redundant_patterns:
-                addr = re.sub(pattern, '', addr)
-
-            # Clean up extra spaces
-            addr = re.sub(r'\s+', ' ', addr).strip()
-
-            # Remove trailing hyphen (e.g. "58 หมู่ 9 -")
-            addr = re.sub(r'\s*-\s*$', '', addr)
-
-            return addr
-
-        result_df['รายละเอียดที่อยู่'] = result_df.apply(remove_redundant_keywords, axis=1)
+        # ลบ keywords ซ้ำซ้อนจากที่อยู่ (ตำบล, อำเภอ, จังหวัด, etc.)
+        result_df['รายละเอียดที่อยู่'] = result_df.apply(self._remove_redundant_keywords, axis=1)
 
         result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
-        print("result_df d-type", type(result_df['ประเภทสาขา']))
 
         # * สกัดและหาเลขสาขา จากข้อมูลที่กรอกมั่วๆไร้ซึ่ง pattern จาก lazada exportfile และเก็บไว้ในตัวแปร extracted_branch_df สาขาจะแสดงเป็นเลข 5 หลักแทนช่องว่างด้วย 0 แต่สาขา 00000 จะแสดงเป็น "สำนักงานใหญ่"
         extracted_branch_df = result_df['ประเภทสาขา'].apply(self.find_branch)
@@ -1435,6 +1217,133 @@ class MyApp:
         result_df.to_excel(excel_file_path, index=False,
                            na_rep="", engine="openpyxl")
         return result_df
+
+    @staticmethod
+    def _split_lazada_address(row):
+        """แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขาออก"""
+        addr = str(row['รายละเอียดที่อยู่'])
+        extracted_sub_district = row['billingAddr2']
+
+        if '\u00B7' in addr:
+            parts = addr.split('\u00B7')
+            if len(parts) >= 2:
+                addr = parts[0].strip()
+                sub_part = parts[1].strip()
+                if '/' in sub_part:
+                    sub_part = sub_part.split('/')[0].strip()
+                extracted_sub_district = sub_part
+            else:
+                addr = parts[0].strip()
+
+        # ลบชื่อบริษัท
+        company_patterns = [
+            r'บริษัท\s+[^\s]+(?:\s+[^\s]+){0,5}?\s+จำกัด\s*(?:\(มหาชน\))?\s*',
+            r'บริษัท[\u0E00-\u0E7Fa-zA-Z0-9\.]+จำกัด\s*(?:\(มหาชน\))?\s*',
+            r'บจก\.?\s*[\u0E00-\u0E7Fa-zA-Z0-9\.]+\s*',
+            r'บมจ\.?\s*[\u0E00-\u0E7Fa-zA-Z0-9\.]+\s*',
+            r'\b(?:Company|Co\.?,?\s*Ltd\.?|Corporation|Corp\.?|Inc\.?)\b\s*',
+        ]
+        for pattern in company_patterns:
+            addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
+        addr = re.sub(r'^\s*บริษัท\s*', '', addr)
+        addr = re.sub(r'^\s*บ\.\s*', '', addr)
+
+        # ลบ branch indicators
+        branch_patterns = [
+            r'\(?\s*สำนักงานใหญ่\s*\)?',
+            r'\(?\s*สนง\.?\s*ใหญ่\s*\)?',
+            r'\(?\s*สนญ\.?\s*\)?',
+            r'\(?\s*Head\s+Office\s*\)?',
+            r'\(?\s*HQ\s*\)?',
+            r'\(?\s*สาขา\s*\d+\s*\)?',
+            r'\(?\s*Branch\s*\d+\s*\)?',
+            r'\(?\s*สาขาที่\s*\d+\s*\)?',
+            r'\bสาขา\d+\b',
+        ]
+        for pattern in branch_patterns:
+            addr = re.sub(pattern, '', addr, flags=re.IGNORECASE)
+
+        # Clean up
+        addr = re.sub(r'\(\s*\)', '', addr)
+        addr = re.sub(r'\s+', ' ', addr).strip()
+        return addr, extracted_sub_district
+
+    def _fill_missing_subdistrict(self, row, address_df):
+        """หาตำบล/แขวงที่ขาดหายไปจากข้อมูล Excel หรือ Google"""
+        district = str(row['billingAddr4']).split('/')[0].strip() if pd.notna(row['billingAddr4']) else ''
+        province = str(row['billingAddr3']).split('/')[0].strip() if pd.notna(row['billingAddr3']) else ''
+        zipcode = str(row['billingAddr5']).strip() if pd.notna(row['billingAddr5']) else ''
+        full_address = str(row['billingAddr']) if pd.notna(row['billingAddr']) else ''
+
+        district = re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*', '', district)
+        province = re.sub(r'^(?:จังหวัด|จ\.)\s*', '', province)
+
+        candidates = pd.DataFrame()
+        if district and province:
+            candidates = address_df[
+                (address_df['DistrictThaiShort'].str.strip() == district) &
+                (address_df['ProvinceThai'].str.strip() == province)
+            ]
+            if candidates.empty and district.startswith('เมือง'):
+                short_district = district[len('เมือง'):]
+                candidates = address_df[
+                    (address_df['DistrictThaiShort'].str.strip() == short_district) &
+                    (address_df['ProvinceThai'].str.strip() == province)
+                ]
+
+        if candidates.empty and zipcode:
+            candidates = address_df[address_df['PostCodeMain'].str.strip() == zipcode]
+
+        possible_tambons = []
+        if not candidates.empty:
+            possible_tambons = candidates['TambonThaiShort'].unique().tolist()
+            possible_tambons.sort(key=len, reverse=True)
+
+            candidates_not_district = [t for t in possible_tambons if t != district]
+            candidates_is_district = [t for t in possible_tambons if t == district]
+
+            for tambon in candidates_not_district:
+                if pd.isna(tambon): continue
+                if tambon in full_address:
+                    return tambon
+
+            for tambon in candidates_is_district:
+                if pd.isna(tambon): continue
+                if re.search(r'(?:ต\.|ตำบล|แขวง)\s*' + re.escape(tambon), full_address):
+                    return tambon
+                if full_address.count(tambon) >= 2:
+                    return tambon
+
+        # Fallback: Google Search
+        if possible_tambons:
+            try:
+                address_dict = {
+                    "cleaned_address": row['รายละเอียดที่อยู่'],
+                    "amphoe": district, "province": province, "postal": zipcode
+                }
+                google_result = self.google_for_tambon(address_dict, possible_tambons)
+                if google_result:
+                    return google_result
+            except Exception as e:
+                print(f"Google search error: {e}")
+
+        return row['billingAddr2']
+
+    @staticmethod
+    def _remove_redundant_keywords(row):
+        """ลบ keywords ซ้ำซ้อนจากที่อยู่ เช่น ตำบล, อำเภอ, เขต, จังหวัด"""
+        addr = str(row['รายละเอียดที่อยู่'])
+        redundant_patterns = [
+            r'\bตำบล[^\s]*', r'\bต\.[^\s]*',
+            r'\bอำเภอ[^\s]*', r'\bอ\.[^\s]*',
+            r'\bแขวง[^\s]*', r'\bเขต[^\s]*',
+            r'\bจังหวัด[^\s]*', r'\bจ\.[^\s]*',
+        ]
+        for pattern in redundant_patterns:
+            addr = re.sub(pattern, '', addr)
+        addr = re.sub(r'\s+', ' ', addr).strip()
+        addr = re.sub(r'\s*-\s*$', '', addr)
+        return addr
 
     def f(self, d):
         return '{0:n}'.format(d)
