@@ -3739,22 +3739,29 @@ class Bot_POS:
                     By.CSS_SELECTOR, '.select2-results__option')
                 # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
 
-                # * เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
-                if len(customer_name_lis_from_dropdown) > 1:
-                    print("มากกว่า 1")
-                    cus_found_names_list = [element.text for element in customer_name_lis_from_dropdown]
-                    self.select_cus_name_from_lis(
-                        self.app.cus_name.get(),
-                        cus_found_names_list,
-                        self.select_cus_name_from_lis
-                    )
-                    print("click แล้ว")
-                    break
-
-                else:
-                    self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-                    print("Click the cusname li result")
-                    break
+                # ! /deprecated??/ จำไม่ได้ว่าจะแยก มากกว่า 1 หรือน้อยกว่า 2 ไปไมลืม แต่มันทำงานได้ดีมะก่อน แต่ตอนนี้มันเกิดปัญหาค่าถ้าลูกค้ามีชื่อเดียวมันจะไม่ตรวจสอบไรทั้งนั้น //เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
+                # if len(customer_name_lis_from_dropdown) > 1:
+                #     print("มากกว่า 1")
+                #     cus_found_names_list = [element.text for element in customer_name_lis_from_dropdown]
+                #     self.select_cus_name_from_lis(
+                #         self.app.cus_name.get(),
+                #         cus_found_names_list,
+                #         self.select_cus_name_from_lis
+                #     )
+                #     print("click แล้ว")
+                #     break
+                # else:
+                #     self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
+                #     print("Click the cusname li result")
+                #     break
+                cus_found_names_list = [element.text for element in customer_name_lis_from_dropdown]
+                self.select_cus_name_from_lis(
+                    self.app.cus_name.get(),
+                    cus_found_names_list,
+                    self.select_cus_name_from_lis
+                )
+                print("click แล้ว")
+                break
 
             except:
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
@@ -3899,6 +3906,8 @@ class Bot_POS:
         pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'
 
+        current_cus_name = self.cus_name_span_elmt.text if self.cus_name_span_elmt else ""
+
         cus_desire_name = re.sub(pattern, '', cus_desire_name)
         cus_desire_name = re.sub(pattern2, '', cus_desire_name)
         cus_desire_name = cus_desire_name.strip()
@@ -3908,8 +3917,8 @@ class Bot_POS:
 
         is_branched = self.app.branch_type == "สาขาย่อย"
 
-        print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} /// self.cus_name_span_elmt.text: {self.cus_name_span_elmt.text}")
-        if cus_desire_name in self.cus_name_span_elmt.text and self.app.tax_branch_num.get() in self.cus_name_span_elmt.text:
+        print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} /// current_cus_name: {current_cus_name}")
+        if cus_desire_name in current_cus_name and self.app.tax_branch_num.get() in current_cus_name:
             while not self.operation_thread.is_set():
                 try:
                     self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
@@ -3919,7 +3928,7 @@ class Bot_POS:
                     time.sleep(0.5)
                     continue
 
-            print(f"cus_desire_name in self.cus_name_span_elmt.text")
+            print(f"cus_desire_name has already in current_cus_name")
             return
 
         # * ทำการคัดเอาเฉพาะชื่อลูกค้าไม่เอารหัส ลง array
