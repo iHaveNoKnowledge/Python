@@ -1720,8 +1720,15 @@ class MyApp:
         # if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
         #     self.bot.pre_operation_memory_cleanup("search_order")
 
-        differential_col_data = ['เลขอ้างอิง SKU (SKU Reference No.)', 'ชื่อสินค้า',
-                                 'ราคาขาย', 'จำนวน', 'ราคาขายสุทธิ', 'ส่วนลดจาก Shopee', 'ชื่อตัวเลือก']
+        differential_col_data = [
+            'เลขอ้างอิง SKU (SKU Reference No.)', 
+            'ชื่อสินค้า',
+            'ราคาขาย', 
+            'จำนวน', 
+            'ราคาขายสุทธิ', 
+            'ส่วนลดจาก Shopee', 
+            'ชื่อตัวเลือก', 
+        ]
         non_differential_col_data = [
             'หมายเลขคำสั่งซื้อ',
             'สถานะการสั่งซื้อ',
