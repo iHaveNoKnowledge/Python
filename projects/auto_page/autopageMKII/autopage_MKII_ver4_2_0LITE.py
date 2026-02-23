@@ -3664,10 +3664,11 @@ class Bot_POS:
         print("set_cus_name_search_type_last_page ends.")
 
     def dropdown_handler(self):
+        print("dropdown_handler starts")
         while not self.operation_thread.is_set():
             try:
                 li_locators = self.driver.find_elements(By.CSS_SELECTOR, "ul.select2-results__options li")
-                print("li_locators.text: ", li_locators[0].text)
+                # print("li_locators.text: ", li_locators[0].text)
                 if not "Searching" in li_locators[0].text:
                     break
                 time.sleep(0.3)
@@ -5274,7 +5275,7 @@ class Bot_POS:
             self.select_sale_type()
         print("opening customer form initializing")
 
-        time.sleep(1)
+        time.sleep(0.55)
 
         # * มันมีปุ่มบางอย่างที่มันอาจจะทำให้มีปัญหาในการจัดการชื่อลูกค้าได้ มันจะแสดงผลในหน้าใหม่เท่านั้น หน้าเก่าไม่แสดง เลยต้อง try-except ไว้ เพราะมันอาจจะมีหรือไม่มีก็ได้
         try:
@@ -5472,47 +5473,37 @@ class Bot_POS:
         # Fill customer form
         while is_functionworking and not self.operation_thread.is_set():
             try:
-                # Name TH
-                # self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')))
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
+                #* Name TH
+                name_th_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')
+                self.js_input_value(name_th_element, name)
+                # self.driver.find_element(
+                #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
+                # self.driver.find_element(
+                #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
 
-                # Name ENG
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').clear()
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input').send_keys(name)
+                #* Name ENG
+                name_eng_element  = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input')
+                self.js_input_value(name_eng_element, name)
 
-                # Tax ID (only for tax customers)
+                #* Tax ID (only for tax customers)
                 if tax_num:
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input').send_keys(tax_num)
+                    tax_num_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input')
+                    self.js_input_value(tax_num_element, tax_num)
 
-                # Address
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').clear()
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea').send_keys(address)
+                #* Address
+                address_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea')
+                self.js_input_value(address_element, address)
 
-                # Email (if provided)
+                #* Email (if provided)
                 if email:
-                    self.driver.find_element(
-                        By.XPATH,
-                        '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input').send_keys(email)
+                    email_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
+                    self.js_input_value(email_element, email)
 
-                # Phone
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').clear()
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input').send_keys(phone)
+                #* Phone
+                phone_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input')
+                self.js_input_value(phone_element, phone)
 
-                # Address dropdowns (only for tax customers)
+                #* Address dropdowns (only for tax customers)
                 if use_dropdown_address:
                     # Country dropdown
                     self.driver.find_element(
