@@ -2819,6 +2819,12 @@ class Bot_POS:
                 return func(*args, **kwargs)
             except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as e:
                 last_exception = e
+                # ตรวจสอบว่า error เกิดจาก driver connection หาย (เช่น หลัง sleep)
+                error_msg = str(e)
+                if "NewConnectionError" in error_msg or "MaxRetryError" in error_msg or "ConnectionRefusedError" in error_msg:
+                    print(f"Driver connection lost during retry: {type(e).__name__}")
+                    logger.error(f"Driver connection lost during retry: {e}")
+                    raise ConnectionError(f"WebDriver connection lost: {e}") from e
                 if attempt < max_retries - 1:
                     print(f"Retry attempt {attempt + 1}/{max_retries} due to: {type(e).__name__}")
                     time.sleep(delay)
@@ -2841,6 +2847,48 @@ class Bot_POS:
         except Exception as e:
             print(f"Driver is not alive: {type(e).__name__}: {e}")
             logger.error(f"Driver connection lost: {type(e).__name__}: {e}")
+            return False
+
+    def reconnect_driver(self):
+        """
+        Reconnect WebDriver หลังจาก connection หาย (เช่น หลัง sleep)
+        Chrome ยังเปิดอยู่ แต่ ChromeDriver process ตายไป
+        
+        Returns:
+            bool: True ถ้า reconnect สำเร็จ, False ถ้าไม่สำเร็จ
+        """
+        try:
+            print("🔄 Attempting to reconnect WebDriver...")
+            logger.info("Attempting WebDriver reconnection...")
+            self.app.update_log("🔄 Reconnecting to browser...")
+            
+            # สร้าง driver ใหม่เชื่อมต่อ Chrome ที่ยังเปิดอยู่
+            self.driver = self.setup_chrome()
+            self.driver.execute_cdp_cmd("Network.enable", {})
+            
+            # อัปเดต WebDriverWait
+            self.wait50 = WebDriverWait(self.driver, 50)
+            self.wait5 = WebDriverWait(self.driver, 5)
+            
+            # อัปเดต AutoAddProduct
+            self.AutoAddProduct.driver = self.driver
+            self.AutoAddProduct.wait = self.wait50
+            
+            # อัปเดต NetworkResponseCapture
+            from functions.network_response_utils import NetworkResponseCapture
+            self.network_capture = NetworkResponseCapture(self.driver)
+            
+            # อัปเดต tabs
+            self.get_tabs()
+            
+            print("✅ WebDriver reconnected successfully!")
+            logger.info("WebDriver reconnected successfully")
+            self.app.update_log("✅ Browser reconnected!")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to reconnect WebDriver: {e}")
+            logger.error(f"WebDriver reconnection failed: {e}")
+            self.app.update_log(f"❌ Cannot reconnect: {e}")
             return False
 
     def get_current_tab_memory_usage(self):
@@ -3601,13 +3649,26 @@ class Bot_POS:
                     self.app.search_complete.set()
 
             except ConnectionError as err:
-                # WebDriver connection error - ให้ข้อความที่ชัดเจน
-                error_msg = f"WebDriver connection lost: {err}"
-                print(f"operation_task_thread, Connection Error: {error_msg}")
-                logger.error(f"Order: {self.app.order} - {error_msg}")
-                self.app.update_log("❌ Browser connection lost. Please restart the browser.")
-                self.app.display_bot_status_label.configure(
-                    text=f"Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                # WebDriver connection error - ลอง reconnect แล้ว retry
+                print(f"operation_task_thread, Connection Error: {err}")
+                logger.error(f"Order: {self.app.order} - WebDriver connection lost: {err}")
+                # ลอง reconnect แล้ว retry operation
+                if self.reconnect_driver():
+                    try:
+                        self.operation_start()
+                    except ConnectionError as retry_err:
+                        # reconnect สำเร็จแต่ operation ยังล้มเหลว
+                        logger.error(f"Order: {self.app.order} - Retry failed after reconnect: {retry_err}")
+                        self.app.update_log("❌ Retry failed. Please restart the browser.")
+                        self.app.display_bot_status_label.configure(
+                            text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                    except Exception as retry_err:
+                        logger.error(f"Order: {self.app.order} - Retry error: {retry_err}")
+                        self.app.update_log(f"❌ Retry error: {retry_err}")
+                else:
+                    self.app.update_log("❌ Cannot reconnect. Please restart the browser.")
+                    self.app.display_bot_status_label.configure(
+                        text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
             except Exception as err:
                 traceback_str = traceback.format_exc()
                 print(f"operation_task_thread, An error occirred: {err}")
@@ -4519,9 +4580,7 @@ class Bot_POS:
                             By.CSS_SELECTOR, 'div.eds-tabs__nav div.eds-tabs__nav-warp div div div.tab-label').click()
 
                     self.retry_on_stale_element(click_tab)
-                    #! ตรงนี้มันไม่ใช้แล้ว
-                    # self.wait50.until(EC.text_to_be_present_in_element(
-                    #     (By.XPATH, '/html/body/div[1]/div[1]/div/div[1]/div/div[2]/div[1]/div/div[1]/div[1]/a'), 'การขายของฉัน'))
+
                 else:
                     print("อยู๋ในหน้าทั้งหมดอยู่แล้ว ไม่ต้องเปลี่ยน")
 
@@ -4555,7 +4614,13 @@ class Bot_POS:
                     self.driver.execute_script("arguments[0].click();", self.searchBtn)
                 except:
                     print("cannot search order")
-                    raise ValueError(f"method operation_start Error : {traceback.format_exc()}")
+                    tb_str = traceback.format_exc()
+                    if "NewConnectionError" in tb_str or "MaxRetryError" in tb_str or "ConnectionRefusedError" in tb_str:
+                        print("WebDriver connection lost during search")
+                        logger.error(f"Order: {self.app.order} - WebDriver connection lost during search")
+                        self.app.update_log("❌ Browser connection lost. Please restart the browser.")
+                        raise ConnectionError(f"WebDriver connection lost during operation_start: {tb_str}") from None
+                    raise ValueError(f"method operation_start Error : {tb_str}")
 
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(1)
