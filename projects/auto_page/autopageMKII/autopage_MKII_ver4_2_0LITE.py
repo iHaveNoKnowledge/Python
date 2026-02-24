@@ -782,6 +782,13 @@ class MyApp:
             text_color="white", width=100, height=28)
         self.memory_check_btn.grid(row=0, column=5, padx=(5, 0))
 
+        # * >> Finishing up button
+        self.finishing_up_btn = CTkButton(
+            self.import_file_frame, text="Finish!", command=lambda: print("Finish!"), fg_color="#77579e", hover_color="#563871",
+            text_color="#FFF", width=50, height=28, border_color="#FFF", border_width=1.5
+        )
+        self.finishing_up_btn.grid(row=0, column=6, padx=(5, 5))
+
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Current Order display component
         # >> Labels
@@ -924,7 +931,8 @@ class MyApp:
         # * Initialize OrderDisplayManager
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
 
-        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
+        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
+                                     'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
 
         # * > demonic cp segment
@@ -1016,7 +1024,7 @@ class MyApp:
         self.result = "Excel"
         print("Select Excel")
         self.table_location = filedialog.askopenfilename(title="Select Shopee order toship file")
-        
+
         # * ตัดเอาเฉพาะ ชื่อไฟล์
         self.display_location_result.configure(text=f"{self.table_location.split('/')[-1]}")
 
@@ -1104,7 +1112,8 @@ class MyApp:
         # They will be assigned correctly after merge from result_with_additional_columns_df
 
         # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
-        seller_discount_df = df.groupby('orderNumber')['sellerDiscountTotal'].sum().reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
+        seller_discount_df = df.groupby('orderNumber')['sellerDiscountTotal'].sum(
+        ).reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
         seller_discount_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
 
         # *> 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
@@ -1303,12 +1312,14 @@ class MyApp:
             candidates_is_district = [t for t in possible_tambons if t == district]
 
             for tambon in candidates_not_district:
-                if pd.isna(tambon): continue
+                if pd.isna(tambon):
+                    continue
                 if tambon in full_address:
                     return tambon
 
             for tambon in candidates_is_district:
-                if pd.isna(tambon): continue
+                if pd.isna(tambon):
+                    continue
                 if re.search(r'(?:ต\.|ตำบล|แขวง)\s*' + re.escape(tambon), full_address):
                     return tambon
                 if full_address.count(tambon) >= 2:
@@ -1351,24 +1362,24 @@ class MyApp:
     def get_data_frame(self):
         target = self.marketplace_target.get()
         self.file_path = self.table_location
-        
-        #* dtype preset สำหรับการโหลดข้อมูล เพื่อป้องกัน error จากการที่บาง column มีค่า missing หรือมีค่าไม่ตรงกับ type ที่ควรจะเป็น ซึ่งจะทำให้เกิด error ตอนโหลดข้อมูลเข้ามาเป็น DataFrame
+
+        # * dtype preset สำหรับการโหลดข้อมูล เพื่อป้องกัน error จากการที่บาง column มีค่า missing หรือมีค่าไม่ตรงกับ type ที่ควรจะเป็น ซึ่งจะทำให้เกิด error ตอนโหลดข้อมูลเข้ามาเป็น DataFrame
         base_dtypes = {
-            'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str, 
-            'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int, 
-            'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float, 
-            'แขวง/ตำบล': str, 'ประเภทสาขา': str, 'สาขาย่อย': str, 
+            'หมายเลขประจำตัวผู้เสียภาษี': str, 'รหัสไปรษณีย์.1': str,
+            'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': str, 'จำนวน': int,
+            'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': float, 'โค้ดส่วนลดชำระโดยผู้ขาย': float,
+            'แขวง/ตำบล': str, 'ประเภทสาขา': str, 'สาขาย่อย': str,
             'รหัสประจำสาขา': str, 'หมายเหตุจากผู้ซื้อ': str, 'บันทึก': str,
             'orderNumber': str
         }
-        #* เฉพาะ Lazada ที่มี column 'taxCode' ซึ่งมีค่าเป็นเลขประจำตัวผู้เสียภาษีที่บางครั้งอาจจะมีค่า missing หรือไม่ตรงกับ type ที่ควรจะเป็น จึงต้องเพิ่ม dtype preset สำหรับ column นี้โดยเฉพาะ เพื่อป้องกัน error ตอนโหลดข้อมูลเข้ามาเป็น DataFrame
+        # * เฉพาะ Lazada ที่มี column 'taxCode' ซึ่งมีค่าเป็นเลขประจำตัวผู้เสียภาษีที่บางครั้งอาจจะมีค่า missing หรือไม่ตรงกับ type ที่ควรจะเป็น จึงต้องเพิ่ม dtype preset สำหรับ column นี้โดยเฉพาะ เพื่อป้องกัน error ตอนโหลดข้อมูลเข้ามาเป็น DataFrame
         if target == 'LAZADA':
             base_dtypes['taxCode'] = str
-        
+
         self.columns_dtype_preset = base_dtypes
 
         try:
-            #* แยก Logic การโหลดข้อมูล
+            # * แยก Logic การโหลดข้อมูล
             if target == 'SHOPEE':
                 print("Loading Shopee data...")
                 self.data_frame = pd.read_excel(self.file_path, dtype=self.columns_dtype_preset)
@@ -1379,7 +1390,7 @@ class MyApp:
                 print("Unknown Marketplace")
                 return
 
-            #* ตรวจสอบ Data
+            # * ตรวจสอบ Data
             if not self.data_frame.empty:
                 print(f"มี Data Frame (Type: {type(self.data_frame)})")
             else:
@@ -1729,13 +1740,13 @@ class MyApp:
         #     self.bot.pre_operation_memory_cleanup("search_order")
 
         differential_col_data = [
-            'เลขอ้างอิง SKU (SKU Reference No.)', 
+            'เลขอ้างอิง SKU (SKU Reference No.)',
             'ชื่อสินค้า',
-            'ราคาขาย', 
-            'จำนวน', 
-            'ราคาขายสุทธิ', 
-            'ส่วนลดจาก Shopee', 
-            'ชื่อตัวเลือก', 
+            'ราคาขาย',
+            'จำนวน',
+            'ราคาขายสุทธิ',
+            'ส่วนลดจาก Shopee',
+            'ชื่อตัวเลือก',
         ]
         non_differential_col_data = [
             'หมายเลขคำสั่งซื้อ',
@@ -2279,8 +2290,10 @@ class MyApp:
 
         # * สร้าง Thread
         self.bot.get_tabs()
-        self.longer_thread_cycle = threading.Thread(target=lambda: self.bot.operation_task_thread(self.operation_thread))
-        self.shorter_thread_cycle = threading.Thread(target=lambda: self.order_search(self.search_query, self.order_Search_thread))
+        self.longer_thread_cycle = threading.Thread(
+            target=lambda: self.bot.operation_task_thread(self.operation_thread))
+        self.shorter_thread_cycle = threading.Thread(target=lambda: self.order_search(
+            self.search_query, self.order_Search_thread))
         print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
@@ -2299,7 +2312,7 @@ class MyApp:
         self.operation_thread.set()
         logger.info(f"Order: {self.order} stop operation")
 
-    #* ส่งไปแปะไว้ที่ order_display_manager.py
+    # * ส่งไปแปะไว้ที่ order_display_manager.py
     def auto_add_product_threaded(self, skus, qty, **kwargs):
         """
         Wrapper method สำหรับเรียก auto_add_product ใน thread แยก
@@ -2680,10 +2693,11 @@ class StopEvent:
     """Wrapper ที่ proxy threading.Event แต่เพิ่ม generation check
     เมื่อ thread ใหม่เริ่ม (generation เปลี่ยน), is_set() จะ return True อัตโนมัติ
     ทำให้ old thread หยุดโดยไม่ต้องแก้ 40+ จุดที่เช็ค self.operation_thread.is_set()"""
+
     def __init__(self, event, bot, generation):
         self._event = event
-        self._bot = bot # เอาไว้ดู ว่า generation ปัจจุบันของ bot เป็นเท่าไหร่
-        self._generation = generation # gen ของ thread นี้
+        self._bot = bot  # เอาไว้ดู ว่า generation ปัจจุบันของ bot เป็นเท่าไหร่
+        self._generation = generation  # gen ของ thread นี้
 
     def is_set(self):
         return self._event.is_set() or self._bot._active_generation != self._generation
@@ -2853,7 +2867,7 @@ class Bot_POS:
         """
         Reconnect WebDriver หลังจาก connection หาย (เช่น หลัง sleep)
         Chrome ยังเปิดอยู่ แต่ ChromeDriver process ตายไป
-        
+
         Returns:
             bool: True ถ้า reconnect สำเร็จ, False ถ้าไม่สำเร็จ
         """
@@ -2861,26 +2875,26 @@ class Bot_POS:
             print("🔄 Attempting to reconnect WebDriver...")
             logger.info("Attempting WebDriver reconnection...")
             self.app.update_log("🔄 Reconnecting to browser...")
-            
+
             # สร้าง driver ใหม่เชื่อมต่อ Chrome ที่ยังเปิดอยู่
             self.driver = self.setup_chrome()
             self.driver.execute_cdp_cmd("Network.enable", {})
-            
+
             # อัปเดต WebDriverWait
             self.wait50 = WebDriverWait(self.driver, 50)
             self.wait5 = WebDriverWait(self.driver, 5)
-            
+
             # อัปเดต AutoAddProduct
             self.AutoAddProduct.driver = self.driver
             self.AutoAddProduct.wait = self.wait50
-            
+
             # อัปเดต NetworkResponseCapture
             from functions.network_response_utils import NetworkResponseCapture
             self.network_capture = NetworkResponseCapture(self.driver)
-            
+
             # อัปเดต tabs
             self.get_tabs()
-            
+
             print("✅ WebDriver reconnected successfully!")
             logger.info("WebDriver reconnected successfully")
             self.app.update_log("✅ Browser reconnected!")
@@ -3618,7 +3632,6 @@ class Bot_POS:
                 if self.app.order != "" and not self.operation_thread.is_set():
                     logger.info(f"Order: {self.app.order} Start!!")
                     self.operation_start()
-                    
 
                     # # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
                     # max_retries = 3
@@ -4365,7 +4378,8 @@ class Bot_POS:
 
         # * กดปุ่มแดงปิดหน้า print
         try:
-            cancel_btn_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a')
+            cancel_btn_element = self.driver.find_element(
+                By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[1]/div[2]/a')
             self.driver.execute_script("arguments[0].click();", cancel_btn_element)
         except Exception as e:
             print(f"Error closing print window: {e}")
@@ -5138,19 +5152,20 @@ class Bot_POS:
                                 #     self.driver.find_element(
                                 #         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
-                                # /กรอก remark 
+                                # /กรอก remark
                                 time.sleep(0.75)
                                 remark_text = self.app.cus_order.get()
-                                textarea_element = self.driver.find_element(By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
-                                
+                                textarea_element = self.driver.find_element(
+                                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+
                                 #! classic way
                                 # self.driver.find_element(
                                 #     By.XPATH,
                                 #     "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
                                 # self.driver.find_element(
                                 #     By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(remark_text)
-                                
-                                #/ Final way ใช้ function ที่เขียนแยกไว้
+
+                                # / Final way ใช้ function ที่เขียนแยกไว้
                                 self.js_input_value(textarea_element, remark_text)
 
                                 # / เลือกประเภทชำระเงิน
@@ -5176,14 +5191,15 @@ class Bot_POS:
 
                                 # / PO No:
                                 try:
-                                    po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                                    po_no_input_element = self.driver.find_element(
+                                        By.XPATH, "//input[@id='textbox81037000102']")
                                     value_to_input = self.app.cus_order.get()
                                     #! classic way
                                     # po_no_input_element.clear()
                                     # po_no_input_element.send_keys(value_to_input)
-                                    
-                                    #! CAUTION หากไม่ใช้ trgigger event input and change มันเปลี่ยนค่าที่แสดงผลบน html เฉยๆ แต่ state มันไม่เปลี่ยน มันเลยดูเหมือนใส่แล้วแต่ไม่ได้ใส่                                    
-                                    #* Final way ใช้ function ที่เขียนแยกไว้
+
+                                    #! CAUTION หากไม่ใช้ trgigger event input and change มันเปลี่ยนค่าที่แสดงผลบน html เฉยๆ แต่ state มันไม่เปลี่ยน มันเลยดูเหมือนใส่แล้วแต่ไม่ได้ใส่
+                                    # * Final way ใช้ function ที่เขียนแยกไว้
                                     self.js_input_value(po_no_input_element, value_to_input)
                                 except Exception as e:
                                     print("Cannot fill PO No:", e)
@@ -5201,21 +5217,22 @@ class Bot_POS:
                                 except:
                                     print("ปุ่ม Brows() ไม่โผล่")
 
-                                #/ input 'Name:'
+                                # / input 'Name:'
                                 # / ลูกค้ามีชื่อไหม ถ้าไม่มี ใส่ order แทน
                                 if self.app.cus_name.get():
                                     value_to_input = self.app.cus_name.get()
                                 else:
                                     value_to_input = self.app.cus_order.get()
-                                
+
                                 #! classic way
                                 # self.driver.find_element(
                                 #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').clear()
                                 # self.driver.find_element(
                                 #     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[2]/div/div/div[3]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/input').send_keys(value_to_input)
-                                
-                                #* Final way ใช้ function ที่เขียนแยกไว้
-                                final_cus_name_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+
+                                # * Final way ใช้ function ที่เขียนแยกไว้
+                                final_cus_name_input_element = self.driver.find_element(
+                                    By.XPATH, "//input[@id='textbox81037000101']")
                                 self.js_input_value(final_cus_name_input_element, value_to_input)
 
                             except Exception as err:
@@ -5227,11 +5244,12 @@ class Bot_POS:
                             try:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
-                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
+                                               ) - self.app.cus_seller_voucher.get()
                                 final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
                                 final_price_element.clear()
                                 self.js_input_value(final_price_element, final_price)
-                                
+
                             except Exception as e:
                                 print("auto_final_price broken", e)
                             # *Auto price มันมีสองอันได้ไง
@@ -5328,7 +5346,7 @@ class Bot_POS:
                 # self.driver.quit()
 
             print("operation_thread is set or autofinal is false, exit final loop")
-            
+
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
 
@@ -5545,37 +5563,43 @@ class Bot_POS:
         # Fill customer form
         while is_functionworking and not self.operation_thread.is_set():
             try:
-                #* Name TH
-                name_th_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')
+                # * Name TH
+                name_th_element = self.driver.find_element(
+                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input')
                 self.js_input_value(name_th_element, name)
                 # self.driver.find_element(
                 #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').clear()
                 # self.driver.find_element(
                 #     By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[1]/input').send_keys(name)
 
-                #* Name ENG
-                name_eng_element  = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input')
+                # * Name ENG
+                name_eng_element = self.driver.find_element(
+                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[2]/input')
                 self.js_input_value(name_eng_element, name)
 
-                #* Tax ID (only for tax customers)
+                # * Tax ID (only for tax customers)
                 if tax_num:
-                    tax_num_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input')
+                    tax_num_element = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[4]/div[3]/input')
                     self.js_input_value(tax_num_element, tax_num)
 
-                #* Address
-                address_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea')
+                # * Address
+                address_element = self.driver.find_element(
+                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[8]/div/textarea')
                 self.js_input_value(address_element, address)
 
-                #* Email (if provided)
+                # * Email (if provided)
                 if email:
-                    email_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
+                    email_element = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[14]/div[3]/input')
                     self.js_input_value(email_element, email)
 
-                #* Phone
-                phone_element = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input')
+                # * Phone
+                phone_element = self.driver.find_element(
+                    By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[15]/div[3]/input')
                 self.js_input_value(phone_element, phone)
 
-                #* Address dropdowns (only for tax customers)
+                # * Address dropdowns (only for tax customers)
                 if use_dropdown_address:
                     # Country dropdown
                     self.driver.find_element(
@@ -5647,7 +5671,7 @@ class Bot_POS:
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 
-                #* Wait for saving process to complete
+                # * Wait for saving process to complete
                 while is_functionworking and not self.operation_thread.is_set():
                     try:
                         self.wait50.until(EC.invisibility_of_element_located(
@@ -5671,7 +5695,7 @@ class Bot_POS:
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
         return (self.splited)
-    
+
     def js_input_value(self, element, value):
         """
         ฟังก์ชันสำหรับกรอกค่าลงใน Element โดยใช้ JavaScript
@@ -7098,7 +7122,7 @@ class Bot_POS:
                     # self.printing_thread = threading.Thread(
                     #     target=self.get_pdf_src_and_print, args=(inv_number,))
                     # self.printing_thread.start()
-                    self.get_pdf_src_and_print(inv_number) 
+                    self.get_pdf_src_and_print(inv_number)
 
                     # * Update Accel file //////////////////////
                     try:
@@ -7152,7 +7176,7 @@ class Bot_POS:
                     break
                 elif self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div/div/div[1]/form/label'):
                     print(f"กลับมาหน้าเดิม : {operation_obj.autofinal}")
-                    operation_obj.autofinal = True #* ถ้าอันนี้ยัง true แปลว่าหน้าท้ายยัง loop อยู่น่าจะทำให้กลับหน้าเก่าได้
+                    operation_obj.autofinal = True  # * ถ้าอันนี้ยัง true แปลว่าหน้าท้ายยัง loop อยู่น่าจะทำให้กลับหน้าเก่าได้
                     break
 
             else:

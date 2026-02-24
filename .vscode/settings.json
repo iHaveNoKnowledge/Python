@@ -3,5 +3,6 @@
         "editor.defaultFormatter": "ms-python.autopep8"
     },
     "python.formatting.provider": "none",
-    "continue.showInlineTip": false
+    "continue.showInlineTip": false,
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }
