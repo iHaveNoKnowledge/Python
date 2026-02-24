@@ -133,6 +133,7 @@ class MyApp:
             }
         }
         self.is_bot_browser_busy = BooleanVar(value=False)
+        self.is_finish_order_triggered = BooleanVar(value=False)
         self.mimic_list_item_states = []
         self.POP_UP = PopUp(self.root)
 
@@ -152,6 +153,19 @@ class MyApp:
 
         # * 3)Create caches
         cache_dir = os.path.join(current_directory, f"""caches.json""")
+
+    def finish_order(self):
+        """กดปุ่ม Finish เพื่อ click controlKeyF2 บนเว็บ"""
+        try:
+            if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
+                self.is_finish_order_triggered.set(True)
+                self.bot.driver.find_element(
+                    By.XPATH, "//div/a[@id='controlKeyF2']").click()
+                print("Finish: Clicked controlKeyF2")
+            else:
+                print("Finish: Bot or driver not available")
+        except Exception as e:
+            print(f"Finish: Error clicking controlKeyF2: {e}")
 
     def cp_sonic_blow_handler(self):
         self.bot.cp_sonic_blow_process(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
@@ -784,9 +798,8 @@ class MyApp:
 
         # * >> Finishing up button
         self.finishing_up_btn = CTkButton(
-            self.import_file_frame, text="Finish!", command=lambda: print("Finish!"), fg_color="#77579e", hover_color="#563871",
-            text_color="#FFF", width=50, height=28, border_color="#FFF", border_width=1.5
-        )
+            self.import_file_frame, text="Finish!", command=self.finish_order, fg_color="#77579e",
+            hover_color="#563871", text_color="#FFF", width=50, height=28, border_color="#FFF", border_width=1.5)
         self.finishing_up_btn.grid(row=0, column=6, padx=(5, 5))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -4996,8 +5009,8 @@ class Bot_POS:
                 else:
                     print("no tax required, skip address check")
 
-            # * ใส่ค่าขนส่ง ================================================================================
-            # * ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
+            # / ใส่ค่าขนส่ง ================================================================================
+            # / ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 self.add_shipping_cost()
 
@@ -5039,6 +5052,7 @@ class Bot_POS:
             # return
 
             # with self.driver_lock:
+            # / หน้าท้าย ================================================================================
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
                 self.app.is_bot_browser_busy.set(False)
@@ -5240,7 +5254,7 @@ class Bot_POS:
                                 print("err: ", err)
                                 break
 
-                            # *Auto Enter final Price
+                            # / Auto Enter final Price
                             try:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
@@ -5252,6 +5266,26 @@ class Bot_POS:
 
                             except Exception as e:
                                 print("auto_final_price broken", e)
+
+                            # / Check wrimagecard value (เฉพาะเมื่อกดปุ่ม Finish เท่านั้น)
+                            if self.app.is_finish_order_triggered.get():
+                                try:
+                                    value_element = self.driver.find_element(
+                                        By.XPATH,
+                                        "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']")
+                                    value_text = value_element.text.strip()
+                                    print(f"wrimagecard value: '{value_text}'")
+                                    if value_text == "0.00":
+                                        print("Value is 0.00, clicking btnPayment")
+                                        btn_payment = self.driver.find_element(
+                                            By.XPATH,
+                                            "//div[@class='wrimagecard wrimagecard-green wrimagecard-topimage']/a[@id='btnPayment' and @ng-click='savebeforePayment()']")
+                                        self.driver.execute_script("arguments[0].click();", btn_payment)
+                                except Exception as e:
+                                    print(f"wrimagecard check failed: {e}")
+                                finally:
+                                    self.app.is_finish_order_triggered.set(False)
+
                             # *Auto price มันมีสองอันได้ไง
                             # print("Auto enter price")
                             # print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
@@ -5710,6 +5744,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -7294,8 +7329,12 @@ if __name__ == "__main__":
     # * > ทำให้กด copy, paste, cut จากภาษาอะไรก็ได้
     root.bind('<Key>', _onKeyRelease)
 
+    # * > ทำให้กด F12 เพื่อกดปุ่ม Finish
+    root.bind('<F12>', lambda event: app.finish_order())
+
     # * Create Instance
     app = MyApp(root)
+
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()

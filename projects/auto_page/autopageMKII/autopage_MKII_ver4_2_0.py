@@ -132,6 +132,7 @@ class MyApp:
             }
         }
         self.is_bot_browser_busy = BooleanVar(value=False)
+        self.is_finish_order_triggered = BooleanVar(value=False)
         self.mimic_list_item_states = []
         self.POP_UP = PopUp(self.root)
 
@@ -148,6 +149,19 @@ class MyApp:
 
         # * 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
         self.bot = Bot_POS(self.root, self)
+
+    def finish_order(self):
+        """กดปุ่ม Finish เพื่อ click controlKeyF2 บนเว็บ"""
+        try:
+            if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
+                self.is_finish_order_triggered.set(True)
+                self.bot.driver.find_element(
+                    By.XPATH, "//div/a[@id='controlKeyF2']").click()
+                print("Finish: Clicked controlKeyF2")
+            else:
+                print("Finish: Bot or driver not available")
+        except Exception as e:
+            print(f"Finish: Error clicking controlKeyF2: {e}")
 
     def cp_sonic_blow_handler(self):
         self.bot.cp_sonic_blow_process(self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
@@ -777,6 +791,13 @@ class MyApp:
             self.import_file_frame, text="Check Memory", command=self.check_browser_memory, fg_color="#4a90e2",
             text_color="white", width=100, height=28)
         self.memory_check_btn.grid(row=0, column=5, padx=(5, 0))
+
+        # * >> Finishing up button
+        self.finishing_up_btn = CTkButton(
+            self.import_file_frame, text="Finish!", command=self.finish_order, fg_color="#77579e", hover_color="#563871",
+            text_color="#FFF", width=50, height=28, border_color="#FFF", border_width=1.5
+        )
+        self.finishing_up_btn.grid(row=0, column=6, padx=(5, 5))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Current Order display component
@@ -5223,6 +5244,26 @@ class Bot_POS:
                                 
                             except Exception as e:
                                 print("auto_final_price broken", e)
+
+                            # / Check wrimagecard value (เฉพาะเมื่อกดปุ่ม Finish เท่านั้น)
+                            if self.app.is_finish_order_triggered.get():
+                                try:
+                                    value_element = self.driver.find_element(
+                                        By.XPATH,
+                                        "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']")
+                                    value_text = value_element.text.strip()
+                                    print(f"wrimagecard value: '{value_text}'")
+                                    if value_text == "0":
+                                        print("Value is 0, clicking btnPayment")
+                                        btn_payment = self.driver.find_element(
+                                            By.XPATH,
+                                            "//div[@class='wrimagecard wrimagecard-green wrimagecard-topimage']/a[@id='btnPayment' and @ng-click='savebeforePayment()']")
+                                        self.driver.execute_script("arguments[0].click();", btn_payment)
+                                except Exception as e:
+                                    print(f"wrimagecard check failed: {e}")
+                                finally:
+                                    self.app.is_finish_order_triggered.set(False)
+
                             # *Auto price มันมีสองอันได้ไง
                             # print("Auto enter price")
                             # print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
@@ -7257,6 +7298,7 @@ if __name__ == "__main__":
 
     # * Create Instance
     app = MyApp(root)
+    root.bind('<F12>', lambda event: app.finish_order())
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
