@@ -3873,18 +3873,25 @@ class Bot_POS:
         #     print("Click the cusname li result")
 
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
-        if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
+        while not self.operation_thread.is_set():
             try:
-                self.driver.find_element(
-                    By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
-                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-                self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+                if self.driver.find_element(By.XPATH, "/html/body/div[16]/div[2]").is_displayed():
+                    try:
+                        self.driver.find_element(
+                            By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
+                        self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+                        self.wait50.until(EC.visibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+                        break
+                    except:
+                        print("Skip, Alert Element is appear but can not perform actions.")
+                        break
+                else:
+                    print("Skip, Alert Element is Not appear")
+                    print("No customer name input found")
+                    break
+                break
             except:
-                print("Skip, Alert Element is appear but can not perform actions.")
-        else:
-            print("Skip, Alert Element is Not appear")
-            print("No customer name input found")
-            pass
+                continue
 
         print("search หายไปแล้ว")
         self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
@@ -4031,13 +4038,13 @@ class Bot_POS:
         for i in range(len(cus_name_list)):
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
-
+        self.cus_tax_branch_code = not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0])
         # * เอา array มาหาดูว่าจะต้องเลือกชื่อไหน เอา idx ที่ได้ไช้ระบุ locator ที่ต้อง click
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
             print("จริงทั้งคู่ไหม: ", is_branched, "และ ", self.app.tax_branch_num.get() in name)
             if cus_desire_name in name:
-                if is_branched and not self.app.tax_branch_num.get() in name:
+                if is_branched and (not self.app.tax_branch_num.get() in name) and self.cus_tax_branch_code:
                     print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
                     continue
                 print("ชื่อที่ต้องการ อยู่ใน li")
