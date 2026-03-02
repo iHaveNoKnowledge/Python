@@ -3828,27 +3828,13 @@ class Bot_POS:
         # * is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
         while not self.operation_thread.is_set():
             try:
-                # * หา li ไปตรวจสอบว่ามี len เท่าไหร่
+                # * รอให้ dropdown ul โผล่มาก่อน แทนที่จะใช้ find_element ตรงๆ
+                self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul)))
+                # * หา li ไปตรวจสอบว่ามี len เท่าไหร่ (re-fetch เพื่อหลีกเลี่ยง stale element)
                 customer_name_input_ul_from_dropdown = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                 customer_name_lis_from_dropdown = customer_name_input_ul_from_dropdown.find_elements(
                     By.CSS_SELECTOR, '.select2-results__option')
-                # print("หาจำนวน li ชื่อลูกค้าเท่ากับ:", customer_name_dropdown_lis)
 
-                # ! /deprecated??/ จำไม่ได้ว่าจะแยก มากกว่า 1 หรือน้อยกว่า 2 ไปไมลืม แต่มันทำงานได้ดีมะก่อน แต่ตอนนี้มันเกิดปัญหาค่าถ้าลูกค้ามีชื่อเดียวมันจะไม่ตรวจสอบไรทั้งนั้น //เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2
-                # if len(customer_name_lis_from_dropdown) > 1:
-                #     print("มากกว่า 1")
-                #     cus_found_names_list = [element.text for element in customer_name_lis_from_dropdown]
-                #     self.select_cus_name_from_lis(
-                #         self.app.cus_name.get(),
-                #         cus_found_names_list,
-                #         self.select_cus_name_from_lis
-                #     )
-                #     print("click แล้ว")
-                #     break
-                # else:
-                #     self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-                #     print("Click the cusname li result")
-                #     break
                 cus_found_names_list = [element.text for element in customer_name_lis_from_dropdown]
                 self.select_cus_name_from_lis(
                     self.app.cus_name.get(),
@@ -3858,8 +3844,13 @@ class Bot_POS:
                 print("click แล้ว")
                 break
 
-            except:
-                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+            except Exception as err:
+                print("ยังเลือกชื่อลูกค้าไม่ได้เลย:", err)
+                time.sleep(0.5)
+                try:
+                    self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+                except Exception:
+                    pass
                 continue
 
         # #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2 ย้ายไปไว้ใน while เพราะ customer_name_dropdown_lis มันหายได้หากไว้นอก while มันจะพัง
@@ -3889,7 +3880,7 @@ class Bot_POS:
                     print("Skip, Alert Element is Not appear")
                     print("No customer name input found")
                     break
-                
+
             except:
                 continue
 
@@ -3951,7 +3942,12 @@ class Bot_POS:
         self.customer_added_times = 0
         self.customer_name_search_count = 0
         while not self.operation_thread.is_set():
-            if self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul):
+            try:
+                self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul)))
+            except Exception:
+                time.sleep(0.5)
+                continue
+            if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul):
                 time.sleep(0.7)
                 # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
                 self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
@@ -4062,6 +4058,11 @@ class Bot_POS:
             # * ถ้ามันเจอก็จะ จบ function แต่ถ้าไม่เจอจะไปใช้ cb ต่อ
 
         self.add_new_customer(lambda: self.get_customer_name_ready(self.cus_search_input))
+
+        customer_current_input_name = self.cus_name_dropdown_elmt_loc.text
+        prog = re.search(r'[^-]-(.*)', customer_current_input_name)
+        customer_current_input_name = prog.group(1).replace(" ", "")
+        print(f"customer_current_input_name: {customer_current_input_name} and cus_desire_name: {cus_desire_name}")
 
         try:
             if cb:
@@ -6250,235 +6251,173 @@ class Bot_POS:
             return True
         return False
 
-    def tax_address_corrector(self, cus_name):
-        print("cus_name: ", cus_name)
+    def _normalize_address_for_comparison(self, address):
+        """Normalize Thai address variations and strip whitespace for fair comparison."""
+        # Normalize 'Moo' (หมู่ที่/ม. → หมู่) — avoid matching "หมู่บ้าน"
+        address = re.sub(r'(?:หมู่ที่|หมู่|ม\.)\s*(\d+)', r'หมู่\1', address)
+        # Normalize 'Soi' (ซ. → ซอย)
+        address = re.sub(r'(?:ซอย|ซ\.)\s*(\d+)', r'ซอย\1', address)
+        # Normalize 'Road' (ถ. → ถนน)
+        address = re.sub(r'(?:ถนน|ถ\.)\s*(\d+)', r'ถนน\1', address)
+        return address.replace(' ', '').replace('เลขที่', '')
 
-        # random จะเป็นการที่ user เลือกเองฉะนั้นไม่ต้องตรวจซ้ำ
-        if self.should_skip_address_correction():
-            print("Random subdistrict has been used, skipping address correction")
-            return
-
-        # match = re.search(r'C\d*(?=-)', cus_name) #! อันนี้ถ้าหากมีคนตั้งชื่อเหมือนรหัสมันจะเจอสองจุดแต่ patternจริงๆแล้วนั้นรหัสมันจะต้องขึ้นต้นก่อนเสมอฉะนั้นต้องปรับ
-        match = re.search(r'^C\d{1,}(?=-)', cus_name)  # * for customer code
-        self.cus_code = match.group()
-
-        customer_id = self.smco_req_find_customer_id(self.cus_code)
-
-        if customer_id:
-            cus_address = self.smco_req_find_cus_address(customer_id)
-        else:
-            cus_address = {
-                'address': '',
-                'subdistrict': '',
-                'district': '',
-                'provice': '',
-                'zip_code': ''
-            }
-        # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
-        if not any(cus_address.values()):
-            print("Address not matched")
-            # self.app.POP_UP.show(
-            #     "Error",
-            #     "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง",
-            #     "alert"
-            # )
-
-        cus_address_to_compare = "".join(cus_address.values())
-        # print("cus_address_to_compare: ", cus_address_to_compare)
-
-        self.current_address = cus_address_to_compare
+    def _build_desired_addresses(self):
+        """Build and clean the desired address strings from app data for comparison."""
         self.desired_address = re.sub(
             r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}""".replace('\u200b', ''))
         self.desired_address = re.sub(r'\s{2,}', ' ', self.desired_address)
-        print("self.desired_address: ", self.desired_address.replace(' ', ''))
 
         self.desired_full_address = re.sub(
             r'\n', " ", f"""{self.app.get_pure_address(self.app.address)}  {self.app.nondistortedData['แขวง/ตำบล']}
             {self.app.nondistortedData['เขต/อำเภอ.1']}  {self.app.nondistortedData['จังหวัด.1']}
             {self.app.nondistortedData['รหัสไปรษณีย์.1']} """.replace('\u200b', ''))
-        self.desired_full_address = self.desired_full_address.replace(
-            "อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ตำบล", "").replace(
-            "แขวง", "").replace("ต.", "").replace("จังหวัด", "").replace("จ.", "").replace("เลขที่", "")
+
+        for prefix in ["อำเภอ", "เขต", "อ.", "ตำบล", "แขวง", "ต.", "จังหวัด", "จ.", "เลขที่"]:
+            self.desired_full_address = self.desired_full_address.replace(prefix, "")
+
+    def _fill_address_revision_form(self):
+        """Open the SMCO customer edit page and fill in the corrected address fields."""
+        self.get_tabs()
+        if 'SMCO :: ลูกค้า' not in self.merged_dict:
+            self.open_customer_edit_page()
+
+        self.direct_to_customer_info()
+
+        address_revise_btn = self.driver.find_element(
+            By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[2]/div[1]/div/div[6]/a')
+        address_revise_btn.click()
+
+        addr_textarea_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea'
+        self.wait_element(addr_textarea_xpath)
+        address_revise_input = self.driver.find_element(By.XPATH, addr_textarea_xpath)
+
+        tel_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input'
+        country_dropdown_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[2]/div/span/span[1]/span/span[1]'
+        country_li_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]'
+        province_dropdown_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[4]/div/span/span[1]/span/span[1]'
+        dropdown_input_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input'
+        district_dropdown_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]'
+        subdistrict_dropdown_xpath = '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]'
+
+        while True:
+            try:
+                # * กรอก Address
+                address_revise_input.clear()
+                self.desired_address = self.app.get_pure_address(self.desired_address)
+                address_revise_input.send_keys(self.desired_address)
+
+                # * Telephone
+                self.driver.find_element(By.XPATH, tel_xpath).clear()
+                self.driver.find_element(By.XPATH, tel_xpath).send_keys(self.app.cus_tel.get())
+
+                # * Country → Thailand
+                self.driver.find_element(By.XPATH, country_dropdown_xpath).click()
+                time.sleep(1.55)
+                self.driver.find_element(By.XPATH, country_li_xpath).click()
+
+                # * Province
+                self.driver.find_element(By.XPATH, province_dropdown_xpath).click()
+                self.driver.find_element(By.XPATH, dropdown_input_xpath).clear()
+                self.driver.find_element(By.XPATH, dropdown_input_xpath).send_keys(
+                    self.app.cus_province.get().replace("จังหวัด", ""))
+                time.sleep(1.75)
+                self.driver.find_element(By.XPATH, dropdown_input_xpath).send_keys(Keys().ENTER)
+
+                # * District
+                self.driver.find_element(By.XPATH, district_dropdown_xpath).click()
+                district_input = self.driver.find_element(By.XPATH, dropdown_input_xpath)
+                self.select_li_from_dropdown(
+                    input_element=district_input,
+                    search_value=self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""),
+                    th_field='districtNameTh',
+                    en_field='districtNameEn',
+                    place_type='district'
+                )
+
+                # * SubDistrict (click 3 ครั้งเพื่อให้แน่ใจว่า dropdown เปิด)
+                subdistrict_btn = self.driver.find_element(By.XPATH, subdistrict_dropdown_xpath)
+                subdistrict_btn.click()
+                subdistrict_btn.click()
+                subdistrict_btn.click()
+                subdistrict_input = self.driver.find_element(By.XPATH, dropdown_input_xpath)
+                self.select_li_from_dropdown(
+                    input_element=subdistrict_input,
+                    search_value=self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""),
+                    th_field='subdistrictNameTh',
+                    en_field='subdistrictNameEn',
+                    place_type='subdistrict'
+                )
+
+                print(f"""{self.app.cus_order.get()}: Address Revise Complete""")
+                break
+            except Exception as err:
+                print(f"Address Revise Error1 : {traceback.format_exc()}")
+                print(f"Address Revise Error2 : {err}")
+                logger.info(f"""{self.app.cus_order.get()}: Address Revise Error1 : {traceback.format_exc()}""")
+                logger.info(f"""{self.app.cus_order.get()}: Address Revise Error2 : {err}""")
+                continue
+
+        # * Wait for success popup
+        self.app.is_bot_browser_busy.set(False)
+        while not self.operation_thread.is_set():
+            time.sleep(0.25)
+            try:
+                success_popup = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
+                if success_popup.is_displayed():
+                    self.app.is_bot_browser_busy.set(True)
+                    break
+            except:
+                continue
+
+        # * กลับไปหน้าการขาย
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+
+    def tax_address_corrector(self, cus_name):
+        print("cus_name: ", cus_name)
+
+        # random จะเป็นการที่ user เลือกเองฉะนั้นไม่ต้องตรวจซ้ำ
+        if self.should_skip_address_correction():
+            print("Random subdistrict used, skipping address correction")
+            return
+
+        match = re.search(r'^C\d{1,}(?=-)', cus_name)  # * for customer code
+        self.cus_code = match.group()
+
+        customer_id = self.smco_req_find_customer_id(self.cus_code)
+        if customer_id:
+            cus_address = self.smco_req_find_cus_address(customer_id)
+        else:
+            cus_address = {
+                'address': '', 'subdistrict': '', 'district': '',
+                'provice': '', 'zip_code': ''
+            }
+
+        if not any(cus_address.values()):
+            print("Address not matched")
+
+        self.current_address = "".join(cus_address.values())
+        self._build_desired_addresses()
 
         print("compare self.current_address & self.desired_full_address")
         print(self.current_address.replace(' ', ''))
         print(self.desired_full_address.replace(' ', ''))
 
-        # * Helper to normalize 'Moo' (Village No.) for comparison
-        def normalize_moo(address):
-            # Replace 'หมู่ที่', 'ม.', 'หมู่' followed by digits with 'หมู่' + digits
-            # Strictly look for digits after the Moo keyword to avoid matching "หมู่บ้าน" (Village Name)
-            return re.sub(r'(?:หมู่ที่|หมู่|ม\.)\s*(\d+)', r'หมู่\1', address)
+        current_normalized = self._normalize_address_for_comparison(self.current_address)
+        desired_normalized = self._normalize_address_for_comparison(self.desired_full_address)
 
-        def normalize_zoi(address):
-            # Replace 'ซอย', 'ซ.' followed by digits with 'ซอย' + digits
-            # Strictly look for digits after the Zoi keyword to avoid matching "ซอยบ้าน" (Village Name)
-            return re.sub(r'(?:ซอย|ซ\.)\s*(\d+)', r'ซอย\1', address)
-
-        current_addr_norm = normalize_moo(self.current_address)
-        desired_addr_norm = normalize_moo(self.desired_full_address)
-        current_addr_norm = normalize_zoi(current_addr_norm)
-        desired_addr_norm = normalize_zoi(desired_addr_norm)
-
-        if not current_addr_norm.replace(
-                ' ', '').replace(
-                'เลขที่', '') == desired_addr_norm.replace(
-                ' ', '').replace(
-                'เลขที่', ''):  # * ต้อง replaceช่องว่างตอนเทียบเพื่อจะได้หาความเหมือนแค่ตัวอักษร
-            # * เข้าหน้าข้อมูลลูกค้า------------------------------------------------------------------------------
+        if current_normalized != desired_normalized:
             logger.info(f"{self.app.cus_order.get()}: compare self.current_address & self.desired_full_address")
             logger.info(self.current_address.replace(' ', ''))
             logger.info(self.desired_full_address.replace(' ', ''))
             print("Customer Address is not correct")
 
-            self.get_tabs()
-            if not 'SMCO :: ลูกค้า' in self.merged_dict:
-                self.open_customer_edit_page()
-
-            self.direct_to_customer_info()
-
-            address_revise_btn = self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[2]/div[1]/div/div[6]/a')
-            address_revise_btn.click()
-            self.wait_element(
-                '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
-            address_revise_input_popup = self.driver.find_element(
-                By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[1]/div[2]/textarea')
-
-            is_address_revice_end = False
-            while not is_address_revice_end:
-                try:
-                    # * กรอก Address
-                    address_revise_input_popup.clear()
-                    self.desired_address = self.app.get_pure_address(self.desired_address)
-                    address_revise_input_popup.send_keys(self.desired_address)
-
-                    # * tel.
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[13]/div[4]/input').send_keys(self.app.cus_tel.get())
-
-                    ### * เป็นแบบกรอกแบบ DropDown ##########################################################################################################
-                    # * dropdown Country
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[2]/div/span/span[1]/span/span[1]').click()
-                    time.sleep(1.55)
-                    # * select thailand in dropdown
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[2]/ul/li[2]').click()
-
-                    # * province dropdown
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[4]/div/span/span[1]/span/span[1]').click()
-
-                    # * province input
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').clear()
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(
-                        self.app.cus_province.get().replace("จังหวัด", ""))
-                    time.sleep(1.75)
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input').send_keys(Keys().ENTER)
-
-                    # * District dropdown
-                    district_dropdown_btn = self.driver.find_element(
-                        By.XPATH,
-                        '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[6]/div/span/span[1]/span/span[1]')
-                    district_dropdown_btn.click()
-                    district_input = self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input')
-
-                    # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_li_from_dropdown(
-                        input_element=district_input,
-                        search_value=self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""),
-                        th_field='districtNameTh',
-                        en_field='districtNameEn',
-                        place_type='district'
-                    )
-
-                    # * SubDistrict dropdown
-                    subdistrict_dropdown_btn = self.driver.find_element(
-                        By.XPATH,
-                        '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[2]/div/form/div/div[2]/div[2]/div[8]/div/span/span[1]/span/span[1]')
-                    # คลิก 3 ครั้งเพื่อให้แน่ใจว่า dropdown เปิด
-                    subdistrict_dropdown_btn.click()
-                    subdistrict_dropdown_btn.click()
-                    subdistrict_dropdown_btn.click()
-                    subdistrict_input = self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/span/span/span[1]/input')
-
-                    # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_li_from_dropdown(
-                        input_element=subdistrict_input,
-                        search_value=self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""),
-                        th_field='subdistrictNameTh',
-                        en_field='subdistrictNameEn',
-                        place_type='subdistrict'
-                    )
-
-                    print(f"""{self.app.cus_order.get()}: Address Revise Complete""")
-                    is_address_revice_end = True
-                    break
-                except Exception as err:
-                    print(f"Address Revise Error1 : {traceback.format_exc()}")
-                    print(f"Address Revise Error2 : {err}")
-                    logger.info(f"""{self.app.cus_order.get()}: Address Revise Error1 : {traceback.format_exc()}""")
-                    logger.info(f"""{self.app.cus_order.get()}: Address Revise Error2 : {err}""")
-                    continue
-
-            self.app.is_bot_browser_busy.set(False)
-            while not self.operation_thread.is_set():
-                time.sleep(0.25)
-                try:
-                    'SMCO :: ลูกค้า' in self.merged_dict
-                    success_popup_element = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
-                    if success_popup_element.is_displayed():
-                        self.app.is_bot_browser_busy.set(True)
-                        break
-                    continue
-                except:
-                    continue
-
-            # #*  กด save เพื่อ บันทึกการเปลี่ยนที่อยู่ แล้วจะทำให้ pop-up แก้ที่อยู่หายไป
-            # revised_submit = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[4]/div[3]/div/div/div[1]/div/button[2]')
-            # revised_submit.click()
-
-            # ? กดปิดหน้าลูกค้า ใช้ดีไหม ปิดไว้ก่อน
-            # while not self.operation_thread.is_set():
-            #     try:
-            #         cancel_btn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div/div[1]/div[1]/div[1]')
-            #         cancel_btn.click()
-            #         break
-            #     except:
-            #         continue
-
-            # * กลับไปหน้าการขาย
-            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-
-            # ? /lasted update/ปัจจุบันหากผลลัพเปนอันเดิมมันจะไม่ resetละทำให้code ส่วนนี้อาจจะไร้ประโยชน์  ปิดไว้ก่อย/todo/เพื่อ reset ค่า address ให้เป็น lasted update
-            # self.driver.find_element(By.XPATH, self.cus_name_dropdown_elmt_loc).click() #* กดล้างค่า เพื่อให้มันล้าง state ที่มาจากการ fetch ของ smco
-            # self.driver.find_element(By.XPATH, '//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button').click() #* กด dropdown เพื่อดู list ประเภทของการ query data ลูกค้า
-            # self.wait50.until(EC.element_to_be_clickable((By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='E'")]'''))) #* รอ dropdown ให้มันแสดงผลออกมา
-            # self.driver.find_element(By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='C'")]''').click() #* กดเลือกประเภทการ query data ลูกค้า, ให้เป็น query จาก customer code
-            # self.enter_cus_name(self.cus_code) #* ใส่ customer code ลง input ช่องค้นหา
-
-            # while not self.operation_thread.is_set(): #* รอกด li อันที่1 จาก dropdown ให้มันแสดงผลออกมา
-            #     time.sleep(0.25)
-            #     try:
-            #         if self.cus_code in self.driver.find_element(By.XPATH, self.app.cusNameLi1).text:
-            #             self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-            #             break
-            #         continue
-            #     except:
-            #         continue
-
+            self._fill_address_revision_form()
         else:
             print("Customer address has already corrected")
 
+
         print("tax_address_corrector done!")
+
 
     def edit_cus_info(self, incoming_cus_code: int = None):
         while not self.operation_thread.is_set():
