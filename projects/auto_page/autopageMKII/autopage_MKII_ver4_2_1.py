@@ -5248,15 +5248,15 @@ class Bot_POS:
                                 print("err: ", err)
                                 break
 
-                            # *Auto Enter final Price
+                            # / Auto Enter final Price
                             try:
                                 print("Auto enter price")
                                 print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
-                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
-                                               ) - self.app.cus_seller_voucher.get()
+                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                                 final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
                                 final_price_element.clear()
-                                self.js_input_value(final_price_element, final_price)
+                                # self.js_input_value(final_price_element, final_price)
+                                final_price_element.send_keys(final_price)
 
                             except Exception as e:
                                 print("auto_final_price broken", e)
@@ -5727,11 +5727,29 @@ class Bot_POS:
         พร้อมสั่ง Trigger Event เพื่อให้ Framework ของหน้าเว็บรับรู้
         """
         script = """
-            arguments[0].value = arguments[1];
-            arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
-            arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+            var el = arguments[0];
+            var val = arguments[1];
+            
+            el.focus();
+            el.dispatchEvent(new Event('focus', { bubbles: true }));
+            
+            
+           
+            el.value = val;
+            
+            
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            
+            
         """
         self.driver.execute_script(script, element, value)
+        
+        
+# el.dispatchEvent(new Event('blur', { bubbles: true })); ถ้าจะใช้ให้ใส่ล่างสุดนะ
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
