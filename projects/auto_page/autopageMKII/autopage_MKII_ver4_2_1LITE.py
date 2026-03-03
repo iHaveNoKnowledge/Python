@@ -5192,7 +5192,9 @@ class Bot_POS:
 
                                 # / เลือกประเภทชำระเงิน
                                 time.sleep(0.75)
+                                final_price = 0
                                 if self.app.marketplace_target.get() == 'SHOPEE':
+                                    final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                                     try:
                                         channel = self.channel_options[f'{self.operation_states['purchased_channel']}']
                                         print("channel: ", channel)
@@ -5206,6 +5208,7 @@ class Bot_POS:
                                             By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
                                         self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
                                 elif self.app.marketplace_target.get() == 'LAZADA':
+                                    final_price = (self.app.sum_price) - self.app.cus_seller_voucher.get()
                                     # / เลือก lazada
                                     payment_type_btn_element = self.driver.find_element(
                                         By.XPATH, "//a[contains(., 'LAZ')]")
@@ -5265,8 +5268,7 @@ class Bot_POS:
                             # / Auto Enter final Price
                             try:
                                 print("Auto enter price")
-                                print((self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get())
-                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                print("final_price: ", final_price)
                                 final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
                                 final_price_element.clear()
                                 # self.js_input_value(final_price_element, final_price)
