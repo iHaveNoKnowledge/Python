@@ -39,7 +39,7 @@ class OrderDisplayManager:
         # Track current row position
         self.current_data_row = 1  # Start after header (row 0)
 
-    def create_header(self, column_headers):
+    def create_header(self, column_headers: list):
         """
         สร้าง header row สำหรับตาราง
         Refactored from row_header_maker
@@ -47,12 +47,12 @@ class OrderDisplayManager:
         Args:
             column_headers: List of header names
         """
-        # Clear existing header if any
+        #* Clear existing header if any
         for widget in self.header_widgets:
             widget.destroy()
         self.header_widgets.clear()
 
-        # Create header widgets
+        #* Create header widgets
         for i, header_name in enumerate(column_headers):
             header_widget = CTkEntry(
                 self.parent_frame,
