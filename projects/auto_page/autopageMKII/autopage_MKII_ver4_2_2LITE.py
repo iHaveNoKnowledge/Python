@@ -4221,65 +4221,22 @@ class Bot_POS:
                 self.js_input_value(self.sku_input_element , 'SV0-000101')
                 self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
-
+                response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm', max_attempts=15)
+                if response_data:
+                    time.sleep(2)
+                    self.smco_set_overcharge_product('SV0-000101', shipping_cost)
+                    print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+                    
                 # self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuAddBtn = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                 # self.skuAddBtn.send_keys("\ue007")  # กด Enter
-                print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+                
 
                 #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
                 # logger.info(f"Order: {self.app.order} 1/2Finished!!")
                 # return
-                time.sleep(2)
-                self.smco_set_overcharge_product('SV0-000101', shipping_cost)
+                
 
-                # item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-                # for idx, item_element in enumerate(item_elements):
-                #     item_sku_name_element = item_element.find_element(By.CSS_SELECTOR, "u.ng-binding")
-                #     item_sku_name = self.driver.execute_script("return arguments[0].textContent;", item_sku_name_element)
-                #     if item_sku_name == 'SV0-000101':
-                #         # ทำไมต้องใส่วงเล็บ คลุม BY.XPATH เพราะ ถ้าไม่ใส่ ฟังชัน visibility จะมอง xpath เป็น argument ที่สอง ของ method visibility
-                #         self.definePrice_btn_element = self.wait50.until(EC.visibility_of_element_located(
-                #             (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')))
-                #         # self.definePrice_btn_element = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[1]/div/div[2]/div[1]/div[1]/div/a[1]')
-                # self.definePrice_btn_element.click()
-                # time.sleep(1)
-                # # ค่าขนส่งโดนข้า230208FX99FUGGมหลังจากตรงนี้
-                # print("Successfully clicked on SKU ELEMENT 1")
-
-                # self.changePriceInput = self.driver.find_element(
-                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[1]/input')
-                # self.changePriceInput.clear()
-                # # self.changePriceInput.send_keys(69)
-                # # self.changePriceInput.send_keys(int(shipping_cost))
-                # self.driver.execute_script(
-                #     "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                #     self.changePriceInput, shipping_cost)
-                # self.driver.find_element(
-                #     By().XPATH,
-                #     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').clear()
-                # self.driver.find_element(
-                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input').send_keys(self.app.user_id.get())
-
-                # self.driver.find_element(
-                #     By().XPATH,
-                #     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').clear()
-                # self.driver.find_element(
-                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input').send_keys(self.app.user_pw.get())
-
-                # self.driver.find_element(
-                #     By().XPATH,
-                #     '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').clear()
-                # self.driver.find_element(
-                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea').send_keys("Online")
-
-                # self.driver.find_element(
-                #     By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]').click()
-                # # try:
-                # #     print("Waiting for element to disappear")
-                # #     self.wait50(EC.invisibility_of_element_located((By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
-                # # except:
-                # #     print("No need to wait")
             except Exception as err:
                 print("Shipment cost skipped")
                 print(err)
@@ -4687,14 +4644,14 @@ class Bot_POS:
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
                     self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
                     self.app.POP_UP.show(
-                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
+                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' ", "alert")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
                     self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
                     self.app.POP_UP.show(
-                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' จะทำต่อจริงอ่อ?", "alert")
+                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' ", "alert")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -6242,7 +6199,7 @@ class Bot_POS:
             except:
                 continue
 
-    def wait_element(self, xpath, text=None):
+    def wait_element(self, xpath:str, text:str=None):
         while not self.operation_thread.is_set():
             try:
                 element = self.driver.find_element(By.XPATH, xpath)
