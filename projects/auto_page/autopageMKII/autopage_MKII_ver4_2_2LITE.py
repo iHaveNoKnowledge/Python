@@ -5129,8 +5129,7 @@ class Bot_POS:
                                 # /กรอก remark
                                 time.sleep(0.75)
                                 remark_text = self.app.cus_order.get()
-                                textarea_element = self.driver.find_element(
-                                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+                                textarea_element = self.driver.find_element(By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
 
                                 #! classic way
                                 # self.driver.find_element(
@@ -5242,7 +5241,8 @@ class Bot_POS:
                                         btn_payment = self.driver.find_element(
                                             By.XPATH,
                                             "//div[@class='wrimagecard wrimagecard-green wrimagecard-topimage']/a[@id='btnPayment' and @ng-click='savebeforePayment()']")
-                                        self.driver.execute_script("arguments[0].click();", btn_payment)
+                                        # self.driver.execute_script("arguments[0].click();", btn_payment) # ! ใช้ click ธรรมดาแทนเพราะบางทีถ้าใช้ js click มันจะไม่ trigger event ที่จำเป็นบางอย่างทำให้เกิด error ในขั้นตอนต่อไป
+                                        btn_payment.click()
                                 except Exception as e:
                                     print(f"wrimagecard check failed: {e}")
                                 finally:
