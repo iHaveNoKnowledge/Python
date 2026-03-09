@@ -392,14 +392,6 @@ class MyApp:
         )
         self.invoice_details_frame.pack(side='top', anchor=W, padx=5, pady=(5, 0))
 
-        #! ปรับ ui ใหม่ ทำให้ตรงนี้ไม่ได้ใช้
-        # > Frame5 Products Lists
-        # self.products_list_frame = CTkFrame(
-        #     self.main_frame,
-        #     fg_color="#445"
-        # )
-        # self.products_list_frame.pack(side='top', padx=5, pady=5, fill=X)
-
         # > Frame6 Marketplace(MP) Products Lists
         self.mp_products_list_frame = CTkFrame(
             self.main_frame,
@@ -2339,8 +2331,7 @@ class DataSourceSelector:
             fg_color=f'{self.app.bg_by_market_place[str(result)]}',
             width=1000 if self.app.marketplace_target.get() == "" else 0
         )
-        # self.import_file_frame.config(
-        #     fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
+
 
         self.app.get_data_frame()
         print("Table Location:", self.app.table_location)
