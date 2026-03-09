@@ -992,10 +992,6 @@ class MyApp:
         matches = [
             word for col in df.columns for word in search_words if word.lower() in col.lower()]
 
-        # # เอา Dataframe มา groupby
-        # if matches[0].lower() == 'lazada':
-        #     self.group_by_order(file_input)
-
         if all(item == matches[0] for item in matches):
             return matches[0].upper()
         else:
@@ -1415,8 +1411,6 @@ class MyApp:
 
     # * widget รายการสินค้า ///////////////////////////////////////////////
     def show_products(self, products_list):
-        # for i in self.tree.get_children():
-        #     self.tree.delete(i)
         self.total_price = 0
         for product in products_list:
             product_name = product["เลขอ้างอิง SKU (SKU Reference No.)"]
@@ -1425,8 +1419,7 @@ class MyApp:
             price_plusrebate = price+shopee_rebate
             QTY = product['จำนวน']
             self.total_price += price_plusrebate
-            # self.tree.insert("", "end", values=(
-            #     product_name, self.f(price_plusrebate), QTY))
+
 
         # * แสดง summary (ค่าขนส่ง, voucher, ราคารวม) ใต้ตาราง order แทนที่จะแสดงใน Treeview
         self.order_display_manager.create_summary_section(
@@ -3365,8 +3358,6 @@ class Bot_POS:
                         print("smco_set_overcharge_product_v2_Error occurred: ", err)
                         pass
 
-        # Todo
-        #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
         pass
 
     def smco_set_discount_product(
@@ -3390,11 +3381,6 @@ class Bot_POS:
             print("before: round:", idx+1, "dc_amount: ", dc_amount)
             if len(dc_amounts_list) > 1:
                 dc_amount = dc_amounts_list[idx]
-                # try:
-                # * เนื่องจาก พวกสินค้ามีหลายตัวใน 1 รายการ แต่มันอาจจะลดแค่บางตัว ตัวที่ไม่ลดฉันจะให้ใส่ตัวที่แปลงค่าเป็น int ไม่ได้ เช่น "-" หรือ "x" มาแทน เช่น (sp2-1703 sp2-1704 ลด 100 บาท) ///แต่ (sp2-1705 sp2-1706 ไม่ลด) เราก็จะใส่ qty เป็น ["1","1","-","-"] แบบนี้
-                # qty = int(qtys[idx])
-                # except:
-                #     break
             print("after: round:", idx+1, "dc_amount: ", dc_amount,
                   "qty: ", qty, "dc_amount * int(qty): ", dc_amount * qty)
             if dc_amount > 0:
@@ -5674,17 +5660,14 @@ class Bot_POS:
         is_already_in_edit_page = False
         # * รอดูว่าelement โผล่ยัง
         while not self.operation_thread.is_set():
-            print("ก่อนเข้า try")
             time.sleep(0.25)
-            # self.driver.switch_to.window(self.merged_dict['SMCO :: ลูกค้า'])
             try:
                 'SMCO :: ลูกค้า' in self.merged_dict
-                print("เข้ามาใน try")
                 # * มมันถูกซ่อนไว้เฉยๆ webDriverสามารถเข้าถึงได้ แต่ว่ามันจะมี attribute display = false
                 self.driver.find_element(
                     By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button')
                 print(
-                    "ปุ่มหน้า SMCO :: ลูกค้า ไม่โดนดักได้ไง: ", self.driver.find_element(
+                    "ปุ่มหน้า SMCO :: ลูกค้า ไม่โดนดัก: ", self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button'),
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div[1]/button').is_displayed())
@@ -5707,7 +5690,7 @@ class Bot_POS:
                 continue
 
         if is_already_in_info_edit_page and is_correct_cus_code:
-            print("อยู่หน้าในอยู๋ละ")
+            print("อยู่หน้าในอยู๋แล้ว")
             return
 
         # * ปุ่มลูกค้า
@@ -5866,14 +5849,8 @@ class Bot_POS:
         # ตรวจสอบว่าได้ข้อมูลที่ถูกต้องมาหรือไม่
         if not any(cus_address.values()):
             print("Address not matched")
-            # self.app.POP_UP.show(
-            #     "Error",
-            #     "ไม่สามารถดึงข้อมูลที่อยู่ลูกค้าได้ กรุณาลองใหม่อีกครั้ง",
-            #     "alert"
-            # )
 
         cus_address_to_compare = "".join(cus_address.values())
-
 
         self.current_address = cus_address_to_compare
         self.desired_address = re.sub(
