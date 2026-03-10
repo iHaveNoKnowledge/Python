@@ -3808,7 +3808,7 @@ class Bot_POS:
                 break
 
         # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
-        self.ensure_cus_name_li_ready()  # *เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
+        self.ensure_li_shown_cus_name()  # *เนื่องจาก li แสดง สถานะและชื่อลูกค้า ซึ่งต้อง handle ให้แน่ใจว่าเป็นชื่อลูกค้าจริงๆก่อน
 
         # * is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
         while not self.operation_thread.is_set():
@@ -3869,7 +3869,7 @@ class Bot_POS:
             except:
                 continue
 
-        print("search หายไปแล้ว")
+        print("search หายไปแล้ว: get_customer_name_ready ends")
         self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
 
     def enter_cus_name(self, cus_search):
@@ -3919,13 +3919,14 @@ class Bot_POS:
         except Exception as err:
             print("No duplicate!", err)
 
-    def ensure_cus_name_li_ready(self):
+    def ensure_li_shown_cus_name(self):
         """
         li ที่จะแสดงใน ul นั้นมันไม่ได้มีแค่ชื่อลูกค้า แต่มันมี สถานะเช่น "กำลังหา" หรือ "หาไม่เจอ" ซึ่งทำให้กดเลือกชื่อลูกค้าจาก li ไม่ได้ทันที จึงต้อง handle ส่วนนี้โดยทำให้ค่าที่โผล่ใน li นั้นเป็น ชื่อลูกค้าแล้วจริงๆแล้วไปยังขั้นตอนต่อไป (functionนี้ยังไม่มีการเลือกliนะ)
         มันเปนการกรอกชื่อและดูผลลัพของ li ต่างๆว่า แสดงผลอย่างไร มันจะมีกรณีแสดง li เดียวแล่้วถูก,  แสดง li เดียวแต่เปนการบอกว่าไม่มีชื่อ, แสดง li จำนวนมาก แต่มีตัวถูก, แสดง li จำนวนมาก แต่ไม่มีตัวถูก
         """
         self.customer_added_times = 0
         self.customer_name_search_count = 0
+        print(f"""order: {self.app.cus_order.get()}: ensure_cus_name_li_ready starts""")
         while not self.operation_thread.is_set():
             try:
                 self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul)))
@@ -3980,11 +3981,13 @@ class Bot_POS:
                     self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                     break
             print("addcustomer and select While end!")
+            print(f"""order: {self.app.cus_order.get()}: ensure_cus_name_li_ready ends""")
             break
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
         # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
+        print(f"""order: {self.app.cus_order.get()} : select_cus_name_from_lis starts """)
         print("incoming cus_desire_name: ", cus_desire_name)
         pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'

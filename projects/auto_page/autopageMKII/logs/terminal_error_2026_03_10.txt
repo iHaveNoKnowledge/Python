@@ -1,0 +1,194 @@
+ขอใบกำกับSHOPEE ใช้ T:
+กรอกชื่อเสร็จ
+มันทำไม Searching...
+order: 260310R9K19Q2Y: ensure_li_shown_cus_name starts
+text element not display Searching...
+Found a customer name: C210405106-บริษัท บีพี คอนเนค จำกัด (สำนักงานใหญ่)
+order: 260310R9K19Q2Y : select_cus_name_from_lis starts 
+incoming cus_desire_name:  บริษัท บีพี คอนเนค จำกัด
+[select_cus_name_from_lis]cus_desire_name: บีพีคอนเนค /// current_cus_name: Please select
+if  บีพีคอนเนค  In  บริษัทบีพีคอนเนคจำกัด(สำนักงานใหญ่)
+จริงทั้งคู่ไหม:  True และ  False
+เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม
+Tax_needed
+SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ
+2026-03-10 17:34:18.745 | INFO     | __main__:addCustomer:5468 - 260310R9K19Q2Y: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ
+260310R9K19Q2Y: there is no any 'Close' button in SMCO :: เปิดการขาย1
+opening customer form initializing
+No create customer form, click 'create customer' button
+'create customer' button clicked
+customer_form_dialog_element: True
+No create customer form, click 'create customer' button
+customer_form_dialog_element: True
+customer_class_input: True
+After_Clean_dup:  หมู่ที 59 เวสต์เกต เลขที่ 59/63 หมู่ที่ 2
+get_pure_address result:  หมู่ที 59 เวสต์เกต เลขที่ 59/63 หมู่ที่ 2
+dropdown_handler starts
+Cleared performance logs
+Typed 'นนทบุรี' to trigger API
+Found request ID: 6400.5450
+Captured 1 request ID(s)
+Got response for request ID: 6400.5450
+Got 1 items from API
+Matched: นนทบุรี (Nonthaburi)
+Selected 'นนทบุรี' successfully
+Cleared performance logs
+Cleared performance logs
+Typed 'บางบัวทอง' to trigger API
+Found request ID: 6400.5452
+Captured 1 request ID(s)
+Got response for request ID: 6400.5452
+Got 1 items from API
+Matched: บางบัวทอง (Bang Bua Thong)
+Selected 'บางบัวทอง' successfully
+Cleared performance logs
+Cleared performance logs
+Typed 'บางรักพัฒนา' to trigger API
+Found request ID: 6400.5455
+Captured 1 request ID(s)
+Got response for request ID: 6400.5455
+Got 1 items from API
+Matched: บางรักพัฒนา (Bang Rak Phatthana)
+Selected 'บางรักพัฒนา' successfully
+Cleared performance logs
+customer_class_selector() initializing: is_functionworking True
+finding customer class dropdown initializing
+start finding customer class dropdown
+customer class handler while start
+dropdown clicked Please select
+customer class handler while start
+dropdown target has been already displaying
+let's click the target li
+click choice li
+choice_found:  CM1-Domestic Customer
+the corrected choice is found
+Click the choice
+li name selection complete
+add tax Customer end
+Check Duplicated customer!!
+Not Duplicate
+2026-03-10 17:34:29.377 | INFO     | __main__:duplicated_cus_name_resolver:6413 - 260310R9K19Q2Y: After adding cusname, the cusname is Not Duplicated
+กรอกชื่อเสร็จ
+มันทำไม Searching...
+order: 260310R9K19Q2Y: ensure_li_shown_cus_name starts
+text element not display Searching...
+Found a customer name: C210405106-บริษัท บีพี คอนเนค จำกัด (สำนักงานใหญ่)
+order: 260310R9K19Q2Y : select_cus_name_from_lis starts 
+incoming cus_desire_name:  บริษัท บีพี คอนเนค จำกัด
+[select_cus_name_from_lis]cus_desire_name: บีพีคอนเนค /// current_cus_name: Please select
+if  บีพีคอนเนค  In  บริษัทบีพีคอนเนคจำกัด(สำนักงานใหญ่)
+จริงทั้งคู่ไหม:  True และ  False
+เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม
+if  บีพีคอนเนค  In  บริษัทบีพีคอนเนคจำกัด(สาขา00001)
+จริงทั้งคู่ไหม:  True และ  True
+ชื่อที่ต้องการ อยู่ใน li
+เลือกชื่อลูกค้า C2603100008-บริษัท บีพี คอนเนค จำกัด (สาขา00001)
+click แล้ว
+Skip, Alert Element is Not appear
+No customer name input found
+search หายไปแล้ว
+ยังเลือกชื่อลูกค้าไม่ได้เลย: 'str' object has no attribute 'text'
+order: 260310R9K19Q2Y : select_cus_name_from_lis starts 
+incoming cus_desire_name:  บริษัท บีพี คอนเนค จำกัด
+[select_cus_name_from_lis]cus_desire_name: บีพีคอนเนค /// current_cus_name: ×
+C2603100008-บริษัท บีพี คอนเนค จำกัด (สาขา00001)
+ยังเลือกชื่อลูกค้าไม่ได้เลย: 'NoneType' object has no attribute 'group'
+ยังเลือกชื่อลูกค้าไม่ได้เลย: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+        0x7ff6591daa55
+        0x7ff658f38630
+        0x7ff658ccd75d
+        0x7ff658d2862e
+        0x7ff658d2893c
+        0x7ff658d78d87
+        0x7ff658d7591c
+        0x7ff658d19098
+        0x7ff658d19f83
+        0x7ff659207810
+        0x7ff659201afd
+        0x7ff659222c1a
+        0x7ff658f53345
+        0x7ff658f5b81c
+        0x7ff658f41924
+        0x7ff658f41ad6
+        0x7ff658f27e47
+        0x7fffee4de8d7
+        0x7fffeed2c40c
+
+ยังเลือกชื่อลูกค้าไม่ได้เลย: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=145.0.7632.117); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#stale-element-reference-exception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+        0x7ff6591daa55
+        0x7ff658f38630
+        0x7ff658ccd75d
+        0x7ff658cd56c1
+        0x7ff658cd87e4
+        0x7ff658cd88af
+        0x7ff658d2220c
+        0x7ff658d519da
+        0x7ff658d1aca6
+        0x7ff658d7591c
+        0x7ff658d19098
+        0x7ff658d19f83
+        0x7ff659207810
+        0x7ff659201afd
+        0x7ff659222c1a
+        0x7ff658f53345
+        0x7ff658f5b81c
+        0x7ff658f41924
+        0x7ff658f41ad6
+        0x7ff658f27e47
+        0x7fffee4de8d7
+        0x7fffeed2c40c
+
+self.operation_thread.set()2182: 
+2026-03-10 17:35:29.248 | INFO     | __main__:stop_operation:2326 - Order: 260310R9K19Q2Y stop operation
+ยังเลือกชื่อลูกค้าไม่ได้เลย: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+        0x7ff6591daa55
+        0x7ff658f38630
+        0x7ff658ccd75d
+        0x7ff658d2862e
+        0x7ff658d2893c
+        0x7ff658d78d87
+        0x7ff658d7591c
+        0x7ff658d19098
+        0x7ff658d19f83
+        0x7ff659207810
+        0x7ff659201afd
+        0x7ff659222c1a
+        0x7ff658f53345
+        0x7ff658f5b81c
+        0x7ff658f41924
+        0x7ff658f41ad6
+        0x7ff658f27e47
+        0x7fffee4de8d7
+        0x7fffeed2c40c
+
+search หายไปแล้ว
+operation_task_thread, An error occirred: Message: 
+
+Traceback (most recent call last):
+  File "c:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\autopage_MKII_ver4_2_2LITE.py", line 3632, in operation_task_thread
+    self.operation_start()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "c:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\autopage_MKII_ver4_2_2LITE.py", line 4944, in operation_start
+    self.get_customer_name_ready(self.cus_search_input)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\autopage_MKII_ver4_2_2LITE.py", line 3873, in get_customer_name_ready
+    self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Satawad_Ta\AppData\Local\Programs\Python\Python314\Lib\site-packages\selenium\webdriver\support\wait.py", line 105, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message:
+
+
+2026-03-10 17:37:04.456 | INFO     | __main__:operation_task_thread:3687 - Order: 260310R9K19Q2Y operation_task_thread_outer_Exception_Error!! Message: 
+
+check_threads: Threads dead. Joining...
+check_threads: Joined.
+check_threads: Updating GUI to Done
+Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)
