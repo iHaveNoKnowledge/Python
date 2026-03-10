@@ -944,7 +944,8 @@ class MyApp:
         # * Initialize OrderDisplayManager
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
 
-        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด', 'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
+        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
+                                     'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
 
         # * > demonic cp segment
@@ -3429,31 +3430,16 @@ class Bot_POS:
                             # / ใส่ พนักงาน
                             user_id_input = self.driver.find_element(
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
-                            # self.driver.execute_script("""
-                            #     arguments[0].value = arguments[1];
-                            #     arguments[0].dispatchEvent(new Event('input'));
-                            #     arguments[0].dispatchEvent(new Event('change'));
-                            # """, user_id_input, self.app.user_id.get())
                             self.js_input_value(user_id_input, self.app.user_id.get())
 
                             # / ใส่ รหัสพนักงาน
                             user_pw_input = self.driver.find_element(
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
-                            # self.driver.execute_script("""
-                            #     arguments[0].value = arguments[1];
-                            #     arguments[0].dispatchEvent(new Event('input'));
-                            #     arguments[0].dispatchEvent(new Event('change'));
-                            # """, user_pw_input, self.app.user_pw.get())
                             self.js_input_value(user_pw_input, self.app.user_pw.get())
 
                             # / ใส่ หมายเหตุ
                             note_textarea = self.driver.find_element(
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
-                            # self.driver.execute_script("""
-                            #     arguments[0].value = arguments[1];
-                            #     arguments[0].dispatchEvent(new Event('input'));
-                            #     arguments[0].dispatchEvent(new Event('change'));
-                            #     """, note_textarea, "Online")
                             self.js_input_value(note_textarea, "Online")
 
                             # / กด บันทึก button สีเขียว
@@ -4218,7 +4204,7 @@ class Bot_POS:
                 self.sku_input_element = self.driver.find_element(
                     By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
                 # skuInput = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                self.js_input_value(self.sku_input_element , 'SV0-000101')
+                self.js_input_value(self.sku_input_element, 'SV0-000101')
                 self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
                 response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm', max_attempts=15)
@@ -4226,16 +4212,14 @@ class Bot_POS:
                     time.sleep(2)
                     self.smco_set_overcharge_product('SV0-000101', shipping_cost)
                     print("กด Enter ที่ช่อง SKU Input สำเร็จ")
-                    
+
                 # self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuAddBtn = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
                 # self.skuAddBtn.send_keys("\ue007")  # กด Enter
-                
 
                 #! WIP ทดสอบ 1/2 หยุดเพื่อให้จบ if ก่อน แล้ว2/2 จะเป็นชั้นที่จบ scope จริงๆ รู้สึก return ตรนี้ใช้แล้วจะจบเลย ไม่ได้จบแค่ if งั้นเหรอ
                 # logger.info(f"Order: {self.app.order} 1/2Finished!!")
                 # return
-                
 
             except Exception as err:
                 print("Shipment cost skipped")
@@ -5129,7 +5113,8 @@ class Bot_POS:
                                 # /กรอก remark
                                 time.sleep(0.75)
                                 remark_text = self.app.cus_order.get()
-                                textarea_element = self.driver.find_element(By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+                                textarea_element = self.driver.find_element(
+                                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
 
                                 #! classic way
                                 # self.driver.find_element(
@@ -5141,11 +5126,12 @@ class Bot_POS:
                                 # / Final way ใช้ function ที่เขียนแยกไว้
                                 self.js_input_value(textarea_element, remark_text)
 
-                                # / เลือกประเภทชำระเงิน
+                                # / เลือกประเภทชำระเงิน และ กำหนด final price (โดยดูตาม marketplace ว่าเป็น shopee หรือ lazada เพราะค่าที่ต้องใส่จะต่างกัน)
                                 time.sleep(0.75)
                                 final_price = 0
                                 if self.app.marketplace_target.get() == 'SHOPEE':
-                                    final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                                    final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
+                                                   ) - self.app.cus_seller_voucher.get()
                                     try:
                                         channel = self.channel_options[f'{self.operation_states['purchased_channel']}']
                                         print("channel: ", channel)
@@ -5181,13 +5167,12 @@ class Bot_POS:
                                     print("Cannot fill PO No:", e)
 
                                 # Todo migrate this section to 3.2.1 : update 3.1.5 auto toggle the sn toggle to "false" because default was set to "true"
-                                # / ผมใช้เอง
-                                if self.app.user_id.get() == "62078":
+                                # / ผมใช้เอง หรือ กรณีใช้ปุ่ม Finish
+                                if self.app.user_id.get() == "62078" or self.app.is_finish_order_triggered.get():
                                     cn_flag_element = self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag')
                                     self.driver.execute_script("""arguments[0].click();""", cn_flag_element)
 
                                 try:
-                                    # จู่ๆ brows()btn มันก็ทำงานเลยต้องคลิกเพื่อปิด
                                     self.driver.find_element(
                                         By.XPATH, '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]').click()
                                 except:
@@ -5221,9 +5206,9 @@ class Bot_POS:
                                 print("Auto enter price")
                                 print("final_price: ", final_price)
                                 final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
-                                final_price_element.clear()
-                                # self.js_input_value(final_price_element, final_price)
-                                final_price_element.send_keys(final_price)
+                                # final_price_element.clear()
+                                self.js_input_value(final_price_element, final_price)
+                                # final_price_element.send_keys(final_price)
 
                             except Exception as e:
                                 print("auto_final_price broken", e)
@@ -5242,7 +5227,7 @@ class Bot_POS:
                                             By.XPATH,
                                             "//div[@class='wrimagecard wrimagecard-green wrimagecard-topimage']/a[@id='btnPayment' and @ng-click='savebeforePayment()']")
                                         # self.driver.execute_script("arguments[0].click();", btn_payment) # ! ใช้ click ธรรมดาแทนเพราะบางทีถ้าใช้ js click มันจะไม่ trigger event ที่จำเป็นบางอย่างทำให้เกิด error ในขั้นตอนต่อไป
-                                        btn_payment.click()
+                                        btn_payment.click()  # * ตรงนี้จะ trigger event blur ที่จะทำให้ระบบมันไปคำนวณราคาต่อและถ้าใช้ js click มันจะไม่ trigger event blur ทำให้ราคามันไม่ update และเกิด error ในขั้นตอนต่อไปเพราะราคามันยังเป็นราคาเก่าอยู่
                                 except Exception as e:
                                     print(f"wrimagecard check failed: {e}")
                                 finally:
@@ -5705,7 +5690,6 @@ class Bot_POS:
             el.dispatchEvent(new Event('focus', { bubbles: true }));
             
             
-           
             el.value = val;
             
             
@@ -5718,13 +5702,12 @@ class Bot_POS:
             
         """
         self.driver.execute_script(script, element, value)
-        
-        
+
+
 # el.dispatchEvent(new Event('blur', { bubbles: true })); ถ้าจะใช้ให้ใส่ล่างสุดนะ
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -6199,7 +6182,7 @@ class Bot_POS:
             except:
                 continue
 
-    def wait_element(self, xpath:str, text:str=None):
+    def wait_element(self, xpath: str, text: str = None):
         while not self.operation_thread.is_set():
             try:
                 element = self.driver.find_element(By.XPATH, xpath)
@@ -6387,9 +6370,7 @@ class Bot_POS:
         else:
             print("Customer address has already corrected")
 
-
         print("tax_address_corrector done!")
-
 
     def edit_cus_info(self, incoming_cus_code: int = None):
         while not self.operation_thread.is_set():
