@@ -1660,7 +1660,7 @@ class MyApp:
                 print('holy shetttttttttttt+')
 
     def find_branch(self, input):
-        # * method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น
+        """ method นี้ จะ return ไม่ "สำนักงานใหญ่" ก็ เลขสาขาที่เป็นเลข 5 หลัก เท่านั้น """
         # ตัวแปร branch
         input = re.sub(r'\s+', '', str(input))
         branch = str(input).strip()
@@ -4026,19 +4026,34 @@ class Bot_POS:
         for i in range(len(cus_name_list)):
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
-        self.cus_tax_branch_code = not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0])
+        self.has_cus_tax_branch_code = not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0])
         # * เอา array มาหาดูว่าจะต้องเลือกชื่อไหน เอา idx ที่ได้ไช้ระบุ locator ที่ต้อง click
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
             print("จริงทั้งคู่ไหม: ", is_branched, "และ ", self.app.tax_branch_num.get() in name)
             print(f"""is_branched: {is_branched} 
                   tax_branch_num in name: {self.app.tax_branch_num.get() in name} 
-                  cus_tax_branch_code: {self.cus_tax_branch_code}""")
+                  cus_tax_branch_code: {self.has_cus_tax_branch_code}""")
+
             if cus_desire_name in name:
-                if is_branched and (not self.app.tax_branch_num.get() in name) and self.cus_tax_branch_code:
-                    print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
-                    continue
-                print("ชื่อที่ต้องการ อยู่ใน li")
+                if is_branched:
+                    if self.has_cus_tax_branch_code:
+                        if not self.app.tax_branch_num.get() in name:
+                            print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
+                            continue
+                        print("ชื่อสาขาย่อยที่ต้องการ อยู่ใน li")
+                        while not self.operation_thread.is_set():
+                            try:
+                                print("เลือกชื่อลูกค้า", cus_name_list[i])
+                                # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
+                                self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+                                break
+
+                            except:
+                                print("No customer found")
+                        return
+
+                print("ชื่อที่ไม่มีสาขา อยู่ใน li")
                 while not self.operation_thread.is_set():
                     try:
                         print("เลือกชื่อลูกค้า", cus_name_list[i])
@@ -4048,8 +4063,8 @@ class Bot_POS:
 
                     except:
                         print("No customer found")
-                        continue
                 return
+
             # * ถ้ามันเจอก็จะ จบ function แต่ถ้าไม่เจอจะไปใช้ cb ต่อ
 
         print(f"order: {self.app.cus_order.get()} : select_cus_name_from_lis: ไม่มีชื่อที่ใช้ได้ Add ใหม่")
