@@ -3813,8 +3813,8 @@ class Bot_POS:
         # * is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
         while not self.operation_thread.is_set():
             try:
-                # * รอให้ dropdown ul โผล่มาก่อน แทนที่จะใช้ find_element ตรงๆ
-                self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul)))
+                #! มีแววว่าจะ deprecated? # * รอให้ dropdown ul โผล่มาก่อน แทนที่จะใช้ find_element ตรงๆ
+                # self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul))) #! มันมีตั้งแต่ขั้นตอน ที่แล้วแล้ว จาก fn ensure_li_shown_cus_name()
                 # * หา li ไปตรวจสอบว่ามี len เท่าไหร่ (re-fetch เพื่อหลีกเลี่ยง stale element)
                 customer_name_input_ul_from_dropdown = self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
                 customer_name_lis_from_dropdown = customer_name_input_ul_from_dropdown.find_elements(
@@ -3961,10 +3961,11 @@ class Bot_POS:
                     self.customer_added_times += 1
                     print("ก่อนRe Enter ชื่อลูกค้า")
                     self.enter_cus_name(self.cus_search_input)
+                    self.customer_name_search_count += 1
                     print(f"Re enter name after add")
                     continue
                 # * หลังจาก Add ไปแล้วรอบนึง แล้วมาเสิชใหม่แล้วยังไม่เจอ ถึงจะเข้าเงื่อนไขนี้ เป็นการ search ให้อีกรอบนึง
-                elif self.searching_condition.text == "No results found" and self.customer_name_search_count < 1:
+                elif self.searching_condition.text == "No results found" and self.customer_name_search_count < 2:
                     time.sleep(1)
                     self.enter_cus_name(self.cus_search_input)
                     self.customer_name_search_count += 1
@@ -3974,10 +3975,12 @@ class Bot_POS:
                 elif self.searching_condition.text == "No results found" and self.customer_added_times == 1:
                     print("I've already add it, but the element still shows 'No results found', you have to add by yourself")
                     self.enter_cus_name(self.cus_search_input)
+                    self.customer_name_search_count += 1
                     time.sleep(1)
                     continue
                 else:
                     print("Found a customer name:", self.searching_condition.text)
+                    print("Cusname lis are shown and ready to select")
                     self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                     break
             print("addcustomer and select While end!")
