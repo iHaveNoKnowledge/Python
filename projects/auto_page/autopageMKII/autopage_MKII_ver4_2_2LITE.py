@@ -3783,6 +3783,7 @@ class Bot_POS:
         pass
 
     def get_customer_name_ready(self, cus_search_input, is_last_page: bool = False):
+        print(f"Order: {self.app.cus_order.get()} : get_customer_name_ready starts")
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
             self.enter_cus_name(cus_search_input)
@@ -3863,13 +3864,12 @@ class Bot_POS:
                         break
                 else:
                     print("Skip, Alert Element is Not appear")
-                    print("No customer name input found")
                     break
 
             except:
                 continue
 
-        print("search หายไปแล้ว: get_customer_name_ready ends")
+        print(f"Order: {self.app.cus_order.get()} : search หายไปแล้ว: get_customer_name_ready() ends")
         self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
 
     def enter_cus_name(self, cus_search):
@@ -3914,7 +3914,8 @@ class Bot_POS:
             # * กรณี add แล้ว มี popup-duplicate customer
             print("Check Duplicated customer!!")
             self.duplicated_cus_name_resolver(cus_code_element)
-            cb()
+            #! ! cb() น่าจะ deprecated เพราะมันจะ recursive กับตัวหลัก เพราะใน select_cus_name_from_lisจะเรียกget_customer_name_ready() เป็น cd แล้วมันจะทำงานวนซ้ำไปเรื่อยๆ
+            # cb()
 
         except Exception as err:
             print("No duplicate!", err)
@@ -4030,6 +4031,9 @@ class Bot_POS:
         for i, name in enumerate(names_no_code):
             print("if ", cus_desire_name, " In ", name)
             print("จริงทั้งคู่ไหม: ", is_branched, "และ ", self.app.tax_branch_num.get() in name)
+            print(f"""is_branched: {is_branched} 
+                  tax_branch_num in name: {self.app.tax_branch_num.get() in name} 
+                  cus_tax_branch_code: {self.cus_tax_branch_code}""")
             if cus_desire_name in name:
                 if is_branched and (not self.app.tax_branch_num.get() in name) and self.cus_tax_branch_code:
                     print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
@@ -4048,6 +4052,7 @@ class Bot_POS:
                 return
             # * ถ้ามันเจอก็จะ จบ function แต่ถ้าไม่เจอจะไปใช้ cb ต่อ
 
+        print(f"order: {self.app.cus_order.get()} : select_cus_name_from_lis: ไม่มีชื่อที่ใช้ได้ Add ใหม่")
         self.add_new_customer(lambda: self.get_customer_name_ready(self.cus_search_input))
 
         customer_current_input_name = self.cus_name_dropdown_elmt_loc.text
@@ -5714,6 +5719,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

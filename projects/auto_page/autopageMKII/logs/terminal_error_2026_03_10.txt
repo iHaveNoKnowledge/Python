@@ -1,16 +1,22 @@
 ขอใบกำกับSHOPEE ใช้ T:
 กรอกชื่อเสร็จ
 มันทำไม Searching...
+
 order: 260310R9K19Q2Y: ensure_li_shown_cus_name starts
 text element not display Searching...
 Found a customer name: C210405106-บริษัท บีพี คอนเนค จำกัด (สำนักงานใหญ่)
+
+
 order: 260310R9K19Q2Y : select_cus_name_from_lis starts 
 incoming cus_desire_name:  บริษัท บีพี คอนเนค จำกัด
 [select_cus_name_from_lis]cus_desire_name: บีพีคอนเนค /// current_cus_name: Please select
 if  บีพีคอนเนค  In  บริษัทบีพีคอนเนคจำกัด(สำนักงานใหญ่)
 จริงทั้งคู่ไหม:  True และ  False
 เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม
+
+
 Tax_needed
+
 SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ
 2026-03-10 17:34:18.745 | INFO     | __main__:addCustomer:5468 - 260310R9K19Q2Y: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ
 260310R9K19Q2Y: there is no any 'Close' button in SMCO :: เปิดการขาย1
@@ -65,14 +71,22 @@ the corrected choice is found
 Click the choice
 li name selection complete
 add tax Customer end
+
+
 Check Duplicated customer!!
 Not Duplicate
 2026-03-10 17:34:29.377 | INFO     | __main__:duplicated_cus_name_resolver:6413 - 260310R9K19Q2Y: After adding cusname, the cusname is Not Duplicated
+
+
 กรอกชื่อเสร็จ
 มันทำไม Searching...
+
+
 order: 260310R9K19Q2Y: ensure_li_shown_cus_name starts
 text element not display Searching...
 Found a customer name: C210405106-บริษัท บีพี คอนเนค จำกัด (สำนักงานใหญ่)
+
+
 order: 260310R9K19Q2Y : select_cus_name_from_lis starts 
 incoming cus_desire_name:  บริษัท บีพี คอนเนค จำกัด
 [select_cus_name_from_lis]cus_desire_name: บีพีคอนเนค /// current_cus_name: Please select
@@ -83,10 +97,14 @@ if  บีพีคอนเนค  In  บริษัทบีพีคอน�
 จริงทั้งคู่ไหม:  True และ  True
 ชื่อที่ต้องการ อยู่ใน li
 เลือกชื่อลูกค้า C2603100008-บริษัท บีพี คอนเนค จำกัด (สาขา00001)
+
+
 click แล้ว
 Skip, Alert Element is Not appear
 No customer name input found
 search หายไปแล้ว
+
+
 ยังเลือกชื่อลูกค้าไม่ได้เลย: 'str' object has no attribute 'text'
 order: 260310R9K19Q2Y : select_cus_name_from_lis starts 
 incoming cus_desire_name:  บริษัท บีพี คอนเนค จำกัด
