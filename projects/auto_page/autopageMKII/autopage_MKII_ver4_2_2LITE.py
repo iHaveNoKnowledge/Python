@@ -1,6 +1,7 @@
 import base64
 import datetime
 import gc
+import json
 import locale
 import os
 import random
@@ -53,7 +54,183 @@ from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
 from webdriver_auto_update.webdriver_manager import WebDriverManager
 from webdriver_manager.chrome import ChromeDriverManager
 
-session = requests.Session()
+
+class SmcoApiClient:
+    """
+    จัดการ HTTP requests ทั้งหมดสำหรับ SMCO API
+    ใช้ requests.Session() เดียวเพื่อ reuse connection และ cookie จาก login
+    """
+
+    _BASE_HEADERS = {
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9,th;q=0.8',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+    }
+
+    def __init__(self):
+        self._session = requests.Session()
+
+    def login(self, origin: str, user_id: str, password: str) -> dict:
+        """
+        POST login ไปที่ SMCO แล้ว return response.json()
+
+        Args:
+            origin: base URL เช่น 'http://192.168.0.11:8080'
+            user_id: รหัสพนักงาน
+            password: รหัสผ่าน
+
+        Returns:
+            dict จาก response.json()
+
+        Raises:
+            requests.exceptions.RequestException: ถ้า request ล้มเหลว
+        """
+        url = f'{origin}/smartcore/loginssoauthen.htm'
+        cookies = {
+            'JSESSIONID': 'EA2AD7582A59949D14642F01ADF23832',
+            'locale': 'en_US',
+        }
+        headers = {**self._BASE_HEADERS, 'Origin': origin}
+        data = {
+            'locale': 'en_US',
+            'redirect': f'{origin}/smartcore/',
+            'username': [user_id],
+            'password': [password],
+            'branch': ['', ''],
+            'storeId': ['', ''],
+        }
+        response = self._session.post(url, cookies=cookies, headers=headers, data=data, verify=False)
+        return response.json()
+
+    def post(self, url: str, data: dict, cookies: dict = None, origin: str = '') -> requests.Response:
+        """
+        Generic POST สำหรับ SMCO API endpoints
+
+        Args:
+            url: URL เต็ม
+            data: form data ที่จะส่ง
+            cookies: browser cookies (จากSelenium driver)
+            origin: Origin header value
+
+        Returns:
+            requests.Response object
+        """
+        headers = {**self._BASE_HEADERS, 'Origin': origin}
+        return self._session.post(url, cookies=cookies, headers=headers, data=data, verify=False)
+
+    def get_vatinfo(self, json_data: dict, extra_headers: dict = None) -> requests.Response:
+        """
+        POST ไปยัง RD VAT API (vsinter.rd.go.th) เพื่อค้นหาข้อมูลภาษี
+        ใช้ session เดียวกับ SMCO เพื่อ reuse connection
+
+        Args:
+            json_data: JSON payload เช่น {'nid': ..., 'brano': ..., 'searchType': '1', ...}
+            extra_headers: headers เพิ่มเติม (optional)
+
+        Returns:
+            requests.Response object
+        """
+        url = 'https://vsinter.rd.go.th/rd-commoninter-service/subother/vatsbtsearch/getVatInfo'
+        headers = {
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9,th;q=0.8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/json',
+            'Origin': 'https://vsinter.rd.go.th',
+            'Pragma': 'no-cache',
+            'Referer': 'https://vsinter.rd.go.th/rd-webcontent-web/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': self._BASE_HEADERS['User-Agent'],
+        }
+        if extra_headers:
+            headers.update(extra_headers)
+        return self._session.post(url, headers=headers, json=json_data)
+
+    def get_product_info(self, origin: str, sku: str, cookies: dict,) -> requests.Response:
+        """
+        ค้นหาข้อมูลสินค้า (product master) จาก SKU — ใช้เพื่อได้ product id
+        สำหรับ combo กับ get_serial_list()
+
+        Args:
+            origin: base URL เช่น 'http://192.168.0.142:9099'
+            sku: รหัสสินค้า เช่น 'PR2-000495'
+            cookies: browser cookies (จาก get_cookies_from_driver)
+            source_id: รหัสสาขา/source (default '40010012')
+
+        Returns:
+            requests.Response — .json() จะมี list ของ product records
+        """
+        url = f'{origin}/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm'
+        payload = {
+            'activeFlag': 'true',
+            'requestText': sku,
+            'start': '1',
+            'length': '1',
+            'order[0][column]': '0',
+            'order[0][dir]': 'asc',
+            'modeScan': 'Y',
+            'isIgnoreQty': 'false',
+            'onlyProduct': 'false',
+
+        }
+        return self.post(url, data=payload, cookies=cookies, origin=origin)
+
+    def get_serial_list(self, origin: str, product_id: str, master_id: int,
+                        parent_id: int, cookies: dict,
+                        timestamp: str = '0') -> requests.Response:
+        """
+        ค้นหา Serial Number list ใน stock จาก product id
+        ใช้ต่อจาก get_product_info() เพื่อดูว่ายังมี SN ใดอยู่ใน stock
+
+        Args:
+            origin: base URL เช่น 'http://192.168.0.142:9099'
+            product_id: id ของสินค้าที่ได้จาก get_product_info()
+            master_id: branchId (เช่น 180)
+            parent_id: parentId ของสินค้า (เช่น 441)
+            cookies: browser cookies (จาก get_cookies_from_driver)
+            timestamp: _ param สำหรับ cache busting (ใส่ int timestamp หรือ '0')
+
+        Returns:
+            requests.Response — .json()['data'] จะมี list ของ serial records
+        """
+        url = f'{origin}/smartcore/inventory/stock/v2/getSerialInfoList.htm'
+        search_value = json.dumps({
+            'byId': str(product_id),
+            'byMasterId': master_id,
+            'byParentId': parent_id,
+        }, separators=(',', ':'))
+
+        # * DataTables column definitions boilerplate (17 columns)
+        _col_names = [
+            '', 'serialNo', 'imeiNo1', 'imeiNo2', 'age', 'WhAge', 'telNo',
+            'reservedQty', 'reservedByEn', 'reservedDate', 'reservedPaymentNo',
+            'reservedSo', 'remark', 'receiveDate', 'refDocNo', 'vendorNameen',
+            'status', 'source', 'creator', 'createDate',
+        ]
+        payload: dict = {
+            'draw': '2',
+            'order[0][column]': '0',
+            'order[0][dir]': 'asc',
+            'start': '0',
+            'search[value]': search_value,
+            'search[regex]': 'false',
+            '_': str(timestamp),
+        }
+        for i, name in enumerate(_col_names):
+            payload[f'columns[{i}][data]'] = name
+            payload[f'columns[{i}][name]'] = ''
+            payload[f'columns[{i}][searchable]'] = 'true'
+            payload[f'columns[{i}][orderable]'] = 'false' if i == 0 else 'true'
+            payload[f'columns[{i}][search][value]'] = ''
+            payload[f'columns[{i}][search][regex]'] = 'false'
+
+        return self.post(url, data=payload, cookies=cookies, origin=origin)
 
 
 # * images
@@ -148,10 +325,13 @@ class MyApp:
         log_path = os.path.join(current_dir, f"""logs\\autopageMKII_log_{time_name.strftime('%Y_%m_%d')}.log""")
         logger.add(log_path, format="{time} {level} {message}", level="INFO")
 
-        # * 2)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
+        # * 2)Start HTTP API client (shared ระหว่าง MyApp และ Bot_POS) --------------------------------------------------------
+        self.smco_api = SmcoApiClient()
+
+        # * 3)Start a POS BOT WEBDRIVER instance ------------------------------------------------------------------------
         self.bot = Bot_POS(self.root, self)
 
-        # * 3)Create caches
+        # * 4)Create caches
         cache_dir = os.path.join(current_directory, f"""caches.json""")
 
     def finish_order(self):
@@ -2598,61 +2778,32 @@ class UserAccount:
         self.submit_btn.pack(fill='x', expand=True)
 
     def login(self):
-        cookies = {
-            'JSESSIONID': 'EA2AD7582A59949D14642F01ADF23832',
-            'locale': 'en_US',
-        }
-
-        headers = {
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            # 'Cookie': 'JSESSIONID=EA2AD7582A59949D14642F01ADF23832; locale=en_US',
-            'Origin': 'http://192.168.0.11:8080',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-            'X-Requested-With': 'XMLHttpRequest',
-        }
-
-        data = {
-            'locale': 'en_US',
-            'redirect': 'http://192.168.0.11:8080/smartcore/',
-            'username': [
-                f'{self.app.user_id.get()}',
-            ],
-            'password': [
-                f'{self.app.user_pw.get()}',
-            ],
-            'branch': [
-                '',
-                '',
-            ],
-            'storeId': [
-                '',
-                '',
-            ],
-        }
-
-        response = session.post(
-            'http://192.168.0.11:8080/smartcore/loginssoauthen.htm',
-            cookies=cookies,
-            headers=headers,
-            data=data,
-            verify=False,
-        )
-
-        result = response.json()
-        print("ได้ response ไรมา: ", response)
-        print("ได้ result ไรมา: ", result)
-        # * ตรวจสอบ response จากการ login
-        if result['status'] == "MORE_BRANCH":
-            print("Logged in")
-            return True
-        else:
-            print("Incorrect username or password")
+        # * ใช้ SmcoApiClient แทน global session โดยตรง
+        origin = 'http://192.168.0.11:8080'
+        try:
+            result = self.app.smco_api.login(
+                origin=origin,
+                user_id=self.app.user_id.get(),
+                password=self.app.user_pw.get(),
+            )
+            print("ได้ result ไรมา: ", result)
+            # * ตรวจสอบ response จากการ login
+            if result['status'] == "MORE_BRANCH":
+                print("Logged in")
+                return True
+            else:
+                print("Incorrect username or password")
+                self.login_alert = self.POP_UP.show(
+                    "Login Fail!!",
+                    "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู",
+                    "alert",
+                )
+                return False
+        except requests.exceptions.RequestException as e:
+            print(f"Login request failed: {e}")
             self.login_alert = self.POP_UP.show(
-                "Login Fail!!",
-                "พาสเวิร์ดผิดหรือป่าว~\nถ้าถูกแล้วก็อาจจะเป็นที่ SMCO\nลองเช็ค SMCO ดู",
+                "Login Error",
+                f"ติดต่อ SMCO ไม่ได้\n{e}",
                 "alert",
             )
             return False
@@ -2785,6 +2936,8 @@ class Bot_POS:
 
         # / utils variables
         self.is_random_subdistrict_used = False  # ใช้ใน address cleaner
+        # * share SmcoApiClient instance จาก MyApp เพื่อใช้ session เดียวกัน
+        self.smco_api = self.app.smco_api
 
     def setup_chrome(self):
         self.opt = Options()
@@ -5750,23 +5903,8 @@ class Bot_POS:
         matched_str = re.search(r'\/[A-z].*', current_url).group()
         self.origin = current_url.replace(matched_str, '')
 
-        headers = {
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9,th;q=0.8',
-            'Connection': 'keep-alive',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Origin': f'{self.origin}',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-            'X-Requested-With': 'XMLHttpRequest',
-        }
-
-        response = requests.post(
-            f'{self.origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm',
-            cookies=cookies,
-            headers=headers,
-            data=payload,
-            verify=False,
-        )
+        url = f'{self.origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm'
+        response = self.smco_api.post(url, data=payload, cookies=cookies, origin=self.origin)
 
         print('get_address_smco response status: ', response)
         print('response.json(): ', response.json())
@@ -6510,24 +6648,6 @@ class Bot_POS:
         # cookies = self.app.cookies['vatinfo']
         # print("cookies for reqtaxinfo: ", self.app.cookies['vatinfo'])
 
-        headers = {
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9,th;q=0.8',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Content-Type': 'application/json',
-            'Origin': 'https://vsinter.rd.go.th',
-            'Pragma': 'no-cache',
-            'Referer': 'https://vsinter.rd.go.th/rd-webcontent-web/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-            'sec-ch-ua': '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-        }
-
         params = ''
 
         json_data = {
@@ -6553,11 +6673,7 @@ class Bot_POS:
 
         while not self.operation_thread.is_set():
             print("times = 1")
-            response = session.post(
-                'https://vsinter.rd.go.th/rd-commoninter-service/subother/vatsbtsearch/getVatInfo',
-                headers=headers,
-                json=json_data,
-            )
+            response = self.smco_api.get_vatinfo(json_data)
 
             try:
                 response.raise_for_status()
@@ -6598,7 +6714,7 @@ class Bot_POS:
                     output = {}
                     break
 
-            except session.exceptions.HTTPError as e:
+            except requests.exceptions.HTTPError as e:
                 print(f"HTTP Error occurred: {e}")
                 output = {}
                 break
@@ -7271,4 +7387,5 @@ if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
+    print("Program closed")
     print("Program closed")
