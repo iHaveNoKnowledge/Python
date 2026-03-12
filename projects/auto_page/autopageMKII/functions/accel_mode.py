@@ -1,10 +1,11 @@
-import pandas as pd
 import os
 import re
-from tkinter import filedialog
-from pypdf import PdfReader
-from openpyxl import load_workbook
 import time
+from tkinter import filedialog
+
+import pandas as pd
+from openpyxl import load_workbook
+from pypdf import PdfReader
 from selenium.webdriver.common.by import By
 
 
@@ -47,17 +48,18 @@ class AccelMode:
         print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
         print(self.CP_list)
 
-    def deduct_accel_file_data(self, order, sku_serials=[]):
+    def deduct_accel_file_data(self, order, sku_serials=[], remove_order=True, update_memory=True):
         order = order.get()
         df = self.accel_df_state
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
-        print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
 
-        has_order = df.loc[df['orders'] == order, 'orders']
-        if not has_order.empty:
-            print(f'remove {order} from state df')
-            df.loc[df['orders'] == order, 'orders'] = pd.NA
+        if remove_order:
+            print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
+            has_order = df.loc[df['orders'] == order, 'orders']
+            if not has_order.empty:
+                print(f'remove {order} from state df')
+                df.loc[df['orders'] == order, 'orders'] = pd.NA
 
         print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
         if sku_serials:
@@ -71,26 +73,29 @@ class AccelMode:
             df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
             print(f"Successfully updated {self.accel_file_dir}")
 
-            # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
-            self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
-            self.obj_data_from_accel_file = {
-                col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
-            }
+            if update_memory:
+                # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
+                self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+                self.obj_data_from_accel_file = {
+                    col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                }
         except PermissionError as e:
             print(f"Permission denied: {e}")
             print("ไฟล์ Excel อาจถูกเปิดอยู่ในโปรแกรมอื่น กรุณาปิดไฟล์แล้วลองใหม่")
-            # ใช้ข้อมูลในหน่วยความจำแทน ไม่อัปเดตไฟล์
-            self.accel_df_state = df
-            self.obj_data_from_accel_file = {
-                col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
-            }
+            if update_memory:
+                # ใช้ข้อมูลในหน่วยความจำแทน ไม่อัปเดตไฟล์
+                self.accel_df_state = df
+                self.obj_data_from_accel_file = {
+                    col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                }
         except Exception as e:
             print(f"Error updating Excel file: {e}")
-            # ใช้ข้อมูลในหน่วยความจำแทน
-            self.accel_df_state = df
-            self.obj_data_from_accel_file = {
-                col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
-            }
+            if update_memory:
+                # ใช้ข้อมูลในหน่วยความจำแทน
+                self.accel_df_state = df
+                self.obj_data_from_accel_file = {
+                    col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                }
 
     def extract_sn_btn(self, accel_file_dir):
         if not accel_file_dir:
@@ -223,7 +228,11 @@ class AccelMode:
         self.accel_orders_count = len(self.accel_orders_list)
 
         def start_next_cycle(count):
+            # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
             self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+            self.obj_data_from_accel_file = {
+                col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+            }
             if count < self.accel_orders_count:
                 if self.main_app.is_accel_mode_activated.get():
                     self.main_app.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
@@ -234,10 +243,75 @@ class AccelMode:
 
         self.main_app.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
+    # * ตรวจสอบว่า SN นั้นมีอยู่ในระบบ SMCO จริงหรือไม่
+    def is_sn_in_smco(self, driver, sku, sn_to_check):
+        """
+        ตรวจสอบ SN ผ่าน API ว่ามีในสต็อกของ SMCO จริงไหม
+        """
+        try:
+            # 1. เตรียม Cookies และ Origin จาก Browser
+            import re
+
+            from loguru import logger
+
+            # เรียกใช้ helper ใน bot เพื่อเอา cookies
+            cookies = self.main_app.bot.get_cookies_from_driver()
+            current_url = driver.current_url
+            matched_str = re.search(r'\/[A-z].*', current_url).group()
+            origin = current_url.replace(matched_str, '')
+
+            # 2. ค้นหา Product ID จาก SKU
+            resp_prod = self.main_app.smco_api.get_product_info(origin, sku, cookies)
+            product_data = resp_prod.json()
+
+            if not product_data or len(product_data) == 0:
+                logger.warning(f"ไม่พบข้อมูลสินค้าสำหรับ SKU: {sku}")
+                return False
+
+            # รองรับทั้ง 'productId' และ 'id'
+            product_id = product_data[0].get('productId') or product_data[0].get('id')
+
+            # Todo master_id = product_data[0].get('masterId')
+            # Todo parent_id = product_data[0].get('parentId')
+            # / พวกนี้คถ้าไม่ใช้มันจะไม่ dynamic stockจะดึงได้แค่จากสำโรงเท่านั้น ถ้าอยากให้ดึง stock แบบ dynamic ต้องไปดึงพวกสาขาจากการlogin และคลังที่เลือกเปิด POS มา
+            master_id = 180
+            parent_id = 441
+
+            if not product_id:
+                return False
+
+            # 3. ค้นหา Serial List จาก Product ID
+            resp_sn = self.main_app.smco_api.get_serial_list(
+                origin, product_id, master_id, parent_id, cookies
+            )
+            sn_list_data = resp_sn.json().get('data', [])
+
+            # 4. ตรวจสอบว่า sn_to_check อยู่ในรายการที่มี status available (หรือตามที่ SMCO ส่งมา) หรือไม่
+            # ปกติถ้าติดมาใน data list คือสินค้าที่พร้อมใช้
+            found_sns = [item.get('serialNo') for item in sn_list_data]
+            
+            logger.debug(f"SMCO API ส่งกลับมารวม {len(found_sns)} รายการสำหรับ product {product_id}")
+            if sn_to_check not in found_sns and len(found_sns) > 0:
+                logger.debug(f"ตัวอย่าง SN แบบลวกๆ จาก API: {found_sns[:5]}...")
+
+            if sn_to_check in found_sns:
+                logger.info(f"ยืนยัน: SN {sn_to_check} มีอยู่ในระบบ SMCO")
+                return True
+            else:
+                logger.warning(f"คำเตือน: SN {sn_to_check} ไม่มีในสต็อก SMCO (แต่อาจอยู่ใน Excel)")
+                return False
+
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"Error while validating SN via API: {e}")
+            # ถ้า API มีปัญหา ให้ fallback เป็น True (อนุญาตให้รันต่อเผื่อ API ล่ม) หรือ False ตามความเหมาะสม
+            # ในที่นี้ขอกลับเป็น True เพื่อไม่ให้บอทหยุดชะงักถ้าเป็นแค่ network error ชั่วคราว
+            return True
+
     # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco
     def accel_fill_sku(self, driver, operation_thread):
-        from selenium.webdriver.common.keys import Keys
         from loguru import logger
+        from selenium.webdriver.common.keys import Keys
 
         available_sn_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
@@ -261,6 +335,36 @@ class AccelMode:
                         if self.obj_data_from_accel_file[current_sku]:
                             print("มี SN")
                             time.sleep(1)
+
+                            # * LOOP เพื่อหา SN ที่มีอยู่ใน SMCO จริงๆ
+                            valid_sn_found = False
+                            sn = None
+
+                            while len(self.obj_data_from_accel_file[current_sku]) > 0:
+                                potential_sn = self.obj_data_from_accel_file[current_sku][0]
+
+                                # ตรวจสอบผ่าน API
+                                if self.is_sn_in_smco(driver, current_sku, potential_sn):
+                                    sn = potential_sn
+                                    valid_sn_found = True
+                                    break
+                                else:
+                                    logger.warning(
+                                        f"SN {potential_sn} ไม่มีใน SMCO สต็อก -> กำลังลบออกจาก Excel และข้ามไปตัวถัดไป")
+                                    # ลบ SN ที่ใช้ไม่ได้ออกจาก Excel ทันที (ไม่ลบเลข order)
+                                    # ปิดการ reload data ด้วย update_memory=False ป้องกันการ double-pop
+                                    self.deduct_accel_file_data(
+                                        self.main_app.cus_order, [{'sku': current_sku, 'sn': potential_sn}],
+                                        remove_order=False, update_memory=False)
+                                    # เอาออกจาก memory queue ด้วย
+                                    self.obj_data_from_accel_file[current_sku].pop(0)
+
+                            if not valid_sn_found:
+                                logger.error(
+                                    f"ไม่พบ SN ที่ใช้งานได้ในสต็อก SMCO สำหรับ SKU: {current_sku} (จากรายการใน Excel ทั้งหมด)")
+                                break  # ข้ามไป item ถัดไปเลยเพราะ SN ในคลัง Excel หมดเกลี้ยงที่ใช้ได้จริง
+
+                            # เมื่อได้ SN ที่ยืนยันแล้วค่อยดำเนินการต่อ
                             while not operation_thread.is_set():
                                 try:
                                     driver.find_element(
@@ -270,7 +374,6 @@ class AccelMode:
                                 except:
                                     continue
 
-                            sn = self.obj_data_from_accel_file[current_sku][0]
                             skuInput = driver.find_element(
                                 By.XPATH,
                                 '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
@@ -279,6 +382,7 @@ class AccelMode:
                             while attempts > 0:
                                 try:
                                     skuInput.send_keys(sn)
+                                    # เอาออกจาก memory queue (ตัวที่ใช้จริง)
                                     self.obj_data_from_accel_file[current_sku].pop(0)
                                     break
                                 except:
@@ -307,5 +411,7 @@ class AccelMode:
                     print("ไม่ได้เลือก sn:", current_sku, self.obj_data_from_accel_file)
                     print("ไม่ได้เลือก sn:", type(current_sku), type(self.obj_data_from_accel_file))
         else:
+            print("No items, return!!")
+            return
             print("No items, return!!")
             return

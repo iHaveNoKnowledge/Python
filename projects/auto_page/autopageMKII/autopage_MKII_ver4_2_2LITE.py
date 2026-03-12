@@ -218,6 +218,7 @@ class SmcoApiClient:
             'order[0][column]': '0',
             'order[0][dir]': 'asc',
             'start': '0',
+            'length': '1000',
             'search[value]': search_value,
             'search[regex]': 'false',
             '_': str(timestamp),
