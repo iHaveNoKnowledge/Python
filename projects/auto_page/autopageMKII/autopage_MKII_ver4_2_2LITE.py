@@ -260,7 +260,7 @@ if getattr(sys, 'frozen', False):
 
 class MyApp:
     def __init__(self, root):
-        #* instance of utility classes
+        # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * Variables------------------------------------------------------------------------------------
         self.root = root
@@ -2845,7 +2845,7 @@ class UserAccount:
                     self.app.accel_mode_checkbox.grid_remove()
                     print(self.app.user_id.get())
                     # print(self.app.dev_account)
-                    
+
                 self.app.account_manager.set_last_username(self.app.user_id.get())
 
                 return self.display_btn_txt
@@ -3748,7 +3748,8 @@ class Bot_POS:
                     success = self.reconnect_driver()
                     if not success:
                         print("❌ Failed to create new driver session. Please check ChromeDriver version.")
-                        self.app.update_log("❌ ChromeDriver Error: Please update C:\\bin\\chromedriver.exe to match your Chrome version.")
+                        self.app.update_log(
+                            "❌ ChromeDriver Error: Please update C:\\bin\\chromedriver.exe to match your Chrome version.")
                         return  # * ออกจากฟังก์ชันเพื่อป้องกัน Exception ใน main thread
                 except Exception as reconnect_err:
                     print(f"❌ Error during reconnect in get_tabs: {reconnect_err}")
@@ -3862,8 +3863,12 @@ class Bot_POS:
             # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
             if self.app.marketplace_target.get() == "SHOPEE":
                 print("ขอใบกำกับSHOPEE ใช้ T:")
-                self.driver.find_element(
-                    By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
+                if self.cus_code != "":
+                    self.driver.find_element(
+                        By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='C'")]''').click()
+                else:
+                    self.driver.find_element(
+                        By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
             elif self.app.marketplace_target.get() == "LAZADA":
                 print("ขอใบกำกับLazada ใช้ T:")
                 self.driver.find_element(
@@ -3949,7 +3954,12 @@ class Bot_POS:
         pass
 
     def get_customer_name_ready(self, cus_search_input, is_last_page: bool = False):
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         print(f"Order: {self.app.cus_order.get()} : get_customer_name_ready starts")
+        self.set_cus_name_search_type()
+        #! ใช้ getarrt('cus_code') ไรประมาณนี้ เพราะ cus_code มันยังไม่ถูกสร้างมันจะถูกสร้างทีหลังหากมีการเคส duplicated customer
+        if self.cus_code != "":
+            self.enter_cus_name(self.cus_code)
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
             self.enter_cus_name(cus_search_input)
@@ -3979,6 +3989,7 @@ class Bot_POS:
 
         # * is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
         while not self.operation_thread.is_set():
+            time.sleep(0.5)
             try:
                 #! มีแววว่าจะ deprecated? # * รอให้ dropdown ul โผล่มาก่อน แทนที่จะใช้ find_element ตรงๆ
                 # self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul))) #! มันมีตั้งแต่ขั้นตอน ที่แล้วแล้ว จาก fn ensure_li_shown_cus_name()
@@ -4235,7 +4246,7 @@ class Bot_POS:
 
         print(f"order: {self.app.cus_order.get()} : select_cus_name_from_lis: ไม่มีชื่อที่ใช้ได้ Add ใหม่")
         self.add_new_customer(lambda: self.get_customer_name_ready(self.cus_search_input))
-
+        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         customer_current_input_name = self.cus_name_dropdown_elmt_loc.text
         prog = re.search(r'[^-]-(.*)', customer_current_input_name)
         customer_current_input_name = prog.group(1).replace(" ", "")
@@ -5212,10 +5223,11 @@ class Bot_POS:
                             err_str = str(err).lower()
                             if "target window already closed" in err_str or "no such window" in err_str:
                                 print("Browser window is closed. Exiting wait loop.")
-                                self.autofinal = False # Stop the outer loop too
-                                break # Exit the element search loop
+                                self.autofinal = False  # Stop the outer loop too
+                                break  # Exit the element search loop
                             else:
-                                print(f"cannot see elements from final page, waiting... Error details: {type(err).__name__}")
+                                print(
+                                    f"cannot see elements from final page, waiting... Error details: {type(err).__name__}")
                                 # * ไม่มี element ให้วนเรื่อยๆ
                                 time.sleep(0.55)
                                 continue
@@ -5906,7 +5918,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
