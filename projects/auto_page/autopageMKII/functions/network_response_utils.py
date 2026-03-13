@@ -17,7 +17,7 @@ class NetworkResponseCapture:
         """
         self.driver = driver
     
-    def capture_response(self, target_url_part, max_attempts=20, wait_interval=0.1):
+    def capture_response(self, target_url_part, max_attempts=20, wait_interval=1):
         """
         จับ network response จาก performance logs
         

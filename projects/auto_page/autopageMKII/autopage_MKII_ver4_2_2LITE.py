@@ -4401,7 +4401,7 @@ class Bot_POS:
                 print("กรอก Code ขนส่งสำเร็จ")
                 response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm', max_attempts=15)
                 if response_data:
-                    time.sleep(2)
+                    # time.sleep(0.55) #? อาจจะไม่จำเป็นนะ
                     self.smco_set_overcharge_product('SV0-000101', shipping_cost)
                     print("กด Enter ที่ช่อง SKU Input สำเร็จ")
 
@@ -5209,10 +5209,16 @@ class Bot_POS:
                                 By.XPATH, "//*[contains(text(),' Payment: ') or  contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]").is_displayed()
                             break
                         except Exception as err:
-                            print("cannot see elements from final page", err)
-                            # * ไม่มี element ให้วนเรื่อยๆ
-                            time.sleep(0.55)
-                            continue
+                            err_str = str(err).lower()
+                            if "target window already closed" in err_str or "no such window" in err_str:
+                                print("Browser window is closed. Exiting wait loop.")
+                                self.autofinal = False # Stop the outer loop too
+                                break # Exit the element search loop
+                            else:
+                                print(f"cannot see elements from final page, waiting... Error details: {type(err).__name__}")
+                                # * ไม่มี element ให้วนเรื่อยๆ
+                                time.sleep(0.55)
+                                continue
 
                     # *ดึงตัวอักษรออกมา
                     #! matched_obj = re.search("^C[0-9]+", title_attribute) เลิกใช้ เพราะบางชื่อมันไม่ขึ้นต้นด้วย C

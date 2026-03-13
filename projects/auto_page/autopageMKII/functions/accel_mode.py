@@ -406,8 +406,8 @@ class AccelMode:
                             print("ไม่มี SN, there are no functions available at this moment")
                             pass
                 else:
-                    print("ไม่ได้เลือก sn:", current_sku in self.obj_data_from_accel_file)
-                    print("ไม่ได้เลือก sn:", current_sku, self.obj_data_from_accel_file)
+                    print("current_sku มีใน Accel_Fileไหม?:", current_sku in self.obj_data_from_accel_file)
+                    # print("ไม่ได้เลือก sn:", current_sku, self.obj_data_from_accel_file)
                     print("ไม่ได้เลือก sn:", type(current_sku), type(self.obj_data_from_accel_file))
         else:
             print("No items, return!!")
