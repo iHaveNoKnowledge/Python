@@ -32,6 +32,7 @@ from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
+from functions.utils.crypto import AccountManager
 from googletrans import Translator
 from loguru import logger
 from openpyxl import load_workbook
@@ -259,13 +260,14 @@ if getattr(sys, 'frozen', False):
 
 class MyApp:
     def __init__(self, root):
+        #* instance of utility classes
+        self.account_manager = AccountManager("AutoSamaticMKII")
         # * Variables------------------------------------------------------------------------------------
-
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
         self.is_bot_running = BooleanVar(value=False)
         # self.validate_input_variable = self.root.register(self.validate_input)
-        self.user_id = StringVar(value="")
+        self.user_id = StringVar(value=self.account_manager.get_last_username())
         self.user_pw = StringVar(value="")
         self.result = ""
         self.is_accel_mode = BooleanVar()
@@ -2843,6 +2845,8 @@ class UserAccount:
                     self.app.accel_mode_checkbox.grid_remove()
                     print(self.app.user_id.get())
                     # print(self.app.dev_account)
+                    
+                self.app.account_manager.set_last_username(self.app.user_id.get())
 
                 return self.display_btn_txt
 

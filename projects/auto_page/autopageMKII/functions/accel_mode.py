@@ -39,7 +39,7 @@ class AccelMode:
 
         self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
         self.obj_data_from_accel_file = {
-            col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+            col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan'] for col in self.accel_file_columns
         }
 
         self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
@@ -77,7 +77,7 @@ class AccelMode:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
                 self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
                 self.obj_data_from_accel_file = {
-                    col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                    col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan'] for col in self.accel_file_columns
                 }
         except PermissionError as e:
             print(f"Permission denied: {e}")
@@ -86,7 +86,7 @@ class AccelMode:
                 # ใช้ข้อมูลในหน่วยความจำแทน ไม่อัปเดตไฟล์
                 self.accel_df_state = df
                 self.obj_data_from_accel_file = {
-                    col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                    col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan'] for col in self.accel_file_columns
                 }
         except Exception as e:
             print(f"Error updating Excel file: {e}")
@@ -94,7 +94,7 @@ class AccelMode:
                 # ใช้ข้อมูลในหน่วยความจำแทน
                 self.accel_df_state = df
                 self.obj_data_from_accel_file = {
-                    col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                    col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan'] for col in self.accel_file_columns
                 }
 
     def extract_sn_btn(self, accel_file_dir):
@@ -231,7 +231,7 @@ class AccelMode:
             # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
             self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
             self.obj_data_from_accel_file = {
-                col: self.accel_df_state[col].replace(" ", '').dropna().tolist() for col in self.accel_file_columns
+                col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan'] for col in self.accel_file_columns
             }
             if count < self.accel_orders_count:
                 if self.main_app.is_accel_mode_activated.get():
@@ -270,10 +270,9 @@ class AccelMode:
 
             # รองรับทั้ง 'productId' และ 'id'
             product_id = product_data[0].get('productId') or product_data[0].get('id')
-
+            # / พวกนี้คถ้าไม่ใช้มันจะไม่ dynamic stockจะดึงได้แค่จากสำโรงเท่านั้น ถ้าอยากให้ดึง stock แบบ dynamic ต้องไปดึงพวกสาขาจากการlogin และคลังที่เลือกเปิด POS มา
             # Todo master_id = product_data[0].get('masterId')
             # Todo parent_id = product_data[0].get('parentId')
-            # / พวกนี้คถ้าไม่ใช้มันจะไม่ dynamic stockจะดึงได้แค่จากสำโรงเท่านั้น ถ้าอยากให้ดึง stock แบบ dynamic ต้องไปดึงพวกสาขาจากการlogin และคลังที่เลือกเปิด POS มา
             master_id = 180
             parent_id = 441
 

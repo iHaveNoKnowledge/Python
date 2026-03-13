@@ -233,6 +233,7 @@
 # * 230 /Fixed/ 4.2.2(LITEonly) เอา is_finish_order_triggered.get() มาตรวจสอบ ว่า ต้องการข้าม cn flag ไหม หากเป็น true ให้กด cnflag ออกให้ ถ้ากดแบบ แมนวลมา dev เท่านั้นจะ bypass cnflag ได้ if self.app.user_id.get() == {dev_id} or self.app.is_finish_order_triggered.get():
 # ! 231 /Issue/ ตัวอัพเดท version เมื่อเจอ error mismatch ของ chromedriver กับ chrome มันจะไม่อัพเดทให้แต่แจ้ง error เฉยๆ  บาครั้ง chrome update ระหว่างวัน ควรทำให้การเช็คและอัพเดท vesion ทำแบบ realtime, ปัจจุบันมันเช็คตอนเริ่ม bot เท่านั้น ถ้าเกิด mismatch ตอนกลางวันมันจะไม่อัพเดทให้เลย
 # * 232 /Fixed/ 4.2.2(LITEonly) select_cus_name_from_lis() ปรับ logicใหม่ (มีแผนภาพflowchartด้วย)ให้เลือกสาขาย่อยกับสำนักงานใหญ่ให้แม่นยำยิ่งขึ้น เนื่องจาก ยังเลือกใบกำกับ สาขา กับสำนักงานใหญ่ผิดอยู่
+#* 233 /Feat/ 4.2.2(LITEonly) เพิ่มตัวบันทึก user
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 
