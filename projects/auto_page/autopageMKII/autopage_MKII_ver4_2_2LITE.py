@@ -3733,8 +3733,9 @@ class Bot_POS:
                 # * เช็คก่อนว่า driver ใช้ได้ไหม หรือการเชื่อมต่อ session หลุดไหม
                 self.driver.window_handles
                 print("driver is still running")
-            except:
+            except Exception as e:
                 # * driver หลุดก็ออก seesion เก่า
+                print(f"Driver connection lost in get_tabs ({e}). Attempting to reconnect...")
                 try:
                     print("Quit old driver, not sure if this process is auto or not")
                     self.driver.quit()
@@ -3742,10 +3743,17 @@ class Bot_POS:
                     print("No need to quit old driver, no driver found")
                     pass
 
-                self.driver = webdriver.Chrome(
-                    service=Service(r'C:\bin\chromedriver.exe'),
-                    options=self.opt
-                )
+                try:
+                    # * ใช้ reconnect_driver ที่มี try-except และ log แทนการเรียก driver ตรงๆ
+                    success = self.reconnect_driver()
+                    if not success:
+                        print("❌ Failed to create new driver session. Please check ChromeDriver version.")
+                        self.app.update_log("❌ ChromeDriver Error: Please update C:\\bin\\chromedriver.exe to match your Chrome version.")
+                        return  # * ออกจากฟังก์ชันเพื่อป้องกัน Exception ใน main thread
+                except Exception as reconnect_err:
+                    print(f"❌ Error during reconnect in get_tabs: {reconnect_err}")
+                    self.app.update_log(f"❌ ChromeDriver Error: {reconnect_err}")
+                    return
 
             for idx, handle in enumerate(self.driver.window_handles):
                 try:

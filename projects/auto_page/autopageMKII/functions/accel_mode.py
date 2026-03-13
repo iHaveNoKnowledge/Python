@@ -291,7 +291,7 @@ class AccelMode:
             
             logger.debug(f"SMCO API ส่งกลับมารวม {len(found_sns)} รายการสำหรับ product {product_id}")
             if sn_to_check not in found_sns and len(found_sns) > 0:
-                logger.debug(f"ตัวอย่าง SN แบบลวกๆ จาก API: {found_sns[:5]}...")
+                logger.debug(f"ตัวอย่าง SN  จาก API: {found_sns[:5]}...")
 
             if sn_to_check in found_sns:
                 logger.info(f"ยืนยัน: SN {sn_to_check} มีอยู่ในระบบ SMCO")
@@ -412,5 +412,4 @@ class AccelMode:
         else:
             print("No items, return!!")
             return
-            print("No items, return!!")
-            return
+
