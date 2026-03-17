@@ -6653,6 +6653,9 @@ class Bot_POS:
         matched_obj = re.search(r'^C.\d*', self.dup_popup_content, re.MULTILINE)
         print("matched_obj:", matched_obj)
         self.cus_code = matched_obj.group()
+        current_url = self.driver.current_url
+        matched_str = re.search(r'\/[A-z].*', current_url).group()
+        self.origin = current_url.replace(matched_str, '')
 
         print("cus_code: ", self.cus_code)
         res_cus_data = self.app.smco_api.get_cus_data(
