@@ -234,6 +234,28 @@ class SmcoApiClient:
 
         return self.post(url, data=payload, cookies=cookies, origin=origin)
 
+    def get_cus_data(self, origin: str, req_text: str, search_type: str, cookies: dict) -> requests.Response:
+        """
+        ค้นหาชื่อผู้ซื้อจาก API โดยใช้คำค้นหาและ ประเภทการค้นหา (เช่น by name, by tax id, by customercode, etc.)
+        ใช้สำหรับ autocomplete ชื่อผู้ซื้อในหน้า POS
+
+        Args:
+            origin: base URL เช่น 'http://
+            search_type: N = by name, T = by tax id, C = by customer code
+        Returns:
+            requests.Response — .json()['data'] จะมี list ของ customer records
+        """
+        url = f'{origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm'
+        payload = {
+            'requestText': req_text,
+            'target': search_type,
+        }
+        response = self.post(url, data=payload, cookies=cookies, origin=origin)
+        if response.status_code != 200:
+            logger.error(f"{self.cus_order}: get_cus_data(): API call failed with status code {response.status_code}")
+            return None
+        return response
+
 
 # * images
 icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
@@ -2895,6 +2917,7 @@ class Bot_POS:
             'lenovoofficialstorebyitcity': 'SHP ITCITY LENOVO',
         }
         self.sumatra_path = ""
+
         # * Initialize Sumatra PDF cache file path
         self.sumatra_cache_file = os.path.join(os.path.dirname(__file__), "sumatra_pdf_cache.txt")
         # * Load cached Sumatra PDF path or search for it
@@ -3120,7 +3143,7 @@ class Bot_POS:
             memory_usage = self.get_current_tab_memory_usage()
 
             logger.info(
-                f"{self.app.cus_order.get()}: Checking memory for '{tab_name or current_url}' ({memory_usage:.1f}MB)"
+                f"{self.cus_order}: Checking memory for '{tab_name or current_url}' ({memory_usage:.1f}MB)"
             )
 
             # 🔥 ถ้าใช้ memory เกิน limit → รีโหลดแท็บ
@@ -3182,7 +3205,7 @@ class Bot_POS:
                 )
 
                 new_handle = list(set(self.driver.window_handles) - old_handles)[0]
-                logger.info(f"{self.app.cus_order.get()}: Opened new tab for '{tab_name or current_url}'")
+                logger.info(f"{self.cus_order}: Opened new tab for '{tab_name or current_url}'")
 
                 # 🧹 3. กลับมาที่ Tab เดิม แล้วโหลด about:blank เพื่อล้าง DOM ทิ้งทันที (สำคัญมากสำหรับการคืน RAM)
                 self.driver.switch_to.window(current_handle)
@@ -3195,7 +3218,7 @@ class Bot_POS:
                 # ❌ 4. ปิด Tab เดิม
                 try:
                     self.driver.close()
-                    logger.info(f"{self.app.cus_order.get()}: Closed old tab for '{tab_name or current_url}'")
+                    logger.info(f"{self.cus_order}: Closed old tab for '{tab_name or current_url}'")
                 except Exception as e:
                     logger.warning(f"Error closing old tab: {e}")
 
@@ -3295,7 +3318,7 @@ class Bot_POS:
                         if memory_usage > self.max_memory_mb:
                             print(f"  → Cleaning SMCO tab (memory too high)")
                             logger.info(
-                                f"{self.app.cus_order.get()}: Pre-operation cleanup: Closing and reopening tab '{tab_title}' due to high memory ({memory_usage:.1f}MB)")
+                                f"{self.cus_order}: Pre-operation cleanup: Closing and reopening tab '{tab_title}' due to high memory ({memory_usage:.1f}MB)")
                             if self.close_and_reopen_tab_if_memory_high(tab_title):
                                 tabs_cleaned += 1
                         else:
@@ -3857,32 +3880,39 @@ class Bot_POS:
             self.app.update_log("Operation thread is already set, skipping operation task")
 
     def set_cus_name_search_type(self):
-        self.wait50.until(EC.element_to_be_clickable(
-            (By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='N'")]''')))
-        if self.app.is_tax_required.get() == True:
-            # ขอใบกำกับ **Trick** สามารถใส่single qoute สามตัวได้ หากด้านในมีการใช้ qoute และ bouble qoute ไปแล้ว แต่ทั้งหมดต้องเป็น string อีกที >>  ('''function("vbvb, x='แมว'")''')
-            if self.app.marketplace_target.get() == "SHOPEE":
-                print("ขอใบกำกับSHOPEE ใช้ T:")
-                if self.cus_code != "":
-                    self.driver.find_element(
-                        By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='C'")]''').click()
-                else:
-                    self.driver.find_element(
-                        By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
-            elif self.app.marketplace_target.get() == "LAZADA":
-                print("ขอใบกำกับLazada ใช้ T:")
-                self.driver.find_element(
-                    By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click, "st='T'")]''').click()
-        elif self.app.is_tax_required.get() == False:
-            # ไม่ขอใบกำกับ
-            print("ไม่ขอใบกำกับใช้ N:")
-            self.driver.find_element(
-                By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='N'")]''').click()
+        # * 1. คลิกเปิด Dropdown ก่อน
+        cus_type_locator = (
+            By.XPATH,
+            r"//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button")
+        self.driver.find_element(*cus_type_locator).click()
 
-            # * สำหรับ SMCO 8.0.0
-            # print("ไม่ขอใบกำกับใช้ C:")
-            # self.driver.find_element(
-            #     By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='C'")]''').click()
+        is_tax = self.app.is_tax_required.get()
+        marketplace = self.app.marketplace_target.get()
+        print(f"Tax Required: {is_tax}, Marketplace: {marketplace}")
+
+        # * 2. กำหนด Logic การเลือกประเภทการค้นหา (st)
+        st_value = 'N'  # Default คือไม่ขอใบกำกับ
+
+        if is_tax:
+            if marketplace == "SHOPEE":
+                # * ถ้ามี cus_code ใช้ 'C' ถ้าไม่มีใช้ 'T'
+                st_value = 'C' if getattr(self, 'cus_code', False) else 'T'
+            elif marketplace == "LAZADA":
+                st_value = 'T'
+
+        # 3. สร้าง XPath จาก st_value ที่เลือกมา
+        # ใช้ f-string เพื่อใส่ค่า st เข้าไปใน XPath ตรงๆ
+        target_xpath = f"//div[contains(@ng-show, 'abbCustomerFlag')]//a[contains(@ng-click, \"st='{st_value}'\")]"
+
+        # 4. รอให้ Element พร้อมแล้วค่อยคลิก
+        print(f"Selecting search type (st='{st_value}')")
+        target_element = self.wait50.until(EC.element_to_be_clickable((By.XPATH, target_xpath)))
+        target_element.click()
+
+        # * สำหรับ SMCO 8.0.0
+        # print("ไม่ขอใบกำกับใช้ C:")
+        # self.driver.find_element(
+        #     By.XPATH, r'''//div[contains(@ng-show, "abbCustomerFlag")]//a[contains(@ng-click,"st='C'")]''').click()
 
     def set_cus_name_search_type_last_page(self):
         cus_type_btn = self.driver.find_element(
@@ -3955,14 +3985,16 @@ class Bot_POS:
 
     def get_customer_name_ready(self, cus_search_input, is_last_page: bool = False):
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-        print(f"Order: {self.app.cus_order.get()} : get_customer_name_ready starts")
+        print(f"Order: {self.cus_order} : get_customer_name_ready starts")
         self.set_cus_name_search_type()
         #! ใช้ getarrt('cus_code') ไรประมาณนี้ เพราะ cus_code มันยังไม่ถูกสร้างมันจะถูกสร้างทีหลังหากมีการเคส duplicated customer
-        if self.cus_code != "":
-            self.enter_cus_name(self.cus_code)
+
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
-            self.enter_cus_name(cus_search_input)
+            if getattr(self, 'cus_code', False):
+                self.enter_cus_name(self.cus_code)
+            else:
+                self.enter_cus_name(cus_search_input)
             print("กรอกชื่อเสร็จ")
             # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
             self.searching_condition = self.driver.find_element(By.XPATH, self.app.cusNameLi1)
@@ -4046,7 +4078,7 @@ class Bot_POS:
             except:
                 continue
 
-        print(f"Order: {self.app.cus_order.get()} : search หายไปแล้ว: get_customer_name_ready() ends")
+        print(f"Order: {self.cus_order} : search หายไปแล้ว: get_customer_name_ready() ends")
         self.wait50.until(EC.invisibility_of_element_located((By.XPATH, self.app.cusNameInput)))
 
     def enter_cus_name(self, cus_search):
@@ -4104,7 +4136,7 @@ class Bot_POS:
         """
         self.customer_added_times = 0
         self.customer_name_search_count = 0
-        print(f"""order: {self.app.cus_order.get()}: ensure_cus_name_li_ready starts""")
+        print(f"""order: {self.cus_order}: ensure_cus_name_li_ready starts""")
         while not self.operation_thread.is_set():
             try:
                 self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul)))
@@ -4162,13 +4194,13 @@ class Bot_POS:
                     self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                     break
             print("addcustomer and select While end!")
-            print(f"""order: {self.app.cus_order.get()}: ensure_cus_name_li_ready ends""")
+            print(f"""order: {self.cus_order}: ensure_cus_name_li_ready ends""")
             break
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
         # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
-        print(f"""order: {self.app.cus_order.get()} : select_cus_name_from_lis starts """)
+        print(f"""order: {self.cus_order} : select_cus_name_from_lis starts """)
         print("incoming cus_desire_name: ", cus_desire_name)
         pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'
@@ -4244,14 +4276,22 @@ class Bot_POS:
 
             # * ถ้ามันเจอก็จะ จบ function แต่ถ้าไม่เจอจะไปใช้ cb ต่อ
 
-        print(f"order: {self.app.cus_order.get()} : select_cus_name_from_lis: ไม่มีชื่อที่ใช้ได้ Add ใหม่")
+        print(f"order: {self.cus_order} : select_cus_name_from_lis: ไม่มีชื่อที่ใช้ได้ Add ใหม่")
         self.add_new_customer(lambda: self.get_customer_name_ready(self.cus_search_input))
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
-        customer_current_input_name = self.cus_name_dropdown_elmt_loc.text
-        prog = re.search(r'[^-]-(.*)', customer_current_input_name)
-        customer_current_input_name = prog.group(1).replace(" ", "")
-        print(f"customer_current_input_name: {customer_current_input_name} and cus_desire_name: {cus_desire_name}")
-
+        try:
+            customer_current_input_name = self.cus_name_dropdown_elmt_loc.text
+            print(
+                f"Order: {self.cus_order} : select_cus_name_from_lis(): customer_current_input_name: {customer_current_input_name}")
+            prog = re.search(r'[^-]-(.*)', customer_current_input_name)
+            customer_current_input_name = prog.group(1).replace(" ", "")
+            print(f"customer_current_input_name: {customer_current_input_name} and cus_desire_name: {cus_desire_name}")
+        except:
+            customer_current_input_name = ""
+            print(
+                f"Order: {self.cus_order} : select_cus_name_from_lis(): customer_current_input_name: {customer_current_input_name}")
+        self.get_customer_name_ready(customer_current_input_name)
+        return
         try:
             if cb:
                 print("use callback layer1: เพื่อ make sure ว่า li มันใช้ไม่ได้")
@@ -4711,6 +4751,12 @@ class Bot_POS:
         self.is_forbid = False
         is_etax = False
         self.is_old_tax_form = False
+        self.cus_code = ""
+        self.cus_order = self.app.cus_order.get()
+
+        current_url = self.driver.current_url
+        matched_str = re.search(r'\/[A-z].*', current_url).group()
+        self.origin = current_url.replace(matched_str, '')
 
         #! Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation อาจจะไม่ต้องใช้ก็ได้ เพราะใช้ใน
         inv_number = ""
@@ -4774,7 +4820,7 @@ class Bot_POS:
                     self.search_elmt = self.retry_on_stale_element(find_search_element)
 
                     self.search_elmt.clear()
-                    self.search_elmt.send_keys(self.app.cus_order.get())
+                    self.search_elmt.send_keys(self.cus_order)
 
                     # * กด Search เพื่อ เก็บ Status
                     self.searchBtn = self.driver.find_element(
@@ -4917,7 +4963,7 @@ class Bot_POS:
                         pass
 
                 self.search_elmt.clear()
-                self.search_elmt.send_keys(self.app.cus_order.get())
+                self.search_elmt.send_keys(self.cus_order)
 
                 # * กด Search เพื่อ เก็บ Status
                 self.searchBtn = self.driver.find_element(
@@ -4963,10 +5009,10 @@ class Bot_POS:
             try:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                 print("SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
-                logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
+                logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
             except:  # * กรณีหน้าเปิดการขายมันหายไป
                 print("SMCO :: เปิดการขาย หายไป เปิดใหม่")
-                logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย หายไป เปิดใหม่")
+                logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย หายไป เปิดใหม่")
                 self.driver.execute_script("window.open('');")
                 all_handles = self.driver.window_handles
                 new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
@@ -5106,11 +5152,6 @@ class Bot_POS:
 
                 time.sleep(1)
 
-                # * เปลี่ยน auto เป็น name ไม่ก็ email โดยขึ้นอยู่กับว่าขอใบกำกับหรือไม่
-                self.driver.find_element(
-                    By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button").click()
-                print("self.app.is_tax_required: ", self.app.is_tax_required.get())
-
                 # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ searchs
                 self.set_cus_name_search_type()
 
@@ -5195,7 +5236,7 @@ class Bot_POS:
             # except Exception as err:
             #     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            # logger.info(f"Order: {self.app.cus_order.get()} Testing End!!")
+            # logger.info(f"Order: {self.cus_order} Testing End!!")
             # return
 
             # with self.driver_lock:
@@ -5322,7 +5363,7 @@ class Bot_POS:
 
                                 # /กรอก remark
                                 time.sleep(0.75)
-                                remark_text = self.app.cus_order.get()
+                                remark_text = self.cus_order
                                 textarea_element = self.driver.find_element(
                                     By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
 
@@ -5365,7 +5406,7 @@ class Bot_POS:
                                 try:
                                     po_no_input_element = self.driver.find_element(
                                         By.XPATH, "//input[@id='textbox81037000102']")
-                                    value_to_input = self.app.cus_order.get()
+                                    value_to_input = self.cus_order
                                     #! classic way
                                     # po_no_input_element.clear()
                                     # po_no_input_element.send_keys(value_to_input)
@@ -5393,7 +5434,7 @@ class Bot_POS:
                                 if self.app.cus_name.get():
                                     value_to_input = self.app.cus_name.get()
                                 else:
-                                    value_to_input = self.app.cus_order.get()
+                                    value_to_input = self.cus_order
 
                                 #! classic way
                                 # self.driver.find_element(
@@ -5673,10 +5714,10 @@ class Bot_POS:
         try:
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
             print("SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
-            logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
+            logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
         except Exception as err:
             print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
-            logger.info(f"{self.app.cus_order.get()}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
+            logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
             self.driver.execute_script("window.open('');")
             all_handles = self.driver.window_handles
             new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
@@ -5689,16 +5730,16 @@ class Bot_POS:
             except Exception as err:
                 print(f"หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
                 logger.error(
-                    f"{self.app.cus_order.get()}: หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
+                    f"{self.cus_order}: หลังจาก reopen และตรวจดูด้วย get_tabs, หน้า 'SMCO :: เปิดการขาย1' ไม่มีอยู่จริง {err}")
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
         try:
             self.driver.find_element(
                 By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-            logger.info(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
-            print(f"{self.app.cus_order.get()}: there is a 'Close' button in SMCO :: เปิดการขาย1")
+            logger.info(f"{self.cus_order}: there is a 'Close' button in SMCO :: เปิดการขาย1")
+            print(f"{self.cus_order}: there is a 'Close' button in SMCO :: เปิดการขาย1")
         except:
-            print(f"{self.app.cus_order.get()}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
+            print(f"{self.cus_order}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
 
         self.open_customer_form(is_functionworking)
 
@@ -5918,6 +5959,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -6498,13 +6540,13 @@ class Bot_POS:
                     place_type='subdistrict'
                 )
 
-                print(f"""{self.app.cus_order.get()}: Address Revise Complete""")
+                print(f"""{self.cus_order}: Address Revise Complete""")
                 break
             except Exception as err:
                 print(f"Address Revise Error1 : {traceback.format_exc()}")
                 print(f"Address Revise Error2 : {err}")
-                logger.info(f"""{self.app.cus_order.get()}: Address Revise Error1 : {traceback.format_exc()}""")
-                logger.info(f"""{self.app.cus_order.get()}: Address Revise Error2 : {err}""")
+                logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
+                logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
                 continue
 
         # * Wait for success popup
@@ -6556,7 +6598,7 @@ class Bot_POS:
         desired_normalized = self._normalize_address_for_comparison(self.desired_full_address)
 
         if current_normalized != desired_normalized:
-            logger.info(f"{self.app.cus_order.get()}: compare self.current_address & self.desired_full_address")
+            logger.info(f"{self.cus_order}: compare self.current_address & self.desired_full_address")
             logger.info(self.current_address.replace(' ', ''))
             logger.info(self.desired_full_address.replace(' ', ''))
             print("Customer Address is not correct")
@@ -6603,7 +6645,7 @@ class Bot_POS:
             By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
-            logger.info(f"{self.app.cus_order.get()}: After adding cusname, the cusname is Not Duplicated")
+            logger.info(f"{self.cus_order}: After adding cusname, the cusname is Not Duplicated")
             return
         print("close dup popup = ", self.dup_popup_content)
 
@@ -6611,7 +6653,21 @@ class Bot_POS:
         matched_obj = re.search(r'^C.\d*', self.dup_popup_content, re.MULTILINE)
         print("matched_obj:", matched_obj)
         self.cus_code = matched_obj.group()
+
         print("cus_code: ", self.cus_code)
+        res_cus_data = self.app.smco_api.get_cus_data(
+            origin=self.origin,
+            req_text=self.cus_code, search_type='C',
+            cookies=self.get_cookies_from_driver(),
+        )
+        cus_data_list = res_cus_data.json()
+        cus_name = [cus_data.get('nameTh') for cus_data in cus_data_list
+                    if cus_data.get('taxId') == self.app.tax_num.get()]
+        if cus_name and cus_name[0]:
+            print(
+                f"order: {self.cus_order}: duplicated_cus_name_resolver: no need to update tax number because the tax number {self.app.tax_num.get()} is already associated with customer name {cus_name[0]} in SMCO")
+            return
+
         self.get_tabs()
         if not 'SMCO :: ลูกค้า' in self.merged_dict:
             self.open_customer_edit_page()
@@ -7028,7 +7084,7 @@ class Bot_POS:
             print("no data from vatinfo, use manual data from excel instead")
             # * หาตำบล จาก address ที่ลูกค้าให้มา
             cus_address_from_table = self.address_seperator(
-                self.app.data_frame, self.app.cus_order.get())
+                self.app.data_frame, self.cus_order)
 
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
