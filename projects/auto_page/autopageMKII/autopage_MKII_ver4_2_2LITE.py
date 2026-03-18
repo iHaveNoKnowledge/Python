@@ -2347,13 +2347,13 @@ class MyApp:
             r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
             r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
             r'\(สนญ\.?\)', r'สนญ\.?',
-            r'\(00000\)', 
+            r'\(00000\)',
         ]
 
         # --- patterns สำหรับสาขา ---
         branch_patterns = [
-            r'\(สาขา.*?\)', 
-            r'สาขา\d*' 
+            r'\(สาขา.*?\)',
+            r'สาขา\d*'
         ]
 
         # --- ลบคำสำนักงานใหญ่ ---
@@ -2365,13 +2365,13 @@ class MyApp:
             name_edited = re.sub(pattern, '', name_edited).strip()
 
         # --- ปรับรูปแบบประเภทบริษัท ---
-        
+
         # 1. กรณี บมจ. (บริษัท มหาชน จำกัด)
         if name_edited.startswith(("บมจ", "บริษัท มหาชน จำกัด", "บมจ.")) or "มหาชน" in name_edited:
             # ลบคำนำหน้า/คำลงท้ายเดิมออกก่อนเพื่อจัด format ใหม่
             name_edited = re.sub(r'^(บมจ\.?|บริษัท มหาชน จำกัด|บริษัท|บ\.)', '', name_edited).strip()
             name_edited = re.sub(r'(จำกัด\(มหาชน\)|มหาชน จำกัด|จำกัด)$', '', name_edited).strip()
-            
+
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
             if not name_edited.endswith("จำกัด (มหาชน)"):
@@ -2386,8 +2386,8 @@ class MyApp:
         # 3. กรณี บจก. (บริษัท จำกัด)
         elif name_edited.startswith(("บจก", "บริษัท", "บ.")) or name_edited.endswith("จำกัด"):
             name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.)', '', name_edited).strip()
-            name_edited = re.sub(r'จำกัด$', '', name_edited).strip() # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
-            
+            name_edited = re.sub(r'จำกัด$', '', name_edited).strip()  # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
+
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
             if not name_edited.endswith("จำกัด"):
@@ -5976,6 +5976,7 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -5994,7 +5995,7 @@ class Bot_POS:
         response = self.smco_api.post(url, data=payload, cookies=cookies, origin=self.origin)
 
         print('get_address_smco response status: ', response)
-        print('response.json(): ', response.json())
+        # print('response.json(): ', response.json())
         return response
 
     def smco_req_find_customer_id(self, cus_code: str = ""):
@@ -6196,10 +6197,11 @@ class Bot_POS:
             self.network_capture.clear_logs()
             return False
 
-    def smco_req_find_cus_address(self, cus_id: int = None):
+    def smco_req_find_cus_address(self, cus_id: int = None, **kwargs):
+        print(f"order: {self.cus_order}: smco_req_find_cus_address() called with cus_id: {cus_id} and kwargs: {kwargs}")
         max_retries = 3
         retry_count = 0
-
+        suffix = kwargs
         while retry_count < max_retries:
             try:
                 payload = {
@@ -6224,9 +6226,10 @@ class Bot_POS:
                 for address in response_data['addressOfMember']:
                     if address['defaultFlag']:
                         extracted_address['address'] = address['custAddress'] or ''
-                        extracted_address['subdistrict'] = address['subDustricId']['subdistrictNameTh'] or ''
-                        extracted_address['district'] = address['districtId']['districtNameTh'] or ''
-                        extracted_address['provice'] = address['provinceId']['provinceNameTh'] or ''
+                        extracted_address['subdistrict'] = address['subDustricId'][f'subdistrictName{suffix["subdistrict"]}'] or ''
+                        print('subdistrict from req: ',address['subDustricId'][f'subdistrictName{suffix["subdistrict"]}'])
+                        extracted_address['district'] = address['districtId'][f'districtName{suffix["district"]}'] or ''
+                        extracted_address['provice'] = address['provinceId'][f'provinceName{suffix["province"]}'] or ''
                         extracted_address['zip_code'] = address['zipCode'] or ''
 
                 return extracted_address
@@ -6579,9 +6582,23 @@ class Bot_POS:
         # * กลับไปหน้าการขาย
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
+    def check_language(self, text: str):
+        # ตรวจสอบว่ามีตัวอักษรภาษาอังกฤษหรือไม่
+        if re.search(r'[a-zA-Z]', text):
+            return 'En'
+        # ตรวจสอบว่ามีตัวอักษรภาษาไทยหรือไม่
+        elif re.search(r'[ก-๙]', text):
+            return 'Th'
+        else:
+            return 'unknown'
+
     def tax_address_corrector(self, cus_name):
         print("cus_name: ", cus_name)
-
+        suffixes = {
+            'subdistrict': self.check_language(self.app.nondistortedData['แขวง/ตำบล']),
+            'district': self.check_language(self.app.nondistortedData['เขต/อำเภอ.1']),
+            'province': self.check_language(self.app.nondistortedData['จังหวัด.1'])
+        }
         # random จะเป็นการที่ user เลือกเองฉะนั้นไม่ต้องตรวจซ้ำ
         if self.should_skip_address_correction():
             print("Random subdistrict used, skipping address correction")
@@ -6592,7 +6609,7 @@ class Bot_POS:
 
         customer_id = self.smco_req_find_customer_id(self.cus_code)
         if customer_id:
-            cus_address = self.smco_req_find_cus_address(customer_id)
+            cus_address = self.smco_req_find_cus_address(customer_id, **suffixes)
         else:
             cus_address = {
                 'address': '', 'subdistrict': '', 'district': '',
