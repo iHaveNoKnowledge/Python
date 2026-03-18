@@ -1940,7 +1940,7 @@ class MyApp:
 
             # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
             print("name.get()ก่อนทำการ standardized", self.cus_name.get())
-            self.cus_name.set(self.tax_name_standardizer(self.cus_name.get()))
+            self.cus_name.set(self.tax_name_formatter(self.cus_name.get()))
             print("name.get()หลังจากทำการ standardized", self.cus_name.get())
         else:
             print("Customer Name is empty")
@@ -2330,7 +2330,7 @@ class MyApp:
         adjusted_font_size = int(self.base_font_size * scale_factor)
         return adjusted_font_size
 
-    def cusNameFixer5(self, name, account_name=":"):
+    def cus_name_cleaner(self, name, account_name=":"):
         is_found = re.search(r"\[.*\]|\(.*\)|\{.*\}", name)
         name = re.sub(r"\[.*\]|\(.*\)|\{.*\}", '', name).strip() if is_found else name.strip()
         # เช็คว่าถ้ามองชื่อเป็น list มันจะแบ่งได้กี่ส่วน
@@ -2338,7 +2338,7 @@ class MyApp:
         print("name:", name)
         return name
 
-    def tax_name_standardizer(self, name: str) -> str:
+    def tax_name_formatter(self, name: str) -> str:
         # ลบ zero-width space และ trim
         name_edited = name.replace('\u200b', '').strip()
 
@@ -2347,13 +2347,13 @@ class MyApp:
             r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
             r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
             r'\(สนญ\.?\)', r'สนญ\.?',
-            r'\(00000\)',  # เพิ่ม case ของเลข 00000
+            r'\(00000\)', 
         ]
 
         # --- patterns สำหรับสาขา ---
         branch_patterns = [
-            r'\(สาขา.*?\)',   # (สาขาxxx)
-            r'สาขา\d*'        # สาขา + ตัวเลข
+            r'\(สาขา.*?\)', 
+            r'สาขา\d*' 
         ]
 
         # --- ลบคำสำนักงานใหญ่ ---
@@ -2365,20 +2365,36 @@ class MyApp:
             name_edited = re.sub(pattern, '', name_edited).strip()
 
         # --- ปรับรูปแบบประเภทบริษัท ---
-        if name_edited.startswith(("หจก", "ห้างหุ้นส่วนจำกัด", "ห.")):
+        
+        # 1. กรณี บมจ. (บริษัท มหาชน จำกัด)
+        if name_edited.startswith(("บมจ", "บริษัท มหาชน จำกัด", "บมจ.")) or "มหาชน" in name_edited:
+            # ลบคำนำหน้า/คำลงท้ายเดิมออกก่อนเพื่อจัด format ใหม่
+            name_edited = re.sub(r'^(บมจ\.?|บริษัท มหาชน จำกัด|บริษัท|บ\.)', '', name_edited).strip()
+            name_edited = re.sub(r'(จำกัด\(มหาชน\)|มหาชน จำกัด|จำกัด)$', '', name_edited).strip()
+            
+            if not name_edited.startswith("บริษัท"):
+                name_edited = f"บริษัท {name_edited}"
+            if not name_edited.endswith("จำกัด (มหาชน)"):
+                name_edited = f"{name_edited} จำกัด (มหาชน)"
+
+        # 2. กรณี หจก.
+        elif name_edited.startswith(("หจก", "ห้างหุ้นส่วนจำกัด", "ห.")):
             name_edited = re.sub(r'^(หจก\.?|ห้างหุ้นส่วนจำกัด|ห\.)', '', name_edited).strip()
             if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
                 name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
+
+        # 3. กรณี บจก. (บริษัท จำกัด)
         elif name_edited.startswith(("บจก", "บริษัท", "บ.")) or name_edited.endswith("จำกัด"):
             name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.)', '', name_edited).strip()
-            # ถ้าไม่มี "บริษัท" หรือ "จำกัด" อยู่แล้ว ให้เพิ่ม
+            name_edited = re.sub(r'จำกัด$', '', name_edited).strip() # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
+            
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
             if not name_edited.endswith("จำกัด"):
                 name_edited = f"{name_edited} จำกัด"
 
         # --- ลบช่องว่างเกิน ---
-        name_edited = re.sub(r"\s{2,}", ' ', name_edited)
+        name_edited = re.sub(r"\s{2,}", ' ', name_edited).strip()
 
         return name_edited
 
@@ -3962,10 +3978,10 @@ class Bot_POS:
         is_last_page = True
         if self.app.marketplace_target.get() == "SHOPEE":
             self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-            ) else self.app.cusNameFixer5(self.app.cus_name.get())
+            ) else self.app.cus_name_cleaner(self.app.cus_name.get())
         elif self.app.marketplace_target.get() == "LAZADA":
             self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-            ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+            ) else self.app.cus_name_cleaner(self.app.cus_name.get(), self.app.cus_account_name.get())
 
         # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
         self.get_customer_name_ready(self.cus_search_input, is_last_page)
@@ -5160,24 +5176,24 @@ class Bot_POS:
 
                 # if self.app.marketplace_target.get() == "SHOPEE":
                 #     self.cus_search_input = self.app.cus_email.get() if self.app.is_tax_required.get(
-                #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                #     ) else self.app.cus_name_cleaner(self.app.cus_name.get(), self.app.cus_account_name.get())
                 # elif self.app.marketplace_target.get() == "LAZADA":
                 #     self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-                #     ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                #     ) else self.app.cus_name_cleaner(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 # * 05/07/2024 Shopeeนั้นได้ลบ ชื่อลูกค้าแบบ ธรรมดา ออกไปอย่างถาวร จึงต้องปรับวิธีออกบิลให้กับแบบธรรมดาโดยการใช้ "account"+" ชื่อที่เป็นดอกจัน"+" หมายเลขโทรศัพท์"
                 # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-                # ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                # ) else self.app.cus_name_cleaner(self.app.cus_name.get(), self.app.cus_account_name.get())
 
                 if self.app.marketplace_target.get() == "SHOPEE":
                     #! ver ต่ำกว่า 8.0.0
                     self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-                    ) else self.app.cusNameFixer5(self.app.cus_name.get())
+                    ) else self.app.cus_name_cleaner(self.app.cus_name.get())
                     # / ver 8.0.0 ขึ้นไป
                     # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
                 elif self.app.marketplace_target.get() == "LAZADA":
                     self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get(
-                    ) else self.app.cusNameFixer5(self.app.cus_name.get(), self.app.cus_account_name.get())
+                    ) else self.app.cus_name_cleaner(self.app.cus_name.get(), self.app.cus_account_name.get())
                     # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
 
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
@@ -5959,7 +5975,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -7111,7 +7126,7 @@ class Bot_POS:
                 # * มีช่องว่าง แปลว่าดี
                 print("เจอช่องว่าง response ไม่ต้องทำอะไร return ได้เลย", result['name'])
             else:
-                #! ไม่มีช่องว่าง แปลว่าอับปรีย์
+                # * ไม่มีช่องว่าง แปลว่าผิด Format
                 result['name'] = result['name'].replace(
                     "บริษัท", "บริษัท ").replace(
                     "ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนจำกัด ")
