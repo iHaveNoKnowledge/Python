@@ -32,6 +32,7 @@ from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
+from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
 from googletrans import Translator
 from loguru import logger
@@ -2009,8 +2010,7 @@ class MyApp:
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
                 # * ตัดช่องว่าง
                 for row in self.items:
-                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
-                        ' ', '')
+                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(' ', '')
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
@@ -4498,7 +4498,7 @@ class Bot_POS:
         self.wsh.SendKeys("P")
         time.sleep(1.55)
         self.wsh.SendKeys("{Enter}")
-        print("print แล้วโว้ย")
+        print("print แล้ว")
         time.sleep(2)
         # * กดข้างนอกแล้วส่ง event ปุ่ม  ESC จาก KB
         # self.driver.find_element(By.XPATH, '/html/body/div[3]/div/div/div').click()
@@ -4753,6 +4753,7 @@ class Bot_POS:
             raise ValueError("Sumatra was not found")
 
     def operation_start(self):
+        self.tracking_manager = TrackingManager(self.driver, self, self.app.marketplace_target.get())
         # ตรวจสอบ driver ก่อนเริ่มทำงาน
         if not self.is_driver_alive():
             error_msg = "WebDriver connection lost. Browser may have crashed or been closed."
@@ -4769,10 +4770,6 @@ class Bot_POS:
         self.is_old_tax_form = False
         self.cus_code = ""
         self.cus_order = self.app.cus_order.get()
-
-        current_url = self.driver.current_url
-        matched_str = re.search(r'\/[A-z].*', current_url).group()
-        self.origin = current_url.replace(matched_str, '')
 
         #! Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation อาจจะไม่ต้องใช้ก็ได้ เพราะใช้ใน
         inv_number = ""
@@ -4928,28 +4925,22 @@ class Bot_POS:
                     self.wait50.until(
                         EC.element_to_be_clickable(
                             (By.XPATH,
-                             '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div[1]/div[1]/div[2]/div[2]/span[1]/span[2]/span/a')))
+                             '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div[1]/div[1]/div[2]/div[2]/span[1]/span[2]/span/a'
+                             )))
 
                 # * กรอก order ลงในช่อง search
-                self.search_elmt = self.wait50.until(
-                    EC.visibility_of_element_located(
-                        (By.XPATH,
-                         '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/span/input')))
-
-                self.driver.find_element(
-                    By.XPATH, '/html/body/div[1]/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/span/input').clear()
-
+                laz_order_input_path = "//span[@class='next-select-trigger-search']/input[@role='combobox' and @name='orderNumbers']"
+                self.search_elmt = self.wait50.until(EC.visibility_of_element_located((By.XPATH, laz_order_input_path)))
+                self.driver.find_element(By.XPATH, laz_order_input_path).clear()
                 self.input_count = []
 
                 try:
-                    close_btn = self.driver.find_element(
-                        By.XPATH,
-                        '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[1]/span[2]')
+                    laz_close_btn_path = "//div[@class='next-tag next-tag-closable next-tag-small next-tag-level-primary next-tag-closable']/span[@class='next-tag-close-btn']"
+                    close_btn = self.driver.find_element(By.XPATH, laz_close_btn_path)
 
                     try:
-                        self.input_count = self.driver.find_element(
-                            By.XPATH,
-                            '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[2]/span/span')
+                        laz_order_input_amount_path = '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/span/span[1]/span[1]/div[2]/span/span'
+                        self.input_count = self.driver.find_element(By.XPATH, laz_order_input_amount_path)
                     except:
                         print("Have only one input")
                 except:
@@ -5024,6 +5015,9 @@ class Bot_POS:
             # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
             try:
                 self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                current_url = self.driver.current_url
+                matched_str = re.search(r'\/[A-z].*', current_url).group()
+                self.origin = current_url.replace(matched_str, '')
                 print("SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
                 logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย ไม่หาย ไปต่อ")
             except:  # * กรณีหน้าเปิดการขายมันหายไป
@@ -6226,8 +6220,10 @@ class Bot_POS:
                 for address in response_data['addressOfMember']:
                     if address['defaultFlag']:
                         extracted_address['address'] = address['custAddress'] or ''
-                        extracted_address['subdistrict'] = address['subDustricId'][f'subdistrictName{suffix["subdistrict"]}'] or ''
-                        print('subdistrict from req: ',address['subDustricId'][f'subdistrictName{suffix["subdistrict"]}'])
+                        extracted_address['subdistrict'] = address['subDustricId'][
+                            f'subdistrictName{suffix["subdistrict"]} '] or ''
+                        print('subdistrict from req: ', address['subDustricId']
+                              [f'subdistrictName{suffix["subdistrict"]}'])
                         extracted_address['district'] = address['districtId'][f'districtName{suffix["district"]}'] or ''
                         extracted_address['provice'] = address['provinceId'][f'provinceName{suffix["province"]}'] or ''
                         extracted_address['zip_code'] = address['zipCode'] or ''
