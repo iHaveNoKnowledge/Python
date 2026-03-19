@@ -6164,7 +6164,7 @@ class Bot_POS:
 
                 if matched_item:
                     # เลือกโดยกด Enter (dropdown จะเลือกตัวแรกที่ตรง)
-                    # input_element.send_keys(Keys().ENTER)
+                    # input_element.send_keys(Keys.ENTER)
                     li_dropdowns[matched_item_idx].click()
                     print(f"Selected '{search_value}' successfully")
 
@@ -6177,7 +6177,7 @@ class Bot_POS:
                 print("No response from API, using fallback")
 
             # Fallback: กด Enter ตามปกติ
-            input_element.send_keys(Keys().ENTER)
+            input_element.send_keys(Keys.ENTER)
             self.network_capture.clear_logs()
             return False
 
@@ -6185,7 +6185,7 @@ class Bot_POS:
             print(f"Error in select_li_from_dropdown: {e}")
             # Fallback: กด Enter
             try:
-                input_element.send_keys(Keys().ENTER)
+                input_element.send_keys(Keys.ENTER)
             except:
                 pass
             self.network_capture.clear_logs()
@@ -6527,7 +6527,7 @@ class Bot_POS:
                 self.driver.find_element(By.XPATH, dropdown_input_xpath).send_keys(
                     self.app.cus_province.get().replace("จังหวัด", ""))
                 time.sleep(1.75)
-                self.driver.find_element(By.XPATH, dropdown_input_xpath).send_keys(Keys().ENTER)
+                self.driver.find_element(By.XPATH, dropdown_input_xpath).send_keys(Keys.ENTER)
 
                 # * District
                 self.driver.find_element(By.XPATH, district_dropdown_xpath).click()
