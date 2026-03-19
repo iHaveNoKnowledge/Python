@@ -2010,7 +2010,8 @@ class MyApp:
                 self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
                 # * ตัดช่องว่าง
                 for row in self.items:
-                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(' ', '')
+                    row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
+                        ' ', '')
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
@@ -5377,6 +5378,9 @@ class Bot_POS:
                                 textarea_element = self.driver.find_element(
                                     By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
 
+                                self.tracking_manager.collect_tracking(remark_text)
+                                self.tracking_manager.apply_tracking_to_final_page()
+
                                 #! classic way
                                 # self.driver.find_element(
                                 #     By.XPATH,
@@ -5969,7 +5973,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

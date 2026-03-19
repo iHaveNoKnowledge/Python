@@ -26,18 +26,18 @@ class TrackingManager:
         # You can define timeout here
         self.wait10 = WebDriverWait(self.driver, 10)
 
-    def collect_tracking(self, current_order):
+    def collect_tracking(self, current_order) -> None:
         self.merged_dict = self.bot.merged_dict
         """
         1. เก็บค่า
         """
-        #* clear ค่า trackings list
+        # * clear ค่า trackings list
         self.trackings.clear()
 
-        #* driver สลับ tab ไป marketplace (Assuming marketplace is tab index 1 or using window handles)
+        # * driver สลับ tab ไป marketplace (Assuming marketplace is tab index 1 or using window handles)
         try:
-            #* Placeholder: switchTo the marketplace tab
-            #* e.g., self.driver.switch_to.window(self.driver.window_handles[1])
+            # * Placeholder: switchTo the marketplace tab
+            # * e.g., self.driver.switch_to.window(self.driver.window_handles[1])
             if self.marketplace == 'SHOPEE':
                 self.driver.switch_to.window(self.merged_dict['Seller Centre'])
             elif self.marketplace == 'LAZADA':
@@ -49,16 +49,16 @@ class TrackingManager:
         except Exception as e:
             print(f"Error switching tab: {e}")
 
-        #* marketplace หน้าแรกไหม
+        # * marketplace หน้าแรกไหม
         is_homepage = self._check_is_marketplace_homepage()
 
         if not is_homepage:
-            #* redicrect กลับไปหน้าแรก
+            # * redicrect กลับไปหน้าแรก
             self._redirect_to_marketplace_homepage()
-            #* Followed by re-enter? The diagram has a loop back.
+            # * Followed by re-enter? The diagram has a loop back.
             pass
 
-        #* Reenter current_order
+        # * Reenter current_order
         self._reenter_current_order(current_order)
 
         # เก็บ tracking elements
@@ -77,12 +77,13 @@ class TrackingManager:
         except Exception as e:
             print(f"Error switching returning tab: {e}")
 
-        return self.trackings
+        # return self.trackings
 
-    def apply_tracking_to_final_page(self):
+    def apply_tracking_to_final_page(self) -> None:
         """
         2. เอาไปใส่ในหน้าท้าย
         """
+        ref_element_xpath = "//textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']"
         if not self.trackings:
             print("No trackings to apply.")
             return
@@ -90,16 +91,16 @@ class TrackingManager:
         # Placeholder: logic to insert trackings into the specific element in the final page
         # Example:
         # try:
-        #     tracking_input = self.wait.until(EC.presence_of_element_located((By.XPATH, "YOUR_XPATH_HERE")))
+        #     tracking_input = self.wait10.until(EC.presence_of_element_located((By.XPATH, "YOUR_XPATH_HERE")))
         #     tracking_text = ", ".join(self.trackings)
         #     tracking_input.send_keys(tracking_text)
         # except Exception as e:
         #     print(f"Error applying trackings: {e}")
 
         try:
-            tracking_input = self.wait.until(EC.presence_of_element_located((By.XPATH, "YOUR_XPATH_HERE")))
+            tracking_input = self.driver.find_element(By.XPATH, ref_element_xpath)
             tracking_text = ", ".join(self.trackings)
-            tracking_input.send_keys(tracking_text)
+            self.bot.js_input_value(tracking_input, tracking_text)
         except Exception as e:
             print(f"Error applying trackings: {e}")
         pass
@@ -184,16 +185,19 @@ class TrackingManager:
             self.searchBtn.click()
             time.sleep(0.75)
 
-    def _get_tracking_elements(self)->:
+    def _get_tracking_elements(self) -> list:
         # Placeholder: return a list of selenium WebElements representing trackings
         # return self.driver.find_elements(By.XPATH, "TRACKING_ELEMENTS_XPATH")
         if self.marketplace == 'SHOPEE':
-            tracking_elements = self.driver.find_elements(By.XPATH,"//div[@class='tracking-number']")
+            tracking_elements = self.driver.find_elements(By.XPATH, "//div[@class='tracking-number']")
+            print("tracking_elements: ", tracking_elements)
             return tracking_elements
-            
+
         elif self.marketplace == 'LAZADA':
+            print("ยังไม่ได้ทำ")
             return []
 
     def _extract_trackings_from_elements(self, elements):
         # Placeholder: get text or attribute from the elements
+        print("extracted elements: ", elements)
         return [el.text for el in elements if el.text]
