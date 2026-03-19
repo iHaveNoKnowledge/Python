@@ -100,7 +100,25 @@ class TrackingManager:
         try:
             tracking_input = self.driver.find_element(By.XPATH, ref_element_xpath)
             tracking_text = ", ".join(self.trackings)
-            self.bot.js_input_value(tracking_input, tracking_text)
+            # self.bot.js_input_value(tracking_input, tracking_text)
+            self.driver.execute_script("""
+                var el = arguments[0];
+    // เก็บค่า style เดิมไว้ก่อน
+    var originalStyle = el.style.display;
+    
+    // บังคับให้โชว์
+    el.style.display = 'block';
+    el.style.visibility = 'visible';
+    el.style.opacity = '1';
+    
+    // ใส่ค่าและ trigger events
+    el.value = arguments[1];
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    // คืนค่า style เดิม (ถ้าต้องการ)
+    // el.style.display = originalStyle;
+            """, tracking_input, tracking_text)
         except Exception as e:
             print(f"Error applying trackings: {e}")
         pass
@@ -188,6 +206,7 @@ class TrackingManager:
     def _get_tracking_elements(self) -> list:
         # Placeholder: return a list of selenium WebElements representing trackings
         # return self.driver.find_elements(By.XPATH, "TRACKING_ELEMENTS_XPATH")
+        time.sleep(1)  # * ใช้ได้จริง ถ้าไม่ใช้ มันจะโหลดไม่ทันทำให้ได้ list เปล่าๆมา
         if self.marketplace == 'SHOPEE':
             tracking_elements = self.driver.find_elements(By.XPATH, "//div[@class='tracking-number']")
             print("tracking_elements: ", tracking_elements)
@@ -199,5 +218,5 @@ class TrackingManager:
 
     def _extract_trackings_from_elements(self, elements):
         # Placeholder: get text or attribute from the elements
-        print("extracted elements: ", elements)
+        print("extracted_elements: ", elements)
         return [el.text for el in elements if el.text]
