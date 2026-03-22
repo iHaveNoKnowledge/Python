@@ -152,7 +152,7 @@ class OrderDisplayManager:
                 width=int(self.cols_width[4]),
                 height=14
             )
-            total_price_entry.insert(0, f"{float(row['ราคาขายสุทธิ']):,.2f}")
+            total_price_entry.insert(0, f"{float(row['ยอดชำระเงิน']):,.2f}")
             row_widgets.append(total_price_entry)
 
             # Column 5: Total rebate price
@@ -162,7 +162,7 @@ class OrderDisplayManager:
                 height=14
             )
             total_rebate_entry.insert(
-                0, f"{float(row['ราคาขายสุทธิ']) + float(row['ส่วนลดจาก Shopee']):,.2f}")
+                0, f"{float(row['ยอดชำระเงิน']) + float(row['ส่วนลดจาก Shopee']):,.2f}")
             row_widgets.append(total_rebate_entry)
 
             # Column 6: Adjust price input
@@ -246,7 +246,7 @@ class OrderDisplayManager:
         # Calculate total price from products
         total_price = 0
         for product in products_list:
-            price = product["ราคาขายสุทธิ"]
+            price = product["ยอดชำระเงิน"]
             shopee_rebate = product['ส่วนลดจาก Shopee']
             price_plusrebate = price + shopee_rebate
             total_price += price_plusrebate
