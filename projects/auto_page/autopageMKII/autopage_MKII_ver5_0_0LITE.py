@@ -1150,8 +1150,7 @@ class MyApp:
         # * Initialize OrderDisplayManager
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
 
-        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
-                                     'ราคาต่อชิ้น', 'QTY', 'ยอดชำระเงิน', 'ราคา+รีเบท', 'ปรับราคา']
+        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด','ราคาต่อชิ้น', 'QTY', 'ยอดชำระเงิน', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
 
         # * > demonic cp segment
