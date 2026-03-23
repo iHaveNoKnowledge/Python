@@ -1,1 +1,2 @@
-find_elements
+
+        self._session = requests.Session()

@@ -165,7 +165,7 @@ class OrderDisplayManager:
                 0, f"{float(row['ยอดชำระเงิน']) + float(row['ส่วนลดจาก Shopee']):,.2f}")
             row_widgets.append(total_rebate_entry)
 
-            # Column 6: Adjust price input
+            #* Column 6: Adjust price input
             self.app.adjust_amount_vars[item_idx] = StringVar(value="0")
             adjust_price_entry = CTkEntry(
                 self.parent_frame,
@@ -175,7 +175,7 @@ class OrderDisplayManager:
             )
             row_widgets.append(adjust_price_entry)
 
-            # Column 7: OC Button (Overcharge - ขึ้นราคา)
+            #* Column 7: OC Button (Overcharge - ขึ้นราคา)
             oc_btn = CTkButton(
                 self.parent_frame,
                 width=int(self.cols_width[7]),

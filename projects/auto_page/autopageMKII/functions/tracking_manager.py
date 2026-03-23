@@ -111,6 +111,9 @@ class TrackingManager:
     el.style.visibility = 'visible';
     el.style.opacity = '1';
     
+    // set attribute title
+    el.setAttribute('title', arguments[1]);
+    
     // ใส่ค่าและ trigger events
     el.value = arguments[1];
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -119,6 +122,13 @@ class TrackingManager:
     // คืนค่า style เดิม (ถ้าต้องการ)
     // el.style.display = originalStyle;
             """, tracking_input, tracking_text)
+
+            ok_button = self.driver.find_element("xpath", "//button[@ng-click='okAddRemarkRef()']")
+
+            # ใช้ JavaScript คลิกเพื่อความชัวร์ (เผื่อปุ่มโดนบัง)
+            self.driver.execute_script("arguments[0].click();", ok_button)
+            time.sleep(0.5)
+            ok_button.click()  # กดปุ่ม OK เพื่อบันทึก
         except Exception as e:
             print(f"Error applying trackings: {e}")
         pass

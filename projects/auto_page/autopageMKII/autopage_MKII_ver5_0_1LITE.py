@@ -1940,9 +1940,9 @@ class MyApp:
             self.cus_name.set(re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
 
             # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
-            print("name.get()ก่อนทำการ standardized", self.cus_name.get())
+            print("name.get()ก่อนทำการ format", self.cus_name.get())
             self.cus_name.set(self.tax_name_formatter(self.cus_name.get()))
-            print("name.get()หลังจากทำการ standardized", self.cus_name.get())
+            print("name.get()หลังจากทำการ format", self.cus_name.get())
         else:
             print("Customer Name is empty")
 
@@ -2343,6 +2343,10 @@ class MyApp:
         # ลบ zero-width space และ trim
         name_edited = name.replace('\u200b', '').strip()
 
+        # --- ลบ text ทีไม่ต้องการก่อนเริ่มจัด format ---
+        name_edited = re.sub(r'เลขประจำตัวผู้เสียภาษี\s*[\d-]*', '', name_edited).strip()
+        name_edited = re.sub(r'TAX\s*ID:?\s*[\d-]*', '', name_edited, flags=re.IGNORECASE).strip()
+
         # --- patterns สำหรับสำนักงานใหญ่ ---
         head_office_patterns = [
             r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
@@ -2354,16 +2358,17 @@ class MyApp:
         # --- patterns สำหรับสาขา ---
         branch_patterns = [
             r'\(สาขา.*?\)',
-            r'สาขา\d*'
+            r'สาขา\s*\d+'
         ]
 
-        # --- ลบคำสำนักงานใหญ่ ---
-        for pattern in head_office_patterns:
-            name_edited = re.sub(pattern, '', name_edited).strip()
-
-        # --- ลบคำสาขา ---
-        for pattern in branch_patterns:
-            name_edited = re.sub(pattern, '', name_edited).strip()
+        # --- แยก suffix สาขา/สำนักงานใหญ่ออกมาก่อน ---
+        extracted_suffix = ""
+        for pattern in head_office_patterns + branch_patterns:
+            match = re.search(pattern, name_edited)
+            if match:
+                extracted_suffix = match.group()
+                name_edited = re.sub(pattern, '', name_edited).strip()
+                break  # ดึงมาแค่อันเดียวพอ
 
         # --- ปรับรูปแบบประเภทบริษัท ---
 
@@ -2393,6 +2398,10 @@ class MyApp:
                 name_edited = f"บริษัท {name_edited}"
             if not name_edited.endswith("จำกัด"):
                 name_edited = f"{name_edited} จำกัด"
+
+        # --- ต่อ suffix คืน ---
+        if extracted_suffix:
+            name_edited = f"{name_edited} {extracted_suffix}"
 
         # --- ลบช่องว่างเกิน ---
         name_edited = re.sub(r"\s{2,}", ' ', name_edited).strip()
@@ -2558,6 +2567,13 @@ class MyApp:
             qty: quantity
             **kwargs: additional arguments to pass to auto_add_product
         """
+
+        try:
+            self.bot.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
+        except:
+            self.bot.get_tabs()
+            self.bot.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
+
         def run_auto_add():
             try:
                 self.bot.AutoAddProduct.auto_add_product(skus, qty, **kwargs)
@@ -3556,21 +3572,25 @@ class Bot_POS:
 
     def oc_amounts_calculator(self, entered_data):
         result = 0
+        entered_data = str(entered_data).replace(',', '')
 
         if "+" in entered_data:
             entered_data = entered_data.split("+")
             for operand in entered_data:
-                result += int(operand)
-            return result
+                result += float(operand.strip())
+            return int(result)
 
         elif "-" in entered_data:
-            operands = [int(x.strip()) for x in entered_data.split("-")]
+            operands = [float(x.strip()) for x in entered_data.split("-")]
             result = operands[0]  # ตัวแรกเป็นตัวตั้ง
             for operand in operands[1:]:
                 result -= operand  # ลบแต่ตัวหลัง
-            return result
+            return int(result)
 
-        return entered_data
+        try:
+            return int(float(entered_data.strip()))
+        except ValueError:
+            return entered_data
 
     # / fcuntion overcharge product
     def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None):
@@ -3659,7 +3679,6 @@ class Bot_POS:
 
     def smco_set_discount_product(
             self, items_user_input: str = None, dc_amounts_input: str = None, qty: str = ["1"]):
-        #! WIP DC พอใช้ได้แต่ยังไม่เสร็จ อย่าเพิ่งรีบนะ
         print("items_dc_target: ", items_user_input)
         print("dc_amounts_input: ", dc_amounts_input)
         if items_user_input is None or dc_amounts_input is None:
@@ -4065,16 +4084,6 @@ class Bot_POS:
                     pass
                 continue
 
-        # #* เลือกชื่อลูกค้า มีสองกรณี คือ เลือกจาก li > 1 หรือ น้อยกว่า 2 ย้ายไปไว้ใน while เพราะ customer_name_dropdown_lis มันหายได้หากไว้นอก while มันจะพัง
-        # if len(customer_name_dropdown_lis) > 1:
-        #     print("มากกว่า 1")
-        #     cus_found_names_list = [element.text for element in customer_name_dropdown_lis]
-        #     self.select_cus_name_from_lis(self.app.cus_name.get(), cus_found_names_list, self.select_cus_name_from_lis)
-        #     print("click แล้ว")
-        # else:
-        #     self.driver.find_element(By.XPATH, self.app.cusNameLi1).click()
-        #     print("Click the cusname li result")
-
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
         while not self.operation_thread.is_set():
             try:
@@ -4153,7 +4162,7 @@ class Bot_POS:
         """
         self.customer_added_times = 0
         self.customer_name_search_count = 0
-        print(f"""order: {self.cus_order}: ensure_cus_name_li_ready starts""")
+        print(f"""order: {self.cus_order}: ensure_li_shown_cus_name starts""")
         while not self.operation_thread.is_set():
             try:
                 self.wait50.until(EC.presence_of_element_located((By.XPATH, self.app.cus_name_dropdown_ul)))
@@ -4211,7 +4220,7 @@ class Bot_POS:
                     self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
                     break
             print("addcustomer and select While end!")
-            print(f"""order: {self.cus_order}: ensure_cus_name_li_ready ends""")
+            print(f"""order: {self.cus_order}: ensure_li_shown_cus_name ends""")
             break
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
@@ -4304,7 +4313,7 @@ class Bot_POS:
             customer_current_input_name = prog.group(1).replace(" ", "")
             print(f"customer_current_input_name: {customer_current_input_name} and cus_desire_name: {cus_desire_name}")
         except:
-            customer_current_input_name = ""
+            customer_current_input_name = self.cus_search_input
             print(
                 f"Order: {self.cus_order} : select_cus_name_from_lis(): customer_current_input_name: {customer_current_input_name}")
         self.get_customer_name_ready(customer_current_input_name)
@@ -5251,6 +5260,7 @@ class Bot_POS:
             # return
 
             # with self.driver_lock:
+            #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน
             # / หน้าท้าย ================================================================================
             self.autofinal = True
             while self.autofinal and not self.operation_thread.is_set():
@@ -5380,13 +5390,6 @@ class Bot_POS:
 
                                 self.tracking_manager.collect_tracking(remark_text)
                                 self.tracking_manager.apply_tracking_to_final_page()
-
-                                #! classic way
-                                # self.driver.find_element(
-                                #     By.XPATH,
-                                #     "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").clear()
-                                # self.driver.find_element(
-                                #     By.XPATH, "/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[1]/textarea").send_keys(remark_text)
 
                                 # / Final way ใช้ function ที่เขียนแยกไว้
                                 self.js_input_value(textarea_element, remark_text)
@@ -5768,6 +5771,11 @@ class Bot_POS:
 
         elif customer_type == "tax":
             name = self.app.cus_name.get()
+            # Remove any trailing branch info to standardize format
+            name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
+            name = re.sub(r'\s*\(?สาขา\s*\d+\)?\s*$', '', name)
+            name = name.strip()
+
             # Add branch info for tax customers
             if self.app.branch_type == 'สำนักงานใหญ่':
                 name = f"{name} ({self.app.branch_type})"
@@ -5789,11 +5797,16 @@ class Bot_POS:
             tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
             name = tax_info['name']
 
+            # Remove any trailing branch info to standardize format
+            name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
+            name = re.sub(r'\s*\(?สาขา\s*\d+\)?\s*$', '', name)
+            name = name.strip()
+
             # * Add branch info for lazada tax customers
             if self.app.branch_type == 'สำนักงานใหญ่':
                 self.app.tax_branch_num.set(self.app.nondistortedData['ประเภทสาขา'])
                 if name.startswith("บริษัท") or "จำกัด" in name:
-                    name += f" {tax_info['branch']}"
+                    name += f" (สำนักงานใหญ่)"
             elif self.app.branch_type == "สาขาย่อย" and not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0]):
                 name = f"{name} (สาขา{self.app.tax_branch_num.get()})"
 
@@ -5974,7 +5987,6 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
-
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -5992,7 +6004,7 @@ class Bot_POS:
         url = f'{self.origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm'
         response = self.smco_api.post(url, data=payload, cookies=cookies, origin=self.origin)
 
-        print('get_address_smco response status: ', response)
+        print('get_address_smco response status: ', response.json())
         # print('response.json(): ', response.json())
         return response
 
@@ -6004,7 +6016,6 @@ class Bot_POS:
         }
         response = self.address_api_request_smco(payload)
         response_data: list = response.json()
-        print("response_data: ", response_data)
         cus_data: dict = {}
         for i in response_data:
             if i['custCode'] == cus_code:
@@ -6225,7 +6236,7 @@ class Bot_POS:
                     if address['defaultFlag']:
                         extracted_address['address'] = address['custAddress'] or ''
                         extracted_address['subdistrict'] = address['subDustricId'][
-                            f'subdistrictName{suffix["subdistrict"]} '] or ''
+                            f'subdistrictName{suffix["subdistrict"]}'] or ''
                         print('subdistrict from req: ', address['subDustricId']
                               [f'subdistrictName{suffix["subdistrict"]}'])
                         extracted_address['district'] = address['districtId'][f'districtName{suffix["district"]}'] or ''
@@ -7508,5 +7519,4 @@ if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
-    print("Program closed")
     print("Program closed")
