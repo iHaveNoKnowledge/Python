@@ -194,7 +194,7 @@ class TrackingManager:
                     pass
 
             self.search_elmt.clear()
-            self.search_elmt.send_keys(self.cus_order)
+            self.search_elmt.send_keys(current_order)
 
             # * กด Search เพื่อ เก็บ Status
             self.searchBtn = self.driver.find_element(

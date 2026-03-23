@@ -510,7 +510,7 @@ class MyApp:
         ))
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver5.0.0LITE")
+        self.root.title("Autosamatic ver5.0.1LITE")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
@@ -1150,7 +1150,8 @@ class MyApp:
         # * Initialize OrderDisplayManager
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
 
-        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด','ราคาต่อชิ้น', 'QTY', 'ยอดชำระเงิน', 'ราคา+รีเบท', 'ปรับราคา']
+        self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
+                                     'ราคาต่อชิ้น', 'QTY', 'ยอดชำระเงิน', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
 
         # * > demonic cp segment
@@ -5972,6 +5973,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
