@@ -36,48 +36,69 @@ class NetworkResponseCapture:
             >>>     for item in response:
             >>>         print(item['districtNameTh'], item['districtNameEn'])
         """
+        try:
+            self.driver.execute_cdp_cmd('Network.enable', {})
+        except Exception:
+            pass
+            
         request_ids = []
+        request_methods = {}
         
-        # * Poll for requestId
+        # * Poll for requestId AND try to fetch body immediately
         for attempt in range(max_attempts):
             logs = self.driver.get_log("performance")
+            
             for entry in logs:
                 try:
                     msg = json.loads(entry["message"])["message"]
+                    
                     if msg["method"] == "Network.requestWillBeSent":
-                        url = msg["params"]["request"]["url"]
+                        req_id = msg["params"]["requestId"]
+                        method = msg["params"]["request"].get("method", "")
+                        request_methods[req_id] = method
+                        
+                    elif msg["method"] == "Network.responseReceived":
+                        req_id = msg["params"]["requestId"]
+                        resp = msg["params"]["response"]
+                        url = resp.get("url", "")
+                        status = resp.get("status", 0)
+                        req_type = msg["params"].get("type", "")
+                        
                         if target_url_part in url:
-                            request_ids.append(msg["params"]["requestId"])
-                            print(f"Found request ID: {msg['params']['requestId']}")
-                            break
-                except:
+                            method = request_methods.get(req_id, "")
+                            # ข้าม preflight (OPTIONS) หรือ request ที่ไม่สำเร็จ
+                            if method == "OPTIONS" or req_type == "Preflight":
+                                continue
+                                
+                            # กรองเฉพาะประเภทที่มักจะมี JSON body และ status code 200
+                            if req_type in ["XHR", "Fetch"] and status == 200:
+                                if req_id not in request_ids:
+                                    request_ids.append(req_id)
+                                    print(f"Found target response ID: {req_id} (Method: {method}, Type: {req_type}, Status: {status})")
+                except Exception:
                     continue
             
-            if len(request_ids) > 0:
-                print(f"Captured {len(request_ids)} request ID(s)")
-                break
-            
-            time.sleep(wait_interval)
-        
-        if not request_ids:
-            print(f"No request found for URL part: {target_url_part}")
-            return None
-        
-        # * Poll for response
-        for attempt in range(max_attempts):
+            # พยายามดึง body ของ requests ที่เก็บมาได้
+            # ทำใน loop เดียวกัน เพื่อให้ยังคงดึง logs ใหม่ได้ถ้าตัวเก่าดึง body ไม่ได้ (เช่น -32000)
             for req_id in request_ids:
                 try:
                     res = self.driver.execute_cdp_cmd("Network.getResponseBody", {"requestId": req_id})
                     parsed_response = json.loads(res['body'])
-                    print(f"Got response for request ID: {req_id}")
+                    print(f"Got response body for request ID: {req_id}")
                     return parsed_response
                 except Exception as e:
-                    # Response not ready yet
-                    continue
+                    # แสดง error แต่ไม่หยุดการทำงาน (อาจจะเป็น -32000 No resource with given identifier)
+                    if "No resource with given identifier found" not in str(e):
+                        print(f"capture_response() error for {req_id}: {e}")
+                    pass
             
             time.sleep(wait_interval)
         
-        print(f"No response received for request IDs: {request_ids}")
+        if not request_ids:
+            print(f"No valid response found for URL part: {target_url_part}")
+        else:
+            print(f"Could not get response body for request IDs: {request_ids}")
+            
         return None
     
     def clear_logs(self):

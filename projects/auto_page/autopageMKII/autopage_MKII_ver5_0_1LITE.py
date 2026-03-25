@@ -3671,6 +3671,7 @@ class Bot_POS:
                             pass
                     except Exception as err:
                         print("smco_set_overcharge_product_v2_Error occurred: ", err)
+                        logger.error(f"order: {self.cus_order}: smco_set_overcharge_product_v2_Error: {err}")
                         pass
 
         # Todo
@@ -4470,15 +4471,21 @@ class Bot_POS:
 
         if int(shipping_cost) != int(0) and not has_shpping_cost:
             try:
-                self.sku_input_element = self.driver.find_element(
-                    By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
-                # skuInput = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
+                self.sku_input_element = self.driver.find_element(By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
                 self.js_input_value(self.sku_input_element, 'SV0-000101')
                 self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
-                response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm', max_attempts=15)
+                response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm')
                 if response_data:
-                    # time.sleep(0.55) #? อาจจะไม่จำเป็นนะ
+                    # * ถ้าไม่มีรู้สึกว่า element li จะโหลดไม่ทันทำให้ funciton ปรับราคานี้ไม่ทำงาน
+                    while not self.operation_thread.is_set():
+                        try:
+                            self.driver.find_element(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                            print("item li found")
+                            break
+                        except:
+                            time.sleep(0.5)
+                            continue
                     self.smco_set_overcharge_product('SV0-000101', shipping_cost)
                     print("กด Enter ที่ช่อง SKU Input สำเร็จ")
 
@@ -6162,7 +6169,8 @@ class Bot_POS:
 
             # จับ response จาก API
             api_url_part = "/getCountryInfomation.htm"
-            response_data = self.network_capture.capture_response(api_url_part, max_attempts=15)
+            response_data = self.network_capture.capture_response(api_url_part)
+            
             li_dropdowns = self.driver.find_elements(By.XPATH, "//li[@role='treeitem']")
 
             if response_data:
@@ -6621,6 +6629,7 @@ class Bot_POS:
         customer_id = self.smco_req_find_customer_id(self.cus_code)
         if customer_id:
             cus_address = self.smco_req_find_cus_address(customer_id, **suffixes)
+            print("cus_address: ", cus_address)
         else:
             cus_address = {
                 'address': '', 'subdistrict': '', 'district': '',
@@ -6631,10 +6640,12 @@ class Bot_POS:
             print("Address not matched")
 
         self.current_address = "".join(cus_address.values())
+        self.current_address = re.sub(r'\s+','', self.current_address)
         self._build_desired_addresses()
 
         print("compare self.current_address & self.desired_full_address")
         print(self.current_address.replace(' ', ''))
+        
         print(self.desired_full_address.replace(' ', ''))
 
         current_normalized = self._normalize_address_for_comparison(self.current_address)
