@@ -4436,18 +4436,18 @@ class Bot_POS:
                 item_srp_element = item_element.find_element(By.XPATH, ".//span[@class='font-color-base ng-binding']")
                 item_srp = self.driver.execute_script("return arguments[0].textContent;", item_srp_element)
                 before_decimal = item_srp.split('.')[0]
-                clean_item_srp = int(re.sub(r'[^0-9]', '', before_decimal))
-                print(f"""srp: {clean_item_srp}""")
+                cleaned_item_srp = int(re.sub(r'[^0-9]', '', before_decimal))
+                print(f"""srp: {cleaned_item_srp}""")
 
                 if item_sku_name != 'SV0-000101':
                     continue
-                elif item_sku_name == 'SV0-000101' and clean_item_srp == shipping_cost:
+                elif item_sku_name == 'SV0-000101' and cleaned_item_srp == shipping_cost:
                     print("shpping cost has been corrected")
                     has_shpping_cost = True
                     return
-                elif item_sku_name == 'SV0-000101' and clean_item_srp != shipping_cost:
+                elif item_sku_name == 'SV0-000101' and cleaned_item_srp != shipping_cost:
                     print(
-                        f"shpping cost has not been corrected: {item_sku_name}:  {clean_item_srp}  != {shipping_cost}: {clean_item_srp != shipping_cost}")
+                        f"shpping cost has not been corrected: {item_sku_name}:  {cleaned_item_srp}  != {shipping_cost}: {cleaned_item_srp != shipping_cost}")
                     # ! item_elements ต้องอ่านค่าใหม่เพราะ ทันทีที่กดลบ element นี้มันจะไม่เหมือนเดิมเพราะมันลบ chirldren node ออก
                     item_elements = self.driver.find_elements(
                         By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
@@ -4475,19 +4475,20 @@ class Bot_POS:
                 self.js_input_value(self.sku_input_element, 'SV0-000101')
                 self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
-                response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm')
-                if response_data:
+                # response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm')
+                # if response_data:
                     # * ถ้าไม่มีรู้สึกว่า element li จะโหลดไม่ทันทำให้ funciton ปรับราคานี้ไม่ทำงาน
-                    while not self.operation_thread.is_set():
-                        try:
-                            self.driver.find_element(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-                            print("item li found")
-                            break
-                        except:
-                            time.sleep(0.5)
-                            continue
-                    self.smco_set_overcharge_product('SV0-000101', shipping_cost)
-                    print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+                while not self.operation_thread.is_set():
+                    try:
+                        self.driver.find_element(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                        print("item li found")
+                        self.smco_set_overcharge_product('SV0-000101', shipping_cost)
+                        print("กด Enter ที่ช่อง SKU Input สำเร็จ")
+                        break
+                    except:
+                        time.sleep(0.75)
+                        continue
+                    
 
                 # self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuAddBtn = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
@@ -5257,14 +5258,14 @@ class Bot_POS:
 
             # todo for testing
             # * Update Accel file //////////////////////
-            # try:
-            #     self.app.accel_mode.deduct_accel_file_data(
-            #         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            # except Exception as err:
-            #     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+            try:
+                self.app.accel_mode.deduct_accel_file_data(
+                    self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            except Exception as err:
+                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            # logger.info(f"Order: {self.cus_order} Testing End!!")
-            # return
+            logger.info(f"Order: {self.cus_order} Testing End!!")
+            return
 
             # with self.driver_lock:
             #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน
