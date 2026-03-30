@@ -39,7 +39,14 @@ class TrackingManager:
             # * Placeholder: switchTo the marketplace tab
             # * e.g., self.driver.switch_to.window(self.driver.window_handles[1])
             if self.marketplace == 'SHOPEE':
-                self.driver.switch_to.window(self.merged_dict['Seller Centre'])
+                try:
+                    self.driver.switch_to.window(self.merged_dict['Seller Centre'])
+                except:
+                    self.driver.execute_script(
+                        "window.open('https://seller.shopee.co.th/portal/sale/order', '_blank', 'noopener,noreferrer');"
+                    )
+                    self.driver.switch_to.window(self.driver.window_handles[-1])
+
             elif self.marketplace == 'LAZADA':
                 try:
                     self.driver.switch_to.window(self.merged_dict['การจัดการคำสั่งซื้อ - Lazada Seller Center'])

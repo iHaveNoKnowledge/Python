@@ -4471,13 +4471,14 @@ class Bot_POS:
 
         if int(shipping_cost) != int(0) and not has_shpping_cost:
             try:
-                self.sku_input_element = self.driver.find_element(By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
+                self.sku_input_element = self.driver.find_element(
+                    By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")
                 self.js_input_value(self.sku_input_element, 'SV0-000101')
                 self.sku_input_element.send_keys("\ue007")
                 print("กรอก Code ขนส่งสำเร็จ")
                 # response_data = self.network_capture.capture_response('getProductMasterInfoPOSV3.htm')
                 # if response_data:
-                    # * ถ้าไม่มีรู้สึกว่า element li จะโหลดไม่ทันทำให้ funciton ปรับราคานี้ไม่ทำงาน
+                # * ถ้าไม่มีรู้สึกว่า element li จะโหลดไม่ทันทำให้ funciton ปรับราคานี้ไม่ทำงาน
                 while not self.operation_thread.is_set():
                     try:
                         self.driver.find_element(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
@@ -4488,7 +4489,6 @@ class Bot_POS:
                     except:
                         time.sleep(0.75)
                         continue
-                    
 
                 # self.skuAddBtn = self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')))
                 # skuAddBtn = self.driver.find_element(By().XPATH,'/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
@@ -5258,14 +5258,14 @@ class Bot_POS:
 
             # todo for testing
             # * Update Accel file //////////////////////
-            try:
-                self.app.accel_mode.deduct_accel_file_data(
-                    self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            except Exception as err:
-                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+            # try:
+            #     self.app.accel_mode.deduct_accel_file_data(
+            #         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            # except Exception as err:
+            #     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            logger.info(f"Order: {self.cus_order} Testing End!!")
-            return
+            # logger.info(f"Order: {self.cus_order} Testing End!!")
+            # return
 
             # with self.driver_lock:
             #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน
@@ -6171,7 +6171,7 @@ class Bot_POS:
             # จับ response จาก API
             api_url_part = "/getCountryInfomation.htm"
             response_data = self.network_capture.capture_response(api_url_part)
-            
+
             li_dropdowns = self.driver.find_elements(By.XPATH, "//li[@role='treeitem']")
 
             if response_data:
@@ -6641,12 +6641,12 @@ class Bot_POS:
             print("Address not matched")
 
         self.current_address = "".join(cus_address.values())
-        self.current_address = re.sub(r'\s+','', self.current_address)
+        self.current_address = re.sub(r'\s+', '', self.current_address)
         self._build_desired_addresses()
 
         print("compare self.current_address & self.desired_full_address")
         print(self.current_address.replace(' ', ''))
-        
+
         print(self.desired_full_address.replace(' ', ''))
 
         current_normalized = self._normalize_address_for_comparison(self.current_address)
