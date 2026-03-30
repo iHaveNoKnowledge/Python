@@ -26,6 +26,16 @@ class TrackingManager:
         # You can define timeout here
         self.wait10 = WebDriverWait(self.driver, 10)
 
+    def _wait_for_element(self, by, value):
+        while not self.bot.operation_thread.is_set():
+            try:
+                self.driver.find_element(by, value).is_displayed()  # Check if element is visible
+                break
+            except Exception as e:
+                # print(f"Waiting for element {value} failed: {e}")
+                time.sleep(1)  # Wait a bit before retrying
+                continue
+
     def collect_tracking(self, current_order) -> None:
         self.merged_dict = self.bot.merged_dict
         """
@@ -162,6 +172,7 @@ class TrackingManager:
 
     def _reenter_current_order(self, current_order):
         # Placeholder: logic to search for the current_order
+        self._wait_for_element(By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
         if self.marketplace == 'SHOPEE':
             self.driver.find_element(By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input').clear()
             self.driver.find_element(
