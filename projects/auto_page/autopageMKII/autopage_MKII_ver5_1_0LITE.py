@@ -5239,8 +5239,8 @@ class Bot_POS:
                 for i, item in enumerate(self.app.items):
                     print(f"Item {i}: {item}")
                     self.AutoAddProduct.auto_add_product(
-                        self.app.correct_sku_pattern(item[i]['เลขอ้างอิง SKU (SKU Reference No.)']),
-                        item[i]['จำนวน']
+                        self.app.correct_sku_pattern(item['เลขอ้างอิง SKU (SKU Reference No.)']),
+                        item['จำนวน']
                     )
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
