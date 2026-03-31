@@ -5947,7 +5947,7 @@ class Bot_POS:
                 self.customer_class_selector(is_functionworking)
 
                 # * CLick Save Button (commented out but kept for completeness)
-                if customer_type == "normal":
+                if customer_type == "normal" or self.app.is_auto_invoice_mode.get():
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
 

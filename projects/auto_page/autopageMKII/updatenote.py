@@ -292,30 +292,17 @@
 
 # และรอดูผลอีกทีจากทีมบัญชีครับ
 
-# -----------------------clues--------------------------------
-# 2026-03-26T17:27:14.426475+0700 ERROR order: 26032533G6N7TE: smco_set_overcharge_product_v2_Error: Message: element click intercepted: Element <a ng-show="(posbook.data.cnFormPaymentId === undefined &amp;&amp; posbook.data.quotationBy.id === undefined &amp;&amp; (posbook.data.flowApprFlag == undefined || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag !== true) || (posbook.data.flowApprFlag !== undefined &amp;&amp; posbook.data.flowApprFlag == true &amp;&amp; posbook.data.orderStatus !== undefined &amp;&amp; posbook.data.orderStatus.lookupMasterId !== 10820007)) )" class="col-sm-6 text-right font-color-base ng-binding" ng-click="displayChangePrice(x, $index)">...</a> is not clickable at point (692, 202). Other element would receive the click: <div class="loading-box loading-ajax" style="display: block; opacity: 0.71997;">...</div>
-#   (Session info: chrome=146.0.7680.165)
-# Stacktrace:
-# 	chromedriver!GetHandleVerifier [0x7ff70b7429c5+2ed785]
-# 	chromedriver!GetHandleVerifier [0x7ff70b46a0d0+14e90]
-# 	chromedriver!(No symbol) [0x7ff70b1cdb2d]
-# 	chromedriver!(No symbol) [0x7ff70b22f0e5]
-# 	chromedriver!(No symbol) [0x7ff70b22c7fa]
-# 	chromedriver!(No symbol) [0x7ff70b229685]
-# 	chromedriver!(No symbol) [0x7ff70b228537]
-# 	chromedriver!(No symbol) [0x7ff70b21b186]
-# 	chromedriver!(No symbol) [0x7ff70b24ff8a]
-# 	chromedriver!(No symbol) [0x7ff70b21aa06]
-# 	chromedriver!(No symbol) [0x7ff70b273b9b]
-# 	chromedriver!(No symbol) [0x7ff70b219298]
-# 	chromedriver!(No symbol) [0x7ff70b21a183]
-# 	chromedriver!GetHandleVerifier [0x7ff70b76de0d+318bcd]
-# 	chromedriver!GetHandleVerifier [0x7ff70b768588+313348]
-# 	chromedriver!GetHandleVerifier [0x7ff70b789d7a+334b3a]
-# 	chromedriver!GetHandleVerifier [0x7ff70b486785+31545]
-# 	chromedriver!GetHandleVerifier [0x7ff70b48facc+3a88c]
-# 	chromedriver!GetHandleVerifier [0x7ff70b473634+1e3f4]
-# 	chromedriver!GetHandleVerifier [0x7ff70b4737e6+1e5a6]
-# 	chromedriver!GetHandleVerifier [0x7ff70b457e37+2bf7]
-# 	KERNEL32!BaseThreadInitThunk [0x7ff94d3ae8d7+17]
-# 	ntdll!RtlUserThreadStart [0x7ff94f60c48c+2c]
+# -----------------------guides--------------------------------
+# เมื่อดปิก auto_inv
+# Todo -ใบกำกับ addเอง
+##! issues
+##! เลข ปณ. บางครั้งมันไม่ใส่ให้ ต้องเพิ่ม code กรอกเลข ปณ ลงไป
+##! มันมี add ชื่อลูกค้าแล้วไม่ success ด้วยทำให้ตอนกรอกชื่อใหม่มันจะไม่เจอไรเลย ทำให้ขึ้นว่า ต้อง manual ซึง่ถ้าเปน auto มัน manual ม่ได้แน่ๆ (อาจจะต้้องเกบไว้วนรอบใหญ่อีกทีไรก็ว่าไป)
+# * -ใส่ของเอง
+#! -เช็คจำนวนของ
+#! -เช็คราคาเอง > ดูคูปอง > ปรับราคา
+#! -ตรวจสอบราคาทั้งหมดว่าตรงไหม
+#! -กดไปหน้าถัดไป
+#! -กดออกบิล
+
+# ------------------------issues--------------------------------
