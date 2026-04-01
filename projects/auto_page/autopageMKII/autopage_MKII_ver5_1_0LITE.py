@@ -5952,17 +5952,22 @@ class Bot_POS:
                     )
 
                     # * Postal code
-                    zip_code_btn_element = self.driver.find_element(By.XPATH, "//span[@id='select2-zipCodeSel-container']")
+                    zip_code_btn_element = self.driver.find_element(
+                        By.XPATH, "//span[@id='select2-zipCodeSel-container']")
                     try:
-                        #* ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
+                        # * ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
                         self.driver.find_element(By.XPATH, f"""//span[@title='{postcode}']""")
                     except:
                         try:
                             zip_code_btn_element.click()
                             self.dropdown_handler()
-                            self.driver.find_element(By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
-                        except:
+                            self.driver.find_element(
+                                By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
+                        except Exception as err:
                             print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
+                            if self.app.is_auto_invoice_mode.get():
+                                raise Exception(
+                                    f"Postal code {postcode} cannot be found in dropdown, auto invoice mode requires postal code selection, stopping the process. Error details: {err}")
 
                 print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
                 self.customer_class_selector(is_functionworking)
@@ -6028,7 +6033,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
