@@ -32,6 +32,7 @@ from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
+from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
 from googletrans import Translator
@@ -2972,6 +2973,7 @@ class Bot_POS:
         self.origin = "http://115.31.167.28:8080"
         self.smco_handler = SMCOFormHandler(self, logger)  # * ใส่ logger ไปด้วยเพราะมันมี setting
         self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app, self)
+        self.ProductManager = ProductManager(self.driver, self.wait50, self.app, self)
 
         # * Network Response Capture utility
         from functions.network_response_utils import NetworkResponseCapture
