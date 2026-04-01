@@ -5957,9 +5957,12 @@ class Bot_POS:
                         #* ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
                         self.driver.find_element(By.XPATH, f"""//span[@title='{postcode}']""")
                     except:
-                        zip_code_btn_element.click()
-                        self.dropdown_handler()
-                        self.driver.find_element(By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
+                        try:
+                            zip_code_btn_element.click()
+                            self.dropdown_handler()
+                            self.driver.find_element(By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
+                        except:
+                            print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
 
                 print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
                 self.customer_class_selector(is_functionworking)
