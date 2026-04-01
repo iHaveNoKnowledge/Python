@@ -285,7 +285,7 @@ class MyApp:
     def __init__(self, root):
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
-        # * Variables------------------------------------------------------------------------------------
+        # * general Variables (mostly for gui)------------------------------------------------------------------------------------
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
         self.is_bot_running = BooleanVar(value=False)
@@ -318,6 +318,7 @@ class MyApp:
         self.cus_sub_district = StringVar(value="")
         self.cus_tel = StringVar(value="")
         self.cus_email = StringVar(value="")
+        self.cus_postcode = StringVar(value="")
         self.cus_cur_status = StringVar(value="")
         self.is_forbid = False
         self.cus_ship_cost = DoubleVar(value=0)
@@ -2244,6 +2245,11 @@ class MyApp:
                     self.cus_sub_district.set(self.nondistortedData['แขวง/ตำบล'])
                 else:
                     self.cus_sub_district.set('')
+                #! wip lazada ไม่รู้จะมีลูกเล่นไรไหม แต่คิดว่าน่าจะ add ไม่ติด เพราะอาจะขาด column นี้ ใน dataframe
+                try:
+                    self.cus_postcode.set(self.nondistortedData['รหัสไปรษณีย์.1'])
+                except:
+                    self.cus_postcode.set('')
                 print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']: ",
                       self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'])
                 print("self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?: ",
@@ -5812,6 +5818,7 @@ class Bot_POS:
             province = self.app.cus_province.get().replace("จังหวัด", "")
             district = self.app.cus_district.get().replace("อำเภอ", "").replace("เขต", "").replace("อ.", "")
             sub_district = self.app.cus_sub_district.get().replace("ตำบล", "").replace("แขวง", "").replace("ต.", "")
+            postcode = self.app.cus_postcode.get()
 
         elif customer_type == "tax_laz":
             # * value of self.app.tax_branch_num.get() can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
@@ -5839,6 +5846,7 @@ class Bot_POS:
             province = tax_info['province'].replace("จังหวัด", "")
             district = tax_info['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", "")
             sub_district = tax_info['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", "")
+            postcode = tax_info['postal_code']
 
         # Fill customer form
         while is_functionworking and not self.operation_thread.is_set():
@@ -5881,7 +5889,7 @@ class Bot_POS:
 
                 # * Address dropdowns (only for tax customers)
                 if use_dropdown_address:
-                    # Country dropdown
+                    # * Country dropdown
                     self.driver.find_element(
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[2]/form/div[10]/div[1]/div/span/span[1]/span').click()
                     self.dropdown_handler()
@@ -5942,6 +5950,16 @@ class Bot_POS:
                         en_field='subdistrictNameEn',
                         place_type='subdistrict'
                     )
+
+                    # * Postal code
+                    zip_code_btn_element = self.driver.find_element(By.XPATH, "//span[@id='select2-zipCodeSel-container']")
+                    try:
+                        #* ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
+                        self.driver.find_element(By.XPATH, f"""//span[@title='{postcode}']""")
+                    except:
+                        zip_code_btn_element.click()
+                        self.dropdown_handler()
+                        self.driver.find_element(By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
 
                 print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
                 self.customer_class_selector(is_functionworking)
@@ -6164,17 +6182,17 @@ class Bot_POS:
         """
 
         try:
-            # ตรวจสอบว่าเป็นภาษาอังกฤษหรือไม่
+            # * ตรวจสอบว่าเป็นภาษาอังกฤษหรือไม่
             if self.is_english(search_value):
                 print(f"Detected English input: '{search_value}'")
                 # แปลงเป็นภาษาไทยก่อน
                 thai_value = self.translate_eng_to_thai_place(search_value, place_type)
                 search_value = thai_value
                 print(f"Will search with Thai name: '{search_value}'")
-            # Clear logs ก่อนส่ง request
+            # * Clear logs ก่อนส่ง request
             self.network_capture.clear_logs()
 
-            # Clear และ type ค่าเพื่อ trigger API call
+            # * Clear และ type ค่าเพื่อ trigger API call
             input_element.clear()
             input_element.send_keys(search_value)
             print(f"Typed '{search_value}' to trigger API")
@@ -6191,7 +6209,7 @@ class Bot_POS:
             if response_data:
                 print(f"Got {len(response_data)} items from API")
 
-                # หาค่าที่ตรงกับ search_value
+                # * หาค่าที่ตรงกับ search_value
                 matched_item = None
                 for idx, item in enumerate(response_data):
                     if item.get(th_field) == search_value:
