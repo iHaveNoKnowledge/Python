@@ -5249,13 +5249,15 @@ class Bot_POS:
                 self.add_shipping_cost()
 
             if self.app.is_auto_invoice_mode.get():
-                print("Auto Invoice Mode is activated, skip adding product and go to final page")
-                for i, item in enumerate(self.app.items):
-                    print(f"Item {i}: {item}")
-                    self.AutoAddProduct.auto_add_product(
-                        self.app.correct_sku_pattern(item['เลขอ้างอิง SKU (SKU Reference No.)']),
-                        item['จำนวน']
-                    )
+                # print("Auto Invoice Mode is activated, skip adding product and go to final page")
+                # for i, item in enumerate(self.app.items):
+                #     print(f"Item {i}: {item}")
+                #     self.AutoAddProduct.auto_add_product(
+                #         self.app.correct_sku_pattern(item['เลขอ้างอิง SKU (SKU Reference No.)']),
+                #         item['จำนวน']
+                #     )
+
+                self.ProductManager.auto_add_all_items()
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
@@ -5972,10 +5974,11 @@ class Bot_POS:
                             self.driver.find_element(
                                 By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
                         except Exception as err:
-                            
+
                             print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
                             if self.app.is_auto_invoice_mode.get():
-                                logger.error(f"order {self.cus_order}: auto invoice mode requires postal code selection but postal code {postcode} cannot be found in dropdown, stopping the process. Error details: {err}")
+                                logger.error(
+                                    f"order {self.cus_order}: auto invoice mode requires postal code selection but postal code {postcode} cannot be found in dropdown, stopping the process. Error details: {err}")
                                 raise ValueError(
                                     f"Postal code {postcode} cannot be found in dropdown, auto invoice mode requires postal code selection, stopping the process. Error details: {err}")
 
@@ -6043,6 +6046,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

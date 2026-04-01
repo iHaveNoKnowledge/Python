@@ -7,11 +7,12 @@ ProductManager
 Roadmap:
   [x]  auto_add_all_items  — ใส่ของอัตโนมัติ (ย้ายมาจาก Bot_POS)
   [!]  verify_item_qty     — เช็คจำนวนบน POS ตรงกับ input data ไหม
-  [!]  verify_item_price   — เช็คราคาต่อชิ้นบน POS ตรงกับ input data ไหม
+  [!]  verify_item_price   — เช็คราคาขายบน POS ตรงกับ input data ไหม
   [!]  verify_total_price  — เช็คยอดรวมทั้งหมดบน POS
 """
 
 import time
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -40,7 +41,7 @@ class ProductManager:
         "//span[@class='col-sm-4 ng-binding'"
         " and not(contains(@class, 'ng-hide'))]"
     )
-    # ราคาต่อชิ้น (ปรับ selector ตามหน้าจริง)
+    # ราคาขาย (ปรับ selector ตามหน้าจริง)
     XPATH_UNIT_PRICE = (
         "//div[@class='row']//div"
         "//a[@class='col-sm-6 text-right font-color-base ng-binding']"
@@ -49,16 +50,16 @@ class ProductManager:
     XPATH_TOTAL_PRICE = "//PLACEHOLDER_TOTAL_PRICE_SELECTOR"
 
     # Column names ใน input data (ปรับชื่อ column ตามไฟล์จริง)
-    COL_SKU      = "เลขอ้างอิง SKU (SKU Reference No.)"
-    COL_QTY      = "จำนวน"
-    COL_PRICE    = "ราคาต่อชิ้น"   # TODO: ปรับชื่อ column
-    COL_SUBTOTAL = "ราคารวม"        # TODO: ปรับชื่อ column
+    COL_SKU = "เลขอ้างอิง SKU (SKU Reference No.)"
+    COL_QTY = "จำนวน"
+    COL_PRICE = "ราคาขาย"   #* ปรับแล้ว # TODO: ปรับชื่อ column
+    COL_SUBTOTAL = "ยอดชำระเงิน"      #* ปรับแล้ว  # TODO: ปรับชื่อ column
 
     def __init__(self, driver, wait, app, bot):
         self.driver = driver
-        self.wait   = wait
-        self.app    = app
-        self.bot    = bot
+        self.wait = wait
+        self.app = app
+        self.bot = bot
 
     # ══════════════════════════════════════════════════════════════════════════
     # [x]  AUTO ADD ALL ITEMS  (ย้ายมาจาก Bot_POS.fn())
@@ -115,10 +116,10 @@ class ProductManager:
         # 2) เปรียบเทียบกับ input data
         result: dict[str, dict] = {}
         for item in self.app.items:
-            sku      = self.app.correct_sku_pattern(item[self.COL_SKU])
+            sku = self.app.correct_sku_pattern(item[self.COL_SKU])
             expected = int(item[self.COL_QTY])
-            actual   = pos_data.get(sku, "NOT_FOUND")
-            ok       = (actual == expected)
+            actual = pos_data.get(sku, "NOT_FOUND")
+            ok = (actual == expected)
             result[sku] = {"expected": expected, "actual": actual, "ok": ok}
 
             status_icon = "✅" if ok else "❌"
@@ -130,11 +131,11 @@ class ProductManager:
         return result
 
     # ══════════════════════════════════════════════════════════════════════════
-    # [!]  VERIFY ITEM PRICE  — เช็คราคาต่อชิ้นบน POS vs input data
+    # [!]  VERIFY ITEM PRICE  — เช็คราคาขายบน POS vs input data
     # ══════════════════════════════════════════════════════════════════════════
     def verify_item_price(self) -> dict[str, dict]:
         """
-        เปรียบเทียบราคาต่อชิ้นบน POS กับ input data
+        เปรียบเทียบราคาขายบน POS กับ input data
 
         Returns
         -------
@@ -144,27 +145,27 @@ class ProductManager:
         """
         time.sleep(0.5)
 
-        sku_elements   = self.driver.find_elements(By.XPATH, self.XPATH_SKU_TEXTS)
+        sku_elements = self.driver.find_elements(By.XPATH, self.XPATH_SKU_TEXTS)
         price_elements = self.driver.find_elements(By.XPATH, self.XPATH_UNIT_PRICE)
 
         pos_prices: dict[str, float] = {}
         for sku_el, price_el in zip(sku_elements, price_elements):
             try:
-                sku_text   = sku_el.text.strip()
+                sku_text = sku_el.text.strip()
                 price_text = price_el.text.strip()
                 # ลบ comma และ symbol ก่อน parse  เช่น "1,500.00" → 1500.0
-                price_val  = float(price_text.replace(",", "").replace("฿", "").strip())
+                price_val = float(price_text.replace(",", "").replace("฿", "").strip())
                 pos_prices[sku_text] = price_val
             except Exception as e:
                 print(f"[ProductManager.verify_item_price] parse error: {e}")
 
         result: dict[str, dict] = {}
         for item in self.app.items:
-            sku      = self.app.correct_sku_pattern(item[self.COL_SKU])
+            sku = self.app.correct_sku_pattern(item[self.COL_SKU])
             # TODO: ถ้าไม่มี column ราคาใน data ให้ skip หรือ set expected = None
             expected = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
-            actual   = pos_prices.get(sku, "NOT_FOUND")
-            ok       = (actual == expected) if actual != "NOT_FOUND" else False
+            actual = pos_prices.get(sku, "NOT_FOUND")
+            ok = (actual == expected) if actual != "NOT_FOUND" else False
             result[sku] = {"expected": expected, "actual": actual, "ok": ok}
 
             status_icon = "✅" if ok else "❌"
@@ -193,7 +194,7 @@ class ProductManager:
         expected_total = 0.0
         for item in self.app.items:
             try:
-                subtotal      = float(str(item.get(self.COL_SUBTOTAL, 0)).replace(",", ""))
+                subtotal = float(str(item.get(self.COL_SUBTOTAL, 0)).replace(",", ""))
                 expected_total += subtotal
             except Exception as e:
                 print(f"[ProductManager.verify_total_price] calc error: {e}")
@@ -201,8 +202,8 @@ class ProductManager:
         # ดึง grand total จากหน้า POS
         actual_total: float | str = "NOT_FOUND"
         try:
-            total_el     = self.driver.find_element(By.XPATH, self.XPATH_TOTAL_PRICE)
-            total_text   = total_el.text.strip()
+            total_el = self.driver.find_element(By.XPATH, self.XPATH_TOTAL_PRICE)
+            total_text = total_el.text.strip()
             actual_total = float(total_text.replace(",", "").replace("฿", "").strip())
         except Exception as e:
             print(f"[ProductManager.verify_total_price] cannot read total: {e}")
@@ -234,7 +235,7 @@ class ProductManager:
           "all_ok": bool
         }
         """
-        qty_result   = self.verify_item_qty()
+        qty_result = self.verify_item_qty()
         price_result = self.verify_item_price()
         total_result = self.verify_total_price()
 
@@ -245,8 +246,8 @@ class ProductManager:
         )
 
         return {
-            "qty"   : qty_result,
-            "price" : price_result,
-            "total" : total_result,
+            "qty": qty_result,
+            "price": price_result,
+            "total": total_result,
             "all_ok": all_ok,
         }
