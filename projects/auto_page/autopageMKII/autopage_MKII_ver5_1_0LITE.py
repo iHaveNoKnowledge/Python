@@ -3881,7 +3881,7 @@ class Bot_POS:
                     #             time.sleep(retry_delay)
                     #             continue
                     #         else:
-                    #             # ครบจำนวน retry แล้ว ให้ raise exception
+                    #             # ครบจำนวน retry แล้ว ให้ raise ValueError
                     #             logger.error(f"Order: {self.app.order} Max retries reached. Final error: {err}")
                     #             raise
                     #     except Exception as err:
@@ -4160,6 +4160,12 @@ class Bot_POS:
             # cb()
 
         except Exception as err:
+            if self.app.is_auto_invoice_mode.get():
+                logger.error(
+                    f"Order: {self.cus_order} - Auto Invoice Mode is ON, but failed to add customer. Error: {err}")
+                print("Auto Invoice Mode is ON, but failed to add customer, correct the unfinished order number and note the reason to the main loop input file")
+                raise ValueError(f"Auto Invoice Mode is ON, but failed to add customer. Error: {err}")
+
             print("No duplicate!", err)
 
     def ensure_li_shown_cus_name(self):
@@ -4393,7 +4399,7 @@ class Bot_POS:
                 print("select_sale_type Error: ", err)
                 time.sleep(0.5)
                 continue
-        raise Exception(f'Thread has been terminated during select_sale_type')
+        raise ValueError(f'Thread has been terminated during select_sale_type')
 
     def insert_emp(self):
         self.smco_current_emp = self.driver.find_element(
@@ -5344,7 +5350,7 @@ class Bot_POS:
                     #             continue
 
                     #         else:
-                    #             # print("หน้า SN ไม่ได้โ๙ว์")
+                    #             # print("หน้า SN ไม่ได้โชว์")
                     #             break
                     #     except Exception as err:
                     #         # self.alert_text = self.driver.switch_to.alert.text ใช้ไม่ได้
@@ -5964,9 +5970,11 @@ class Bot_POS:
                             self.driver.find_element(
                                 By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
                         except Exception as err:
+                            
                             print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
                             if self.app.is_auto_invoice_mode.get():
-                                raise Exception(
+                                logger.error(f"order {self.cus_order}: auto invoice mode requires postal code selection but postal code {postcode} cannot be found in dropdown, stopping the process. Error details: {err}")
+                                raise ValueError(
                                     f"Postal code {postcode} cannot be found in dropdown, auto invoice mode requires postal code selection, stopping the process. Error details: {err}")
 
                 print(f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
@@ -6070,7 +6078,7 @@ class Bot_POS:
                 break
             else:
                 print(f'ไม่มี {cus_code} นี้จาก response_data')
-                raise Exception(f'ไม่มี {cus_code} นี้จาก response_data')
+                raise ValueError(f'ไม่มี {cus_code} นี้จาก response_data')
 
         customer_id = cus_data['id'] or False
         # print("customer_id: ", cus_data['id'])
@@ -6275,7 +6283,7 @@ class Bot_POS:
                     time.sleep(1)  # รอ 1 วินาทีก่อนลองใหม่
                     continue
 
-                response.raise_for_status()  # จะ raise exception ถ้า status code เป็น 4xx หรือ 5xx
+                response.raise_for_status()  # จะ raise ValueError ถ้า status code เป็น 4xx หรือ 5xx
 
                 response_data: dict = response.json()
                 extracted_address: dict = {}
@@ -6737,6 +6745,7 @@ class Bot_POS:
         self.dup_popup_content = self.cus_code_element.text
         self.driver.find_element(
             By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
             print("Not Duplicate")
             logger.info(f"{self.cus_order}: After adding cusname, the cusname is Not Duplicated")
