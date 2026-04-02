@@ -2593,7 +2593,7 @@ class MyApp:
         print(f"Started auto_add_product in separate thread: {auto_add_thread.name}")
 
     #! ตัวกากกว่า sku_formater,  sku_formaterเทพกว่า
-    def correct_sku_pattern(self, text: str):
+    def correct_sku_pattern(self, text: str) -> list:
         result = []
         text = text.replace(" ", "")
         elements = text.split("+")
@@ -5258,6 +5258,8 @@ class Bot_POS:
                 #     )
 
                 self.ProductManager.auto_add_all_items()
+                is_verify_passed = self.ProductManager.verify_item_qty()
+                print(f"Is verify passed: {is_verify_passed}")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
@@ -5287,14 +5289,14 @@ class Bot_POS:
 
             # todo for testing
             # * Update Accel file //////////////////////
-            # try:
-            #     self.app.accel_mode.deduct_accel_file_data(
-            #         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            # except Exception as err:
-            #     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+            try:
+                self.app.accel_mode.deduct_accel_file_data(
+                    self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            except Exception as err:
+                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            # logger.info(f"Order: {self.cus_order} Testing End!!")
-            # return
+            logger.info(f"Order: {self.cus_order} Testing End!!")
+            return
 
             # with self.driver_lock:
             #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน

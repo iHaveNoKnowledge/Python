@@ -52,8 +52,8 @@ class ProductManager:
     # Column names ใน input data (ปรับชื่อ column ตามไฟล์จริง)
     COL_SKU = "เลขอ้างอิง SKU (SKU Reference No.)"
     COL_QTY = "จำนวน"
-    COL_PRICE = "ราคาขาย"   #* ปรับแล้ว # TODO: ปรับชื่อ column
-    COL_SUBTOTAL = "ยอดชำระเงิน"      #* ปรับแล้ว  # TODO: ปรับชื่อ column
+    COL_PRICE = "ราคาขาย"  # * ปรับแล้ว # TODO: ปรับชื่อ column
+    COL_SUBTOTAL = "ยอดชำระเงิน"  # * ปรับแล้ว  # TODO: ปรับชื่อ column
 
     def __init__(self, driver, wait, app, bot):
         self.driver = driver
@@ -100,10 +100,9 @@ class ProductManager:
         """
         time.sleep(0.5)  # รอ DOM settle หลัง add
 
-        # 1) ดึง SKU ทั้งหมดที่แสดงบนหน้า POS
+        # * 1) ดึง SKU ทั้งหมดที่แสดงบนหน้า POS
         sku_elements = self.driver.find_elements(By.XPATH, self.XPATH_SKU_TEXTS)
         qty_elements = self.driver.find_elements(By.XPATH, self.XPATH_QTY_DISPLAY)
-
         pos_data: dict[str, int] = {}
         for sku_el, qty_el in zip(sku_elements, qty_elements):
             try:
@@ -113,20 +112,24 @@ class ProductManager:
             except Exception as e:
                 print(f"[ProductManager.verify_item_qty] parse error: {e}")
 
-        # 2) เปรียบเทียบกับ input data
+        # * 2) เปรียบเทียบกับ input data
         result: dict[str, dict] = {}
-        for item in self.app.items:
-            sku = self.app.correct_sku_pattern(item[self.COL_SKU])
+        # * รวมค่าขนส่งที่อาจจะมีอยู่ใน input data ด้วย (ถ้ามี) เพราะในหน้าย pos มันยิงค่าขนส่งลงไปด้วยต้องเทียบหมดอยู่ละ
+        all_items = self.app.items + [self.app.cus_ship_cost.get()] if self.app.cus_ship_cost.get() else self.app.items
+        for item in all_items:
+            skus = self.app.correct_sku_pattern(item[self.COL_SKU])
+            print("verify_item_qty(): checking SKU:", skus)
             expected = int(item[self.COL_QTY])
-            actual = pos_data.get(sku, "NOT_FOUND")
-            ok = (actual == expected)
-            result[sku] = {"expected": expected, "actual": actual, "ok": ok}
+            for sku in skus:
+                actual = pos_data.get(sku, "NOT_FOUND")
+                ok = (actual == expected)
+                result[sku] = {"expected": expected, "actual": actual, "ok": ok}
 
-            status_icon = "✅" if ok else "❌"
-            print(
-                f"[ProductManager.verify_item_qty] {status_icon} "
-                f"SKU={sku}  expected={expected}  actual={actual}"
-            )
+                status_icon = "✅" if ok else "❌"
+                print(
+                    f"[ProductManager.verify_item_qty] {status_icon} "
+                    f"SKU={sku}  expected={expected}  actual={actual}"
+                )
 
         return result
 
