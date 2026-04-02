@@ -47,7 +47,7 @@ class ProductManager:
         ".//span[@class='font-color-base ng-binding']"
     )
     # ยอดรวมทั้งหมด (ปรับ selector ตามหน้าจริง)
-    XPATH_TOTAL_PRICE = "//PLACEHOLDER_TOTAL_PRICE_SELECTOR"
+    XPATH_TOTAL_PRICE = "//span[@class='col-xs-6 font-base font-color-base text-right ng-binding']"
 
     # Column names ใน input data (ปรับชื่อ column ตามไฟล์จริง)
     COL_SKU = "เลขอ้างอิง SKU (SKU Reference No.)"
@@ -192,8 +192,7 @@ class ProductManager:
         -------
         dict  —  { "expected": float, "actual": float/"NOT_FOUND", "ok": bool }
 
-        TODO: ปรับ XPATH_TOTAL_PRICE ให้ตรงกับหน้า POS จริง
-              และปรับ COL_SUBTOTAL / COL_PRICE ให้ถูกต้อง
+        TODO: ปรับ XPATH_TOTAL_PRICE ให้ตรงกับหน้า POS จริง และปรับ COL_SUBTOTAL / COL_PRICE ให้ถูกต้อง
         """
         # คำนวณ expected จาก input data
         expected_total = 0.0
@@ -209,6 +208,7 @@ class ProductManager:
         try:
             total_el = self.driver.find_element(By.XPATH, self.XPATH_TOTAL_PRICE)
             total_text = total_el.text.strip()
+            total_text = total_el.text.split('.')[0]
             actual_total = float(total_text.replace(",", "").replace("฿", "").strip())
         except Exception as e:
             print(f"[ProductManager.verify_total_price] cannot read total: {e}")
