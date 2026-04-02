@@ -168,15 +168,16 @@ class ProductManager:
             skus = self.app.correct_sku_pattern(item[self.COL_SKU])
             # TODO: ถ้าไม่มี column ราคาใน data ให้ skip หรือ set expected = None
             expected = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
+            actual = 0.0
             for sku in skus:
-                actual = pos_prices.get(sku, "NOT_FOUND")
-                ok = (actual == expected) if actual != "NOT_FOUND" else False
-                result[sku] = {"expected": expected, "actual": actual, "ok": ok}
-                status_icon = "✅" if ok else "❌"
-                print(
-                    f"[ProductManager.verify_item_price] {status_icon} "
-                    f"SKU={sku}  expected={expected}  actual={actual}"
-                )
+                actual += pos_prices.get(sku, "NOT_FOUND")
+            ok = (actual == expected) if actual != "NOT_FOUND" else False
+            result[item[self.COL_SKU]] = {"expected": expected, "actual": actual, "ok": ok}
+            status_icon = "✅" if ok else "❌"
+            print(
+                f"[ProductManager.verify_item_price] {status_icon} "
+                f"SKU={item[self.COL_SKU]}  expected={expected}  actual={actual}"
+            )
 
         return result
 
