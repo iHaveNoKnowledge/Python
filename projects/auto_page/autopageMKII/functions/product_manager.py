@@ -11,6 +11,7 @@ Roadmap:
   [!]  verify_total_price  — เช็คยอดรวมทั้งหมดบน POS
 """
 
+import re
 import time
 
 from selenium.webdriver.common.by import By
@@ -43,8 +44,7 @@ class ProductManager:
     )
     # ราคาขาย (ปรับ selector ตามหน้าจริง)
     XPATH_UNIT_PRICE = (
-        "//div[@class='row']//div"
-        "//a[@class='col-sm-6 text-right font-color-base ng-binding']"
+        ".//span[@class='font-color-base ng-binding']"
     )
     # ยอดรวมทั้งหมด (ปรับ selector ตามหน้าจริง)
     XPATH_TOTAL_PRICE = "//PLACEHOLDER_TOTAL_PRICE_SELECTOR"
@@ -124,7 +124,6 @@ class ProductManager:
                 actual = pos_data.get(sku, "NOT_FOUND")
                 ok = (actual == expected)
                 result[sku] = {"expected": expected, "actual": actual, "ok": ok}
-
                 status_icon = "✅" if ok else "❌"
                 print(
                     f"[ProductManager.verify_item_qty] {status_icon} "
@@ -157,25 +156,27 @@ class ProductManager:
                 sku_text = sku_el.text.strip()
                 price_text = price_el.text.strip()
                 # ลบ comma และ symbol ก่อน parse  เช่น "1,500.00" → 1500.0
-                price_val = float(price_text.replace(",", "").replace("฿", "").strip())
+                before_decimal = price_text.split('.')[0]
+                price_val = float(re.sub(r'[^0-9]', '', before_decimal))
                 pos_prices[sku_text] = price_val
             except Exception as e:
                 print(f"[ProductManager.verify_item_price] parse error: {e}")
 
         result: dict[str, dict] = {}
-        for item in self.app.items:
-            sku = self.app.correct_sku_pattern(item[self.COL_SKU])
+        all_items = self.app.items + [self.app.cus_ship_cost.get()] if self.app.cus_ship_cost.get() else self.app.items
+        for item in all_items:
+            skus = self.app.correct_sku_pattern(item[self.COL_SKU])
             # TODO: ถ้าไม่มี column ราคาใน data ให้ skip หรือ set expected = None
             expected = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
-            actual = pos_prices.get(sku, "NOT_FOUND")
-            ok = (actual == expected) if actual != "NOT_FOUND" else False
-            result[sku] = {"expected": expected, "actual": actual, "ok": ok}
-
-            status_icon = "✅" if ok else "❌"
-            print(
-                f"[ProductManager.verify_item_price] {status_icon} "
-                f"SKU={sku}  expected={expected}  actual={actual}"
-            )
+            for sku in skus:
+                actual = pos_prices.get(sku, "NOT_FOUND")
+                ok = (actual == expected) if actual != "NOT_FOUND" else False
+                result[sku] = {"expected": expected, "actual": actual, "ok": ok}
+                status_icon = "✅" if ok else "❌"
+                print(
+                    f"[ProductManager.verify_item_price] {status_icon} "
+                    f"SKU={sku}  expected={expected}  actual={actual}"
+                )
 
         return result
 

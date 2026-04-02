@@ -5258,8 +5258,10 @@ class Bot_POS:
                 #     )
 
                 self.ProductManager.auto_add_all_items()
-                is_verify_passed = self.ProductManager.verify_item_qty()
-                print(f"Is verify passed: {is_verify_passed}")
+                is_qty_verified = self.ProductManager.verify_item_qty()
+                print(f"Is qty verified: {is_qty_verified}")
+                is_item_price_verified = self.ProductManager.verify_item_price()
+                print(f"Is price verified: {is_item_price_verified}")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
