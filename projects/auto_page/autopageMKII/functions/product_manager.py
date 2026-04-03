@@ -119,14 +119,16 @@ class ProductManager:
         self.shipping_dict = {
             self.COL_SKU: 'SV0-000101',
             self.COL_QTY: 1,
-            self.COL_PRICE: self.app.cus_ship_cost.get()
+            self.COL_PRICE: self.app.cus_ship_cost.get(),
         } if self.app.cus_ship_cost.get() else {}
+        # * คำนวณยอดชำระเงิน (subtotal) สำหรับค่าขนส่งด้วย (ถ้ามี) เพื่อใช้ใน verify_total_price ต่อไป
+        self.shipping_dict[self.COL_SUBTOTAL] = self.shipping_dict[self.COL_PRICE] * \
+            self.shipping_dict[self.COL_QTY] if self.shipping_dict else 0
 
         print("self.shipping_dict: ", self.shipping_dict)
         all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
         for item in all_items:
             skus = self.app.correct_sku_pattern(item[self.COL_SKU])
-            print("verify_item_qty(): checking SKU:", skus)
             expected = int(item[self.COL_QTY])
             for sku in skus:
                 actual = pos_data.get(sku, "NOT_FOUND")
@@ -204,7 +206,9 @@ class ProductManager:
         """
         # คำนวณ expected จาก input data
         expected_total = 0.0
-        for item in self.app.items:
+        all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
+        print("all_items: ", all_items)
+        for item in all_items:
             try:
                 subtotal = float(str(item.get(self.COL_SUBTOTAL, 0)).replace(",", ""))
                 expected_total += subtotal
