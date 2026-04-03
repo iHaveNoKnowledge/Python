@@ -60,6 +60,7 @@ class ProductManager:
         self.wait = wait
         self.app = app
         self.bot = bot
+        self.shipping_dict = {}
 
     # ══════════════════════════════════════════════════════════════════════════
     # [x]  AUTO ADD ALL ITEMS  (ย้ายมาจาก Bot_POS.fn())
@@ -115,7 +116,14 @@ class ProductManager:
         # * 2) เปรียบเทียบกับ input data
         result: dict[str, dict] = {}
         # * รวมค่าขนส่งที่อาจจะมีอยู่ใน input data ด้วย (ถ้ามี) เพราะในหน้าย pos มันยิงค่าขนส่งลงไปด้วยต้องเทียบหมดอยู่ละ
-        all_items = self.app.items + [self.app.cus_ship_cost.get()] if self.app.cus_ship_cost.get() else self.app.items
+        self.shipping_dict = {
+            self.COL_SKU: 'SV0-000101',
+            self.COL_QTY: 1,
+            self.COL_PRICE: self.app.cus_ship_cost.get()
+        } if self.app.cus_ship_cost.get() else {}
+
+        print("self.shipping_dict: ", self.shipping_dict)
+        all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
         for item in all_items:
             skus = self.app.correct_sku_pattern(item[self.COL_SKU])
             print("verify_item_qty(): checking SKU:", skus)
@@ -163,7 +171,7 @@ class ProductManager:
                 print(f"[ProductManager.verify_item_price] parse error: {e}")
 
         result: dict[str, dict] = {}
-        all_items = self.app.items + [self.app.cus_ship_cost.get()] if self.app.cus_ship_cost.get() else self.app.items
+        all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
         for item in all_items:
             skus = self.app.correct_sku_pattern(item[self.COL_SKU])
             # TODO: ถ้าไม่มี column ราคาใน data ให้ skip หรือ set expected = None
