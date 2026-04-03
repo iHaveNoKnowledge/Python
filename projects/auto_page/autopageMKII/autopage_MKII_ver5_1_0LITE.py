@@ -4278,7 +4278,7 @@ class Bot_POS:
         for i in range(len(cus_name_list)):
             prog = re.search(r'[^-]-(.*)', names_no_code[i])
             names_no_code[i] = prog.group(1).replace(" ", "")
-        self.has_cus_tax_branch_code = not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0])
+        self.has_branch_code_in_df = not pd.isna(self.app.data_frame[self.app.target_row]['รหัสประจำสาขา'].iloc[0])
         # * เอา array มาหาดูว่าจะต้องเลือกชื่อไหน เอา idx ที่ได้ไช้ระบุ locator ที่ต้อง click
         for i, name in enumerate(names_no_code):
             name = name.replace(")", "")
@@ -4287,11 +4287,11 @@ class Bot_POS:
             print("if ", cus_desire_name, " In ", name)
             print("จริงทั้งคู่ไหม: ", is_branched, "และ ", self.app.tax_branch_num.get() in name)
             print(f"""is_branched: {is_branched} 
-                  tax_branch_num in name: {self.app.tax_branch_num.get() in name} 
-                  cus_tax_branch_code: {self.has_cus_tax_branch_code}""")
+                  tax_branch_num in name: {self.app.tax_branch_num.get()} in {name} {self.app.tax_branch_num.get() in name} 
+                  has_branch_code_in_df: {self.has_branch_code_in_df}""")
             if cus_desire_name in name:
                 if is_branched:
-                    if self.has_cus_tax_branch_code:
+                    if self.has_branch_code_in_df:
                         if not self.app.tax_branch_num.get() in name:
                             print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
                             continue
@@ -4305,19 +4305,21 @@ class Bot_POS:
 
                             except:
                                 print("No customer found")
-                        return
+                                time.sleep(0.5)
 
-                print("ชื่อที่ไม่มีสาขา อยู่ใน li")
-                while not self.operation_thread.is_set():
-                    try:
-                        print("เลือกชื่อลูกค้า", cus_name_list[i])
-                        # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
-                        self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
-                        break
+                elif not re.search(r"สาขา|\d{5}", name):
+                    print("ชื่อที่ไม่มีสาขา อยู่ใน li")
+                    while not self.operation_thread.is_set():
+                        try:
+                            print("เลือกชื่อลูกค้า", cus_name_list[i])
+                            # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
+                            self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+                            break
 
-                    except:
-                        print("No customer found")
-                return
+                        except:
+                            print("No customer found")
+                            time.sleep(0.5)
+                continue
 
             # * ถ้ามันเจอก็จะ จบ function แต่ถ้าไม่เจอจะไปใช้ cb ต่อ
 
