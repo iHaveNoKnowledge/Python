@@ -44,7 +44,7 @@ class ProductManager:
     )
     # ราคาขาย (ปรับ selector ตามหน้าจริง)
     XPATH_UNIT_PRICE = (
-        ".//span[@class='font-color-base ng-binding']"
+        "//div[@class='row'][9]//a[@ng-click='displayPrice(x, $index)']"
     )
     # ยอดรวมทั้งหมด (ปรับ selector ตามหน้าจริง)
     XPATH_TOTAL_PRICE = "//span[@class='col-xs-6 font-base font-color-base text-right ng-binding']"
@@ -159,18 +159,26 @@ class ProductManager:
 
         sku_elements = self.driver.find_elements(By.XPATH, self.XPATH_SKU_TEXTS)
         price_elements = self.driver.find_elements(By.XPATH, self.XPATH_UNIT_PRICE)
+        qty_elements = self.driver.find_elements(By.XPATH, self.XPATH_QTY_DISPLAY)
 
         pos_prices: dict[str, float] = {}
-        for sku_el, price_el in zip(sku_elements, price_elements):
+        print("zip(sku_elements, price_elements, qty_elements): ",
+              list(zip(sku_elements, price_elements, qty_elements)))
+        for sku_el, price_el, qty_el in zip(sku_elements, price_elements, qty_elements):
             try:
                 sku_text = sku_el.text.strip()
+                qty_text = float(qty_el.text.strip())
                 price_text = price_el.text.strip()
+
                 # ลบ comma และ symbol ก่อน parse  เช่น "1,500.00" → 1500.0
                 before_decimal = price_text.split('.')[0]
                 price_val = float(re.sub(r'[^0-9]', '', before_decimal))
-                pos_prices[sku_text] = price_val
+                price_val = price_val / qty_text if qty_text != 0 else 1.0  # ป้องกันหารด้วยศูนย์
+                pos_prices[sku_text] = float(price_val)
             except Exception as e:
                 print(f"[ProductManager.verify_item_price] parse error: {e}")
+
+        print("pos_prices: ", pos_prices)
 
         result: dict[str, dict] = {}
         all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
@@ -180,7 +188,11 @@ class ProductManager:
             expected = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
             actual = 0.0
             for sku in skus:
-                actual += pos_prices.get(sku, "NOT_FOUND")
+                val = pos_prices.get(sku, "NOT_FOUND")
+                if val == "NOT_FOUND":
+                    actual = "NOT_FOUND"
+                    break
+                actual += val
             ok = (actual == expected) if actual != "NOT_FOUND" else False
             result[item[self.COL_SKU]] = {"expected": expected, "actual": actual, "ok": ok}
             status_icon = "✅" if ok else "❌"

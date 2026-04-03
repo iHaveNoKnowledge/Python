@@ -5258,12 +5258,14 @@ class Bot_POS:
                 #     )
 
                 self.ProductManager.auto_add_all_items()
-                try:
-                    verification_result = self.ProductManager.verify_all()
-                    print("verification_result: ", verification_result)
-                except Exception as err:
-                    print(f"Error occurred while verifying items: {err}")
-                    logger.error(f"Error occurred while verifying items: {err}")
+                verification_result = self.ProductManager.verify_all()
+                print("verification_result: ", verification_result)
+                # try:
+                #     verification_result = self.ProductManager.verify_all()
+                #     print("verification_result: ", verification_result)
+                # except Exception as err:
+                #     print(f"Error occurred while verifying items: {err}")
+                #     logger.error(f"Error occurred while verifying items: {err}")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
