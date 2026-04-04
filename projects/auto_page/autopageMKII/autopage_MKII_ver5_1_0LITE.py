@@ -284,6 +284,8 @@ if getattr(sys, 'frozen', False):
 
 class MyApp:
     def __init__(self, root):
+        #* For testing purposes only
+        self.is_testing = False
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -4152,12 +4154,14 @@ class Bot_POS:
 
         try:
             self.wait5.until(EC.visibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
+            time.sleep(1) #* บางครั้งหลัง add swal มันก็ค้างได้
             cus_code_element = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
             # * เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
             # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
             # * กรณี add แล้ว มี popup-duplicate customer
             print("Check Duplicated customer!!")
-            self.duplicated_cus_name_resolver(cus_code_element)
+            if self.app.is_tax_required.get():
+                self.duplicated_cus_name_resolver(cus_code_element)
             #! ! cb() น่าจะ deprecated เพราะมันจะ recursive กับตัวหลัก เพราะใน select_cus_name_from_lisจะเรียกget_customer_name_ready() เป็น cd แล้วมันจะทำงานวนซ้ำไปเรื่อยๆ
             # cb()
 
@@ -4291,30 +4295,41 @@ class Bot_POS:
                   has_branch_code_in_df: {self.has_branch_code_in_df}""")
             if cus_desire_name in name:
                 if is_branched:
-                    if self.has_branch_code_in_df:
+                    if self.has_branch_code_in_df: #* สาขาย่อยจริง (เพราะ column "ประเภทสาขา" ใน df มันจะ เป็น ประเภท "สาขาย่อย" แล้วมีเลข)
                         if not self.app.tax_branch_num.get() in name:
                             print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
                             continue
                         print("ชื่อสาขาย่อยที่ต้องการ อยู่ใน li")
                         while not self.operation_thread.is_set():
                             try:
-                                print("เลือกชื่อลูกค้า", cus_name_list[i])
+                                print("เลือกชื่อลูกค้าสาขาย่อย", cus_name_list[i])
                                 # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
                                 self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
-                                break
+                                return
+
+                            except:
+                                print("No customer found")
+                                time.sleep(0.5)
+                    else: #* personal (เพราะ column "ประเภทสาขา" ใน df มันจะ เป็น ประเภท "สาขาย่อย" แต่ไม่มีเลข)
+                        while not self.operation_thread.is_set():
+                            try:
+                                print("เลือกชื่อลูกค้าใบกำกับแบบบุคคล", cus_name_list[i])
+                                # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
+                                self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
+                                return
 
                             except:
                                 print("No customer found")
                                 time.sleep(0.5)
 
-                elif not re.search(r"สาขา|\d{5}", name):
+                elif not re.search(r"สาขา.*?\d{5}", name):
                     print("ชื่อที่ไม่มีสาขา อยู่ใน li")
                     while not self.operation_thread.is_set():
                         try:
-                            print("เลือกชื่อลูกค้า", cus_name_list[i])
+                            print("เลือกชื่อลูกค้าธรรมดา|ใบกำกับสนงใหญ่", cus_name_list[i])
                             # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
                             self.driver.find_element(By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
-                            break
+                            return
 
                         except:
                             print("No customer found")
@@ -5297,14 +5312,15 @@ class Bot_POS:
 
             # todo for testing
             # * Update Accel file //////////////////////
-            try:
-                self.app.accel_mode.deduct_accel_file_data(
-                    self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-            except Exception as err:
-                logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
+            if self.app.is_testing:
+                try:
+                    self.app.accel_mode.deduct_accel_file_data(
+                        self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+                except Exception as err:
+                    logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-            logger.info(f"Order: {self.cus_order} Testing End!!")
-            return
+                logger.info(f"Order: {self.cus_order} Testing End!!")
+                return
 
             # with self.driver_lock:
             #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน
@@ -5972,8 +5988,8 @@ class Bot_POS:
                     )
 
                     # * Postal code
-                    zip_code_btn_element = self.driver.find_element(
-                        By.XPATH, "//span[@id='select2-zipCodeSel-container']")
+                    zip_code_btn_xpath =  "//span[@id='select2-zipCodeSel-container']"
+                    zip_code_btn_element = self.driver.find_element(By.XPATH, zip_code_btn_xpath)
                     try:
                         # * ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
                         self.driver.find_element(By.XPATH, f"""//span[@title='{postcode}']""")
@@ -6640,6 +6656,27 @@ class Bot_POS:
                     en_field='subdistrictNameEn',
                     place_type='subdistrict'
                 )
+                
+                # * Postal code
+                zip_code_btn_xpath =  "//span[@id='select2-zipCodeSel-container']"
+                zip_code_btn_element = self.driver.find_element(By.XPATH, zip_code_btn_xpath)
+                postcode = self.app.cus_postcode.get()
+                try:
+                    # * ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
+                    self.driver.find_element(By.XPATH, f"""//span[@title='{postcode}']""")
+                except:
+                    try:
+                        zip_code_btn_element.click()
+                        self.dropdown_handler()
+                        self.driver.find_element(
+                            By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
+                    except Exception as err:
+                        print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
+                        if self.app.is_auto_invoice_mode.get():
+                            logger.error(
+                                f"order {self.cus_order}: auto invoice mode requires postal code selection but postal code {postcode} cannot be found in dropdown, stopping the process. Error details: {err}")
+                            raise ValueError(
+                                f"Postal code {postcode} cannot be found in dropdown, auto invoice mode requires postal code selection, stopping the process. Error details: {err}")
 
                 print(f"""{self.cus_order}: Address Revise Complete""")
                 break
@@ -6649,11 +6686,14 @@ class Bot_POS:
                 logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
                 logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
                 continue
+         # * CLick Save Button (commented out but kept for completeness)
+        if self.app.is_auto_invoice_mode.get():
+            self.driver.find_element(By.XPATH, "//button[@ng-click='saveAddress()']").click()
 
         # * Wait for success popup
         self.app.is_bot_browser_busy.set(False)
         while not self.operation_thread.is_set():
-            time.sleep(0.25)
+            time.sleep(0.55)
             try:
                 success_popup = self.driver.find_element(By.CSS_SELECTOR, '.swal2-icon.swal2-success')
                 if success_popup.is_displayed():

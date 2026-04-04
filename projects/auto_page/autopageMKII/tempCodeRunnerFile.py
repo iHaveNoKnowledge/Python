@@ -1,2 +1,1 @@
-
-        self._session = requests.Session()
+True
