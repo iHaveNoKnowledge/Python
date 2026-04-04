@@ -4154,7 +4154,7 @@ class Bot_POS:
 
         try:
             self.wait5.until(EC.visibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
-            time.sleep(1) #* บางครั้งหลัง add swal มันก็ค้างได้
+            time.sleep(0.3) #* บางครั้งหลัง add swal มันก็ค้างได้
             cus_code_element = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
             # * เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
             # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
@@ -4162,6 +4162,7 @@ class Bot_POS:
             print("Check Duplicated customer!!")
             if self.app.is_tax_required.get():
                 self.duplicated_cus_name_resolver(cus_code_element)
+            self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
             #! ! cb() น่าจะ deprecated เพราะมันจะ recursive กับตัวหลัก เพราะใน select_cus_name_from_lisจะเรียกget_customer_name_ready() เป็น cd แล้วมันจะทำงานวนซ้ำไปเรื่อยๆ
             # cb()
 
@@ -5265,28 +5266,7 @@ class Bot_POS:
             if self.app.marketplace_target.get() == "SHOPEE":
                 self.add_shipping_cost()
 
-            if self.app.is_auto_invoice_mode.get():
-                # print("Auto Invoice Mode is activated, skip adding product and go to final page")
-                # for i, item in enumerate(self.app.items):
-                #     print(f"Item {i}: {item}")
-                #     self.AutoAddProduct.auto_add_product(
-                #         self.app.correct_sku_pattern(item['เลขอ้างอิง SKU (SKU Reference No.)']),
-                #         item['จำนวน']
-                #     )
-
-                self.ProductManager.auto_add_all_items()
-                verification_result = self.ProductManager.verify_all()
-                print("verification_result: ", verification_result)
-                # try:
-                #     verification_result = self.ProductManager.verify_all()
-                #     print("verification_result: ", verification_result)
-                # except Exception as err:
-                #     print(f"Error occurred while verifying items: {err}")
-                #     logger.error(f"Error occurred while verifying items: {err}")
-
-            self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
-            self.app.display_bot_status_label.configure(
-                text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+            
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
@@ -5309,6 +5289,21 @@ class Bot_POS:
             # if self.app.is_accel_mode_activated.get():
             if len(self.app.accel_mode.accel_df_state) > 0:
                 self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
+
+            if self.app.is_auto_invoice_mode.get():
+                self.ProductManager.auto_add_all_items()
+            verification_result = self.ProductManager.verify_all()
+            print("verification_result: ", verification_result)
+            # try:
+            #     verification_result = self.ProductManager.verify_all()
+            #     print("verification_result: ", verification_result)
+            # except Exception as err:
+            #     print(f"Error occurred while verifying items: {err}")
+            #     logger.error(f"Error occurred while verifying items: {err}")
+
+            self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
+            self.app.display_bot_status_label.configure(
+                text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
 
             # todo for testing
             # * Update Accel file //////////////////////
@@ -6245,7 +6240,7 @@ class Bot_POS:
             print(f"Typed '{search_value}' to trigger API")
 
             # รอ dropdown พร้อม
-            time.sleep(0.3)
+            self.dropdown_handler()
 
             # จับ response จาก API
             api_url_part = "/getCountryInfomation.htm"
@@ -6269,7 +6264,7 @@ class Bot_POS:
                     # เลือกโดยกด Enter (dropdown จะเลือกตัวแรกที่ตรง)
                     # input_element.send_keys(Keys.ENTER)
                     li_dropdowns[matched_item_idx].click()
-                    print(f"Selected '{search_value}' successfully")
+                    print(f"Selected '{search_value}', item idx {matched_item_idx} successfully")
 
                     # Clear logs หลังใช้งาน
                     self.network_capture.clear_logs()
