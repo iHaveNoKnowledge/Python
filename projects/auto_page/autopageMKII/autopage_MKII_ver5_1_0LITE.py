@@ -6678,8 +6678,8 @@ class Bot_POS:
             except Exception as err:
                 print(f"Address Revise Error1 : {traceback.format_exc()}")
                 print(f"Address Revise Error2 : {err}")
-                logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
-                logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
+                # logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
+                # logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
                 continue
          # * CLick Save Button (commented out but kept for completeness)
         if self.app.is_auto_invoice_mode.get():
