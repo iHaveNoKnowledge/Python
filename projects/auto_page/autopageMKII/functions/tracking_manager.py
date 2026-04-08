@@ -172,8 +172,8 @@ class TrackingManager:
 
     def _reenter_current_order(self, current_order):
         # Placeholder: logic to search for the current_order
-        self._wait_for_element(By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
         if self.marketplace == 'SHOPEE':
+            self._wait_for_element(By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input')
             self.driver.find_element(By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input').clear()
             self.driver.find_element(
                 By.CSS_SELECTOR, 'div.eds-input__inner.eds-input__inner--normal input').send_keys(current_order)
@@ -236,13 +236,16 @@ class TrackingManager:
         # return self.driver.find_elements(By.XPATH, "TRACKING_ELEMENTS_XPATH")
         time.sleep(1)  # * ใช้ได้จริง ถ้าไม่ใช้ มันจะโหลดไม่ทันทำให้ได้ list เปล่าๆมา
         if self.marketplace == 'SHOPEE':
-            tracking_elements = self.driver.find_elements(By.XPATH, "//div[@class='tracking-number']")
+            shopee_tracking_xpath = "//div[@class='tracking-number']"
+            tracking_elements = self.driver.find_elements(By.XPATH, shopee_tracking_xpath)
             print("tracking_elements: ", tracking_elements)
             return tracking_elements
 
         elif self.marketplace == 'LAZADA':
-            print("ยังไม่ได้ทำ")
-            return []
+            lazada_tracking_xpath = "//div[@class='order-field order-field-tracking-number']//span[@class='show-text copy-text-item hover-show-edit break-all']"
+            tracking_elements = self.driver.find_elements(By.XPATH, lazada_tracking_xpath)
+            print("tracking_elements: ", tracking_elements)
+            return tracking_elements
 
     def _extract_trackings_from_elements(self, elements):
         # Placeholder: get text or attribute from the elements

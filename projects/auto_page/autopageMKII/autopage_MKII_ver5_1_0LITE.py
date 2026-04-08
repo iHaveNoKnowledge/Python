@@ -1555,7 +1555,7 @@ class MyApp:
                     "cleaned_address": row['รายละเอียดที่อยู่'],
                     "amphoe": district, "province": province, "postal": zipcode
                 }
-                google_result = self.google_for_tambon(address_dict, possible_tambons)
+                google_result = self.bot.google_for_tambon(address_dict, possible_tambons)
                 if google_result:
                     return google_result
             except Exception as e:
@@ -2959,7 +2959,7 @@ class Bot_POS:
             'lenovoofficialstorebyitcity': 'SHP ITCITY LENOVO',
         }
         self.sumatra_path = ""
-
+        
         # * Initialize Sumatra PDF cache file path
         self.sumatra_cache_file = os.path.join(os.path.dirname(__file__), "sumatra_pdf_cache.txt")
         # * Load cached Sumatra PDF path or search for it
@@ -3945,7 +3945,7 @@ class Bot_POS:
                 # * ถ้ามี cus_code ใช้ 'C' ถ้าไม่มีใช้ 'T'
                 st_value = 'C' if getattr(self, 'cus_code', False) else 'T'
             elif marketplace == "LAZADA":
-                st_value = 'T'
+                st_value = 'C' if getattr(self, 'cus_code', False) else 'T'
 
         # 3. สร้าง XPath จาก st_value ที่เลือกมา
         # ใช้ f-string เพื่อใส่ค่า st เข้าไปใน XPath ตรงๆ
@@ -4245,8 +4245,20 @@ class Bot_POS:
 
     # !66 WIP เปลี่ยนวิธีเลือกชื่อลูกค้า เดิมทีคือเลือก // ชิพหายมันเลือกค่าจาก i
     def select_cus_name_from_lis(self, cus_desire_name, cus_name_list, cb=""):
-        # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
         print(f"""order: {self.cus_order} : select_cus_name_from_lis starts """)
+        tax_num = str(self.app.tax_num.get())
+        print('tax_num: ', tax_num)
+
+        if self.app.marketplace_target.get() == "LAZADA" and self.app.is_tax_required.get():
+            
+            
+        # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
+            if self.tax_info.get(tax_num):
+                cus_desire_name = self.tax_info[tax_num]['name']
+            else:
+                vatinfo_data = self.get_vatinfo_data(tax_num, self.app.tax_branch_num.get())
+                self.tax_info[tax_num] = vatinfo_data if vatinfo_data else {}
+                cus_desire_name = self.tax_info[tax_num]['name']
         print("incoming cus_desire_name: ", cus_desire_name)
         pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'
@@ -4824,6 +4836,7 @@ class Bot_POS:
         self.is_old_tax_form = False
         self.cus_code = ""
         self.cus_order = self.app.cus_order.get()
+        self.tax_info = {}
 
         #! Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่ม operation อาจจะไม่ต้องใช้ก็ได้ เพราะใช้ใน
         inv_number = ""
@@ -5252,8 +5265,7 @@ class Bot_POS:
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.is_tax_required.get():
                     print("tax required, start address check and correct")
-                    self.cus_name_span = self.driver.find_element(
-                        By.XPATH, "//span[@id='select2-memberSearch-container']")
+                    self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
                     # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี ซึ่งปกติ element นี้จะแสดง attribute title ด้วยถ้ามีการเลือกที่อยู่ลูกค้าแล้ว ถ้าไม่เลือก attribute title จะไม่แสดงใน html
                     self.text_from_name_span = self.cus_name_span.get_attribute("title")
                     self.tax_address_corrector(self.text_from_name_span)
@@ -5440,11 +5452,10 @@ class Bot_POS:
                                 #     self.driver.find_element(
                                 #         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
-                                # /กรอก remark
+                                #* /กรอก remark
                                 time.sleep(0.75)
                                 remark_text = self.cus_order
-                                textarea_element = self.driver.find_element(
-                                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+                                textarea_element = self.driver.find_element(By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
 
                                 self.tracking_manager.collect_tracking(remark_text)
                                 self.tracking_manager.apply_tracking_to_final_page()
@@ -5853,7 +5864,11 @@ class Bot_POS:
 
         elif customer_type == "tax_laz":
             # * value of self.app.tax_branch_num.get() can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
-            tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
+            if self.tax_info[self.app.tax_num.get()]:
+                tax_info = self.tax_info[self.app.tax_num.get()]
+            else:
+                tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
+                self.tax_info[self.app.tax_num.get()] = tax_info
             name = tax_info['name']
 
             # Remove any trailing branch info to standardize format
@@ -6712,11 +6727,19 @@ class Bot_POS:
 
     def tax_address_corrector(self, cus_name):
         print("cus_name: ", cus_name)
-        suffixes = {
-            'subdistrict': self.check_language(self.app.nondistortedData['แขวง/ตำบล']),
-            'district': self.check_language(self.app.nondistortedData['เขต/อำเภอ.1']),
-            'province': self.check_language(self.app.nondistortedData['จังหวัด.1'])
-        }
+        if self.app.marketplace_target.get() == "LAZADA" and self.tax_info[self.app.tax_num.get()]:
+            tax_data = self.tax_info[self.app.tax_num.get()]
+            suffixes = {
+                'subdistrict': tax_data['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""),
+                'district': tax_data['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""),
+                'province': tax_data['province'].replace("จังหวัด", "")
+            }
+        else:
+            suffixes = {
+                'subdistrict': self.check_language(self.app.nondistortedData['แขวง/ตำบล']),
+                'district': self.check_language(self.app.nondistortedData['เขต/อำเภอ.1']),
+                'province': self.check_language(self.app.nondistortedData['จังหวัด.1'])
+            }
         # random จะเป็นการที่ user เลือกเองฉะนั้นไม่ต้องตรวจซ้ำ
         if self.should_skip_address_correction():
             print("Random subdistrict used, skipping address correction")
@@ -7117,7 +7140,8 @@ class Bot_POS:
                     found_tambon[f'{possible_tambon}'] += 1
                 # print(found_tambon)
                 most_tambon = max(found_tambon, key=found_tambon.get)
-            print("คนที่คะแนนเยอะสุด", most_tambon)
+            # print("คนที่คะแนนเยอะสุด", most_tambon)
+            print("Loading Tambon...............")
             return most_tambon
         except:
             print('ไม่มี element')
@@ -7200,8 +7224,7 @@ class Bot_POS:
                 print("ไม่มีตำบลมาให้ต้อง search google")
                 address_dict = {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon,
                                 "amphoe": amphoe_short, "province": province, "postal": postal_code}
-                googled_tambon = self.google_for_tambon(
-                    address_dict, possible_tambons)
+                googled_tambon = self.google_for_tambon(address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
                 self.app.POP_UP.show("Caution!!", f""""ตำบล/แขวง"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", "alert")
