@@ -284,7 +284,7 @@ if getattr(sys, 'frozen', False):
 
 class MyApp:
     def __init__(self, root):
-        #* For testing purposes only
+        # * For testing purposes only
         self.is_testing = False
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
@@ -1328,7 +1328,7 @@ class MyApp:
         # ** ปรับแต่ง Column สำหรับ LAZADA--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # * สร้าง sum_column  ขึ้นมาใหม่ --------------------------------------------------------
         # *> 'ยอดชำระเงิน'
-        result_count['ยอดชำระเงิน'] = result_count["จำนวน"] * result_count["unitPrice"]
+        result_count.loc[:, 'ยอดชำระเงิน'] = result_count["จำนวน"] * result_count["unitPrice"]
 
         # *> 'ชื่อผู้รับ' AND 'หมายเลขโทรศัพท์' - REMOVED BUGGY ASSIGNMENT
         # These were assigned by index which caused mismatch.
@@ -1337,7 +1337,7 @@ class MyApp:
         # *> 'โค้ดส่วนลดชำระโดยผู้ขาย'
         seller_discount_df = df.groupby('orderNumber')['sellerDiscountTotal'].sum(
         ).reset_index(name='โค้ดส่วนลดชำระโดยผู้ขาย')
-        seller_discount_df['โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
+        seller_discount_df.loc[:, 'โค้ดส่วนลดชำระโดยผู้ขาย'] *= -1
 
         # *> 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ'
         shipping_fee_df = df.groupby('orderNumber')['shippingFee'].sum(
@@ -1355,22 +1355,22 @@ class MyApp:
         )
 
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
-        result_df['รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
+        result_df.loc[:, 'รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
 
         # * Fix: Assign 'ชื่อผู้รับ' and 'หมายเลขโทรศัพท์' correctly from merged data
-        result_df['ชื่อผู้รับ'] = result_df['billingName'].copy()
-        result_df['หมายเลขโทรศัพท์'] = result_df['billingPhone'].copy()
+        result_df.loc[:, 'ชื่อผู้รับ'] = result_df['billingName'].copy()
+        result_df.loc[:, 'หมายเลขโทรศัพท์'] = result_df['billingPhone'].copy()
 
         # Clean ที่อยู่: แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขา
         address_split_result = result_df.apply(self._split_lazada_address, axis=1, result_type='expand')
-        result_df['รายละเอียดที่อยู่'] = address_split_result[0]
-        result_df['billingAddr2'] = address_split_result[1]
+        result_df.loc[:, 'รายละเอียดที่อยู่'] = address_split_result[0]
+        result_df.loc[:, 'billingAddr2'] = address_split_result[1]
 
         # * Fill missing sub-district (แขวง/ตำบล) data by querying from Excel file
         try:
             address_data_path = os.path.join(os.path.dirname(__file__), 'tables', 'Addresscleaner_TambonData.xlsx')
             address_df = pd.read_excel(address_data_path, dtype=str)
-            result_df['billingAddr2'] = result_df.apply(
+            result_df.loc[:, 'billingAddr2'] = result_df.apply(
                 lambda row: self._fill_missing_subdistrict(row, address_df), axis=1)
         except FileNotFoundError:
             print(f"Warning: Addresscleaner_TambonData.xlsx not found at {address_data_path}")
@@ -1382,14 +1382,15 @@ class MyApp:
         # ลบ keywords ซ้ำซ้อนจากที่อยู่ (ตำบล, อำเภอ, จังหวัด, etc.)
         result_df['รายละเอียดที่อยู่'] = result_df.apply(self._remove_redundant_keywords, axis=1)
 
-        result_df['ประเภทสาขา'] = result_df['branchNumber'].copy()
+        result_df.loc[:, 'ประเภทสาขา'] = result_df['branchNumber'].copy()
 
         # * สกัดและหาเลขสาขา จากข้อมูลที่กรอกมั่วๆไร้ซึ่ง pattern จาก lazada exportfile และเก็บไว้ในตัวแปร extracted_branch_df สาขาจะแสดงเป็นเลข 5 หลักแทนช่องว่างด้วย 0 แต่สาขา 00000 จะแสดงเป็น "สำนักงานใหญ่"
         extracted_branch_df = result_df['ประเภทสาขา'].apply(self.find_branch)
 
         # * เปลี่ยน ค่าใน col branchNumber ให้กลายเป็นบอกเฉพาะเลขสาขาถ้าเป็นสาขาย่อย และ เป็นค่าว่างถ้าเป็นสำนักงานใหญ่
-        result_df['branchNumber'] = extracted_branch_df.copy()
-        result_df['branchNumber'] = result_df['branchNumber'].map(lambda row: "" if row == "สำนักงานใหญ่" else row)
+        result_df.loc[:, 'branchNumber'] = extracted_branch_df.copy()
+        result_df.loc[:, 'branchNumber'] = result_df['branchNumber'].map(
+            lambda row: "" if row == "สำนักงานใหญ่" else row)
 
         # * นำค่าที่สกัดและแปลงจากตัวแปร extracted_branch_df มาหาประเภทสาขา หาก ค่าใน cell เป็น"สำนักงานใหญ่" จะ return "สำนักงานใหญ่" ถ้าไม่ใช่ จะแสดงเป็น "สาขาย่อย" (มีค่าเป็นเลขสาขา จะ return เป็น สาขาย่อย)
         # * ใช้ผลลัพธ์จาก find_branch เพื่อกำหนดประเภทสาขา
@@ -1400,14 +1401,12 @@ class MyApp:
         # >> addr4 = เขต/อำเภอ, addr3 = จังหวัด
         address_divs = ['billingAddr4', 'billingAddr3']
         for address_div in address_divs:
-            result_df[f'{address_div}'] = result_df[f'{address_div}'].map(lambda row: row.split('/')[0].strip())
+            result_df.loc[:, f'{address_div}'] = result_df[f'{address_div}'].map(lambda row: row.split('/')[0].strip())
 
         # * เปลี่ยน Dtype ของ Column ['createTime'] (วันที่ทำการสั่งซื้อ) จาก Series ให้เป็นobjวันที่ เนื่องจากอันเดิมมันเอาไป Sort ไม่ได้ เวลาออกเป็นตาราง
-        result_df['createTime'] = pd.to_datetime(
-            result_df['createTime'], format='mixed', dayfirst=True)
+        result_df['createTime'] = pd.to_datetime(result_df['createTime'], format='mixed', dayfirst=True)
         # * >  แปลง objวันที่ ให้กลายเป็น number ใน excel เพื่อให้แสดงผลใน cel เหมือนกับ exported file ของ shopee
-        result_df['createTime'] = result_df['createTime'].dt.strftime(
-            '%Y-%m-%d %H:%M')
+        result_df.loc[:, 'createTime'] = result_df['createTime'].dt.strftime('%Y-%m-%d %H:%M')
 
         # * ตรวจสอบผลลัพธ์
         # print(f"""qty ใน lazada""")
@@ -1440,14 +1439,12 @@ class MyApp:
         },
             inplace=True
         )
-        result_df['หมายเลขคำสั่งซื้อ'] = result_df['หมายเลขคำสั่งซื้อ'].astype(
-            str)
+        result_df.loc[:, 'หมายเลขคำสั่งซื้อ'] = result_df['หมายเลขคำสั่งซื้อ'].astype(str)
 
         print("ตารางใหม่")
         print(result_df)
         excel_file_path = "output_test.xlsx"
-        result_df.to_excel(excel_file_path, index=False,
-                           na_rep="", engine="openpyxl")
+        result_df.to_excel(excel_file_path, index=False, na_rep="", engine="openpyxl")
         return result_df
 
     @staticmethod
@@ -2959,7 +2956,7 @@ class Bot_POS:
             'lenovoofficialstorebyitcity': 'SHP ITCITY LENOVO',
         }
         self.sumatra_path = ""
-        
+
         # * Initialize Sumatra PDF cache file path
         self.sumatra_cache_file = os.path.join(os.path.dirname(__file__), "sumatra_pdf_cache.txt")
         # * Load cached Sumatra PDF path or search for it
@@ -4154,7 +4151,7 @@ class Bot_POS:
 
         try:
             self.wait5.until(EC.visibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
-            time.sleep(0.3) #* บางครั้งหลัง add swal มันก็ค้างได้
+            time.sleep(0.3)  # * บางครั้งหลัง add swal มันก็ค้างได้
             cus_code_element = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
             # * เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
             # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
@@ -4162,7 +4159,8 @@ class Bot_POS:
             print("Check Duplicated customer!!")
             if self.app.is_tax_required.get():
                 self.duplicated_cus_name_resolver(cus_code_element)
-            self.driver.find_element(By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+            self.driver.find_element(
+                By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
             #! ! cb() น่าจะ deprecated เพราะมันจะ recursive กับตัวหลัก เพราะใน select_cus_name_from_lisจะเรียกget_customer_name_ready() เป็น cd แล้วมันจะทำงานวนซ้ำไปเรื่อยๆ
             # cb()
 
@@ -4250,9 +4248,8 @@ class Bot_POS:
         print('tax_num: ', tax_num)
 
         if self.app.marketplace_target.get() == "LAZADA" and self.app.is_tax_required.get():
-            
-            
-        # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
+
+            # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
             if self.tax_info.get(tax_num):
                 cus_desire_name = self.tax_info[tax_num]['name']
             else:
@@ -4308,7 +4305,8 @@ class Bot_POS:
                   has_branch_code_in_df: {self.has_branch_code_in_df}""")
             if cus_desire_name in name:
                 if is_branched:
-                    if self.has_branch_code_in_df: #* สาขาย่อยจริง (เพราะ column "ประเภทสาขา" ใน df มันจะ เป็น ประเภท "สาขาย่อย" แล้วมีเลข)
+                    # * สาขาย่อยจริง (เพราะ column "ประเภทสาขา" ใน df มันจะ เป็น ประเภท "สาขาย่อย" แล้วมีเลข)
+                    if self.has_branch_code_in_df:
                         if not self.app.tax_branch_num.get() in name:
                             print("เจอชื่อ แต่ชื่อที่เจอไม่ใช่สาขาย่อยที่ถูกต้องตามที่ลูกค้าต้องการ ข้าม")
                             continue
@@ -4323,7 +4321,7 @@ class Bot_POS:
                             except:
                                 print("No customer found")
                                 time.sleep(0.5)
-                    else: #* personal (เพราะ column "ประเภทสาขา" ใน df มันจะ เป็น ประเภท "สาขาย่อย" แต่ไม่มีเลข)
+                    else:  # * personal (เพราะ column "ประเภทสาขา" ใน df มันจะ เป็น ประเภท "สาขาย่อย" แต่ไม่มีเลข)
                         while not self.operation_thread.is_set():
                             try:
                                 print("เลือกชื่อลูกค้าใบกำกับแบบบุคคล", cus_name_list[i])
@@ -5265,7 +5263,8 @@ class Bot_POS:
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.is_tax_required.get():
                     print("tax required, start address check and correct")
-                    self.cus_name_span = self.driver.find_element(By.XPATH, "//span[@id='select2-memberSearch-container']")
+                    self.cus_name_span = self.driver.find_element(
+                        By.XPATH, "//span[@id='select2-memberSearch-container']")
                     # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี ซึ่งปกติ element นี้จะแสดง attribute title ด้วยถ้ามีการเลือกที่อยู่ลูกค้าแล้ว ถ้าไม่เลือก attribute title จะไม่แสดงใน html
                     self.text_from_name_span = self.cus_name_span.get_attribute("title")
                     self.tax_address_corrector(self.text_from_name_span)
@@ -5277,8 +5276,6 @@ class Bot_POS:
             # / ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 self.add_shipping_cost()
-
-            
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
@@ -5452,10 +5449,11 @@ class Bot_POS:
                                 #     self.driver.find_element(
                                 #         By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[2]/div/div[1]/div[5]/div[3]/div[1]/div[2]/input').send_keys(self.app.cus_seller_voucher.get())
 
-                                #* /กรอก remark
+                                # * /กรอก remark
                                 time.sleep(0.75)
                                 remark_text = self.cus_order
-                                textarea_element = self.driver.find_element(By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+                                textarea_element = self.driver.find_element(
+                                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
 
                                 self.tracking_manager.collect_tracking(remark_text)
                                 self.tracking_manager.apply_tracking_to_final_page()
@@ -5998,7 +5996,7 @@ class Bot_POS:
                     )
 
                     # * Postal code
-                    zip_code_btn_xpath =  "//span[@id='select2-zipCodeSel-container']"
+                    zip_code_btn_xpath = "//span[@id='select2-zipCodeSel-container']"
                     zip_code_btn_element = self.driver.find_element(By.XPATH, zip_code_btn_xpath)
                     try:
                         # * ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
@@ -6082,7 +6080,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -6666,9 +6663,9 @@ class Bot_POS:
                     en_field='subdistrictNameEn',
                     place_type='subdistrict'
                 )
-                
+
                 # * Postal code
-                zip_code_btn_xpath =  "//span[@id='select2-zipCodeSel-container']"
+                zip_code_btn_xpath = "//span[@id='select2-zipCodeSel-container']"
                 zip_code_btn_element = self.driver.find_element(By.XPATH, zip_code_btn_xpath)
                 postcode = self.app.cus_postcode.get()
                 try:
