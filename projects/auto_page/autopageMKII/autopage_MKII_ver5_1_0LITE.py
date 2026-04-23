@@ -926,7 +926,8 @@ class MyApp:
             command=lambda: self.accel_mode.extract_sn_btn(
                 self.accel_mode.accel_file_dir
             ),
-            fg_color="#969696"
+            fg_color="#969696",
+            text_color="#000",
         )
 
         # * > Log in button component
@@ -1451,7 +1452,7 @@ class MyApp:
     def _split_lazada_address(row):
         """แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขาออก"""
         addr = str(row['รายละเอียดที่อยู่'])
-        extracted_sub_district = row['billingAddr2']
+        extracted_sub_district = row['billingAddr']
 
         if '\u00B7' in addr:
             parts = addr.split('\u00B7')
@@ -4248,11 +4249,13 @@ class Bot_POS:
         print('tax_num: ', tax_num)
 
         if self.app.marketplace_target.get() == "LAZADA" and self.app.is_tax_required.get():
-
+            print("A Lazada customer with tax number, get desired name from vatinfo data API")
             # * ล้างคำที่ไม่เกี่ยวกับชื่อลูกค้า (คำเสริมยศต่างๆที่ไม่สำคัญกับการแยกแยะว่าใครเป็นใคร)
             if self.tax_info.get(tax_num):
+                # / self.tax_info เป็น dict ที่ยิง api มาเก็บไว้แล้ว ถ้ามี tax_num นี้อยู่ใน dict แล้วก็ใช้เลย ไม่ต้องยิง api ใหม่
                 cus_desire_name = self.tax_info[tax_num]['name']
             else:
+                # / ถ้าไม่มีใน dict ก็ยิง api ใหม่แล้วเก็บไว้ใน dict มาใช้ต่อ (ทำไมถึง else ไว้นะ มันก็น่าจะมีตั้งแต่แรกนี่หว่าจำที่มาไม่ได้)
                 vatinfo_data = self.get_vatinfo_data(tax_num, self.app.tax_branch_num.get())
                 self.tax_info[tax_num] = vatinfo_data if vatinfo_data else {}
                 cus_desire_name = self.tax_info[tax_num]['name']
@@ -5862,7 +5865,7 @@ class Bot_POS:
 
         elif customer_type == "tax_laz":
             # * value of self.app.tax_branch_num.get() can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
-            if self.tax_info[self.app.tax_num.get()]:
+            if self.tax_info.get(self.app.tax_num.get()):
                 tax_info = self.tax_info[self.app.tax_num.get()]
             else:
                 tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
@@ -6081,6 +6084,7 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -6098,7 +6102,7 @@ class Bot_POS:
         url = f'{self.origin}/smartcore/uilts/oper/pos/getCustomerSearchPOS/selectoption.htm'
         response = self.smco_api.post(url, data=payload, cookies=cookies, origin=self.origin)
 
-        print('get_address_smco response status: ', response.json())
+        # print('get_address_smco response status: ', response.json())
         # print('response.json(): ', response.json())
         return response
 
@@ -6727,10 +6731,11 @@ class Bot_POS:
         if self.app.marketplace_target.get() == "LAZADA" and self.tax_info[self.app.tax_num.get()]:
             tax_data = self.tax_info[self.app.tax_num.get()]
             suffixes = {
-                'subdistrict': tax_data['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", ""),
-                'district': tax_data['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", ""),
-                'province': tax_data['province'].replace("จังหวัด", "")
-            }
+                'subdistrict': self.check_language(
+                    tax_data['sub_district'].replace("ตำบล", "").replace("แขวง", "").replace("ต.", "")),
+                'district': self.check_language(
+                    tax_data['district'].replace("อำเภอ", "").replace("เขต", "").replace("ต.", "")),
+                'province': self.check_language(tax_data['province'].replace("จังหวัด", ""))}
         else:
             suffixes = {
                 'subdistrict': self.check_language(self.app.nondistortedData['แขวง/ตำบล']),
@@ -6748,11 +6753,14 @@ class Bot_POS:
         customer_id = self.smco_req_find_customer_id(self.cus_code)
         if customer_id:
             cus_address = self.smco_req_find_cus_address(customer_id, **suffixes)
-            print("cus_address: ", cus_address)
+            # print("cus_address: ", cus_address)
         else:
             cus_address = {
-                'address': '', 'subdistrict': '', 'district': '',
-                'provice': '', 'zip_code': ''
+                'address': '',
+                'subdistrict': '',
+                'district': '',
+                'provice': '',
+                'zip_code': ''
             }
 
         if not any(cus_address.values()):
@@ -7165,8 +7173,9 @@ class Bot_POS:
         target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
         if any(target_row_index) == True:
             print("เจอ Order ใน ไฟล์")
-            cus_address = df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
+            cus_address = df[target_row_index]['รายละเอียดที่อยู่'].iloc[0]
             print("cus_address", cus_address)
+            full_cus_address = df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
             amphoe = str(df[target_row_index]['เขต/อำเภอ.1'].iloc[0])
             amphoe_short = amphoe.replace("อำเภอ", "").replace("เขต", "")
             province = str(df[target_row_index]['จังหวัด.1'].iloc[0])
@@ -7203,8 +7212,7 @@ class Bot_POS:
                 tambon = re.sub(r'\s{1,}', '', tambon)
 
                 # decent_tambon.append(tambon) เลิกใช้ list แล้ว เก็บค่าตรงๆไปเลย
-                if tambon in cus_address:
-                    print("ทำไมได้ตลาดยอดวะ", tambon)
+                if tambon in full_cus_address:
                     decent_tambon = tambon
                     break
 
