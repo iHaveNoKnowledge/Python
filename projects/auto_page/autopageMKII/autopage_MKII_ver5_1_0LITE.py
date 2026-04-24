@@ -1044,6 +1044,26 @@ class MyApp:
         )
         self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
 
+        # * > Lazada Customer Tax Name
+        self.label_lazada_tax_name = CTkLabel(
+            self.order_details_frame,
+            text="ชื่อผู้เสียภาษี (Lazada): ",
+            fg_color=f"{self.bg_by_market_place['LAZADA']}",
+            text_color="#FFF",
+            corner_radius=4
+        )
+        self.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
+
+        # * > Customer Name display component
+        # * >> Labels
+        self.label_cus_name = CTkLabel(
+            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
+        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
+        # * >> Value display
+        self.display_cus_name = CTkEntry(
+            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
+        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
+
         # * > Is Tax?? display component
         # * >> Labels
         self.label_is_tax = CTkLabel(self.order_details_frame, text="ใบกำกับ", fg_color="#FFF", corner_radius=4)
@@ -1057,24 +1077,21 @@ class MyApp:
         )
         self.display_is_tax.grid(row=2, column=3, padx=(1, 0), sticky=EW, columnspan=1)
 
-        # * > Customer Name display component
-        # * >> Labels
-        self.label_cus_name = CTkLabel(
-            self.order_details_frame, text="ชื่อ", fg_color="#FFF", corner_radius=4)
-        self.label_cus_name.grid(row=2, column=0, padx=(5, 0), pady=(2, 2), sticky='ew')
-        # * >> Value display
-        self.display_cus_name = CTkEntry(
-            self.order_details_frame, height=25, border_width=0,  textvariable=self.cus_name,  state="readonly")
-        self.display_cus_name.grid(row=2, column=1, padx=(1, 0), sticky='ew')
-
         # * > Tax Number display component
         # >> Labels
         self.label_tax_number = CTkLabel(
             self.order_details_frame, text="เลขผู้เสียภาษี", fg_color="#FFF", corner_radius=4)
         self.label_tax_number.grid(row=2, column=4, padx=(5, 0), sticky='ew')
         # >> Value display
-        self.display_tax_number = CTkEntry(self.order_details_frame, width=105, height=25,
-                                           border_width=0, textvariable=self.tax_num, state="readonly", corner_radius=4)
+        self.display_tax_number = CTkEntry(
+            self.order_details_frame,
+            width=105,
+            height=25,
+            border_width=0,
+            textvariable=self.tax_num,
+            state="readonly",
+            corner_radius=4
+        )
         self.display_tax_number.grid(row=2, column=5, padx=(1, 0), sticky='ew')
 
         # * > Customer Email display component
@@ -1942,11 +1959,12 @@ class MyApp:
             self.cus_name.set(re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
 
             # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
-            print("name.get()ก่อนทำการ format", self.cus_name.get())
+            # print("name.get()ก่อนทำการ format", self.cus_name.get())
             self.cus_name.set(self.tax_name_formatter(self.cus_name.get()))
-            print("name.get()หลังจากทำการ format", self.cus_name.get())
+            # print("name.get()หลังจากทำการ format", self.cus_name.get())
         else:
-            print("Customer Name is empty")
+            # print("Customer Name is empty")
+            pass
 
     def order_search(self, order,  on_complete):
         print("order_search ทำงาน")
