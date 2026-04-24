@@ -323,6 +323,7 @@ class MyApp:
         self.cus_email = StringVar(value="")
         self.cus_postcode = StringVar(value="")
         self.cus_cur_status = StringVar(value="")
+        self.cus_tax_name_lazada = StringVar(value="")
         self.is_forbid = False
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
@@ -1044,7 +1045,8 @@ class MyApp:
         )
         self.display_current_status.grid(row=1, column=3, padx=(1, 0), sticky=EW)
 
-        # * > Lazada Customer Tax Name
+        # * > Lazada Customer Alternate Name (Tax Name)
+        # * >> Labels
         self.label_lazada_tax_name = CTkLabel(
             self.order_details_frame,
             text="ชื่อผู้เสียภาษี (Lazada): ",
@@ -1052,7 +1054,17 @@ class MyApp:
             text_color="#FFF",
             corner_radius=4
         )
-        self.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
+        # self.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
+        # * >> Value display
+        self.display_lazada_tax_name = CTkEntry(
+            self.order_details_frame,
+            height=25,
+            border_width=0,
+            textvariable=self.cus_tax_name_lazada,
+            state="readonly",
+            corner_radius=4
+        )
+        # self.display_lazada_tax_name.grid(row=1, column=5, padx=(1, 0), sticky='ew')
 
         # * > Customer Name display component
         # * >> Labels
@@ -1229,6 +1241,7 @@ class MyApp:
         self.cus_cur_status.set("")
         self.cus_account_name.set("")
         self.display_is_tax.configure(font=("Chiller", 10, "normal"))
+        self.cus_tax_name_lazada.set("")
         # for i in self.tree.get_children():
         #     self.tree.delete(i)
 
@@ -1280,8 +1293,13 @@ class MyApp:
             width=1000 if self.marketplace_target.get() == "" else 0
         )
 
-        # self.import_file_frame.config(
-        #     fg_color=f'{self.bg_by_market_place[self.marketplace_target.get()]}')
+        print("myapp:self.label_lazada_tax_name: ", self.label_lazada_tax_name)
+        if result == "LAZADA":
+            self.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
+            self.display_lazada_tax_name.grid(row=1, column=5, padx=(1, 0), sticky='ew')
+        else:
+            self.label_lazada_tax_name.grid_remove()
+            self.display_lazada_tax_name.grid_remove()
 
         # * หลังจากได้ไฟล์เข้ามาแล้ว (self.table_location) เราจะทำการสร้างเป็น dataframe ด้วย function get_data_frame()
         self.get_data_frame()
@@ -2671,8 +2689,15 @@ class DataSourceSelector:
             fg_color=f'{self.app.bg_by_market_place[str(result)]}',
             width=1000 if self.app.marketplace_target.get() == "" else 0
         )
-        # self.import_file_frame.config(
-        #     fg_color=f'{self.bg_by_market_place[self.app.marketplace_target.get()]}')
+
+        print("result: ", result)
+        print("self.app.label_lazada_tax_name: ", self.app.label_lazada_tax_name)
+        if result == "LAZADA":
+            self.app.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
+            self.app.display_lazada_tax_name.grid(row=1, column=5, padx=(1, 0), sticky='ew')
+        else:
+            self.app.label_lazada_tax_name.grid_remove()
+            self.app.display_lazada_tax_name.grid_remove()
 
         self.app.get_data_frame()
         print("Table Location:", self.app.table_location)
@@ -4277,6 +4302,9 @@ class Bot_POS:
                 vatinfo_data = self.get_vatinfo_data(tax_num, self.app.tax_branch_num.get())
                 self.tax_info[tax_num] = vatinfo_data if vatinfo_data else {}
                 cus_desire_name = self.tax_info[tax_num]['name']
+
+            self.app.cus_tax_name_lazada.set(cus_desire_name)
+
         print("incoming cus_desire_name: ", cus_desire_name)
         pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'
@@ -6982,7 +7010,7 @@ class Bot_POS:
                     data_list = json_response
 
                 # * Check if we have data
-                if data_list and isinstance(data_list, list) and len(data_list) > 0:
+                if data_list and isinstance(data_list, list) and len(data_list) > 0 and status == '000':
                     # * Find the matching branch or use the first one
                     output_item = None
                     for item in data_list:
@@ -7286,8 +7314,7 @@ class Bot_POS:
         if bool(result) == False:
             print("no data from vatinfo, use manual data from excel instead")
             # * หาตำบล จาก address ที่ลูกค้าให้มา
-            cus_address_from_table = self.address_seperator(
-                self.app.data_frame, self.cus_order)
+            cus_address_from_table = self.address_seperator(self.app.data_frame, self.cus_order)
 
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
