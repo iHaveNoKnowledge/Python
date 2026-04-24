@@ -1294,7 +1294,7 @@ class MyApp:
         print("myapp:self.label_lazada_tax_name: ", self.label_lazada_tax_name)
         if result == "LAZADA":
             self.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
-            self.display_lazada_tax_name.grid(row=1, column=5, padx=(1, 0), sticky='ew')
+            self.display_lazada_tax_name.grid(row=1, column=5, columnspan=1, padx=(1, 0), sticky='ew')
         else:
             self.label_lazada_tax_name.grid_remove()
             self.display_lazada_tax_name.grid_remove()
@@ -1386,7 +1386,7 @@ class MyApp:
             .merge(seller_discount_df, on='orderNumber', how='left')
             .merge(result_with_additional_columns_df, on='orderNumber', how='left')
             .merge(shipping_fee_df, on='orderNumber', how='left')
-        )
+        ).copy()
 
         # * เราต้องการ column ที่มีชื่อต่างกัน แต่ข้อมูลเหมือนกัน เลยต้อง copy column เพิ่ม
         result_df.loc[:, 'รายละเอียดที่อยู่'] = result_df['billingAddr'].copy()
@@ -1653,7 +1653,11 @@ class MyApp:
         except FileNotFoundError:
             print(f"ไม่พบไฟล์ที่: {self.file_path}")
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"เกิดข้อผิดพลาด: {e}")
+            # พยายามกำหนด self.data_frame เป็น DataFrame เปล่าๆ เพื่อไม่ให้เกิด AttributeError ภายหลัง
+            self.data_frame = pd.DataFrame()
 
     def update_gui(self, address, widget):
         if address != "":
@@ -2035,6 +2039,14 @@ class MyApp:
         if self.order != "":
 
             print("self.order err?: ", self.order, type(self.order))
+
+            if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
+                print("Error: data_frame is missing or empty. Please load an Excel file.")
+                self.update_log("Error: ไม่พบข้อมูลตาราง กรุณาเลือกไฟล์ Excel และรอโหลดข้อมูลก่อนค้นหาออเดอร์")
+                if search_thread_flag:
+                    search_thread_flag.set()
+                return
+
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
                 self.filter_data = self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)]
@@ -5922,6 +5934,7 @@ class Bot_POS:
                 tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
                 self.tax_info[self.app.tax_num.get()] = tax_info
             name = tax_info['name']
+            self.app.cus_tax_name_lazada.set(name)
 
             # Remove any trailing branch info to standardize format
             name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
