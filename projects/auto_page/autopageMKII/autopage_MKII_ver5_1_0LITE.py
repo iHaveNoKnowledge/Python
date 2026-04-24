@@ -1242,8 +1242,6 @@ class MyApp:
         self.cus_account_name.set("")
         self.display_is_tax.configure(font=("Chiller", 10, "normal"))
         self.cus_tax_name_lazada.set("")
-        # for i in self.tree.get_children():
-        #     self.tree.delete(i)
 
     def update_log(self, update_txt):
         self.update_txt = update_txt
@@ -1985,13 +1983,14 @@ class MyApp:
             pass
 
     def order_search(self, order,  on_complete):
-        print("order_search ทำงาน")
         self.on_complete = on_complete
+        self.on_complete.clear()
+        print(f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
+        self.reset_all_display()
         self.order = order.strip()
         if len(self.order) < 14:
             raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
-
         # # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
         # if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
         #     self.bot.pre_operation_memory_cleanup("search_order")
@@ -2034,6 +2033,7 @@ class MyApp:
         ]
 
         if self.order != "":
+
             print("self.order err?: ", self.order, type(self.order))
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
@@ -2138,8 +2138,11 @@ class MyApp:
                     if "สำนักงานใหญ่" in self.branch_type:
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ขอใบกำกับ สนงใหญ่")
-                        self.display_is_tax.configure(fg_color="#ff0000", text_color="#FFF",
-                                                      font=("Chiller", 10, "bold"))
+                        self.display_is_tax.configure(
+                            fg_color="#ff0000",
+                            text_color="#FFF",
+                            font=("Chiller", 10, "bold")
+                        )
                         self.tax_num.set(tax_num_only)
                     elif self.branch_type == "สาขาย่อย" and (not pd.isna(self.data_frame[self.target_row]['รหัสประจำสาขา'].iloc[0])):
                         self.is_tax_required.set(True)
@@ -2344,7 +2347,7 @@ class MyApp:
                 self.update_log("อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
                 self.update_log("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 self.update_log("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
-                self.reset_all_display()
+                # self.reset_all_display()
                 logger.info(f"Order: {self.search_query} Not found in the shopee's Export File")
 
         else:
@@ -2362,6 +2365,7 @@ class MyApp:
             print("seller voucher popup ต้องเด้งละ")
 
         self.on_complete.set()
+        print(f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
         print("order_search ทำงานจบ")
 
     def cal_adjusted_font_size(self, base_width, base_font_size):
@@ -2584,6 +2588,7 @@ class MyApp:
         print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
+        self.is_data_ready = False
         self.shorter_thread_cycle.start()
         self.longer_thread_cycle.start()
 
@@ -2690,8 +2695,6 @@ class DataSourceSelector:
             width=1000 if self.app.marketplace_target.get() == "" else 0
         )
 
-        print("result: ", result)
-        print("self.app.label_lazada_tax_name: ", self.app.label_lazada_tax_name)
         if result == "LAZADA":
             self.app.label_lazada_tax_name.grid(row=1, column=4, padx=(5, 0), pady=(2, 2), sticky='ew')
             self.app.display_lazada_tax_name.grid(row=1, column=5, padx=(1, 0), sticky='ew')
@@ -3896,7 +3899,9 @@ class Bot_POS:
         from selenium.common.exceptions import (NoSuchElementException,
                                                 StaleElementReferenceException,
                                                 TimeoutException)
-
+        while not self.app.order_Search_thread.is_set():
+            print("Waiting for order search thread to finish before starting operation task...")
+            time.sleep(0.5)
         # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
         self._active_generation = getattr(self, '_active_generation', 0) + 1
         my_generation = self._active_generation
@@ -6678,7 +6683,7 @@ class Bot_POS:
 
                 # * Country → Thailand
                 self.driver.find_element(By.XPATH, country_dropdown_xpath).click()
-                time.sleep(1.55)
+                self.dropdown_handler()
                 self.driver.find_element(By.XPATH, country_li_xpath).click()
 
                 # * Province
