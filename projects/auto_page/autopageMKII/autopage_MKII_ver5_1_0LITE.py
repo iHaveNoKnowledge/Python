@@ -4,7 +4,6 @@ import gc
 import json
 import locale
 import os
-import random
 import re
 import subprocess
 import sys
@@ -13,11 +12,10 @@ import time
 import traceback
 import winreg
 from tkinter import *
-from tkinter import filedialog, font, ttk
+from tkinter import filedialog, font
 
 import customtkinter as ctk
 import httpcore
-import numpy as np
 import pandas as pd
 import pdfplumber
 import pytz
@@ -40,11 +38,13 @@ from loguru import logger
 from openpyxl import load_workbook
 from order_display_manager import OrderDisplayManager
 from PIL import Image, ImageTk
-from pypdf import PdfReader
 from selenium import webdriver
-from selenium.common.exceptions import (StaleElementReferenceException,
-                                        TimeoutException,
-                                        UnexpectedAlertPresentException)
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    TimeoutException,
+    NoSuchElementException,
+    InvalidSessionIdException
+)
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -53,8 +53,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_auto_update.chrome_app_utils import ChromeAppUtils
-from webdriver_auto_update.webdriver_manager import WebDriverManager
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -1993,6 +1991,8 @@ class MyApp:
         self.reset_all_display()
         self.order = order.strip()
         if len(self.order) < 14:
+            self.on_complete.set()
+            self.operation_thread.set()
             raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
         # # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
@@ -2043,9 +2043,6 @@ class MyApp:
             if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
                 print("Error: data_frame is missing or empty. Please load an Excel file.")
                 self.update_log("Error: ไม่พบข้อมูลตาราง กรุณาเลือกไฟล์ Excel และรอโหลดข้อมูลก่อนค้นหาออเดอร์")
-                if search_thread_flag:
-                    search_thread_flag.set()
-                return
 
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
@@ -3099,6 +3096,25 @@ class Bot_POS:
                 print(f"Critical Error: {final_err}")
                 raise
 
+    def relaunch_driver(self):
+        """
+        พยายามเชื่อมต่อใหม่กับ Chrome ที่เปิดอยู่ (เช่น หลังจาก sleep แล้ว connection หาย)
+        โดยจะลองเชื่อมต่อแบบปกติก่อน ถ้าไม่ได้ค่อยใช้ webdriver_manager
+
+        Returns:
+            bool: True ถ้าเชื่อมต่อสำเร็จ, False ถ้าไม่สำเร็จ
+        """
+        try:
+            print("Attempting to reconnect to existing Chrome...")
+            new_driver = self.setup_chrome()
+            new_driver.execute_cdp_cmd("Network.enable", {})
+            self.driver = new_driver
+            print("Reconnected to Chrome successfully!")
+            return True
+        except Exception as e:
+            print(f"Reconnection failed: {e}")
+            return False
+
     def retry_on_stale_element(self, func, max_retries=5, delay=0.5, *args, **kwargs):
         """
         Retry wrapper สำหรับ operations ที่อาจเจอ NoSuchElementException หรือ StaleElementReferenceException
@@ -3116,10 +3132,6 @@ class Bot_POS:
         Raises:
             Exception: ถ้า retry ครบแล้วยังไม่สำเร็จ
         """
-        from selenium.common.exceptions import (NoSuchElementException,
-                                                StaleElementReferenceException,
-                                                TimeoutException)
-
         last_exception = None
         for attempt in range(max_retries):
             try:
@@ -3908,16 +3920,15 @@ class Bot_POS:
             print("มี tabs ไรบ้าง", self.merged_dict)
 
     def operation_task_thread(self, event=None):
-        from selenium.common.exceptions import (NoSuchElementException,
-                                                StaleElementReferenceException,
-                                                TimeoutException)
-        while not self.app.order_Search_thread.is_set():
-            print("Waiting for order search thread to finish before starting operation task...")
-            time.sleep(0.5)
         # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
         self._active_generation = getattr(self, '_active_generation', 0) + 1
         my_generation = self._active_generation
         self.operation_thread = StopEvent(event, self, my_generation)
+
+        while not self.operation_thread.is_set() and not self.app.order_Search_thread.is_set():
+            print("Waiting for order search thread to finish before starting operation task...")
+            time.sleep(0.5)
+
         if not self.operation_thread.is_set():
             try:
 
@@ -3952,7 +3963,6 @@ class Bot_POS:
                     #         raise
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
-                    self.app.search_complete.set()
 
             except ConnectionError as err:
                 # WebDriver connection error - ลอง reconnect แล้ว retry
@@ -3982,7 +3992,7 @@ class Bot_POS:
                 logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
         else:
             print("Operation thread is already set, skipping operation task")
-            self.app.update_log("Operation thread is already set, skipping operation task")
+            self.app.update_log("หยุดการทำงานของ Bot บน Browser แล้ว")
 
     def set_cus_name_search_type(self):
         # * 1. คลิกเปิด Dropdown ก่อน
@@ -5367,8 +5377,9 @@ class Bot_POS:
 
             if self.app.is_auto_invoice_mode.get():
                 self.ProductManager.auto_add_all_items()
-            verification_result = self.ProductManager.verify_all()
-            print("verification_result: ", verification_result)
+                verification_result = self.ProductManager.verify_all()
+                print("verification_result: ", verification_result)
+
             # try:
             #     verification_result = self.ProductManager.verify_all()
             #     print("verification_result: ", verification_result)
@@ -5414,6 +5425,14 @@ class Bot_POS:
                             is_final_page_displayed = self.driver.find_element(
                                 By.XPATH, "//*[contains(text(),' Payment: ') or  contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]").is_displayed()
                             break
+                        except InvalidSessionIdException:
+                            print("Invalid session ID. Attempting to relaunch driver.")
+                            self.app.update_log("❌ Browser session lost. Attempting to relaunch the browser...")
+                            logger.error(f"Order: {self.cus_order} - Browser session lost during final page wait loop.")
+                            self.relaunch_driver()
+                            time.sleep(1)
+                            continue  # Retry finding the element after relaunching the driver
+
                         except Exception as err:
                             err_str = str(err).lower()
                             if "target window already closed" in err_str or "no such window" in err_str:
@@ -5424,7 +5443,7 @@ class Bot_POS:
                                 print(
                                     f"cannot see elements from final page, waiting... Error details: {type(err).__name__}")
                                 # * ไม่มี element ให้วนเรื่อยๆ
-                                time.sleep(0.55)
+                                time.sleep(0.75)
                                 continue
 
                     # *ดึงตัวอักษรออกมา
@@ -6147,7 +6166,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

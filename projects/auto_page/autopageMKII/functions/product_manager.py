@@ -214,7 +214,7 @@ class ProductManager:
                 if val == "NOT_FOUND":
                     actual = "NOT_FOUND"
                     break
-                actual += val
+                actual += float(val)
             ok = (actual == expected) if actual != "NOT_FOUND" else False
             # / actual มาจาก "SMCO" // ส่วน expected มาจาก "ที่ลูกค้าจ่ายมา" ซึ่งระบุมาจากไฟล์ import
             result[item[self.COL_SKU]] = {"expected": expected, "actual": actual, "diff": expected - actual, "ok": ok}
