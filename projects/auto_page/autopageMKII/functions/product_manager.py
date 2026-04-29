@@ -75,7 +75,7 @@ class ProductManager:
             return
 
         print("[ProductManager] Auto Invoice Mode is activated — เริ่ม add สินค้า")
-        
+
         # เตรียมตรวจสอบ accel file
         is_accel_mode = False
         available_sn_skus_list = []
@@ -88,13 +88,14 @@ class ProductManager:
 
         for i, item in enumerate(self.app.items):
             print(f"[ProductManager] Item {i}: {item}")
-            
+
             # --- ข้ามการแอดสินค้า ถ้าอยู่ใน accel_file (accel_mode จัดการไปแล้ว) ---
             original_sku = str(item.get(self.COL_SKU, ""))
             if is_accel_mode:
                 is_sku_ready_to_pick = [key for key in available_sn_skus_list if key in original_sku]
                 if len(is_sku_ready_to_pick) > 0:
-                    print(f"[ProductManager] ⏩ Skip adding Item {i} ({original_sku}) เพราะมีอยู่ใน accel_file (accel_mode จะเป็นคนกรอก/หรือกรอกแล้ว)")
+                    print(
+                        f"[ProductManager] ⏩ Skip adding Item {i} ({original_sku}) เพราะมีอยู่ใน accel_file (accel_mode จะเป็นคนกรอก/หรือกรอกแล้ว)")
                     continue
             # ----------------------------------------------------
 
@@ -215,7 +216,8 @@ class ProductManager:
                     break
                 actual += val
             ok = (actual == expected) if actual != "NOT_FOUND" else False
-            result[item[self.COL_SKU]] = {"expected": expected, "actual": actual, "ok": ok}
+            # / actual มาจาก "SMCO" // ส่วน expected มาจาก "ที่ลูกค้าจ่ายมา" ซึ่งระบุมาจากไฟล์ import
+            result[item[self.COL_SKU]] = {"expected": expected, "actual": actual, "diff": expected - actual, "ok": ok}
             status_icon = "✅" if ok else "❌"
             print(
                 f"[ProductManager.verify_item_price] {status_icon} "
