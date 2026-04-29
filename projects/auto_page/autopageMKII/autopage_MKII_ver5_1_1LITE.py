@@ -6167,6 +6167,7 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -6415,14 +6416,18 @@ class Bot_POS:
 
                 for address in response_data['addressOfMember']:
                     if address['defaultFlag']:
-                        extracted_address['address'] = address['custAddress'] or ''
-                        extracted_address['subdistrict'] = address['subDustricId'][
-                            f'subdistrictName{suffix["subdistrict"]}'] or ''
-                        print('subdistrict from req: ', address['subDustricId']
-                              [f'subdistrictName{suffix["subdistrict"]}'])
-                        extracted_address['district'] = address['districtId'][f'districtName{suffix["district"]}'] or ''
-                        extracted_address['provice'] = address['provinceId'][f'provinceName{suffix["province"]}'] or ''
-                        extracted_address['zip_code'] = address['zipCode'] or ''
+                        # ดึงข้อมูลจาก dictionary หลักแบบปลอดภัย
+                        sub_dist_data = address.get('subDustricId') or {}
+                        dist_data = address.get('districtId') or {}
+                        prov_data = address.get('provinceId') or {}
+
+                        extracted_address['address'] = address.get('custAddress') or ''
+                        extracted_address['subdistrict'] = sub_dist_data.get(
+                            f'subdistrictName{suffix["subdistrict"]} ') or ''
+                        extracted_address['district'] = dist_data.get(f'districtName{suffix["district"]}') or ''
+                        extracted_address['provice'] = prov_data.get(f'provinceName{suffix["province"]}') or ''
+                        extracted_address['zip_code'] = address.get('zipCode') or ''
+                        print('subdistrict from req: ', extracted_address['subdistrict'])
 
                 return extracted_address
 
@@ -6658,9 +6663,15 @@ class Bot_POS:
         # Normalize 'Moo' (หมู่ที่/ม. → หมู่) — avoid matching "หมู่บ้าน"
         address = re.sub(r'(?:หมู่ที่|หมู่|ม\.)\s*(\d+)', r'หมู่\1', address)
         # Normalize 'Soi' (ซ. → ซอย)
-        address = re.sub(r'(?:ซอย|ซ\.)\s*(\d+)', r'ซอย\1', address)
+        address = re.sub(r'(?:ซอย|ซ\.)\s*([^ตอจ\s]+)', r'ซอย\1', address)
         # Normalize 'Road' (ถ. → ถนน)
-        address = re.sub(r'(?:ถนน|ถ\.)\s*(\d+)', r'ถนน\1', address)
+        address = re.sub(r'(?:ถนน|ถ\.)\s*([^ตอจ\s]+)', r'ถนน\1', address)
+        # Normalize 'ตำบล/แขวง' to ค่าว่าง
+        address = re.sub(r'(?:ตำบล|ต\.|แขวง)\s*', '', address)
+        # Normalize 'อำเภอ/เขต' to ค่าว่าง
+        address = re.sub(r'(?:อำเภอ|เขต|อ\.)\s*', '', address)
+        # Normalize 'จังหวัด' to ค่าว่าง
+        address = re.sub(r'(?:จังหวัด|จ\.)\s*', '', address)
         return address.replace(' ', '').replace('เลขที่', '')
 
     def _build_desired_addresses(self):
@@ -6852,18 +6863,21 @@ class Bot_POS:
         self.current_address = re.sub(r'\s+', '', self.current_address)
         self._build_desired_addresses()
 
-        print("compare self.current_address & self.desired_full_address")
-        print(self.current_address.replace(' ', ''))
+        # print("compare self.current_address & self.desired_full_address")
+        # print(self.current_address.replace(' ', ''))
 
-        print(self.desired_full_address.replace(' ', ''))
+        # print(self.desired_full_address.replace(' ', ''))
 
         current_normalized = self._normalize_address_for_comparison(self.current_address)
         desired_normalized = self._normalize_address_for_comparison(self.desired_full_address)
+        logger.info(f"{self.cus_order}: compare self.current_address & self.desired_full_address")
+        logger.info(current_normalized.replace(' ', ''))
+        logger.info(desired_normalized.replace(' ', ''))
 
         if current_normalized != desired_normalized:
-            logger.info(f"{self.cus_order}: compare self.current_address & self.desired_full_address")
-            logger.info(self.current_address.replace(' ', ''))
-            logger.info(self.desired_full_address.replace(' ', ''))
+            # logger.info(f"{self.cus_order}: compare self.current_address & self.desired_full_address")
+            # logger.info(self.current_address.replace(' ', ''))
+            # logger.info(self.desired_full_address.replace(' ', ''))
             print("Customer Address is not correct")
 
             self._fill_address_revision_form()
