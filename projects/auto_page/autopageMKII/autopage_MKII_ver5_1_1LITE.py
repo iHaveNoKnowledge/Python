@@ -5430,7 +5430,11 @@ class Bot_POS:
                             print("Invalid session ID. Attempting to relaunch driver.")
                             self.app.update_log("❌ Browser session lost. Attempting to relaunch the browser...")
                             logger.error(f"Order: {self.cus_order} - Browser session lost during final page wait loop.")
-                            self.relaunch_driver()
+                            self.reconnect_driver()
+                            try:
+                                self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                            except Exception as sw_err:
+                                print(f"Cannot switch to SMCO window after reconnect: {sw_err}")
                             time.sleep(1)
                             continue  # Retry finding the element after relaunching the driver
 
@@ -6785,8 +6789,8 @@ class Bot_POS:
                 print(f"""{self.cus_order}: Address Revise Complete""")
                 break
             except Exception as err:
-                print(f"Address Revise Error1 : {traceback.format_exc()}")
-                print(f"Address Revise Error2 : {err}")
+                print(f"Address Revise Error1 : {traceback.format_exc()}") # * Address Revise Error1 ละเอียดกว่าบอกต่ำแหน่งแบบเชื่อม parent child Traceback แบบเต็ม (Full Stack Trace)
+                # print(f"Address Revise Error2 : {err}") #* Message (เฉพาะข้อความ Error)
                 # logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
                 # logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
                 continue
