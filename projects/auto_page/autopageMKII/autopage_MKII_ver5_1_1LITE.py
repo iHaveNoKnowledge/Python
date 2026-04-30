@@ -5422,8 +5422,9 @@ class Bot_POS:
                             title_attribute = self.saler_name_input_element.get_attribute("title")
 
                             # * ตรวจสอบว่าหน้าสุดท้ายหรือยัง
+                            some_last_page_text_element_xpath = "//*[contains(text(),' Payment: ') or  contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]"
                             is_final_page_displayed = self.driver.find_element(
-                                By.XPATH, "//*[contains(text(),' Payment: ') or  contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]").is_displayed()
+                                By.XPATH, some_last_page_text_element_xpath).is_displayed()
                             break
                         except InvalidSessionIdException:
                             print("Invalid session ID. Attempting to relaunch driver.")
@@ -5443,12 +5444,12 @@ class Bot_POS:
                                 print(
                                     f"cannot see elements from final page, waiting... Error details: {type(err).__name__}")
                                 # * ไม่มี element ให้วนเรื่อยๆ
-                                time.sleep(0.75)
+                                time.sleep(1)
                                 continue
 
                     # *ดึงตัวอักษรออกมา
                     #! matched_obj = re.search("^C[0-9]+", title_attribute) เลิกใช้ เพราะบางชื่อมันไม่ขึ้นต้นด้วย C
-                    matched_obj = re.search(r"^[0-9]+-", title_attribute)
+                    matched_obj = re.search(r"^[A-Z0-9?]+", title_attribute)
                     try:
                         self.emp_name_from_element = matched_obj.group()
                     except:
@@ -6166,7 +6167,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
