@@ -54,6 +54,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+from functions.browser_manager import BrowserManager
 
 
 class SmcoApiClient:
@@ -3003,8 +3004,7 @@ class Bot_POS:
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.driver_lock = threading.Lock()
         self.auto_add_product_stop_flag = threading.Event()  # Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
-        self.driver = self.setup_chrome()
-        self.driver.execute_cdp_cmd("Network.enable", {})
+        self.browser = BrowserManager(app=self.app, bot_instance=self, logger_instance=logger)
         self.channel_options = {
             'shp_itcitymobile_master': 'SHP ITCITY Mobile',
             'itcity': 'SHOPEE',
@@ -3020,8 +3020,6 @@ class Bot_POS:
             # If cache is empty or invalid, search for Sumatra PDF
             self.find_sumatra_from_registry()
 
-        self.wait50 = WebDriverWait(self.driver, 50)
-        self.wait5 = WebDriverWait(self.driver, 5)
         # ? BaseUrlFinder() มันทำงานโดยหาค่าจาก env แต่ตอนออก exe ยังใช้ไม่ได้ ตอนนี้เลยตั้งค่า origin ตายตัวไปก่อน
         # self.origin = BaseUrlFinder().check_available_ip()
         # self.origin = "http://115.31.167.19:9099"
@@ -3030,9 +3028,7 @@ class Bot_POS:
         self.AutoAddProduct = AutoAddProduct(self.driver, self.wait50, self.app, self)
         self.ProductManager = ProductManager(self.driver, self.wait50, self.app, self)
 
-        # * Network Response Capture utility
-        from functions.network_response_utils import NetworkResponseCapture
-        self.network_capture = NetworkResponseCapture(self.driver)
+        # Network capture is now managed by BrowserManager
 
         # * Load address translation data from Excel
         try:
@@ -3063,458 +3059,45 @@ class Bot_POS:
         # * share SmcoApiClient instance จาก MyApp เพื่อใช้ session เดียวกัน
         self.smco_api = self.app.smco_api
 
-    def setup_chrome(self):
-        self.opt = Options()
-        self.opt.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-        self.opt.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.opt.add_argument("--disable-popup-blocking")
 
-        try:
-            print("Connecting to existing Chrome at localhost:8989...")
-            # 1. ลองเชื่อมต่อโดยใช้ 'Selenium Manager' (ตัวจัดการเวอร์ชันอัตโนมัติของ Selenium 4.x)
-            # ไม่ต้องใส่ Service(executable_path) เลยครับ มันจะฉลาดพอที่จะหาตัวที่ถูกให้เอง
-            driver = webdriver.Chrome(options=self.opt)
-            print("Driver connected successfully!")
-            return driver
 
-        except Exception as e:
-            print(f"Direct connection failed: {e}")
-            print("Attempting to fix driver version with WebDriverManager...")
+    @property
+    def driver(self):
+        return self.browser.driver
 
-            try:
-                # 2. ถ้าแบบแรกไม่ได้ ให้ใช้ webdriver_manager บังคับโหลดเวอร์ชันที่ 'ตรงกับ browser'
-                # สังเกตว่าผมใช้ ChromeDriverManager().install()
-                # ซึ่งมันจะไปเช็กเวอร์ชัน 144 ในเครื่องคุณแล้วโหลด 144 มาให้ (ไม่ใช่ 145)
-                new_path = ChromeDriverManager().install()
+    @property
+    def wait5(self):
+        return self.browser.wait5
 
-                driver = webdriver.Chrome(
-                    service=Service(new_path),
-                    options=self.opt
-                )
-                return driver
-            except Exception as final_err:
-                print(f"Critical Error: {final_err}")
-                raise
+    @property
+    def wait50(self):
+        return self.browser.wait50
 
-    def relaunch_driver(self):
-        """
-        พยายามเชื่อมต่อใหม่กับ Chrome ที่เปิดอยู่ (เช่น หลังจาก sleep แล้ว connection หาย)
-        โดยจะลองเชื่อมต่อแบบปกติก่อน ถ้าไม่ได้ค่อยใช้ webdriver_manager
+    @property
+    def merged_dict(self):
+        return self.browser.merged_dict
 
-        Returns:
-            bool: True ถ้าเชื่อมต่อสำเร็จ, False ถ้าไม่สำเร็จ
-        """
-        try:
-            print("Attempting to reconnect to existing Chrome...")
-            new_driver = self.setup_chrome()
-            new_driver.execute_cdp_cmd("Network.enable", {})
-            self.driver = new_driver
-            print("Reconnected to Chrome successfully!")
-            return True
-        except Exception as e:
-            print(f"Reconnection failed: {e}")
-            return False
+    @property
+    def network_capture(self):
+        return self.browser.network_capture
 
-    def retry_on_stale_element(self, func, max_retries=5, delay=0.5, *args, **kwargs):
-        """
-        Retry wrapper สำหรับ operations ที่อาจเจอ NoSuchElementException หรือ StaleElementReferenceException
-        เมื่อ auto_add_product กำลังทำงานพร้อมกัน
+    def setup_chrome(self, *args, **kwargs):
+        return self.browser.setup_chrome(*args, **kwargs)
 
-        Args:
-            func: Function ที่ต้องการ retry
-            max_retries: จำนวนครั้งที่จะ retry (default: 5)
-            delay: เวลารอระหว่าง retry ในหน่วยวินาที (default: 0.5)
-            *args, **kwargs: Arguments สำหรับ func
+    def reconnect_driver(self, *args, **kwargs):
+        return self.browser.reconnect_driver(*args, **kwargs)
 
-        Returns:
-            ผลลัพธ์จาก func
+    def is_driver_alive(self, *args, **kwargs):
+        return self.browser.is_driver_alive(*args, **kwargs)
 
-        Raises:
-            Exception: ถ้า retry ครบแล้วยังไม่สำเร็จ
-        """
-        last_exception = None
-        for attempt in range(max_retries):
-            try:
-                return func(*args, **kwargs)
-            except (NoSuchElementException, StaleElementReferenceException, TimeoutException, InvalidSessionIdException) as e:
-                last_exception = e
-                # ตรวจสอบว่า error เกิดจาก driver connection หาย (เช่น หลัง sleep)
-                error_msg = str(e)
-                if "NewConnectionError" in error_msg or "MaxRetryError" in error_msg or "ConnectionRefusedError" in error_msg or "invalid session id" in error_msg.lower() or isinstance(e, InvalidSessionIdException):
-                    print(f"Driver connection lost during retry: {type(e).__name__}")
-                    logger.error(f"Driver connection lost during retry: {e}")
-                    raise ConnectionError(f"WebDriver connection lost: {e}") from e
-                if attempt < max_retries - 1:
-                    print(f"Retry attempt {attempt + 1}/{max_retries} due to: {type(e).__name__}")
-                    time.sleep(delay)
-                    continue
-                else:
-                    print(f"Max retries ({max_retries}) reached. Giving up.")
-                    raise last_exception
+    def get_tabs(self, *args, **kwargs):
+        return self.browser.get_tabs(*args, **kwargs)
 
-    def is_driver_alive(self):
-        """
-        ตรวจสอบว่า WebDriver ยังทำงานอยู่หรือไม่
+    def retry_on_stale_element(self, *args, **kwargs):
+        return self.browser.retry_on_stale_element(*args, **kwargs)
 
-        Returns:
-            bool: True ถ้า driver ยังทำงานได้, False ถ้า connection หาย
-        """
-        try:
-            # ลองเข้าถึง driver โดยการเรียก current_url
-            _ = self.driver.current_url
-            return True
-        except Exception as e:
-            print(f"Driver is not alive: {type(e).__name__}: {e}")
-            logger.error(f"Driver connection lost: {type(e).__name__}: {e}")
-            return False
-
-    def reconnect_driver(self):
-        """
-        Reconnect WebDriver หลังจาก connection หาย (เช่น หลัง sleep)
-        Chrome ยังเปิดอยู่ แต่ ChromeDriver process ตายไป
-
-        Returns:
-            bool: True ถ้า reconnect สำเร็จ, False ถ้าไม่สำเร็จ
-        """
-        try:
-            print("🔄 Attempting to reconnect WebDriver...")
-            logger.info("Attempting WebDriver reconnection...")
-            self.app.update_log("🔄 Reconnecting to browser...")
-
-            # สร้าง driver ใหม่เชื่อมต่อ Chrome ที่ยังเปิดอยู่
-            self.driver = self.setup_chrome()
-            self.driver.execute_cdp_cmd("Network.enable", {})
-
-            # อัปเดต WebDriverWait
-            self.wait50 = WebDriverWait(self.driver, 50)
-            self.wait5 = WebDriverWait(self.driver, 5)
-
-            # อัปเดต AutoAddProduct
-            self.AutoAddProduct.driver = self.driver
-            self.AutoAddProduct.wait = self.wait50
-
-            # อัปเดต NetworkResponseCapture
-            from functions.network_response_utils import NetworkResponseCapture
-            self.network_capture = NetworkResponseCapture(self.driver)
-
-            # อัปเดต tabs
-            self.get_tabs()
-
-            print("✅ WebDriver reconnected successfully!")
-            logger.info("WebDriver reconnected successfully")
-            self.app.update_log("✅ Browser reconnected!")
-            return True
-        except Exception as e:
-            print(f"❌ Failed to reconnect WebDriver: {e}")
-            logger.error(f"WebDriver reconnection failed: {e}")
-            self.app.update_log(f"❌ Cannot reconnect: {e}")
-            return False
-
-    def get_current_tab_memory_usage(self):
-        """ตรวจสอบการใช้หน่วยความจำ !!ของ tab ปัจจุบัน!! โดยจะคืนค่า เกี่ยวกับ total heap size, used heap size และ threshold ที่ตั้งไว้"""
-        try:
-            # * ใช้ Chrome DevTools Protocol เพื่อดู memory usage
-            memory_info = self.driver.execute_script(
-                "return {'usedJSHeapSize': performance.memory.usedJSHeapSize, "
-                "'totalJSHeapSize': performance.memory.totalJSHeapSize}"
-            )
-            used_mb = memory_info['usedJSHeapSize'] / 1024 / 1024
-            total_mb = memory_info['totalJSHeapSize'] / 1024 / 1024
-
-            print(f"Memory: {used_mb:.1f}MB used / {total_mb:.1f}MB allocated (Threshold: {self.max_memory_mb}MB)")
-            print(f"  Current URL: {self.driver.current_url[:60]}...")
-
-            if used_mb > self.max_memory_mb:
-                print(f"  ⚠️  MEMORY EXCEEDED! {used_mb:.1f}MB > {self.max_memory_mb}MB")
-
-            return used_mb
-        except Exception as e:
-            print(f"Error checking memory usage: {e}")
-            return 0
-
-    def close_and_reopen_tab_if_memory_high(self, tab_name=None):
-        """ปิดแท็บเก่าแล้วเปิดใหม่ ถ้า memory เกิน limit (Optimized for RAM clearing)"""
-
-        try:
-            # * ตรวจสอบ URL ปัจจุบัน
-            try:
-                current_url = self.driver.current_url
-            except Exception:
-                logger.warning("ไม่สามารถอ่าน current_url ได้ อาจไม่มีแท็บเปิดอยู่")
-                return False
-
-            # * Skip internal pages
-            if "devtools://" in current_url or "chrome://" in current_url or "Tab Search" in (
-                    tab_name or "") or "DevTools" in (
-                    tab_name or ""):
-                print(f"Skipping internal page: {tab_name or current_url}")
-                return False
-
-            current_handle = self.driver.current_window_handle
-            memory_usage = self.get_current_tab_memory_usage()
-
-            logger.info(
-                f"{self.cus_order}: Checking memory for '{tab_name or current_url}' ({memory_usage:.1f}MB)"
-            )
-
-            # 🔥 ถ้าใช้ memory เกิน limit → รีโหลดแท็บ
-            if memory_usage > self.max_memory_mb:
-                print(f"Memory usage ({memory_usage:.1f}MB) exceeds limit ({self.max_memory_mb}MB)")
-                print(f"Reopening tab: {tab_name or current_url}")
-
-                # 🧾 เก็บตำแหน่ง scroll ปัจจุบัน
-                try:
-                    scroll_position = self.driver.execute_script("return document.scrollingElement.scrollTop;")
-                except Exception:
-                    scroll_position = 0
-
-                # 📑 เปิดแท็บใหม่อย่างปลอดภัย (Safe Open Strategy)
-                old_handles = set(self.driver.window_handles)
-
-                # * 1. หา "Safe Opener" (Tab อื่นที่ไม่ใช่ Tab ปัจจุบัน) เพื่อไม่ให้ Tab ใหม่เป็น Child ของ Tab ที่กินแรม
-                safe_opener_handle = current_handle
-                if len(old_handles) > 1:
-                    for h in old_handles:
-                        if h != current_handle:
-                            safe_opener_handle = h
-                            break
-
-                self.driver.switch_to.window(safe_opener_handle)
-
-                # * 2. ใช้ 'noopener' เพื่อตัดความสัมพันธ์กับ Process เดิม
-                # ใช้ arguments แทน string interpolation เพื่อหลีกเลี่ยงปัญหา escape characters
-                try:
-                    self.driver.execute_script(
-                        "window.open(arguments[0], '_blank', 'noopener');",
-                        current_url
-                    )
-                    logger.info(f"Executed window.open for: {current_url}")
-                except Exception as e:
-                    logger.warning(f"window.open failed: {e}, trying alternative method")
-
-                # ⏱️ ให้เวลา Browser ทำงาน execute_script ให้เสร็จก่อน
-                time.sleep(0.5)
-
-                # ✅ ตรวจสอบว่า tab ใหม่เปิดแล้วหรือยัง
-                new_handles = set(self.driver.window_handles) - old_handles
-
-                # ถ้ายังไม่มี tab ใหม่ ให้ลองใช้วิธีอื่น
-                if len(new_handles) == 0:
-                    logger.warning("No new tab detected, trying driver.switch_to.new_window")
-                    try:
-                        self.driver.switch_to.new_window('tab')
-                        time.sleep(0.5)
-                        self.driver.get(current_url)
-                        new_handles = set(self.driver.window_handles) - old_handles
-                    except Exception as e:
-                        logger.error(f"Alternative tab opening method also failed: {e}")
-                        raise
-
-                # รอให้แน่ใจว่ามี tab ใหม่
-                WebDriverWait(self.driver, 10).until(
-                    lambda d: len(set(d.window_handles) - old_handles) > 0
-                )
-
-                new_handle = list(set(self.driver.window_handles) - old_handles)[0]
-                logger.info(f"{self.cus_order}: Opened new tab for '{tab_name or current_url}'")
-
-                # 🧹 3. กลับมาที่ Tab เดิม แล้วโหลด about:blank เพื่อล้าง DOM ทิ้งทันที (สำคัญมากสำหรับการคืน RAM)
-                self.driver.switch_to.window(current_handle)
-                try:
-                    self.driver.get("about:blank")
-                    time.sleep(0.5)  # ให้เวลา Browser เคลียร์ Memory นิดนึง
-                except Exception as e:
-                    logger.warning(f"Error navigating to about:blank: {e}")
-
-                # ❌ 4. ปิด Tab เดิม
-                try:
-                    self.driver.close()
-                    logger.info(f"{self.cus_order}: Closed old tab for '{tab_name or current_url}'")
-                except Exception as e:
-                    logger.warning(f"Error closing old tab: {e}")
-
-                # 🔁 สลับไปแท็บใหม่
-                self.driver.switch_to.window(new_handle)
-
-                # ⏳ รอหน้าโหลดเสร็จจริง
-                WebDriverWait(self.driver, 20).until(
-                    lambda d: d.execute_script("return document.readyState") == "complete"
-                )
-
-                # 📜 กลับไป scroll ตำแหน่งเดิม
-                try:
-                    self.driver.execute_script(f"document.scrollingElement.scrollTop = {scroll_position};")
-                except Exception:
-                    pass
-
-                # 🔍 อัปเดตข้อมูลแท็บทั้งหมด
-                self.get_tabs()
-
-                # 🔄 อัปเดต handle ใน merged_dict
-                updated = False
-                for key, value in list(self.merged_dict.items()):
-                    if value == current_handle:
-                        self.merged_dict[key] = new_handle
-                        updated = True
-                        print(f"Updated {key} handle → new tab")
-                if not updated:
-                    print("⚠️ No merged_dict entry matched old handle")
-
-                print("✅ Tab closed and reopened successfully (memory cleaned)")
-                return True
-
-            # ถ้า memory ยังไม่เกิน limit → ไม่ต้องทำอะไร
-            return False
-
-        except Exception as e:
-            print(f"❌ Error closing/reopening tab: {e}")
-            print(traceback.format_exc())
-            logger.error(f"close_and_reopen_tab_if_memory_high failed: {e}")
-            return False
-
-    # เก็บฟังก์ชันเก่าไว้เป็น backup
-
-    def refresh_tab_if_memory_high(self, tab_name=None):
-        """Refresh tab ถ้าใช้ memory เกินกำหนด (backup method)"""
-        return self.close_and_reopen_tab_if_memory_high(tab_name)
-
-    def force_garbage_collection(self):
-        """บังคับให้ browser ทำ garbage collection"""
-        try:
-            # ทำ garbage collection ใน JavaScript
-            self.driver.execute_script(
-                "if (window.gc) { window.gc(); } "
-                "else if (window.CollectGarbage) { window.CollectGarbage(); }"
-            )
-
-            # ล้าง cache และ unused objects
-            self.driver.execute_script(
-                "if (typeof window.caches !== 'undefined') {"
-                "  caches.keys().then(names => {"
-                "    names.forEach(name => caches.delete(name));"
-                "  });"
-                "}"
-            )
-            print("Forced garbage collection completed")
-        except Exception as e:
-            print(f"Error during garbage collection: {e}")
-
-    def pre_operation_memory_cleanup(self, operation_name="operation"):
-        """ตรวจสอบและจัดการ memory ก่อนเริ่ม operation สำคัญ (เฉพาะ SMCO tabs)"""
-        print(f"\n=== Pre-operation Memory Cleanup: {operation_name} ===")
-        self.is_memory_checking = True
-        try:
-            current_handle = self.driver.current_window_handle
-            all_handles = self.driver.window_handles
-
-            print(f"Checking memory for {len(all_handles)} tabs before {operation_name}")
-
-            # ตรวจสอบ memory ของ SMCO tabs เท่านั้น
-            tabs_cleaned = 0
-            smco_tabs_found = 0
-
-            for i, handle in enumerate(all_handles):
-                try:
-                    self.driver.switch_to.window(handle)
-                    tab_title = self.driver.title
-                    print(f"handle No. {i+1}: {tab_title}")
-                    # จัดการเฉพาะ tabs ที่มี "SMCO :: " ในชื่อ
-                    if "SMCO :: " in tab_title:
-                        smco_tabs_found += 1
-                        memory_usage = self.get_current_tab_memory_usage()
-
-                        print(f"SMCO Tab {smco_tabs_found}: {tab_title[:50]} - {memory_usage:.1f}MB")
-
-                        # ถ้า memory เกินกำหนด ให้ปิดแล้วเปิดใหม่
-                        if memory_usage > self.max_memory_mb:
-                            print(f"  → Cleaning SMCO tab (memory too high)")
-                            logger.info(
-                                f"{self.cus_order}: Pre-operation cleanup: Closing and reopening tab '{tab_title}' due to high memory ({memory_usage:.1f}MB)")
-                            if self.close_and_reopen_tab_if_memory_high(tab_title):
-                                tabs_cleaned += 1
-                        else:
-                            print(f"  → Memory OK")
-                    else:
-                        # แสดงข้อมูล tab อื่น แต่ไม่จัดการ
-                        print(f"Other Tab {i+1}: {tab_title[:30]} - Skipped (not SMCO)")
-
-                except Exception as e:
-                    print(f"  → Error checking tab {i+1}: {e}")
-
-            # กลับไป tab เดิม
-            try:
-                self.driver.switch_to.window(current_handle)
-            except:
-                # ถ้า tab เดิมถูกปิดไป ให้หา SMCO tab แรกที่เจอ
-                for handle in self.driver.window_handles:
-                    try:
-                        self.driver.switch_to.window(handle)
-                        if "SMCO :: " in self.driver.title:
-                            print("Switched to first available SMCO tab")
-                            break
-                    except:
-                        continue
-
-            # ทำ garbage collection รวม
-            self.force_garbage_collection()
-
-            print(f"Memory cleanup completed: {tabs_cleaned}/{smco_tabs_found} SMCO tabs cleaned")
-            #! กำลังทดลองยังไม่พร้อมใช้ testing ลองดูอันนี้ก่อนนะ เพราะแม่งเปิดใหม่ไม่ติดไม่รู้เปนไรเปิดข้างนอกแม่งเลยดูดิจะเจอเบาะแสไรไหม
-            # print("Testing")
-            # for i in enumerate(tabs_cleaned):
-            #     target_url = f'{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm'
-            #     # เปิด tab ใหม่
-            #     self.driver.execute_script(f"window.open('{target_url}');")
-            #     all_handles = self.driver.window_handles
-            #     new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
-
-            #     # ย้ายไป tab ใหม่
-            #     self.driver.switch_to.window(new_handle)
-
-            #     # โหลด URL เดิม
-            #     self.driver.get(target_url)
-
-            # print("="*50)
-            self.is_memory_checking = False
-
-        except Exception as e:
-            print(f"Error in pre-operation memory cleanup: {e}")
-            self.is_memory_checking = False
-
-    def manage_browser_memory(self, operation_name="operation"):
-        """หลัก method สำหรับจัดการ memory ของ browser (ใช้แค่สำหรับการนับ operation)"""
-        self.operation_count += 1
-        print(f"Operation count: {self.operation_count} ({operation_name})")
-
-    def reset_all_tabs_memory(self):
-        """Reset memory ของทุก tabs ที่เปิดอยู่"""
-        try:
-            current_handle = self.driver.current_window_handle
-            all_handles = self.driver.window_handles
-
-            print(f"Resetting memory for {len(all_handles)} tabs")
-
-            for handle in all_handles:
-                try:
-                    self.driver.switch_to.window(handle)
-                    tab_title = self.driver.title[:50]  # แค่ 50 ตัวอักษรแรก
-
-                    # ตรวจสอบ memory และ refresh ถ้าจำเป็น
-                    self.refresh_tab_if_memory_high(tab_title)
-
-                except Exception as e:
-                    print(f"Error resetting tab {handle}: {e}")
-
-            # กลับไป tab เดิม
-            self.driver.switch_to.window(current_handle)
-
-            # ทำ garbage collection รวม
-            self.force_garbage_collection()
-
-            print("Memory reset completed for all tabs")
-
-        except Exception as e:
-            print(f"Error in reset_all_tabs_memory: {e}")
+    def manage_browser_memory(self, *args, **kwargs):
+        return self.browser.manage_browser_memory(*args, **kwargs)
 
     def cp_sonic_blow_process(self, item_no: int, cp_no: str):
         """
@@ -3857,67 +3440,6 @@ class Bot_POS:
         # Todo
         #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
         pass
-
-    def get_tabs(self):
-        if self.parent.winfo_exists():
-            print("รายงานจำนวนtabs")
-            self.title_list = []
-            # self.title_list_Idx = [] #!เหมือนจะไม่ได้ใช้
-            self.value_list = []
-            # self.title_dict = {} #!เหมือนจะไม่ได้ใช้
-
-            # * check ว่า self.driver เดิมยังทำงานได้ไหม
-            try:
-                # * เช็คก่อนว่า driver ใช้ได้ไหม หรือการเชื่อมต่อ session หลุดไหม
-                self.driver.window_handles
-                print("driver is still running")
-            except Exception as e:
-                # * driver หลุดก็ออก seesion เก่า
-                print(f"Driver connection lost in get_tabs ({e}). Attempting to reconnect...")
-                try:
-                    print("Quit old driver, not sure if this process is auto or not")
-                    self.driver.quit()
-                except:
-                    print("No need to quit old driver, no driver found")
-                    pass
-
-                try:
-                    # * ใช้ reconnect_driver ที่มี try-except และ log แทนการเรียก driver ตรงๆ
-                    success = self.reconnect_driver()
-                    if not success:
-                        print("❌ Failed to create new driver session. Please check ChromeDriver version.")
-                        self.app.update_log(
-                            "❌ ChromeDriver Error: Please update C:\\bin\\chromedriver.exe to match your Chrome version.")
-                        return  # * ออกจากฟังก์ชันเพื่อป้องกัน Exception ใน main thread
-                except Exception as reconnect_err:
-                    print(f"❌ Error during reconnect in get_tabs: {reconnect_err}")
-                    self.app.update_log(f"❌ ChromeDriver Error: {reconnect_err}")
-                    return
-
-            for idx, handle in enumerate(self.driver.window_handles):
-                try:
-                    self.driver.switch_to.window(handle)
-                    print("self.driver.title: ", self.driver.title)
-                    self.title_list.append(self.driver.title)
-                    self.value_list.append(self.driver.current_window_handle)
-                except Exception as e:
-                    print(f"Error accessing tab index {idx} (handle: {handle}): {e}")
-                    continue
-
-            self.unique_titles = []
-            self.counter = {}
-            for item in self.title_list:
-                if item in self.counter:
-                    self.counter[item] += 1
-                    print("counter[item] คือไร: ", self.counter[item])
-                    self.unique_titles.append(f"{item}{self.counter[item]-1}")
-                else:
-                    self.counter[item] = 1
-                    self.unique_titles.append(item)
-
-            # * เอาList มารวมกัน
-            self.merged_dict = dict(zip(self.unique_titles, self.value_list))
-            print("มี tabs ไรบ้าง", self.merged_dict)
 
     def operation_task_thread(self, event=None):
         # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
@@ -6790,7 +6312,7 @@ class Bot_POS:
                 break
             except Exception as err:
                 print(f"Address Revise Error1 : {traceback.format_exc()}") # * Address Revise Error1 ละเอียดกว่าบอกต่ำแหน่งแบบเชื่อม parent child Traceback แบบเต็ม (Full Stack Trace)
-                # print(f"Address Revise Error2 : {err}") #* Message (เฉพาะข้อความ Error)
+                # print(f"Address Revise Error2 : {err}") #* Message (เฉพาะข้อความ Error) ไม่ละเอียด
                 # logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
                 # logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
                 continue
