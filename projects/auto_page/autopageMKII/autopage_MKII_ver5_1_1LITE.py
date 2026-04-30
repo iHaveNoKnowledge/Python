@@ -3136,11 +3136,11 @@ class Bot_POS:
         for attempt in range(max_retries):
             try:
                 return func(*args, **kwargs)
-            except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as e:
+            except (NoSuchElementException, StaleElementReferenceException, TimeoutException, InvalidSessionIdException) as e:
                 last_exception = e
                 # ตรวจสอบว่า error เกิดจาก driver connection หาย (เช่น หลัง sleep)
                 error_msg = str(e)
-                if "NewConnectionError" in error_msg or "MaxRetryError" in error_msg or "ConnectionRefusedError" in error_msg:
+                if "NewConnectionError" in error_msg or "MaxRetryError" in error_msg or "ConnectionRefusedError" in error_msg or "invalid session id" in error_msg.lower() or isinstance(e, InvalidSessionIdException):
                     print(f"Driver connection lost during retry: {type(e).__name__}")
                     logger.error(f"Driver connection lost during retry: {e}")
                     raise ConnectionError(f"WebDriver connection lost: {e}") from e
@@ -3964,7 +3964,7 @@ class Bot_POS:
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
 
-            except ConnectionError as err:
+            except (ConnectionError, InvalidSessionIdException) as err:
                 # WebDriver connection error - ลอง reconnect แล้ว retry
                 print(f"operation_task_thread, Connection Error: {err}")
                 logger.error(f"Order: {self.app.order} - WebDriver connection lost: {err}")
