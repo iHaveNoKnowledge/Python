@@ -1991,7 +1991,9 @@ class MyApp:
         print(f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
         self.reset_all_display()
         self.order = order.strip()
-        if len(self.order) < 14:
+        is_laz_len_not_correct =  self.marketplace_target.get() == 'LAZADA' and len(self.order) != 16
+        is_shopee_len_not_correct =  self.marketplace_target.get() == 'SHOPEE' and len(self.order) != 14
+        if is_shopee_len_not_correct or is_laz_len_not_correct:
             self.on_complete.set()
             self.operation_thread.set()
             raise ValueError("The Order length is not correct")
