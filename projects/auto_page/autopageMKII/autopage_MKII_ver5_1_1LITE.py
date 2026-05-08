@@ -6391,14 +6391,14 @@ class Bot_POS:
         self.current_address = re.sub(r'\s+', '', self.current_address)
         self._build_desired_addresses()
 
-        # print("compare self.current_address & self.desired_full_address")
-        # print(self.current_address.replace(' ', ''))
+        print("compare self.current_address & self.desired_full_address")
+        print(self.current_address.replace(' ', ''))
 
-        # print(self.desired_full_address.replace(' ', ''))
+        print(self.desired_full_address.replace(' ', ''))
 
         current_normalized = self._normalize_address_for_comparison(self.current_address)
         desired_normalized = self._normalize_address_for_comparison(self.desired_full_address)
-        logger.info(f"{self.cus_order}: compare self.current_address & self.desired_full_address")
+        logger.info(f"{self.cus_order}: compare current_normalized & desired_normalized")
         logger.info(current_normalized.replace(' ', ''))
         logger.info(desired_normalized.replace(' ', ''))
 
