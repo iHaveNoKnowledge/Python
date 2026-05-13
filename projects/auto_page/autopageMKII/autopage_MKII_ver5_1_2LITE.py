@@ -2428,6 +2428,9 @@ class MyApp:
             match = re.search(pattern, name_edited)
             if match:
                 extracted_suffix = match.group()
+                # แปลง สนญ. เป็น สำนักงานใหญ่ ให้เป็นมาตรฐานเดียวกัน
+                if re.match(r'\(?สนญ\.?\)?|\(?00000\)?', extracted_suffix):
+                    extracted_suffix = "สำนักงานใหญ่"
                 name_edited = re.sub(pattern, '', name_edited).strip()
                 break  # ดึงมาแค่อันเดียวพอ
 
@@ -2456,8 +2459,8 @@ class MyApp:
                 name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
 
         # 3. กรณี บจก. (บริษัท จำกัด)
-        elif name_edited.startswith(("บจก", "บริษัท", "บ.")) or name_edited.endswith("จำกัด"):
-            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.)', '', name_edited).strip()
+        elif name_edited.startswith(("บจก", "บริษัท", "บ.", "บจ.")):
+            name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.|บจ\.?)', '', name_edited).strip()
             name_edited = re.sub(r'จำกัด$', '', name_edited).strip()  # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
 
             if not name_edited.startswith("บริษัท"):
@@ -3775,9 +3778,9 @@ class Bot_POS:
         try:
             swal_confirm_btn_xpath = """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""
             self.driver.find_element(By.XPATH, swal_confirm_btn_xpath).click()
-            print("add_new_customer() end: swal confirm button is clicked after add customer")
+            print("add_new_customer() end, swal confirm button is clicked after add customer")
         except Exception as err:
-            print("add_new_customer() end but No swal confirm button to click after add customer, maybe because of: ", err)
+            print("add_new_customer() end, but No swal confirm button to click after add customer, maybe because of: ", err)
 
     def ensure_li_shown_cus_name(self):
         """
@@ -3868,21 +3871,27 @@ class Bot_POS:
             self.app.cus_tax_name_lazada.set(cus_desire_name)
 
         print("incoming cus_desire_name: ", cus_desire_name)
-        pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
-        pattern2 = r'จำกัด(\s*มหาชน)?$'
+        # ลบคำนำหน้า
+        pattern_prefix = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ|บจ\.?|บ\.)\s*'
+        
+        # ลบคำลงท้ายพวกสาขาก่อน
+        pattern_branch = r'(สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|\(สำนักงานใหญ่\)|\(สํานักงานใหญ่\)|\(สนญ\.?\)|\(00000\)|\sสาขา.*)$'
 
-        current_cus_name:str = self.cus_name_span_elmt.text if self.cus_name_span_elmt else ""
+        # ลบคำว่าจำกัดที่อาจจะอยู่ท้ายสุดหลังจากลบสาขาแล้ว
+        pattern_suffix = r'จำกัด(\s*มหาชน)?$'
 
-        cus_desire_name = re.sub(pattern, '', cus_desire_name)
-        cus_desire_name = re.sub(pattern2, '', cus_desire_name)
-        cus_desire_name = cus_desire_name.strip()
+        current_cus_name: str = self.cus_name_span_elmt.text if self.cus_name_span_elmt else ""
+
+        cus_desire_name = re.sub(pattern_prefix, '', cus_desire_name)
+        cus_desire_name = re.sub(pattern_branch, '', cus_desire_name).strip()
+        cus_desire_name = re.sub(pattern_suffix, '', cus_desire_name).strip()
 
         cus_desire_name = cus_desire_name.replace(" ", "")
         cus_desire_name = cus_desire_name.replace("\n", "")
         cus_desire_name = cus_desire_name.replace("(", "")
         cus_desire_name = cus_desire_name.replace(")", "")
 
-        is_branched:bool = self.app.branch_type == "สาขาย่อย"
+        is_branched: bool = self.app.branch_type == "สาขาย่อย"
 
         print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} /// current_cus_name: {current_cus_name}")
         if cus_desire_name in current_cus_name and self.app.tax_branch_num.get() in current_cus_name:
@@ -5707,6 +5716,7 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -6499,14 +6509,16 @@ class Bot_POS:
         self.driver.find_element(By.XPATH, '/html/body/div[2]/div[2]/div/div[1]/div[2]/div[2]/a').click()
 
         # * press to close complete popup
+
         try:
             self.wait5.until(
                 EC.element_to_be_clickable(
                     (By.CSS_SELECTOR,
                      'body div.swal2-container div.swal2-modal.show-swal2.visible button.swal2-confirm.styled')))
-            self.driver.find_element(
-                By.CSS_SELECTOR,
-                'body div.swal2-container div.swal2-modal.show-swal2.visible button.swal2-confirm.styled').click()
+            #! ซ้ำ กับช่วงท้ายของ add_new_customer()
+            # self.driver.find_element(
+            #     By.CSS_SELECTOR,
+            #     'body div.swal2-container div.swal2-modal.show-swal2.visible button.swal2-confirm.styled').click()
         except:
             pass
 
