@@ -3871,7 +3871,7 @@ class Bot_POS:
         pattern = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ)\s*'
         pattern2 = r'จำกัด(\s*มหาชน)?$'
 
-        current_cus_name = self.cus_name_span_elmt.text if self.cus_name_span_elmt else ""
+        current_cus_name:str = self.cus_name_span_elmt.text if self.cus_name_span_elmt else ""
 
         cus_desire_name = re.sub(pattern, '', cus_desire_name)
         cus_desire_name = re.sub(pattern2, '', cus_desire_name)
@@ -3882,7 +3882,7 @@ class Bot_POS:
         cus_desire_name = cus_desire_name.replace("(", "")
         cus_desire_name = cus_desire_name.replace(")", "")
 
-        is_branched = self.app.branch_type == "สาขาย่อย"
+        is_branched:bool = self.app.branch_type == "สาขาย่อย"
 
         print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} /// current_cus_name: {current_cus_name}")
         if cus_desire_name in current_cus_name and self.app.tax_branch_num.get() in current_cus_name:
