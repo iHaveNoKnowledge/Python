@@ -5971,8 +5971,7 @@ class Bot_POS:
                         prov_data = address.get('provinceId') or {}
 
                         extracted_address['address'] = address.get('custAddress') or ''
-                        extracted_address['subdistrict'] = sub_dist_data.get(
-                            f'subdistrictName{suffix["subdistrict"]} ') or ''
+                        extracted_address['subdistrict'] = sub_dist_data.get(f'subdistrictName{suffix["subdistrict"]}') or ''
                         extracted_address['district'] = dist_data.get(f'districtName{suffix["district"]}') or ''
                         extracted_address['provice'] = prov_data.get(f'provinceName{suffix["province"]}') or ''
                         extracted_address['zip_code'] = address.get('zipCode') or ''
