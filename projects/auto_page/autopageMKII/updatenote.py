@@ -270,7 +270,7 @@
 # * 267 /Fixed/ 5.1.2LITE ย้ายตัวจัดการ swal ไปไว้ท้ายสุด แบบ try except เพราะมันอาจจะมีบางครั้งก็ไม่มี งง จัด และแก้ปัญหาการจัดการ swal ที่ซ้ำซ้อน
 # * 268 /Fixed/ 5.1.2LITE แก้ตัวตัดคำ prefix suffix ของใบกำกับภาษีในชื่อที่ใช้ใน logic ของการตรวจสอบชื่อว่าชื่อที่ต้องการมีใน li หรือไม่
 # * 269 /Fixed/ 5.1.2LITE smco_req_find_cus_address() ตัวดึงค่า subdistrictName จาก response ของ api มันดันมี " " แทรกเข้ามา ทำให้ entity จาก response ไม่เจอเพราะชื่อ property มันไม่มีตัวไหนที่ลงท้ายด้วย " ' แต่ code มันมีได้ไงไม่รู้ งง มันเลยดึง subdistrict ไม่ได้สักตัว
-# ! 270 /Issue/ ลองตรวจสอบดู มีบาง order มีปัญหา dtype เช่น 2605139S730PY8, 2605128Q4F9JNP operation_task_thread_outer_Exception_Error!! unsupported operand type(s) for -: 'float' and 'str' ส่วน 2605138UU620WR เป็นไรไม่รู้มัน start ปุ้บ stop ปั๊บ
+# ? 270 /confuse/ ตรวจสอบแล้วพบว่า productที่ใช้ใน order เหล่านี้หาก test ใน uat มันจะเปน product ที่ยังไม่มี ถึงตอนแรกมันจะ error dtype แต่พอมาเทสอีกรอบ กลับ error ยิง req ไม่ติดอาจจะต้องทำตัวเช็ค response ว่าเปน array ว่างกลับมาไหม ถ้าเปนงั้นแปลว่า product ไม่มีของ /Issue/ ลองตรวจสอบดู มีบาง order มีปัญหา dtype เช่น 2605139S730PY8, 2605128Q4F9JNP operation_task_thread_outer_Exception_Error!! unsupported operand type(s) for -: 'float' and 'str'
 
 # Todo tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 #! 4.2.0 critical bugs ค่าขนส่งกับราคามัน fix กรอกหน้าท้าย ถ้าหน้าแรกไม่ตรงกับหน้าท้าย มันทะลุ ตัว validate ของ smco ได้เลย ทำให้ยอดที่ยิงลงบิลไม่ตรงกับยอดกรอกตอนท้าย
