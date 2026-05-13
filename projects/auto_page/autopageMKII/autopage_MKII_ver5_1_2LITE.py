@@ -1991,8 +1991,8 @@ class MyApp:
         print(f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
         self.reset_all_display()
         self.order = order.strip()
-        is_laz_len_not_correct =  self.marketplace_target.get() == 'LAZADA' and len(self.order) != 16
-        is_shopee_len_not_correct =  self.marketplace_target.get() == 'SHOPEE' and len(self.order) != 14
+        is_laz_len_not_correct = self.marketplace_target.get() == 'LAZADA' and len(self.order) != 16
+        is_shopee_len_not_correct = self.marketplace_target.get() == 'SHOPEE' and len(self.order) != 14
         if is_shopee_len_not_correct or is_laz_len_not_correct:
             self.on_complete.set()
             self.operation_thread.set()
@@ -2133,7 +2133,8 @@ class MyApp:
                 if tax_num_only == "ไม่มีเลข":
                     self.is_tax_required.set(False)
                     self.cus_tax_status.set("ไม่ขอใบกำกับ")
-                    self.root.after(0, lambda: self.display_is_tax.configure(fg_color="#6ec7ff", text_color="#000", font=("Chiller", 10, "normal")))
+                    self.root.after(0, lambda: self.display_is_tax.configure(
+                        fg_color="#6ec7ff", text_color="#000", font=("Chiller", 10, "normal")))
                     self.tax_num.set("")
                 elif tax_num_only != "ไม่มีเลข" and len(tax_num_only) != 13:
                     if len(tax_num_only) > 13:
@@ -2143,7 +2144,8 @@ class MyApp:
                         self.is_tax_required.set(False)
                         self.cus_tax_status.set("ขอ//เลขไม่ครบ")
 
-                    self.root.after(0, lambda: self.display_is_tax.configure(fg_color="#8502d1", text_color="#FFF", font=("Chiller", 10, "normal")))
+                    self.root.after(0, lambda: self.display_is_tax.configure(
+                        fg_color="#8502d1", text_color="#FFF", font=("Chiller", 10, "normal")))
                     self.tax_num.set(tax_num_only)
 
                 else:
@@ -2160,13 +2162,13 @@ class MyApp:
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set(f"ใบกำกับ สาขา{branch}")
                         self.root.after(0, lambda: self.display_is_tax.configure(fg_color="#ff0055", text_color="#FFF",
-                                                      font=("Chiller", 10, "bold")))
+                                                                                 font=("Chiller", 10, "bold")))
                         self.tax_num.set(tax_num_only)
                     else:
                         self.is_tax_required.set(True)
                         self.cus_tax_status.set("ไม่ขอแต่มีเลข")
                         self.root.after(0, lambda: self.display_is_tax.configure(fg_color="#ff9e36", text_color="#FFF",
-                                                      font=("Chiller", 12, "bold")))
+                                                                                 font=("Chiller", 12, "bold")))
                         self.tax_num.set(tax_num_only)
 
                 if self.is_tax_required.get() == True and len(tax_num_only) == 13:
@@ -3066,8 +3068,6 @@ class Bot_POS:
         # * share SmcoApiClient instance จาก MyApp เพื่อใช้ session เดียวกัน
         self.smco_api = self.app.smco_api
 
-
-
     @property
     def driver(self):
         return self.browser.driver
@@ -3759,8 +3759,7 @@ class Bot_POS:
             print("Check Duplicated customer!!")
             if self.app.is_tax_required.get():
                 self.duplicated_cus_name_resolver(cus_code_element)
-            self.driver.find_element(
-                By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+
             #! ! cb() น่าจะ deprecated เพราะมันจะ recursive กับตัวหลัก เพราะใน select_cus_name_from_lisจะเรียกget_customer_name_ready() เป็น cd แล้วมันจะทำงานวนซ้ำไปเรื่อยๆ
             # cb()
 
@@ -3772,6 +3771,13 @@ class Bot_POS:
                 raise ValueError(f"Auto Invoice Mode is ON, but failed to add customer. Error: {err}")
 
             print("No duplicate!", err)
+
+        try:
+            swal_confirm_btn_xpath = """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""
+            self.driver.find_element(By.XPATH, swal_confirm_btn_xpath).click()
+            print("add_new_customer() end: swal confirm button is clicked after add customer")
+        except Exception as err:
+            print("add_new_customer() end but No swal confirm button to click after add customer, maybe because of: ", err)
 
     def ensure_li_shown_cus_name(self):
         """
@@ -6318,7 +6324,8 @@ class Bot_POS:
                 print(f"""{self.cus_order}: Address Revise Complete""")
                 break
             except Exception as err:
-                print(f"Address Revise Error1 : {traceback.format_exc()}") # * Address Revise Error1 ละเอียดกว่าบอกต่ำแหน่งแบบเชื่อม parent child Traceback แบบเต็ม (Full Stack Trace)
+                # * Address Revise Error1 ละเอียดกว่าบอกต่ำแหน่งแบบเชื่อม parent child Traceback แบบเต็ม (Full Stack Trace)
+                print(f"Address Revise Error1 : {traceback.format_exc()}")
                 # print(f"Address Revise Error2 : {err}") #* Message (เฉพาะข้อความ Error) ไม่ละเอียด
                 # logger.info(f"""{self.cus_order}: Address Revise Error1 : {traceback.format_exc()}""")
                 # logger.info(f"""{self.cus_order}: Address Revise Error2 : {err}""")
@@ -6455,8 +6462,8 @@ class Bot_POS:
             By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
 
         if ("Save Successfully." in self.dup_popup_content) or ("บันทึกข้อมูลสำเร็จ" in self.dup_popup_content):
-            print("Not Duplicate")
-            logger.info(f"{self.cus_order}: After adding cusname, the cusname is Not Duplicated")
+            print("Not Duplicate, return")
+            logger.info(f"{self.cus_order}: duplicated_cus_name_resolver():After adding cusname, the cusname is Not Duplicated")
             return
         print("close dup popup = ", self.dup_popup_content)
 
