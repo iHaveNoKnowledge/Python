@@ -2624,7 +2624,8 @@ class MyApp:
         self.is_bot_running.set(False)
         print("self.operation_thread.set()2182: ")
         self.operation_thread.set()
-        logger.info(f"Order: {self.order} stop operation")
+        logger.info(f"""Order: {self.order} stop operation
+                    """)
 
     # * ส่งไปแปะไว้ที่ order_display_manager.py
     def auto_add_product_threaded(self, skus, qty, **kwargs):
@@ -3686,6 +3687,9 @@ class Bot_POS:
                 print("click แล้ว")
                 break
 
+            except ValueError as ve:
+                print(f"Aborting customer selection due to ValueError: {ve}")
+                raise ve
             except Exception as err:
                 print("ยังเลือกชื่อลูกค้าไม่ได้เลย:", err)
                 time.sleep(0.5)
@@ -3873,7 +3877,7 @@ class Bot_POS:
         print("incoming cus_desire_name: ", cus_desire_name)
         # ลบคำนำหน้า
         pattern_prefix = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ|บจ\.?|บ\.)\s*'
-        
+
         # ลบคำลงท้ายพวกสาขาก่อน
         pattern_branch = r'(สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|\(สำนักงานใหญ่\)|\(สํานักงานใหญ่\)|\(สนญ\.?\)|\(00000\)|\sสาขา.*)$'
 
@@ -4575,14 +4579,16 @@ class Bot_POS:
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
                     self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
                     self.app.POP_UP.show(
-                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' ", "alert")
+                        "Caution!!", f"Order {self.app.order} มีสถานะ '{self.app.cus_cur_status.get()}'", "alert")
+                    logger.info(f"Order: {self.app.order} has status: '{self.app.cus_cur_status.get()}'")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
                     self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
                     self.app.POP_UP.show(
-                        "Caution!!", f"Order นี้มีสถานะ '{self.app.cus_cur_status.get()}' ", "alert")
+                        "Caution!!", f"Order {self.app.order} มีสถานะ '{self.app.cus_cur_status.get()}'", "alert")
+                    logger.info(f"Order: {self.app.order} has status: '{self.app.cus_cur_status.get()}'")
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
@@ -4944,7 +4950,7 @@ class Bot_POS:
                 except Exception as err:
                     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-                logger.info(f"Order: {self.cus_order} Testing End!!")
+                logger.info(f"""Order: {self.cus_order} Testing End!!""")
                 return
 
             # with self.driver_lock:
@@ -5645,7 +5651,7 @@ class Bot_POS:
                         except Exception as err:
 
                             print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
-                            if self.app.is_auto_invoice_mode.get():
+                            if hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get():
                                 logger.error(
                                     f"order {self.cus_order}: auto invoice mode requires postal code selection but postal code {postcode} cannot be found in dropdown, stopping the process. Error details: {err}")
                                 raise ValueError(
@@ -5671,8 +5677,31 @@ class Bot_POS:
 
                 break
 
-            except:
-                print("addCustomer(): Elements cannot be found, retry filling customer form")
+            except ValueError as ve:
+                print(f"addCustomer(): Stopped by ValueError: {ve}")
+                # ปิดหน้าต่างสร้างลูกค้า เพื่อไม่ให้ค้าง
+                try:
+                    # 1. ลองกดปุ่มยกเลิก (ปุ่มถัดจาก Save)
+                    cancel_btn_xpath = '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[2]'
+                    self.driver.find_element(By.XPATH, cancel_btn_xpath).click()
+                except:
+                    pass
+
+                try:
+                    # 2. ลองส่งปุ่ม ESC เพื่อปิด Modal
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                except:
+                    pass
+
+                try:
+                    # 3. ลองกดปุ่มปิดแบบทั่วไป
+                    self.driver.execute_script("document.querySelector('button[ng-click=\"cancel()\"]').click();")
+                except:
+                    pass
+                time.sleep(0.5)
+                raise ve
+            except Exception as err:
+                print(f"addCustomer(): Elements cannot be found, retry filling customer form. Error: {err}")
                 if customer_type != "normal":
                     continue
                 else:
@@ -5715,7 +5744,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -5971,7 +5999,8 @@ class Bot_POS:
                         prov_data = address.get('provinceId') or {}
 
                         extracted_address['address'] = address.get('custAddress') or ''
-                        extracted_address['subdistrict'] = sub_dist_data.get(f'subdistrictName{suffix["subdistrict"]}') or ''
+                        extracted_address['subdistrict'] = sub_dist_data.get(
+                            f'subdistrictName{suffix["subdistrict"]} ') or ''
                         extracted_address['district'] = dist_data.get(f'districtName{suffix["district"]}') or ''
                         extracted_address['provice'] = prov_data.get(f'provinceName{suffix["province"]}') or ''
                         extracted_address['zip_code'] = address.get('zipCode') or ''
@@ -6332,6 +6361,28 @@ class Bot_POS:
 
                 print(f"""{self.cus_order}: Address Revise Complete""")
                 break
+            except ValueError as ve:
+                print(f"Address Revise Error: Stopped by ValueError: {ve}")
+                # ปิดหน้าต่างแก้ไขที่อยู่ เพื่อไม่ให้ค้าง
+                try:
+                    self.driver.execute_script("""
+                        let m = document.querySelector('.modal.in, .modal.show');
+                        if(m){
+                            let b = m.querySelector('button.close, button[data-dismiss="modal"], button[ng-click*="cancel"], button[ng-click*="close"]');
+                            if(b) b.click();
+                            else { m.style.display='none'; m.classList.remove('in','show'); document.querySelectorAll('.modal-backdrop').forEach(bd=>bd.style.display='none'); }
+                        }
+                    """)
+                except:
+                    pass
+                time.sleep(0.5)
+                # กลับไปหน้าการขายให้ถูกต้องก่อน Throw Error
+                try:
+                    if 'SMCO :: เปิดการขาย' in self.merged_dict:
+                        self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
+                except:
+                    pass
+                raise ve
             except Exception as err:
                 # * Address Revise Error1 ละเอียดกว่าบอกต่ำแหน่งแบบเชื่อม parent child Traceback แบบเต็ม (Full Stack Trace)
                 print(f"Address Revise Error1 : {traceback.format_exc()}")
