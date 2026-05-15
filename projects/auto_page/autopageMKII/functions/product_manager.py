@@ -53,7 +53,7 @@ class ProductManager:
     COL_SKU = "เลขอ้างอิง SKU (SKU Reference No.)"
     COL_QTY = "จำนวน"
     COL_PRICE = "ราคาขาย"  # * ปรับแล้ว # TODO: ปรับชื่อ column
-    COL_SUBTOTAL = "ยอดชำระเงิน"  # * ปรับแล้ว  # TODO: ปรับชื่อ column
+    COL_SUBTOTAL = "ราคาขายสุทธิ"  # * ปรับแล้ว  # TODO: ปรับชื่อ column
 
     def __init__(self, driver, wait, app, bot):
         self.driver = driver
@@ -143,7 +143,7 @@ class ProductManager:
             self.COL_QTY: 1,
             self.COL_PRICE: self.app.cus_ship_cost.get(),
         } if self.app.cus_ship_cost.get() else {}
-        # * คำนวณยอดชำระเงิน (subtotal) สำหรับค่าขนส่งด้วย (ถ้ามี) เพื่อใช้ใน verify_total_price ต่อไป
+        # * คำนวณราคาขายสุทธิ (subtotal) สำหรับค่าขนส่งด้วย (ถ้ามี) เพื่อใช้ใน verify_total_price ต่อไป
         self.shipping_dict[self.COL_SUBTOTAL] = self.shipping_dict[self.COL_PRICE] * \
             self.shipping_dict[self.COL_QTY] if self.shipping_dict else 0
 
