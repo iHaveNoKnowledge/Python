@@ -514,7 +514,8 @@ class MyApp:
         ))
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver5.1.2LITE")
+        self.root.title("Autosamatic ver5.1.3
+                        LITE")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
@@ -1184,7 +1185,7 @@ class MyApp:
         self.order_display_manager = OrderDisplayManager(self.mp_products_list_frame, self)
 
         self.mimic_column_headers = ['No.', 'สินค้าทั้งหมด',
-                                     'ราคาต่อชิ้น', 'QTY', 'ยอดชำระเงิน', 'ราคา+รีเบท', 'ปรับราคา']
+                                     'ราคาต่อชิ้น', 'QTY', 'ราคาขายสุทธิ', 'ราคา+รีเบท', 'ปรับราคา']
         self.order_display_manager.create_header(self.mimic_column_headers)
 
         # * > demonic cp segment
@@ -1360,8 +1361,8 @@ class MyApp:
 
         # ** ปรับแต่ง Column สำหรับ LAZADA--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # * สร้าง sum_column  ขึ้นมาใหม่ --------------------------------------------------------
-        # *> 'ยอดชำระเงิน'
-        result_count.loc[:, 'ยอดชำระเงิน'] = result_count["จำนวน"] * result_count["unitPrice"]
+        # *> 'ราคาขายสุทธิ'
+        result_count.loc[:, 'ราคาขายสุทธิ'] = result_count["จำนวน"] * result_count["unitPrice"]
 
         # *> 'ชื่อผู้รับ' AND 'หมายเลขโทรศัพท์' - REMOVED BUGGY ASSIGNMENT
         # These were assigned by index which caused mismatch.
@@ -1445,7 +1446,7 @@ class MyApp:
         # print(f"""qty ใน lazada""")
         # print(result_count)
 
-        # print("ยอดชำระเงิน")
+        # print("ราคาขายสุทธิ")
         # print(total_per_order_df)
 
         # * เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column // เปลี่ยนชื่อ column
@@ -1703,7 +1704,7 @@ class MyApp:
         self.total_price = 0
         for product in products_list:
             product_name = product["เลขอ้างอิง SKU (SKU Reference No.)"]
-            price = product["ยอดชำระเงิน"]
+            price = product["ราคาขายสุทธิ"]
             shopee_rebate = product['ส่วนลดจาก Shopee']
             price_plusrebate = price+shopee_rebate
             QTY = product['จำนวน']
@@ -2007,7 +2008,7 @@ class MyApp:
             'ชื่อสินค้า',
             'ราคาขาย',
             'จำนวน',
-            'ยอดชำระเงิน',
+            'ราคาขายสุทธิ',
             'ส่วนลดจาก Shopee',
             'ชื่อตัวเลือก',
         ]
@@ -2075,7 +2076,7 @@ class MyApp:
                     self.update_log(
                         f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {option} {str(row['ชื่อสินค้า'])} ")
                     self.update_log(
-                        f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ยอดชำระเงิน: {float(row['ยอดชำระเงิน']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
+                        f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like an orange theme app ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 with self.bot.driver_lock:
@@ -2323,7 +2324,7 @@ class MyApp:
 
                 self.net_prices_list = []
                 for item in self.items:
-                    net_price = item['ยอดชำระเงิน'] + item['ส่วนลดจาก Shopee']
+                    net_price = item['ราคาขายสุทธิ'] + item['ส่วนลดจาก Shopee']
                     self.net_prices_list.append(net_price)
 
                 self.sum_price = sum(self.net_prices_list)
