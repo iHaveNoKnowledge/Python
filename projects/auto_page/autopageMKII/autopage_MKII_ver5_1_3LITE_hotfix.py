@@ -514,8 +514,7 @@ class MyApp:
         ))
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        self.root.title("Autosamatic ver5.1.3
-                        LITE")
+        self.root.title("Autosamatic ver5.1.3LITE(Hotfix)")
         self.root.configure(fg_color="#444")
 
         # กำหนด minimum size
