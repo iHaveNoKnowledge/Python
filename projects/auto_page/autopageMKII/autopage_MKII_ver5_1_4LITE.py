@@ -4143,8 +4143,15 @@ class Bot_POS:
                 # return
 
             except Exception as err:
-                print("Shipment cost skipped")
-                print(err)
+                err_str = str(err).lower()
+                if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
+                    print(f"Connection lost during add_shipping_cost: {err}")
+                    logger.error(f"Connection lost during add_shipping_cost: {err}")
+                    self.app.update_log("⚠️ Session lost while adding shipping cost. Attempting to reconnect...")
+                    self.reconnect_driver()
+                    self.app.update_log("⚠️ Reconnected. Please check the shipping cost manually.")
+                else:
+                    print("Shipment cost skipped: ", err)
         else:
             print("No shipment cost")
 

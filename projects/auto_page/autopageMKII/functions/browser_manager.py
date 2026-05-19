@@ -94,7 +94,8 @@ class BrowserManager:
             # อัปเดต AutoAddProduct ถ้ามี
             if hasattr(self.bot, 'AutoAddProduct') and self.bot.AutoAddProduct:
                 self.bot.AutoAddProduct.driver = self.driver
-                self.bot.AutoAddProduct.wait = self.wait50
+                self.bot.AutoAddProduct.wait50 = self.wait50  # ✅ ชื่อ attribute ที่ถูกต้องใน AutoAddProduct
+                self.bot.AutoAddProduct.network_capture = self.network_capture
 
             # อัปเดต ProductManager ถ้ามี
             if hasattr(self.bot, 'ProductManager') and self.bot.ProductManager:

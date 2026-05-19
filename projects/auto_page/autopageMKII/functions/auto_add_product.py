@@ -225,5 +225,11 @@ class AutoAddProduct:
                     self.item_qty_setter(product_from_response, qty)
 
             except Exception as err:
-                print("Shipment cost skipped")
-                print(err)
+                err_str = str(err).lower()
+                if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
+                    print(f"Connection lost during auto_add_product: {err}")
+                    self.app.update_log("⚠️ Session lost while adding product. Attempting to reconnect...")
+                    self.bot.reconnect_driver()
+                    self.app.update_log("⚠️ Reconnected. Please check the items manually.")
+                else:
+                    print("Error during auto_add_product: ", err)
