@@ -105,10 +105,24 @@ class NetworkResponseCapture:
         """
         Clear performance logs เพื่อลด RAM usage
         ควรเรียกก่อนและหลังการใช้ capture_response()
+
+        หมายเหตุ: จะ raise ConnectionError ถ้า session หลุด
+        เพื่อให้ caller ตรวจพบการหลุด session ก่อนเริ่มทำงานต่อ
         """
         try:
             self.driver.get_log('performance')
             print("Cleared performance logs")
         except Exception as e:
+            err_str = str(e).lower()
+            # re-raise ถ้าเป็น connection/session error เพื่อให้ caller จัดการ reconnect ได้ทัน
+            if ("connection refused" in err_str or
+                    "target machine actively refused it" in err_str or
+                    "max retries exceeded" in err_str or
+                    "winerror 10061" in err_str or
+                    "invalid session id" in err_str or
+                    "session deleted" in err_str):
+                print(f"Session lost during clear_logs (will reconnect): {e}")
+                raise ConnectionError(f"WebDriver session lost: {e}") from e
+            # Error อื่นๆ ที่ไม่ใช่ connection loss ให้กลืนทิ้ง
             print(f"Could not clear logs: {e}")
-            pass
+

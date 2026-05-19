@@ -91,19 +91,19 @@ class BrowserManager:
             self.wait50 = WebDriverWait(self.driver, 50)
             self.wait5 = WebDriverWait(self.driver, 5)
 
+            # อัปเดต NetworkResponseCapture ก่อน (ต้องทำก่อน AutoAddProduct)
+            self.network_capture = NetworkResponseCapture(self.driver)
+
             # อัปเดต AutoAddProduct ถ้ามี
             if hasattr(self.bot, 'AutoAddProduct') and self.bot.AutoAddProduct:
                 self.bot.AutoAddProduct.driver = self.driver
                 self.bot.AutoAddProduct.wait50 = self.wait50  # ✅ ชื่อ attribute ที่ถูกต้องใน AutoAddProduct
-                self.bot.AutoAddProduct.network_capture = self.network_capture
+                self.bot.AutoAddProduct.network_capture = self.network_capture  # ✅ ใช้ตัวใหม่ที่ชี้ driver ใหม่
 
             # อัปเดต ProductManager ถ้ามี
             if hasattr(self.bot, 'ProductManager') and self.bot.ProductManager:
                 self.bot.ProductManager.driver = self.driver
                 self.bot.ProductManager.wait = self.wait50
-
-            # อัปเดต NetworkResponseCapture
-            self.network_capture = NetworkResponseCapture(self.driver)
 
             # อัปเดต tabs
             self.get_tabs()

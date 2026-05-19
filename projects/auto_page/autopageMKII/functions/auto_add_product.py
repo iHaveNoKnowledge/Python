@@ -158,78 +158,103 @@ class AutoAddProduct:
             self.bot.auto_add_product_stop_flag.clear()
 
             print(f"incoming skus: {skus}")
-            # self.bot.get_tabs() #! ใน thread หลักมันจะทำงานเช็ค element ตลอด ทำให้การกด get_tabs มันจะทำให้ focus tab เปลี่ยนทำให้ logic การตรวจสอบหน้า 'SMCO :: เปิดการขาย' ไปตรวจสอบหน้าอื่นๆเพราะ get_tabs จะพา foucus ไปtab อื่น ทำให้เกิด race condition ได้
             merged_dict = self.bot.merged_dict
             self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
 
-            try:
-                # * SKU input location
-                sku_input_element = self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
-                sku_qty_element = self.driver.find_element(
-                    By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
+            max_reconnect_attempts = 1  # retry 1 ครั้งหลัง reconnect
+            for reconnect_attempt in range(max_reconnect_attempts + 1):
+                try:
+                    # * SKU input location
+                    sku_input_element = self.wait50.until(EC.visibility_of_element_located(
+                        (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
+                    sku_qty_element = self.driver.find_element(
+                        By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
 
-                for sku in skus:
-                    while not self.bot.auto_add_product_stop_flag.is_set():
-                        try:
-                            print("Processing SKU: ", sku, " with qty: ", qty)
-                            self.driver.execute_script(
-                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
-                                sku_qty_element,
-                                qty
-                            )
-                            result = self.driver.execute_script(
-                                "return angular.element(arguments[0]).val()", sku_qty_element)
-                            print("result: ", result)
-                            if int(result) == int(qty):
-                                break
+                    for sku in skus:
+                        while not self.bot.auto_add_product_stop_flag.is_set():
+                            try:
+                                print("Processing SKU: ", sku, " with qty: ", qty)
+                                self.driver.execute_script(
+                                    "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                    sku_qty_element,
+                                    qty
+                                )
+                                result = self.driver.execute_script(
+                                    "return angular.element(arguments[0]).val()", sku_qty_element)
+                                print("result: ", result)
+                                if int(result) == int(qty):
+                                    break
 
-                        except Exception as err:
-                            print("auto_add_product - set qty error: ", err)
-                            continue
+                            except Exception as err:
+                                print("auto_add_product - set qty error: ", err)
+                                continue
 
-                    # * ใช้ NetworkResponseCapture utility แทนโค้ดเดิม
-                    target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
+                        # * ใช้ NetworkResponseCapture utility แทนโค้ดเดิม
+                        target_url_part = "/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm"
 
-                    # * Clear logs ก่อนส่ง request
-                    self.network_capture.clear_logs()
+                        # * Clear logs ก่อนส่ง request
+                        # หมายเหตุ: clear_logs() จะ raise ConnectionError ถ้า session หลุด
+                        # เพื่อให้ retry ได้ก่อนที่ SKU จะถูกพิมพ์ลงไป
+                        self.network_capture.clear_logs()
 
-                    # * เตรียม SKU input
-                    sku_input_element.clear()
-                    sku_input_element.send_keys(sku)
-                    print(f"Placing SKU Input with {sku} success")
+                        # * เตรียม SKU input
+                        sku_input_element.clear()
+                        sku_input_element.send_keys(sku)
+                        print(f"Placing SKU Input with {sku} success")
 
-                    # * ส่ง request
-                    sku_input_element.send_keys(Keys().ENTER)
-                    print("Pressed Enter to submit SKU")
-                    time.sleep(0.2)
+                        # * ส่ง request
+                        sku_input_element.send_keys(Keys().ENTER)
+                        print("Pressed Enter to submit SKU")
+                        time.sleep(0.2)
 
-                    # * ดึง response ด้วย utility
-                    response_data = self.network_capture.capture_response(target_url_part, max_attempts=20)
+                        # * ดึง response ด้วย utility
+                        response_data = self.network_capture.capture_response(target_url_part, max_attempts=20)
 
-                    product_from_response = None
-                    if response_data:
-                        try:
-                            product_from_response = response_data[0]['productCode']
-                            print(f"Got product: {product_from_response}")
-                        except Exception as err:
-                            print(f"Cannot parse product: {err}")
-                            product_from_response = None
+                        product_from_response = None
+                        if response_data:
+                            try:
+                                product_from_response = response_data[0]['productCode']
+                                print(f"Got product: {product_from_response}")
+                            except Exception as err:
+                                print(f"Cannot parse product: {err}")
+                                product_from_response = None
+                        else:
+                            print("No response received")
+
+                        # * Clear logs หลังใช้งาน
+                        self.network_capture.clear_logs()
+
+                        self.price_setter(sku=product_from_response, srp=srp)
+                        self.item_qty_setter(product_from_response, qty)
+
+                    break  # สำเร็จ ออกจาก retry loop
+
+                except (ConnectionError, Exception) as err:
+                    err_str = str(err).lower()
+                    is_connection_err = isinstance(err, ConnectionError) or \
+                        "connection refused" in err_str or \
+                        "target machine actively refused it" in err_str or \
+                        "max retries exceeded" in err_str or \
+                        "winerror 10061" in err_str
+
+                    if is_connection_err and reconnect_attempt < max_reconnect_attempts:
+                        print(f"Connection lost (attempt {reconnect_attempt + 1}/{max_reconnect_attempts + 1}), reconnecting and retrying...")
+                        self.app.update_log(f"⚠️ Session lost. Reconnecting and retrying order...")
+                        reconnected = self.bot.reconnect_driver()
+                        if reconnected:
+                            # อัปเดต reference ใหม่หลัง reconnect
+                            merged_dict = self.bot.merged_dict
+                            self.driver.switch_to.window(merged_dict['SMCO :: เปิดการขาย'])
+                            self.app.update_log("✅ Reconnected. Retrying...")
+                            continue  # retry
+                        else:
+                            print("Reconnect failed, giving up.")
+                            self.app.update_log("❌ Reconnect failed. Please check items manually.")
+                            break
+                    elif is_connection_err:
+                        print(f"Connection lost during auto_add_product (max retries reached): {err}")
+                        self.app.update_log("❌ Session lost and could not recover. Please check items manually.")
                     else:
-                        print("No response received")
+                        print("Error during auto_add_product: ", err)
+                    break
 
-                    # * Clear logs หลังใช้งาน
-                    self.network_capture.clear_logs()
-
-                    self.price_setter(sku=product_from_response, srp=srp)
-                    self.item_qty_setter(product_from_response, qty)
-
-            except Exception as err:
-                err_str = str(err).lower()
-                if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
-                    print(f"Connection lost during auto_add_product: {err}")
-                    self.app.update_log("⚠️ Session lost while adding product. Attempting to reconnect...")
-                    self.bot.reconnect_driver()
-                    self.app.update_log("⚠️ Reconnected. Please check the items manually.")
-                else:
-                    print("Error during auto_add_product: ", err)
