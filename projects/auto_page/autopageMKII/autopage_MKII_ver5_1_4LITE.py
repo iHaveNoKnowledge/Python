@@ -284,7 +284,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * For testing purposes only
-        self.is_testing = False
+        self.is_testing = True
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -3469,31 +3469,6 @@ class Bot_POS:
                 if self.app.order != "" and not self.operation_thread.is_set():
                     logger.info(f"Order: {self.app.order} Start!!")
                     self.operation_start()
-
-                    # # * Retry logic สำหรับ operation_start เพื่อจัดการกับ concurrent auto_add_product
-                    # max_retries = 3
-                    # retry_delay = 1.0  # วินาที
-
-                    # for attempt in range(max_retries):
-                    #     try:
-                    #         self.operation_start()
-                    #         break  # สำเร็จแล้ว ออกจาก loop
-                    #     except (NoSuchElementException, StaleElementReferenceException, TimeoutException) as err:
-                    #         if attempt < max_retries - 1:
-                    #             logger.warning(
-                    #                 f"Order: {self.app.order} Retry attempt {attempt + 1}/{max_retries} due to: {type(err).__name__}: {err}")
-                    #             print(
-                    #                 f"⚠️  Retrying operation_start (attempt {attempt + 1}/{max_retries}) due to: {type(err).__name__}")
-                    #             time.sleep(retry_delay)
-                    #             continue
-                    #         else:
-                    #             # ครบจำนวน retry แล้ว ให้ raise ValueError
-                    #             logger.error(f"Order: {self.app.order} Max retries reached. Final error: {err}")
-                    #             raise
-                    #     except Exception as err:
-                    #         # Exception อื่นๆ ที่ไม่ใช่ element not found ให้ raise ทันที
-                    #         logger.info(f"Order: {self.app.order} outer_Exception_Error!! {err}")
-                    #         raise
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
 
@@ -3604,7 +3579,6 @@ class Bot_POS:
             except:
                 time.sleep(0.45)
                 continue
-        return "dropdown is ready!"
 
     def select_cusname_address_last_page(self):
         is_last_page = True
@@ -4926,16 +4900,21 @@ class Bot_POS:
                 self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
 
             if self.app.is_auto_invoice_mode.get():
-                self.ProductManager.auto_add_all_items()
-                verification_result = self.ProductManager.verify_all()
-                print("verification_result: ", verification_result)
-
-            # try:
-            #     verification_result = self.ProductManager.verify_all()
-            #     print("verification_result: ", verification_result)
-            # except Exception as err:
-            #     print(f"Error occurred while verifying items: {err}")
-            #     logger.error(f"Error occurred while verifying items: {err}")
+                try:
+                    self.ProductManager.auto_add_all_items()
+                    verification_result = self.ProductManager.verify_all()
+                    print("verification_result: ", verification_result)
+                except Exception as err:
+                    err_str = str(err).lower()
+                    if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
+                        print(f"Connection lost during adding items: {err}")
+                        logger.error(f"Connection lost during adding items: {err}")
+                        self.app.update_log("⚠️ Session lost while adding items. Attempting to reconnect...")
+                        self.reconnect_driver()
+                        self.app.update_log("⚠️ Reconnected. Please check the items manually.")
+                    else:
+                        print(f"Error occurred while verifying items: {err}")
+                        logger.error(f"Error occurred while verifying items: {err}")
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
@@ -4944,9 +4923,12 @@ class Bot_POS:
             # todo for testing
             # * Update Accel file //////////////////////
             if self.app.is_testing:
+                logger.info(
+                    f"Order: {self.cus_order} Testing mode is ON. Attempting to update Accel file with order data.")
                 try:
                     self.app.accel_mode.deduct_accel_file_data(
                         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+
                 except Exception as err:
                     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
@@ -5999,7 +5981,8 @@ class Bot_POS:
                         prov_data = address.get('provinceId') or {}
 
                         extracted_address['address'] = address.get('custAddress') or ''
-                        extracted_address['subdistrict'] = sub_dist_data.get(f"""subdistrictName{suffix["subdistrict"]}""".strip()) or ''
+                        extracted_address['subdistrict'] = sub_dist_data.get(
+                            f"""subdistrictName{suffix["subdistrict"]}""".strip()) or ''
                         extracted_address['district'] = dist_data.get(f'districtName{suffix["district"]}') or ''
                         extracted_address['provice'] = prov_data.get(f'provinceName{suffix["province"]}') or ''
                         extracted_address['zip_code'] = address.get('zipCode') or ''

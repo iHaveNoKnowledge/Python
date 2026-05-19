@@ -96,6 +96,11 @@ class BrowserManager:
                 self.bot.AutoAddProduct.driver = self.driver
                 self.bot.AutoAddProduct.wait = self.wait50
 
+            # อัปเดต ProductManager ถ้ามี
+            if hasattr(self.bot, 'ProductManager') and self.bot.ProductManager:
+                self.bot.ProductManager.driver = self.driver
+                self.bot.ProductManager.wait = self.wait50
+
             # อัปเดต NetworkResponseCapture
             self.network_capture = NetworkResponseCapture(self.driver)
 
