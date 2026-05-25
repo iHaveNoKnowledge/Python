@@ -463,6 +463,7 @@ class MyApp:
                 self.scale_widget(child, scale_factor)
 
     def create_main_window(self):
+        bg_color = "#37629e" if getattr(self, "is_testing", False) else "#444"
         # คำนวณ scale factor จากขนาดหน้าจอ
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -515,7 +516,7 @@ class MyApp:
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         self.root.title("Autosamatic ver5.1.5LITE")
-        self.root.configure(fg_color="#444")
+        self.root.configure(fg_color=bg_color)
 
         # กำหนด minimum size
         min_width = min(int(800 * scaling_factor), screen_width - 100)
@@ -529,7 +530,7 @@ class MyApp:
             base_font_size = 10
 
         # สร้าง Main Canvas
-        self.canvas = Canvas(self.root, bg="#444", width=800, height=600)
+        self.canvas = Canvas(self.root, bg=bg_color, width=800, height=600)
 
         # สร้าง Scrollbar แนวตั้ง
         self.scrollbar_y = CTkScrollbar(
@@ -554,7 +555,7 @@ class MyApp:
         )
 
         # สร้าง main frame ที่จะอยู่ใน canvas
-        self.main_frame = CTkFrame(self.canvas, fg_color="#444")
+        self.main_frame = CTkFrame(self.canvas, fg_color=bg_color)
 
         # สร้าง window ใน canvas เพื่อใส่ main_frame
         self.canvas_window = self.canvas.create_window(
@@ -615,21 +616,21 @@ class MyApp:
         # > Frame6 Marketplace(MP) Products Lists
         self.mp_products_list_frame = CTkFrame(
             self.main_frame,
-            fg_color="#444"
+            fg_color=bg_color
         )
         self.mp_products_list_frame.pack(side='top', padx=5, pady=5, fill="x")
 
         # > Frame7 The Upper Log Frame Demonic Frame
         self.demonic_frame = CTkFrame(
             self.main_frame,
-            fg_color="#444"
+            fg_color=bg_color
         )
         self.demonic_frame.pack(side='top', pady=(0, 2))
 
         # > Frame2 Log Frame
         self.log_frame = CTkFrame(
             self.main_frame,
-            fg_color="#444"
+            fg_color=bg_color
         )
         self.log_frame.pack(side='top', pady=20, fill="both")
 
