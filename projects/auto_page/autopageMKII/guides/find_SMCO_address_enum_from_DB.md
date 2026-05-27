@@ -3,6 +3,8 @@
 1. V_DISTRICT_SEARCH
 2. V_SUBDISTRICT_SEARCH
 3. V_PROVINCE_SEARCH
+4. [V_REGION_MASTER]
+	สำหรับหา FILTER หา FORMAT ของ ADDRESS ซึ่งในตารางนี้มันจะมี ID   
 
 ---
 
@@ -38,6 +40,101 @@
   }
 ]
 ```
+
+```
+[
+  {
+    "ROW_NO": "167358958958",
+    "COUNTRY_ID": 1,
+    "COUNTRY_CODE": "1",
+    "COUNTRY_NAME_EN": "Thailand",
+    "COUNTRY_NAME_TH": "ไทย",
+    "PROVINCE_ID": 67,
+    "PROVINCE_CODE": "96",
+    "PROVINCE_NAME_EN": "Narathiwat",
+    "PROVINCE_NAME_TH": "นราธิวาส",
+    "BKK_FLAG": false,
+    "DISTRICT_ID": 358,
+    "DISTRICT_CODE": "009610",
+    "DISTRICT_NAME_EN": "Su-ngai Kolok",
+    "DISTRICT_NAME_TH": "สุไหงโกลก",
+    "SUBDISTRICT_ID": 958,
+    "SUBDISTRICT_CODE": "961002",
+    "SUBDISTRICT_NAME_EN": "Pa Semat",
+    "SUBDISTRICT_NAME_TH": "ป่าเสมัส",
+    "ZIPCODE_ID": 958,
+    "ZIPCODE": 96120
+  },
+  {
+    "ROW_NO": "16735819771977",
+    "COUNTRY_ID": 1,
+    "COUNTRY_CODE": "1",
+    "COUNTRY_NAME_EN": "Thailand",
+    "COUNTRY_NAME_TH": "ไทย",
+    "PROVINCE_ID": 67,
+    "PROVINCE_CODE": "96",
+    "PROVINCE_NAME_EN": "Narathiwat",
+    "PROVINCE_NAME_TH": "นราธิวาส",
+    "BKK_FLAG": false,
+    "DISTRICT_ID": 358,
+    "DISTRICT_CODE": "009610",
+    "DISTRICT_NAME_EN": "Su-ngai Kolok",
+    "DISTRICT_NAME_TH": "สุไหงโกลก",
+    "SUBDISTRICT_ID": 1977,
+    "SUBDISTRICT_CODE": "961004",
+    "SUBDISTRICT_NAME_EN": "Puyo",
+    "SUBDISTRICT_NAME_TH": "ปูโยะ",
+    "ZIPCODE_ID": 1977,
+    "ZIPCODE": 96120
+  },
+  {
+    "ROW_NO": "16735863866386",
+    "COUNTRY_ID": 1,
+    "COUNTRY_CODE": "1",
+    "COUNTRY_NAME_EN": "Thailand",
+    "COUNTRY_NAME_TH": "ไทย",
+    "PROVINCE_ID": 67,
+    "PROVINCE_CODE": "96",
+    "PROVINCE_NAME_EN": "Narathiwat",
+    "PROVINCE_NAME_TH": "นราธิวาส",
+    "BKK_FLAG": false,
+    "DISTRICT_ID": 358,
+    "DISTRICT_CODE": "009610",
+    "DISTRICT_NAME_EN": "Su-ngai Kolok",
+    "DISTRICT_NAME_TH": "สุไหงโกลก",
+    "SUBDISTRICT_ID": 6386,
+    "SUBDISTRICT_CODE": "961001",
+    "SUBDISTRICT_NAME_EN": "Su-Ngai Ko-Lok",
+    "SUBDISTRICT_NAME_TH": "สุไหงโก-ลก",
+    "ZIPCODE_ID": 6386,
+    "ZIPCODE": 96120
+  },
+  {
+    "ROW_NO": "16735867286728",
+    "COUNTRY_ID": 1,
+    "COUNTRY_CODE": "1",
+    "COUNTRY_NAME_EN": "Thailand",
+    "COUNTRY_NAME_TH": "ไทย",
+    "PROVINCE_ID": 67,
+    "PROVINCE_CODE": "96",
+    "PROVINCE_NAME_EN": "Narathiwat",
+    "PROVINCE_NAME_TH": "นราธิวาส",
+    "BKK_FLAG": false,
+    "DISTRICT_ID": 358,
+    "DISTRICT_CODE": "009610",
+    "DISTRICT_NAME_EN": "Su-ngai Kolok",
+    "DISTRICT_NAME_TH": "สุไหงโกลก",
+    "SUBDISTRICT_ID": 6728,
+    "SUBDISTRICT_CODE": "961003",
+    "SUBDISTRICT_NAME_EN": "Mu No",
+    "SUBDISTRICT_NAME_TH": "มูโนะ",
+    "ZIPCODE_ID": 6728,
+    "ZIPCODE": 96120
+  }
+]
+```
+
+
 
 > ตัวอย่าง JSON จาก response ของ endpoint /getCountryInfomation.htm
 
