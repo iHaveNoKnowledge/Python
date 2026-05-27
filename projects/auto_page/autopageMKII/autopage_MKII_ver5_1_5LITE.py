@@ -1395,7 +1395,7 @@ class MyApp:
         result_df.loc[:, 'ชื่อผู้รับ'] = result_df['billingName'].copy()
         result_df.loc[:, 'หมายเลขโทรศัพท์'] = result_df['billingPhone'].copy()
 
-        # Clean ที่อยู่: แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขา
+        #/ Clean ที่อยู่: แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขา เป็นการจัดการค่าใน export file ของ lazada เท่านั้น ไม่มีการเอาค่าจากแหล่งอื่นมาเกี่ยวข้อง
         address_split_result = result_df.apply(self._split_lazada_address, axis=1, result_type='expand')
         result_df.loc[:, 'รายละเอียดที่อยู่'] = address_split_result[0]
         result_df.loc[:, 'billingAddr2'] = address_split_result[1]
