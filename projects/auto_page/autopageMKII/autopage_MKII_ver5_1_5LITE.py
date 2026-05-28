@@ -1792,7 +1792,29 @@ class MyApp:
         print("After_Clean_dup: ", cleaned_address)
         return cleaned_address
 
+    def deduplicate_address_halves(self, addr_str):
+        addr_str = addr_str.strip()
+        length = len(addr_str)
+        # Check duplicate halves by sliding window of words
+        words = addr_str.split()
+        n = len(words)
+        for i in range(1, n // 2 + 1):
+            if words[0:i] == words[i:2*i]:
+                return " ".join(words[0:i]) + " " + " ".join(words[2*i:])
+
+        # Substring check for exact duplicate text sequences (e.g. part 2 has extra administrative suffixes)
+        mid = length // 2
+        for i in range(10, mid):
+            part1 = addr_str[:i].strip()
+            part2 = addr_str[i:].strip()
+            if part2.startswith(part1):
+                return part2
+        return addr_str
+
     def clean_address(self, address):
+        # ลบความซ้ำซ้อนระดับประโยคที่ซ้ำกัน (เช่น ก๊อปปี้แปะที่อยู่ซ้ำกันสองรอบ)
+        address = self.deduplicate_address_halves(address)
+
         keywords = ["เขต", "แขวง", "ต.", "ตำบล",
                     "อ.", "อำเภอ", "จ.", "จังหวัด"]
 
