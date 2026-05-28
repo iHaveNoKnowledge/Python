@@ -362,7 +362,26 @@ class MyApp:
         self.bot = Bot_POS(self.root, self)
 
         # * 4)Create caches
-        cache_dir = os.path.join(current_directory, f"""caches.json""")
+        cache_dir = os.path.join(current_dir, f"""caches.json""")
+        self.subdistrict_cache = {}
+        self.load_subdistrict_cache()
+
+    def load_subdistrict_cache(self):
+        self.subdistrict_cache = {}
+        cache_path = "output_test.xlsx"
+        if os.path.exists(cache_path):
+            try:
+                # Read only 'หมายเลขคำสั่งซื้อ' and 'แขวง/ตำบล' columns to be fast
+                cache_df = pd.read_excel(cache_path, usecols=['หมายเลขคำสั่งซื้อ', 'แขวง/ตำบล'], dtype=str)
+                cache_df.dropna(subset=['หมายเลขคำสั่งซื้อ', 'แขวง/ตำบล'], inplace=True)
+                for _, row in cache_df.iterrows():
+                    order_num = str(row['หมายเลขคำสั่งซื้อ']).strip()
+                    subdist = str(row['แขวง/ตำบล']).strip()
+                    if order_num and subdist and subdist.lower() != 'nan':
+                        self.subdistrict_cache[order_num] = subdist
+                print(f"Loaded {len(self.subdistrict_cache)} subdistrict entries from cache (output_test.xlsx).")
+            except Exception as cache_err:
+                print(f"Warning: Could not load subdistrict cache: {cache_err}")
 
     def finish_order(self):
         """กดปุ่ม Finish เพื่อ click controlKeyF2 บนเว็บ"""
@@ -1400,18 +1419,7 @@ class MyApp:
         result_df.loc[:, 'รายละเอียดที่อยู่'] = address_split_result[0]
         result_df.loc[:, 'billingAddr2'] = address_split_result[1]
 
-        # * Fill missing sub-district (แขวง/ตำบล) data by querying from Excel file
-        try:
-            address_data_path = os.path.join(os.path.dirname(__file__), 'tables', 'Addresscleaner_TambonData.xlsx')
-            address_df = pd.read_excel(address_data_path, dtype=str)
-            result_df.loc[:, 'billingAddr2'] = result_df.apply(
-                lambda row: self._fill_missing_subdistrict(row, address_df), axis=1)
-        except FileNotFoundError:
-            print(f"Warning: Addresscleaner_TambonData.xlsx not found at {address_data_path}")
-        except Exception as e:
-            import traceback
-            print(f"Warning: Error loading address data: {e}")
-            traceback.print_exc()
+        # * Fill missing sub-district (แขวง/ตำบล) data is now deferred to order_search() on-demand.
 
         # ลบ keywords ซ้ำซ้อนจากที่อยู่ (ตำบล, อำเภอ, จังหวัด, etc.)
         result_df['รายละเอียดที่อยู่'] = result_df.apply(self._remove_redundant_keywords, axis=1)
@@ -1533,10 +1541,17 @@ class MyApp:
 
     def _fill_missing_subdistrict(self, row, address_df):
         """หาตำบล/แขวงที่ขาดหายไปจากข้อมูล Excel หรือ Google"""
-        district = str(row['billingAddr4']).split('/')[0].strip() if pd.notna(row['billingAddr4']) else ''
-        province = str(row['billingAddr3']).split('/')[0].strip() if pd.notna(row['billingAddr3']) else ''
-        zipcode = str(row['billingAddr5']).strip() if pd.notna(row['billingAddr5']) else ''
-        full_address = str(row['billingAddr']) if pd.notna(row['billingAddr']) else ''
+        district_key = 'billingAddr4' if 'billingAddr4' in row else 'เขต/อำเภอ.1'
+        province_key = 'billingAddr3' if 'billingAddr3' in row else 'จังหวัด.1'
+        zipcode_key = 'billingAddr5' if 'billingAddr5' in row else 'รหัสไปรษณีย์.1'
+        full_address_key = 'billingAddr' if 'billingAddr' in row else 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'
+        subdistrict_key = 'billingAddr2' if 'billingAddr2' in row else 'แขวง/ตำบล'
+        details_key = 'รายละเอียดที่อยู่'
+
+        district = str(row[district_key]).split('/')[0].strip() if pd.notna(row[district_key]) else ''
+        province = str(row[province_key]).split('/')[0].strip() if pd.notna(row[province_key]) else ''
+        zipcode = str(row[zipcode_key]).strip() if pd.notna(row[zipcode_key]) else ''
+        full_address = str(row[full_address_key]) if pd.notna(row[full_address_key]) else ''
 
         district = re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*', '', district)
         province = re.sub(r'^(?:จังหวัด|จ\.)\s*', '', province)
@@ -1583,7 +1598,7 @@ class MyApp:
         if possible_tambons:
             try:
                 address_dict = {
-                    "cleaned_address": row['รายละเอียดที่อยู่'],
+                    "cleaned_address": row[details_key],
                     "amphoe": district, "province": province, "postal": zipcode
                 }
                 google_result = self.bot.google_for_tambon(address_dict, possible_tambons)
@@ -1592,7 +1607,7 @@ class MyApp:
             except Exception as e:
                 print(f"Google search error: {e}")
 
-        return row['billingAddr2']
+        return row[subdistrict_key]
 
     @staticmethod
     def _remove_redundant_keywords(row):
@@ -1616,6 +1631,8 @@ class MyApp:
     def get_data_frame(self):
         target = self.marketplace_target.get()
         self.file_path = self.table_location
+        if target == 'LAZADA':
+            self.load_subdistrict_cache()
 
         # * dtype preset สำหรับการโหลดข้อมูล เพื่อป้องกัน error จากการที่บาง column มีค่า missing หรือมีค่าไม่ตรงกับ type ที่ควรจะเป็น ซึ่งจะทำให้เกิด error ตอนโหลดข้อมูลเข้ามาเป็น DataFrame
         base_dtypes = {
@@ -2206,6 +2223,40 @@ class MyApp:
 
                 # ? แบบที่2 ไม่แบ่ง Channel
                 if self.marketplace_target.get() == 'LAZADA':
+                    # ตรวจสอบและเติมตำบลเฉพาะออเดอร์ที่ยังไม่มี (Lazy & On-Demand)
+                    current_subdist = str(self.nondistortedData.get('แขวง/ตำบล', '')).strip()
+                    if not current_subdist or current_subdist.lower() == 'nan':
+                        order_num_str = str(self.order).strip()
+                        cached_subdist = self.subdistrict_cache.get(order_num_str)
+                        if cached_subdist:
+                            print(f"Subdistrict for order {self.order} found in cache: {cached_subdist}")
+                            self.nondistortedData['แขวง/ตำบล'] = cached_subdist
+                            self.data_frame.loc[self.target_row, 'แขวง/ตำบล'] = cached_subdist
+                        else:
+                            print(f"Subdistrict for order {self.order} is missing. Filling...")
+                            if not hasattr(self, 'address_df') or self.address_df is None:
+                                try:
+                                    address_data_path = os.path.join(os.path.dirname(__file__), 'tables', 'Addresscleaner_TambonData.xlsx')
+                                    self.address_df = pd.read_excel(address_data_path, dtype=str)
+                                    print("Lazy-loaded TambonData successfully.")
+                                except Exception as e:
+                                    print(f"Error loading TambonData: {e}")
+                                    self.address_df = pd.DataFrame()
+
+                            filled_subdist = self._fill_missing_subdistrict(self.nondistortedData, self.address_df)
+                            if filled_subdist:
+                                print(f"Computed subdistrict for order {self.order}: {filled_subdist}")
+                                self.nondistortedData['แขวง/ตำบล'] = filled_subdist
+                                self.data_frame.loc[self.target_row, 'แขวง/ตำบล'] = filled_subdist
+                                self.subdistrict_cache[order_num_str] = filled_subdist
+                                # บันทึกความเปลี่ยนแปลงลงในไฟล์ cache (output_test.xlsx)
+                                try:
+                                    excel_file_path = "output_test.xlsx"
+                                    self.data_frame.to_excel(excel_file_path, index=False, na_rep="", engine="openpyxl")
+                                    print(f"Saved updated dataframe with filled subdistrict to {excel_file_path}")
+                                except Exception as write_err:
+                                    print(f"Warning: Could not save updated dataframe to excel: {write_err}")
+
                     self.cleaned_address = f"""{self.get_pure_address(self.clean_address(self.address))} {self.nondistortedData['แขวง/ตำบล']} {
                         self.nondistortedData['เขต/อำเภอ.1']} {self.nondistortedData['จังหวัด.1']} {self.nondistortedData['รหัสไปรษณีย์.1']}"""
 
