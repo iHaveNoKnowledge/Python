@@ -3299,6 +3299,46 @@ class Bot_POS:
         #! wth is this function for?
         pass
 
+    def find_cp_no_placeholder(self, item_index: int, sku: str, diff) -> str:
+        """
+        ฟังก์ชัน Placeholder สำหรับหาหมายเลขคูปอง (cp_no) ของ SKU ที่มีส่วนต่างราคา
+        
+        Args:
+            item_index (int): ลำดับสินค้า (1-indexed)
+            sku (str): รหัส SKU อ้างอิง
+            diff: จำนวนส่วนต่างราคา (expected - actual) หรือ "NOT_FOUND"
+            
+        Returns:
+            str: ลำดับ coupon ที่ต้องการเลือก (เช่น "1" หรือ "1 5")
+        """
+        # TODO: ใส่ logic ค้นหา cp_no จริงตามความต้องการในอนาคต
+        # ปัจจุบันกำหนดค่าเริ่มต้นเป็น "1" สำหรับการทำ placeholder
+        print(f"[Placeholder] Finding cp_no for SKU: {sku}, diff: {diff}, item_index: {item_index}")
+        return "1"
+
+    def process_price_mismatches(self, verification_result: dict):
+        """
+        ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหากมีส่วนต่าง
+        
+        Args:
+            verification_result (dict): ผลลัพธ์จากการตรวจสอบ verify_all()
+        """
+        price_result = verification_result.get("price", {})
+        for i, item in enumerate(self.app.items):
+            sku_key = item.get('เลขอ้างอิง SKU (SKU Reference No.)')
+            if sku_key in price_result:
+                item_price_info = price_result[sku_key]
+                if not item_price_info.get("ok", True):
+                    diff_val = item_price_info.get("diff", 0)
+                    print(f"[Verification] SKU: {sku_key} expected and actual do not match! Diff: {diff_val}")
+                    
+                    # หา cp_no จาก placeholder function (ใช้ลำดับแบบ 1-indexed)
+                    item_no_1indexed = i + 1
+                    cp_no = self.find_cp_no_placeholder(item_no_1indexed, sku_key, diff_val)
+                    if cp_no:
+                        print(f"[Verification] Applying cp_sonic_blow_process for item {item_no_1indexed} with coupon: {cp_no}")
+                        self.cp_sonic_blow_process(item_no_1indexed, cp_no)
+
     def smco_pos_item_list_srp_bringer(self, sku: str):
         """return srp โดยดึงจากหน้า pos (ฉะนั้นในposต้องมี sku อยู่ก่อนนะ)ตาม sku ที่เราใส่เข้ามาใน fn นี้"""
         srp = 0
@@ -4985,6 +5025,9 @@ class Bot_POS:
                     self.ProductManager.auto_add_all_items()
                     verification_result = self.ProductManager.verify_all()
                     print("verification_result: ", verification_result)
+
+                    # * ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหากมีส่วนต่าง
+                    self.process_price_mismatches(verification_result)
                 except Exception as err:
                     err_str = str(err).lower()
                     if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
