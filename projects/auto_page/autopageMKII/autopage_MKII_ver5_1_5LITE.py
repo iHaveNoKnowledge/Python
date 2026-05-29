@@ -3187,16 +3187,20 @@ class Bot_POS:
     def cp_sonic_blow_process(self, item_no: int, cp_no: str):
         """
         เลือก coupon สำหรับสินค้าที่ระบุ รองรับการเลือกหลาย coupon ในครั้งเดียว
+        รองรับทั้งการระบุเป็นลำดับตัวเลข (Index เช่น "1 5") หรือระบุเป็นชื่อ/รหัสคูปองโดยตรง (เช่น "CP2605220025, DC2605220017")
 
         Args:
             item_no (int): เลขลำดับสินค้า (1-indexed)
-            cp_no (str): เลขลำดับ coupon ที่ต้องการเลือก สามารถใส่หลายค่าแยกด้วยช่องว่าง เช่น "1 5" หรือ "2"
+            cp_no (str): ลำดับคูปอง (ตัวเลข) หรือ รหัสคูปอง (ข้อความ) แยกด้วยเว้นวรรคหรือเครื่องหมายจุลภาค
         """
         item_idx = int(item_no) - 1
 
-        # * แปลง cp_no จาก string เป็น list ของ integers เพื่อรองรับหลายค่า
-        # * ตัวอย่าง: "1 5" -> [1, 5], "3" -> [3]
-        cp_no_list = [int(x.strip()) for x in str(cp_no).split() if x.strip()]
+        # * แยกข้อมูล cp_no ให้รองรับทั้งแบบ Space, Comma หรือผสมกัน (เช่น "1 5", "CP2605220025, DC2605220017")
+        raw_tokens = []
+        for part in str(cp_no).split(','):
+            for token in part.split():
+                if token.strip():
+                    raw_tokens.append(token.strip())
 
         # * เก็บชื่อ coupon ที่เลือกแต่ละตัว
         cp_target_names = []
@@ -3209,7 +3213,7 @@ class Bot_POS:
         print("ตอนแรกเปนงี้", self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.demonic_ordered_items_list = self.app.correct_sku_pattern(self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         print(f"self.demonic_ordered_items_list: {self.demonic_ordered_items_list}")
-        print(f"cp_no_list: {cp_no_list}")
+        print(f"raw_tokens: {raw_tokens}")
 
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         # *>  element location
@@ -3265,33 +3269,71 @@ class Bot_POS:
                 cp_btn_xpath.click()
                 time.sleep(0.1)  # * รอให้หน้า coupon list โหลด
 
-                # * Loop ผ่านแต่ละ coupon number ที่ต้องการเลือก
-                for cp_idx, current_cp_no in enumerate(cp_no_list):
-                    print(f"กำลังเลือก coupon ลำดับที่ {current_cp_no} สำหรับ item: {item}")
+                # * Loop ผ่านแต่ละ coupon token ที่ต้องการเลือก
+                for cp_idx, token in enumerate(raw_tokens):
+                    print(f"กำลังเลือก coupon: {token} สำหรับ item: {item}")
 
-                    # * CP list page-------------------------------------
-                    # * เลือก cp เป้าหมาย
-                    # * ถ้ามี cp_target_name จากรอบก่อนแล้ว ให้หาตำแหน่งของ coupon นั้น
-                    if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
-                        for idx3, element in enumerate(self.driver.find_elements(By.XPATH, cp_name_loc)):
-                            if cp_target_names[cp_idx] in element.text.replace(" ", ""):
-                                current_cp_no = idx3+1
+                    # ค้นหาปุ่มคูปองเป้าหมาย
+                    target_btn_idx = -1
+
+                    # ดึงข้อมูลชื่อคูปองและปุ่มบนหน้าจอสดๆ เสมอ
+                    cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                    cp_btn_elements = self.driver.find_elements(By.XPATH, selected_cp_btn_loc)
+
+                    if not cp_name_elements or not cp_btn_elements:
+                        print("ไม่พบรายการคูปองหรือปุ่มคูปองบนหน้าจอ")
+                        continue
+
+                    # กรณีที่ 1: token เป็นรหัสคูปอง/ชื่อคูปองโดยตรง (มีตัวอักษรปน เช่น CPxxxx, DCxxxx)
+                    if not token.isdigit():
+                        for idx3, element in enumerate(cp_name_elements):
+                            element_text_cleaned = element.text.replace(" ", "")
+                            if token in element_text_cleaned:
+                                target_btn_idx = idx3
                                 break
-                    # selected_btn_loc = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{current_cp_no}]/div[1]/button''' # ! >> old fashion way
+                        if target_btn_idx == -1:
+                            print(f"ไม่พบคูปองที่มีชื่อ/รหัส: {token} ในรายการ")
+                            continue
 
-                    # * คลิกเลือก coupon ที่ต้องการ
-                    self.driver.find_elements(By.XPATH, selected_cp_btn_loc)[current_cp_no-1].click()
-                    time.sleep(0.2)  # * รอให้ UI อัพเดท
+                    # กรณีที่ 2: token เป็นลำดับตัวเลข (Index เช่น "1", "2")
+                    else:
+                        original_idx = int(token) - 1
 
-                    # * เก็บชื่อ CP ที่เลือก (เฉพาะรอบแรกของแต่ละ coupon)
-                    if cp_idx >= len(cp_target_names):
-                        selected_cp_name = self.driver.find_elements(By.XPATH, cp_name_loc)[
-                            current_cp_no-1].text.replace(" ", "")
-                        cp_target_names.append(selected_cp_name)
-                        print(f"cp_target_name[{cp_idx}] now is: {selected_cp_name}")
+                        # รักษาความสามารถเดิม: ถ้ามี cp_target_name จากรอบก่อน ให้ใช้ชื่อนั้นค้นหาแทนเพื่อกันตำแหน่งสลับ
+                        if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
+                            for idx3, element in enumerate(cp_name_elements):
+                                element_text_cleaned = element.text.replace(" ", "")
+                                if cp_target_names[cp_idx] in element_text_cleaned:
+                                    target_btn_idx = idx3
+                                    break
+                            if target_btn_idx == -1:
+                                target_btn_idx = original_idx
+                        else:
+                            target_btn_idx = original_idx
+
+                    # คลิกเลือกคูปองที่ต้องการ
+                    if 0 <= target_btn_idx < len(cp_btn_elements):
+                        cp_btn_elements[target_btn_idx].click()
+                        time.sleep(0.2)  # * รอให้ UI อัพเดท
+
+                        # ดึงชื่อคูปองล่าสุดอีกรอบในกรณีที่มีการ update เพื่อความปลอดภัย
+                        latest_cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                        if target_btn_idx < len(latest_cp_name_elements):
+                            selected_cp_name = latest_cp_name_elements[target_btn_idx].text.replace(" ", "")
+                        else:
+                            selected_cp_name = ""
+
+                        # * เก็บหรืออัพเดทชื่อ CP ที่เลือกเพื่อใช้ในสินค้าตัวถัดไป
+                        if cp_idx >= len(cp_target_names):
+                            cp_target_names.append(selected_cp_name)
+                            print(f"cp_target_name[{cp_idx}] now is: {selected_cp_name}")
+                        else:
+                            cp_target_names[cp_idx] = selected_cp_name
+                    else:
+                        print(f"ตำแหน่ง Index {target_btn_idx} นอกขอบเขตของรายการปุ่มคูปองที่มีอยู่ ({len(cp_btn_elements)})")
 
                 # * กดยืนยัน (ครั้งเดียวหลังจากเลือกครบทุก coupon แล้ว)
-                print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {cp_no_list}")
+                print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {raw_tokens}")
                 self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
 
             except Exception as err:
