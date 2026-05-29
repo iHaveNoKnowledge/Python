@@ -279,6 +279,7 @@
 # Todo 276 /Fxing/ 5.1.5LITE กำลังแก้เรื่อง session หายหลัง sleep ซึ่งทำให้ process หลัง sleep มัน add sku ไม่ได้ ตอนนี้เริ่มเห็นผลแล้วแต่ยังต้อง Test order แรกหลัง re-session เพราะ order ที่ test ตอนแรกเป็นหมึกที่มี 4 สี มันยิงแค่หมึกรุ่นเดียวไม่ครบทุกสีแล้วก็ขึ้น session มีปัญหาที่สีถัดจากสีดำทันที
 # Todo 277 /Issue/ function การเลือก อำเภอ/เขต จาก enum บน SMCO ไม่สามารถเลือกได้สำเร็จ เพราะคำภาษาไทยที่เลือกจาก file ของ Inwexcel address ไม่ตรงกับ enum smco ต้องอาจจะต้องใช้ module PyThaiNLP ไม่ก็ FuzzyWuzzy // hint  ใช้ PyThaiNLP ตัดคำ (Tokenization) ก่อนส่งให้ FuzzyWuzzy
 # * 278 /Feat/ 5.1.5LITE lazada: ปรับตัวเติมช่องว่าง subdistrict ของ lazada ให้ทำงานหลังจากเรียกใช้ order_search เพราะอันเดิมมันจะทำงานตอนที่ รmport lazada orders file ซึ่งมัรนช้ามากเพราะมันจะทำซ้ำๆหลายครั้ง หากorderนั้นไม่ทำ แต่ต้องรอมันก็เสียเวลา เอาเฉพาะ order ที่ทำแล้วกัน
+# * 279 /Feat/ 5.1.5LITE update sonic_blow เอา nestedloop ออก และปรับให้รับ cp name ได้ไม่ใช่แค่ idx เท่านั้น
 
 
 # / tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
