@@ -3192,7 +3192,7 @@ class Bot_POS:
             item_no (int): เลขลำดับสินค้า (1-indexed)
             cp_no (str): เลขลำดับ coupon ที่ต้องการเลือก สามารถใส่หลายค่าแยกด้วยช่องว่าง เช่น "1 5" หรือ "2"
         """
-        self.item_no = int(item_no)-1
+        item_idx = int(item_no) - 1
 
         # * แปลง cp_no จาก string เป็น list ของ integers เพื่อรองรับหลายค่า
         # * ตัวอย่าง: "1 5" -> [1, 5], "3" -> [3]
@@ -3206,10 +3206,8 @@ class Bot_POS:
                             //div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']
                             '''
         cp_name_elements_list = self.driver.find_elements(By.XPATH, cp_name_loc)
-        print("ตอนแรกเปนงี้", self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_ordered_items_list = self.app.correct_sku_pattern(
-            self.app.items[self.item_no]['เลขอ้างอิง SKU (SKU Reference No.)']
-        )
+        print("ตอนแรกเปนงี้", self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        self.demonic_ordered_items_list = self.app.correct_sku_pattern(self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         print(f"self.demonic_ordered_items_list: {self.demonic_ordered_items_list}")
         print(f"cp_no_list: {cp_no_list}")
 
@@ -3229,68 +3227,76 @@ class Bot_POS:
 
         # * Loop ผ่านแต่ละ item ในรายการสินค้า
         for idx, item in enumerate(self.demonic_ordered_items_list):
-            item_list_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-            item_list_cp_btn_elements = self.driver.find_elements(
-                By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
             item_position = idx+1
-            print("จำนวน skus in SMCO POS ", len(item_list_elements))
             print("item จาก demonic_ordered_items_list", item)
 
-            # * Loop ผ่านแต่ละ element ในหน้า POS เพื่อหา item ที่ตรงกัน
-            for idx2, div in enumerate(item_list_elements):
-                print("loop item บน smco")
-                li_position = idx2+1
-                try:
-                    is_found = item in div.text  # * มันจะ error ตรงนี้หาก divตัวไหนแปรสภาพหลังเลือก cp ไปแล้ว ทำให้มันจะข้าม loop ตั้งแต่ตรงนี้ แต่ข้ามแบบ error ซึ่ง exception ข้างล่างดักไว้แล้ว อยากเห็นลองเปิดดูได้
-                    # print(f"item: {item_position}, li no. {li_position}")
-                    # print("is_found: ", is_found)
-                    if is_found == True:
-                        # cp_btn_xpath = f'''/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[2]/div[{li_position}]/div/div[2]/div[3]/div[1]/button'''
+            # ดึงข้อมูลรายการสินค้าบนหน้าเว็บใหม่ทุกรอบของแต่ละสินค้า เพื่อรองรับความเปลี่ยนแปลงของหน้าเว็บและตำแหน่งที่อาจสลับได้เสมอ!
+            try:
+                item_texts = self.driver.execute_script("""
+                    return Array.from(document.querySelectorAll('.col-sm-12.panel.panel-default.ng-scope')).map(el => el.innerText);
+                """)
+            except Exception as e:
+                print("ไม่สามารถดึงข้อมูลรายการสินค้าจากหน้าเว็บได้:", e)
+                item_texts = []
 
-                        # * คลิกปุ่ม coupon เพื่อเปิดหน้ารายการ coupon (เปิดครั้งเดียว)
-                        cp_btn_xpath = item_list_cp_btn_elements[idx2]
-                        cp_btn_xpath.click()
-                        time.sleep(0.1)  # * รอให้หน้า coupon list โหลด
+            # สร้าง dict mapping ระหว่าง SKU -> Index สำหรับรอบนั้นๆ
+            sku_to_index = {}
+            for pos_idx, text in enumerate(item_texts):
+                if item in text:
+                    sku_to_index[item] = pos_idx
+                    break
 
-                        # * Loop ผ่านแต่ละ coupon number ที่ต้องการเลือก
-                        for cp_idx, current_cp_no in enumerate(cp_no_list):
-                            print(f"กำลังเลือก coupon ลำดับที่ {current_cp_no} สำหรับ item: {item}")
+            if item not in sku_to_index:
+                print(f"ไม่พบ SKU: {item} ในรายการขายหน้าเว็บ (ข้าม)")
+                continue
 
-                            # * CP list page-------------------------------------
-                            # * เลือก cp เป้าหมาย
-                            # * ถ้ามี cp_target_name จากรอบก่อนแล้ว ให้หาตำแหน่งของ coupon นั้น
-                            if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
-                                for idx3, element in enumerate(self.driver.find_elements(By.XPATH, cp_name_loc)):
-                                    if cp_target_names[cp_idx] in element.text.replace(" ", ""):
-                                        current_cp_no = idx3+1
-                                        break
-                            # selected_btn_loc = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{current_cp_no}]/div[1]/button''' # ! >> old fashion way
+            target_idx = sku_to_index[item]
+            print(f"เจอสินค้า {item} ที่ตำแหน่ง Index: {target_idx}")
 
-                            # * คลิกเลือก coupon ที่ต้องการ
-                            self.driver.find_elements(By.XPATH, selected_cp_btn_loc)[current_cp_no-1].click()
-                            time.sleep(0.2)  # * รอให้ UI อัพเดท
+            try:
+                # ดึงรายการปุ่ม Coupon ล่าสุดสดๆ เสมอเพื่อเลี่ยง Stale Element
+                item_list_cp_btn_elements = self.driver.find_elements(By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
+                if target_idx >= len(item_list_cp_btn_elements):
+                    print(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (index เกินรายการ)")
+                    continue
 
-                            # * เก็บชื่อ CP ที่เลือก (เฉพาะรอบแรกของแต่ละ coupon)
-                            if cp_idx >= len(cp_target_names):
-                                selected_cp_name = self.driver.find_elements(By.XPATH, cp_name_loc)[
-                                    current_cp_no-1].text.replace(" ", "")
-                                cp_target_names.append(selected_cp_name)
-                                print(f"cp_target_name[{cp_idx}] now is: {selected_cp_name}")
+                # * คลิกปุ่ม coupon เพื่อเปิดหน้ารายการ coupon (เปิดครั้งเดียว)
+                cp_btn_xpath = item_list_cp_btn_elements[target_idx]
+                cp_btn_xpath.click()
+                time.sleep(0.1)  # * รอให้หน้า coupon list โหลด
 
-                        # * กดยืนยัน (ครั้งเดียวหลังจากเลือกครบทุก coupon แล้ว)
-                        print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {cp_no_list}")
-                        self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
-                        # time.sleep(0.25)  # * รอให้มัน process หน่อย
+                # * Loop ผ่านแต่ละ coupon number ที่ต้องการเลือก
+                for cp_idx, current_cp_no in enumerate(cp_no_list):
+                    print(f"กำลังเลือก coupon ลำดับที่ {current_cp_no} สำหรับ item: {item}")
 
-                        break  # * ออกจาก loop ของ item_list_elements เมื่อเจอ item ที่ต้องการแล้ว
-                        # print(div.text)
-                    else:
-                        # print("ไม่เจอ", item, "นะ")
-                        pass
-                except Exception as err:
-                    # Todo มันไม่ใช่เรื่องใหญ่อะไร exception นี้มักจะเกิดจาก elementที่เคยเลือกไปแล้วมันเปลี่ยนโครงสร้างแต่ elementใน item_list_elements ที่แกะมา ลูบทีละตัวมันเปนค่าเดิม ทำให้ loop รอบถัดไป error ที่ elementเดิมที่เคยเลือก cp ไปก่อนหน้า เช่น รับเข้ามา (<em>(1), <em>(2), <em>(3)) พอเลือก cp มันจะเป็นแบบนี้แทน (<em>(1CP), <em>(2), <em>(3)) แต่ตอน loop เราใช้ค่า <em>(1) ไปหา มันจะ error เพราะในหน้าเว็บมันกลายเปน <em>(1CP) ไปแล้ว
-                    print("Demonic CP Bot inner Exception Error:", err)
-                    pass
+                    # * CP list page-------------------------------------
+                    # * เลือก cp เป้าหมาย
+                    # * ถ้ามี cp_target_name จากรอบก่อนแล้ว ให้หาตำแหน่งของ coupon นั้น
+                    if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
+                        for idx3, element in enumerate(self.driver.find_elements(By.XPATH, cp_name_loc)):
+                            if cp_target_names[cp_idx] in element.text.replace(" ", ""):
+                                current_cp_no = idx3+1
+                                break
+                    # selected_btn_loc = f'''/html/body/div[2]/div[3]/div[11]/div/div[2]/div[2]/div[{current_cp_no}]/div[1]/button''' # ! >> old fashion way
+
+                    # * คลิกเลือก coupon ที่ต้องการ
+                    self.driver.find_elements(By.XPATH, selected_cp_btn_loc)[current_cp_no-1].click()
+                    time.sleep(0.2)  # * รอให้ UI อัพเดท
+
+                    # * เก็บชื่อ CP ที่เลือก (เฉพาะรอบแรกของแต่ละ coupon)
+                    if cp_idx >= len(cp_target_names):
+                        selected_cp_name = self.driver.find_elements(By.XPATH, cp_name_loc)[
+                            current_cp_no-1].text.replace(" ", "")
+                        cp_target_names.append(selected_cp_name)
+                        print(f"cp_target_name[{cp_idx}] now is: {selected_cp_name}")
+
+                # * กดยืนยัน (ครั้งเดียวหลังจากเลือกครบทุก coupon แล้ว)
+                print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {cp_no_list}")
+                self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
+
+            except Exception as err:
+                print("Demonic CP Bot inner Exception Error:", err)
+                pass
 
         # * ล้างค่า cp_target_names เมื่อเสร็จสิ้น
         print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
