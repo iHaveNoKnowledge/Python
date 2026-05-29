@@ -1414,7 +1414,7 @@ class MyApp:
         result_df.loc[:, 'ชื่อผู้รับ'] = result_df['billingName'].copy()
         result_df.loc[:, 'หมายเลขโทรศัพท์'] = result_df['billingPhone'].copy()
 
-        #/ Clean ที่อยู่: แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขา เป็นการจัดการค่าใน export file ของ lazada เท่านั้น ไม่มีการเอาค่าจากแหล่งอื่นมาเกี่ยวข้อง
+        # / Clean ที่อยู่: แยก address โดย U+00B7 (·) และลบชื่อบริษัท/สาขา เป็นการจัดการค่าใน export file ของ lazada เท่านั้น ไม่มีการเอาค่าจากแหล่งอื่นมาเกี่ยวข้อง
         address_split_result = result_df.apply(self._split_lazada_address, axis=1, result_type='expand')
         result_df.loc[:, 'รายละเอียดที่อยู่'] = address_split_result[0]
         result_df.loc[:, 'billingAddr2'] = address_split_result[1]
@@ -2258,7 +2258,9 @@ class MyApp:
                             print(f"Subdistrict for order {self.order} is missing. Filling...")
                             if not hasattr(self, 'address_df') or self.address_df is None:
                                 try:
-                                    address_data_path = os.path.join(os.path.dirname(__file__), 'tables', 'Addresscleaner_TambonData.xlsx')
+                                    address_data_path = os.path.join(
+                                        os.path.dirname(__file__),
+                                        'tables', 'Addresscleaner_TambonData.xlsx')
                                     self.address_df = pd.read_excel(address_data_path, dtype=str)
                                     print("Lazy-loaded TambonData successfully.")
                                 except Exception as e:
@@ -3211,7 +3213,8 @@ class Bot_POS:
                             '''
         cp_name_elements_list = self.driver.find_elements(By.XPATH, cp_name_loc)
         print("ตอนแรกเปนงี้", self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
-        self.demonic_ordered_items_list = self.app.correct_sku_pattern(self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        self.demonic_ordered_items_list = self.app.correct_sku_pattern(
+            self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         print(f"self.demonic_ordered_items_list: {self.demonic_ordered_items_list}")
         print(f"raw_tokens: {raw_tokens}")
 
@@ -3259,7 +3262,8 @@ class Bot_POS:
 
             try:
                 # ดึงรายการปุ่ม Coupon ล่าสุดสดๆ เสมอเพื่อเลี่ยง Stale Element
-                item_list_cp_btn_elements = self.driver.find_elements(By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
+                item_list_cp_btn_elements = self.driver.find_elements(
+                    By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm')
                 if target_idx >= len(item_list_cp_btn_elements):
                     print(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (index เกินรายการ)")
                     continue
@@ -3330,7 +3334,8 @@ class Bot_POS:
                         else:
                             cp_target_names[cp_idx] = selected_cp_name
                     else:
-                        print(f"ตำแหน่ง Index {target_btn_idx} นอกขอบเขตของรายการปุ่มคูปองที่มีอยู่ ({len(cp_btn_elements)})")
+                        print(
+                            f"ตำแหน่ง Index {target_btn_idx} นอกขอบเขตของรายการปุ่มคูปองที่มีอยู่ ({len(cp_btn_elements)})")
 
                 # * กดยืนยัน (ครั้งเดียวหลังจากเลือกครบทุก coupon แล้ว)
                 print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {raw_tokens}")
@@ -3350,12 +3355,12 @@ class Bot_POS:
     def find_cp_no_placeholder(self, item_index: int, sku: str, diff) -> str:
         """
         ฟังก์ชัน Placeholder สำหรับหาหมายเลขคูปอง (cp_no) ของ SKU ที่มีส่วนต่างราคา
-        
+
         Args:
             item_index (int): ลำดับสินค้า (1-indexed)
             sku (str): รหัส SKU อ้างอิง
             diff: จำนวนส่วนต่างราคา (expected - actual) หรือ "NOT_FOUND"
-            
+
         Returns:
             str: ลำดับ coupon ที่ต้องการเลือก (เช่น "1" หรือ "1 5")
         """
@@ -3364,10 +3369,10 @@ class Bot_POS:
         print(f"[Placeholder] Finding cp_no for SKU: {sku}, diff: {diff}, item_index: {item_index}")
         return "1"
 
-    def process_price_mismatches(self, verification_result: dict):
+    def process_price_mismatches(self, verification_result: dict) -> None:
         """
         ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหากมีส่วนต่าง
-        
+
         Args:
             verification_result (dict): ผลลัพธ์จากการตรวจสอบ verify_all()
         """
@@ -3379,12 +3384,13 @@ class Bot_POS:
                 if not item_price_info.get("ok", True):
                     diff_val = item_price_info.get("diff", 0)
                     print(f"[Verification] SKU: {sku_key} expected and actual do not match! Diff: {diff_val}")
-                    
+
                     # หา cp_no จาก placeholder function (ใช้ลำดับแบบ 1-indexed)
                     item_no_1indexed = i + 1
                     cp_no = self.find_cp_no_placeholder(item_no_1indexed, sku_key, diff_val)
                     if cp_no:
-                        print(f"[Verification] Applying cp_sonic_blow_process for item {item_no_1indexed} with coupon: {cp_no}")
+                        print(
+                            f"[Verification] Applying cp_sonic_blow_process for item {item_no_1indexed} with coupon: {cp_no}")
                         self.cp_sonic_blow_process(item_no_1indexed, cp_no)
 
     def smco_pos_item_list_srp_bringer(self, sku: str):
@@ -5898,6 +5904,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
