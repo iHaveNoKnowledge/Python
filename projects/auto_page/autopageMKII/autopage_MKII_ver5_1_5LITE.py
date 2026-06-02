@@ -29,6 +29,7 @@ from dotenv import load_dotenv
 from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
+from functions.browser_manager import BrowserManager
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
 from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
@@ -39,22 +40,16 @@ from openpyxl import load_workbook
 from order_display_manager import OrderDisplayManager
 from PIL import Image, ImageTk
 from selenium import webdriver
-from selenium.common.exceptions import (
-    StaleElementReferenceException,
-    TimeoutException,
-    NoSuchElementException,
-    InvalidSessionIdException
-)
+from selenium.common.exceptions import (InvalidSessionIdException,
+                                        NoSuchElementException,
+                                        StaleElementReferenceException,
+                                        TimeoutException)
 from selenium.webdriver import ActionChains
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
-from functions.browser_manager import BrowserManager
 
 
 class SmcoApiClient:
