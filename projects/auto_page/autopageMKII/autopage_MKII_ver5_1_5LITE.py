@@ -810,6 +810,8 @@ class MyApp:
             self.accl_dir_namedisplay_on_btn.grid(row=0, column=3)
             self.add_trans_to_accel_file_btn.grid(row=0, column=4)
             self.accl_start_btn.grid(row=0, column=5, padx=5)
+            self.accel_stop_btn.grid(row=0, column=6, padx=5)
+            self.accel_stop_all_btn.grid(row=0, column=7, padx=5)
 
         # * ถ้า Accel mode ไม่ทำงาน
         else:
@@ -818,6 +820,8 @@ class MyApp:
             self.accl_dir_namedisplay_on_btn.grid_remove()
             self.add_trans_to_accel_file_btn.grid_remove()
             self.accl_start_btn.grid_remove()
+            self.accel_stop_btn.grid_remove()
+            self.accel_stop_all_btn.grid_remove()
 
             # * เอา gui ของ โหมดธรรมดา มาแปะแทน
             self.inp1_label_order.grid(row=0, column=1, padx=5)
@@ -917,20 +921,33 @@ class MyApp:
             height=25
         )
 
-        # * >> search order Stop Button
+        # * >> search order Stop Button (Rename to Skip for skipping current order)
         self.accel_stop_btn = CTkButton(
             self.entry_frame,
             font=self.font,
-            text=f"Stop",
+            text=f"Skip",
             command=self.stop_operation,
-            fg_color="#bf2d2a",
+            fg_color="#f0ad4e",  # Orange for Skip
+            text_color="#ffffff",
+            border_width=1.5,
+            border_color="#eea236",
+            width=28,
+            height=25
+        )
+
+        # * >> search order Stop All Button (To fully stop Accel mode)
+        self.accel_stop_all_btn = CTkButton(
+            self.entry_frame,
+            font=self.font,
+            text=f"Stop All",
+            command=self.stop_accel_mode,
+            fg_color="#bf2d2a",  # Red for Stop All
             text_color="#ffffff",
             border_width=1.5,
             border_color="#732844",
             width=28,
             height=25
         )
-        self.accel_stop_btn.grid(row=0, column=6, padx=5)
 
         # * > add transfers to accel mode component
         # * พวกนี้มันต้อง add แบบ toggle เพราะมันต้องสลับกับโหมดปกติ
@@ -956,7 +973,7 @@ class MyApp:
             height=25,
             font=self.font
         )
-        self.display_acc_btn.grid(row=0, column=7, padx=5)
+        self.display_acc_btn.grid(row=0, column=8, padx=5)
 
         # * > Accel mode
         # * >> Checkbox for activation toggle (Built-in label)
@@ -978,7 +995,7 @@ class MyApp:
             bg="#BF2D2A",
             fg="#FFF"
         )
-        self.auto_inv_mode_checkbox.grid(row=0, column=9, padx=5)
+        self.auto_inv_mode_checkbox.grid(row=0, column=10, padx=5)
 
         # * > Seller voucher Pop-up Checkbox
         # * >> Checkbox for activation toggle (Built-in label)
@@ -990,7 +1007,7 @@ class MyApp:
             bg="#BF2D2A",
             fg="#FFF"
         )
-        self.seller_voucher_popup_checkbox.grid(row=0, column=10, padx=5)
+        self.seller_voucher_popup_checkbox.grid(row=0, column=11, padx=5)
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Export File and Bot status location display component
@@ -2698,6 +2715,11 @@ class MyApp:
         logger.info(f"""Order: {self.order} stop operation
                     """)
 
+    def stop_accel_mode(self):
+        self.is_accel_mode_activated.set(False)
+        self.stop_operation()
+        self.update_log("🛑 หยุดการทำงาน Accel Mode ทั้งหมดเรียบร้อยแล้ว")
+
     # * ส่งไปแปะไว้ที่ order_display_manager.py
     def auto_add_product_threaded(self, skus, qty, **kwargs):
         """
@@ -3041,7 +3063,7 @@ class UserAccount:
                     if self.app.accel_mode_checkbox.winfo_ismapped():
                         pass
                     else:
-                        self.app.accel_mode_checkbox.grid(row=0, column=8, padx=5)
+                        self.app.accel_mode_checkbox.grid(row=0, column=9, padx=5)
                 else:
                     print("Normal mode", self.app.user_id.get() in self.app.dev_account)
                     self.app.accel_mode_checkbox.grid_remove()

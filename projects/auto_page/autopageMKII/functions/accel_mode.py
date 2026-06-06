@@ -249,7 +249,7 @@ class AccelMode:
                 if self.main_app.is_accel_mode_activated.get():
                     self.main_app.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
-                    raise ValueError("Accel mode has been destroyed")
+                    logger.info("Accel mode has been stopped by user.")
             else:
                 pass
 
