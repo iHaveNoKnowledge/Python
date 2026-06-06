@@ -255,18 +255,16 @@ class AccelMode:
 
         self.main_app.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
 
-    # * ตรวจสอบว่า SN นั้นมีอยู่ในระบบ SMCO จริงหรือไม่
-    def is_sn_in_smco(self, driver, sku, sn_to_check):
+    # * ดึงรายการ SN ที่พร้อมใช้งานในสต็อกของ SMCO ทั้งหมดสำหรับ SKU นี้
+    def get_available_sns_from_smco(self, driver, sku):
         """
-        ตรวจสอบ SN ผ่าน API ว่ามีในสต็อกของ SMCO จริงไหม
+        ดึงรายการ SN ที่พร้อมใช้งานในสต็อกของ SMCO ทั้งหมดสำหรับ SKU นี้
         """
         try:
-            # 1. เตรียม Cookies และ Origin จาก Browser
             import re
-
             from loguru import logger
 
-            # เรียกใช้ helper ใน bot เพื่อเอา cookies
+            # 1. เตรียม Cookies และ Origin จาก Browser
             cookies = self.main_app.bot.get_cookies_from_driver()
             current_url = driver.current_url
             matched_str = re.search(r'\/[A-z].*', current_url).group()
@@ -278,18 +276,14 @@ class AccelMode:
 
             if not product_data or len(product_data) == 0:
                 logger.warning(f"ไม่พบข้อมูลสินค้าสำหรับ SKU: {sku}")
-                return False
+                return []
 
-            # รองรับทั้ง 'productId' และ 'id'
             product_id = product_data[0].get('productId') or product_data[0].get('id')
-            # / พวกนี้คถ้าไม่ใช้มันจะไม่ dynamic stockจะดึงได้แค่จากสำโรงเท่านั้น ถ้าอยากให้ดึง stock แบบ dynamic ต้องไปดึงพวกสาขาจากการlogin และคลังที่เลือกเปิด POS มา
-            # Todo master_id = product_data[0].get('masterId')
-            # Todo parent_id = product_data[0].get('parentId')
             master_id = 180
             parent_id = 441
 
             if not product_id:
-                return False
+                return []
 
             # 3. ค้นหา Serial List จาก Product ID
             resp_sn = self.main_app.smco_api.get_serial_list(
@@ -297,26 +291,25 @@ class AccelMode:
             )
             sn_list_data = resp_sn.json().get('data', [])
 
-            # 4. ตรวจสอบว่า sn_to_check อยู่ในรายการที่มี status available (หรือตามที่ SMCO ส่งมา) หรือไม่
-            # ปกติถ้าติดมาใน data list คือสินค้าที่พร้อมใช้
-            found_sns = [item.get('serialNo') for item in sn_list_data]
-
+            # ดึงเฉพาะ serialNo ของตัวที่พร้อมใช้งาน
+            found_sns = [str(item.get('serialNo')).strip() for item in sn_list_data if item.get('serialNo')]
             logger.debug(f"SMCO API ส่งกลับมารวม {len(found_sns)} รายการสำหรับ product {product_id}")
-            if sn_to_check not in found_sns and len(found_sns) > 0:
-                logger.debug(f"ตัวอย่าง SN  จาก API: {found_sns[:5]}...")
-
-            if sn_to_check in found_sns:
-                logger.info(f"ยืนยัน: SN {sn_to_check} มีอยู่ในระบบ SMCO")
-                return True
-            else:
-                logger.warning(f"คำเตือน: SN {sn_to_check} ไม่มีในสต็อก SMCO (แต่อาจอยู่ใน Excel)")
-                return False
+            return found_sns
 
         except Exception as e:
             from loguru import logger
-            logger.error(f"Error while validating SN via API: {e}")
-            # ถ้า API มีปัญหา ให้ return "API_ERROR" เพื่อข้ามไปก่อนชั่วคราวโดยไม่ลบจาก Excel
+            logger.error(f"Error while fetching available SNs via API: {e}")
             return "API_ERROR"
+
+    # * ตรวจสอบว่า SN นั้นมีอยู่ในระบบ SMCO จริงหรือไม่ (รักษา signature เดิมไว้เผื่อใช้ร่วมกับส่วนอื่น)
+    def is_sn_in_smco(self, driver, sku, sn_to_check):
+        """
+        ตรวจสอบ SN ผ่าน API ว่ามีในสต็อกของ SMCO จริงไหม
+        """
+        res = self.get_available_sns_from_smco(driver, sku)
+        if res == "API_ERROR":
+            return "API_ERROR"
+        return sn_to_check in res
 
     # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco
     def accel_fill_sku(self, driver, operation_thread):
@@ -337,50 +330,55 @@ class AccelMode:
                 is_sku_ready_to_pick = [key for key in accel_available_skus_list if key in current_sku]
 
                 if len(is_sku_ready_to_pick) > 0:
-                    for item in range(sku_qtys):
-                        print("self.obj_data_from_accel_file[current_sku]: ",
-                              self.obj_data_from_accel_file[current_sku])
-                        self.obj_data_from_accel_file[current_sku]
+                    # 1. ดึงรายการ Available SN จาก SMCO สำหรับ SKU นี้เพียงครั้งเดียว (ลดจำนวน API call)
+                    print(f"กำลังเช็คสต็อกทั้งหมดสำหรับ SKU: {current_sku} ผ่าน API...")
+                    available_sns = self.get_available_sns_from_smco(driver, current_sku)
 
-                        if self.obj_data_from_accel_file[current_sku]:
-                            print("มี SN")
+                    if available_sns == "API_ERROR":
+                        logger.warning(f"เช็ค API สำหรับ SKU {current_sku} ล้มเหลวชั่วคราว -> ข้ามการเลือก Serial สำหรับ SKU นี้ในรอบนี้")
+                        continue
+
+                    # 2. กรองและหักลบตัวที่มีใน Excel แต่ไม่มีใน SMCO (เป็นตัวที่ขายไปแล้ว) ออกในคราวเดียว
+                    candidates = self.obj_data_from_accel_file.get(current_sku, [])
+                    invalid_candidates = [c for c in candidates if c not in available_sns]
+                    if invalid_candidates:
+                        logger.warning(
+                            f"พบ Serial ที่ไม่มีในสต็อก SMCO จริงสำหรับ SKU {current_sku}: {invalid_candidates} -> กำลังลบออกจาก Excel")
+                        # ลบ Serial ที่ไม่มีสต็อกออกทีเดียวทั้งหมด
+                        deduct_items = [{'sku': current_sku, 'sn': c} for c in invalid_candidates]
+                        self.deduct_accel_file_data(
+                            self.main_app.cus_order, deduct_items,
+                            remove_order=False, update_memory=False)
+                        # เอาออกจาก memory queue ด้วย
+                        self.obj_data_from_accel_file[current_sku] = [c for c in candidates if c in available_sns]
+
+                    # 3. ดำเนินการกรอก Serial ตามจำนวนชิ้นที่สั่ง
+                    for item in range(sku_qtys):
+                        # ดึงข้อมูลตัวแรกในคิวที่ผ่านการ Double-check (เช็คสดวินาทีสุดท้าย)
+                        valid_sn = None
+                        while self.obj_data_from_accel_file[current_sku]:
+                            candidate_sn = self.obj_data_from_accel_file[current_sku][0]
+                            print(f"Double-check ล่าสุดสำหรับ SN: {candidate_sn}")
+
+                            check_latest = self.is_sn_in_smco(driver, current_sku, candidate_sn)
+                            if check_latest is True:
+                                valid_sn = candidate_sn
+                                break
+                            elif check_latest == "API_ERROR":
+                                logger.warning(f"Double-check สำหรับ SN {candidate_sn} ล้มเหลวชั่วคราว -> ข้ามไปก่อนชั่วคราวโดยไม่ลบจาก Excel")
+                                self.obj_data_from_accel_file[current_sku].pop(0)
+                            else:
+                                logger.warning(f"Double-check พบว่า SN {candidate_sn} เพิ่งถูกขาย/จองไป -> กำลังลบออกจาก Excel")
+                                self.deduct_accel_file_data(
+                                    self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
+                                    remove_order=False, update_memory=False)
+                                self.obj_data_from_accel_file[current_sku].pop(0)
+
+                        if valid_sn:
+                            sn = valid_sn
+                            print(f"มี SN ที่ผ่านการ Double-check และพร้อมใช้งานจริง: {sn}")
                             time.sleep(1)
 
-                            # * LOOP เพื่อหา SN ที่มีอยู่ใน SMCO จริงๆ
-                            valid_sn_found = False
-                            sn = None
-
-                            while len(self.obj_data_from_accel_file[current_sku]) > 0:
-                                candidate_sn = self.obj_data_from_accel_file[current_sku][0]
-
-                                # ตรวจสอบผ่าน API
-                                check_res = self.is_sn_in_smco(driver, current_sku, candidate_sn)
-                                if check_res is True:
-                                    sn = candidate_sn
-                                    valid_sn_found = True
-                                    break
-                                elif check_res == "API_ERROR":
-                                    logger.warning(
-                                        f"เช็ค API สำหรับ SN {candidate_sn} ล้มเหลวชั่วคราว -> ข้ามไปก่อนโดยไม่ลบจาก Excel")
-                                    # เอาออกจาก memory queue ชั่วคราวเฉพาะรอบนี้
-                                    self.obj_data_from_accel_file[current_sku].pop(0)
-                                else:
-                                    logger.warning(
-                                        f"SN {candidate_sn} ไม่มีใน SMCO สต็อก -> กำลังลบออกจาก Excel และข้ามไปตัวถัดไป")
-                                    # ลบ SN ที่ใช้ไม่ได้ออกจาก Excel ทันที (ไม่ลบเลข order)
-                                    # ปิดการ reload data ด้วย update_memory=False ป้องกันการ double-pop
-                                    self.deduct_accel_file_data(
-                                        self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
-                                        remove_order=False, update_memory=False)
-                                    # เอาออกจาก memory queue ด้วย
-                                    self.obj_data_from_accel_file[current_sku].pop(0)
-
-                            if not valid_sn_found:
-                                logger.error(
-                                    f"ไม่พบ SN ที่ใช้งานได้ในสต็อก SMCO สำหรับ SKU: {current_sku} (จากรายการใน Excel ทั้งหมด)")
-                                break  # ข้ามไป item ถัดไปเลยเพราะ SN ในคลัง Excel หมดเกลี้ยงที่ใช้ได้จริง
-
-                            # เมื่อได้ SN ที่ยืนยันแล้วค่อยดำเนินการต่อ
                             while not operation_thread.is_set():
                                 try:
                                     driver.find_element(
@@ -418,10 +416,9 @@ class AccelMode:
                             self.used_serials.append(to_sent_dict)
                             print("current self.used_serials = ", self.used_serials)
                             time.sleep(2)
-
                         else:
-                            print("ไม่มี SN, there are no functions available at this moment")
-                            pass
+                            logger.warning(f"ไม่มี SN เหลือที่ใช้งานได้ในสต็อกสำหรับ SKU: {current_sku}")
+                            break
                 else:
                     logger.info(
                         f"""มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}""")
