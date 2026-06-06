@@ -279,7 +279,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * For testing purposes only
-        self.is_testing = True
+        self.is_testing = False
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -7292,7 +7292,11 @@ class Bot_POS:
                     # * ไปหน้า Reprint ##########################################################################################
                     if is_etax and inv_number != "":
                         print("has etax")
-                        self.etax_reprint(inv_number)
+                        try:
+                            self.etax_reprint(inv_number)
+                        except Exception as e:
+                            print(f"etax_reprint error: {e}")
+                            logger.error(f"etax_reprint error: {e}")
                         # * Update Accel file //////////////////////
                         try:
                             self.app.accel_mode.used_serials
@@ -7330,7 +7334,11 @@ class Bot_POS:
                     # self.printing_thread = threading.Thread(
                     #     target=self.get_pdf_src_and_print, args=(inv_number,))
                     # self.printing_thread.start()
-                    self.get_pdf_src_and_print(inv_number)
+                    try:
+                        self.get_pdf_src_and_print(inv_number)
+                    except Exception as e:
+                        print(f"get_pdf_src_and_print error: {e}")
+                        logger.error(f"get_pdf_src_and_print error: {e}")
 
                     # * Update Accel file //////////////////////
                     try:

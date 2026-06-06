@@ -20,6 +20,7 @@ class AccelMode:
         self.accel_orders_list = []
         self.CP_list = []
         self.accel_orders_count = 0
+        self.excel_save_failed = False
 
     def select_accel_file(self):
         self.accel_file_dir = filedialog.askopenfilename(title="Select Accel File")
@@ -73,6 +74,7 @@ class AccelMode:
         try:
             df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
             print(f"Successfully updated {self.accel_file_dir}")
+            self.excel_save_failed = False
 
             if update_memory:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
@@ -82,7 +84,8 @@ class AccelMode:
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
         except PermissionError as e:
             print(f"Permission denied: {e}")
-            print("ไฟล์ Excel อาจถูกเปิดอยู่ในโปรแกรมอื่น กรุณาปิดไฟล์แล้วลองใหม่")
+            logger.warning(f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึกไม่สำเร็จ จะใช้ข้อมูลในหน่วยความจำแทน: {e}")
+            self.excel_save_failed = True
             if update_memory:
                 # ใช้ข้อมูลในหน่วยความจำแทน ไม่อัปเดตไฟล์
                 self.accel_df_state = df
@@ -91,6 +94,7 @@ class AccelMode:
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
         except Exception as e:
             print(f"Error updating Excel file: {e}")
+            self.excel_save_failed = True
             if update_memory:
                 # ใช้ข้อมูลในหน่วยความจำแทน
                 self.accel_df_state = df
@@ -230,10 +234,17 @@ class AccelMode:
 
         def start_next_cycle(count):
             # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
-            self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
-            self.obj_data_from_accel_file = {
-                col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan']
-                for col in self.accel_file_columns}
+            # แต่ถ้าเซฟครั้งก่อนไม่สำเร็จ (PermissionError) ให้ใช้ข้อมูลในหน่วยความจำล่าสุดแทนการไปดึงจากไฟล์เดิมบนดิสก์
+            if getattr(self, 'excel_save_failed', False):
+                logger.warning("ตรวจพบการบันทึก Excel ล้มเหลวก่อนหน้า จะใช้ข้อมูลในหน่วยความจำล่าสุดแทนการโหลดใหม่จากไฟล์ดิสก์")
+            else:
+                try:
+                    self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+                    self.obj_data_from_accel_file = {
+                        col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan']
+                        for col in self.accel_file_columns}
+                except Exception as e:
+                    logger.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel: {e}")
             if count < self.accel_orders_count:
                 if self.main_app.is_accel_mode_activated.get():
                     self.main_app.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
@@ -304,9 +315,8 @@ class AccelMode:
         except Exception as e:
             from loguru import logger
             logger.error(f"Error while validating SN via API: {e}")
-            # ถ้า API มีปัญหา ให้ fallback เป็น True (อนุญาตให้รันต่อเผื่อ API ล่ม) หรือ False ตามความเหมาะสม
-            # ในที่นี้ขอกลับเป็น True เพื่อไม่ให้บอทหยุดชะงักถ้าเป็นแค่ network error ชั่วคราว
-            return True
+            # ถ้า API มีปัญหา ให้ return "API_ERROR" เพื่อข้ามไปก่อนชั่วคราวโดยไม่ลบจาก Excel
+            return "API_ERROR"
 
     # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco
     def accel_fill_sku(self, driver, operation_thread):
@@ -344,10 +354,16 @@ class AccelMode:
                                 candidate_sn = self.obj_data_from_accel_file[current_sku][0]
 
                                 # ตรวจสอบผ่าน API
-                                if self.is_sn_in_smco(driver, current_sku, candidate_sn):
+                                check_res = self.is_sn_in_smco(driver, current_sku, candidate_sn)
+                                if check_res is True:
                                     sn = candidate_sn
                                     valid_sn_found = True
                                     break
+                                elif check_res == "API_ERROR":
+                                    logger.warning(
+                                        f"เช็ค API สำหรับ SN {candidate_sn} ล้มเหลวชั่วคราว -> ข้ามไปก่อนโดยไม่ลบจาก Excel")
+                                    # เอาออกจาก memory queue ชั่วคราวเฉพาะรอบนี้
+                                    self.obj_data_from_accel_file[current_sku].pop(0)
                                 else:
                                     logger.warning(
                                         f"SN {candidate_sn} ไม่มีใน SMCO สต็อก -> กำลังลบออกจาก Excel และข้ามไปตัวถัดไป")
