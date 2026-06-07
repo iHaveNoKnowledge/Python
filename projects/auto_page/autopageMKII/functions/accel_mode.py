@@ -360,7 +360,8 @@ class AccelMode:
                             candidate_sn = self.obj_data_from_accel_file[current_sku][0]
                             print(f"Double-check ล่าสุดสำหรับ SN: {candidate_sn}")
 
-                            check_latest = self.is_sn_in_smco(driver, current_sku, candidate_sn)
+                            # เช็คสดกับรายการ available_sns ใน memory ที่ดึงมาแล้วแทนการยิง API ซ้ำใน loop
+                            check_latest = candidate_sn in available_sns if isinstance(available_sns, list) else False
                             if check_latest is True:
                                 valid_sn = candidate_sn
                                 break
