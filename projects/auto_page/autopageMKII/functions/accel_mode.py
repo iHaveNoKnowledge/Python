@@ -311,120 +311,201 @@ class AccelMode:
             return "API_ERROR"
         return sn_to_check in res
 
-    # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco
+    # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco และทำการ verify บนเว็บ
     def accel_fill_sku(self, driver, operation_thread):
         from loguru import logger
         from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
 
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
         ordered_product_data_rows = self.main_app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_product_data_rows)
 
+        sku_input_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input'
+
         if len(ordered_product_data_rows) > 0:
             for i, ordered_item in enumerate(ordered_product_data_rows):
                 print("item ordered by customer", ordered_item)
                 current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
                 print("current_sku: ", current_sku)
-                sku_qtys = ordered_item['จำนวน']
+                sku_qtys = int(ordered_item['จำนวน'])
                 is_sku_ready_to_pick = [key for key in accel_available_skus_list if key in current_sku]
 
                 if len(is_sku_ready_to_pick) > 0:
-                    # 1. ดึงรายการ Available SN จาก SMCO สำหรับ SKU นี้เพียงครั้งเดียว (ลดจำนวน API call)
-                    print(f"กำลังเช็คสต็อกทั้งหมดสำหรับ SKU: {current_sku} ผ่าน API...")
-                    available_sns = self.get_available_sns_from_smco(driver, current_sku)
-
-                    if available_sns == "API_ERROR":
-                        logger.warning(f"เช็ค API สำหรับ SKU {current_sku} ล้มเหลวชั่วคราว -> ข้ามการเลือก Serial สำหรับ SKU นี้ในรอบนี้")
-                        continue
-
-                    # 2. กรองและหักลบตัวที่มีใน Excel แต่ไม่มีใน SMCO (เป็นตัวที่ขายไปแล้ว) ออกในคราวเดียว
-                    candidates = self.obj_data_from_accel_file.get(current_sku, [])
-                    invalid_candidates = [c for c in candidates if c not in available_sns]
-                    if invalid_candidates:
-                        logger.warning(
-                            f"พบ Serial ที่ไม่มีในสต็อก SMCO จริงสำหรับ SKU {current_sku}: {invalid_candidates} -> กำลังลบออกจาก Excel")
-                        # ลบ Serial ที่ไม่มีสต็อกออกทีเดียวทั้งหมด
-                        deduct_items = [{'sku': current_sku, 'sn': c} for c in invalid_candidates]
-                        self.deduct_accel_file_data(
-                            self.main_app.cus_order, deduct_items,
-                            remove_order=False, update_memory=False)
-                        # เอาออกจาก memory queue ด้วย
-                        self.obj_data_from_accel_file[current_sku] = [c for c in candidates if c in available_sns]
-
-                    # 3. ดำเนินการกรอก Serial ตามจำนวนชิ้นที่สั่ง
-                    for item in range(sku_qtys):
-                        # ดึงข้อมูลตัวแรกในคิวที่ผ่านการ Double-check (เช็คสดวินาทีสุดท้าย)
-                        valid_sn = None
-                        while self.obj_data_from_accel_file[current_sku]:
-                            candidate_sn = self.obj_data_from_accel_file[current_sku][0]
-                            print(f"Double-check ล่าสุดสำหรับ SN: {candidate_sn}")
-
-                            # เช็คสดกับรายการ available_sns ใน memory ที่ดึงมาแล้วแทนการยิง API ซ้ำใน loop
-                            check_latest = candidate_sn in available_sns if isinstance(available_sns, list) else False
-                            if check_latest is True:
-                                valid_sn = candidate_sn
-                                break
-                            elif check_latest == "API_ERROR":
-                                logger.warning(f"Double-check สำหรับ SN {candidate_sn} ล้มเหลวชั่วคราว -> ข้ามไปก่อนชั่วคราวโดยไม่ลบจาก Excel")
-                                self.obj_data_from_accel_file[current_sku].pop(0)
-                            else:
-                                logger.warning(f"Double-check พบว่า SN {candidate_sn} เพิ่งถูกขาย/จองไป -> กำลังลบออกจาก Excel")
-                                self.deduct_accel_file_data(
-                                    self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
-                                    remove_order=False, update_memory=False)
-                                self.obj_data_from_accel_file[current_sku].pop(0)
-
-                        if valid_sn:
-                            sn = valid_sn
-                            print(f"มี SN ที่ผ่านการ Double-check และพร้อมใช้งานจริง: {sn}")
-                            time.sleep(1)
-
-                            while not operation_thread.is_set():
-                                try:
-                                    driver.find_element(
-                                        By.XPATH,
-                                        '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                                    break
-                                except:
-                                    continue
-
-                            skuInput = driver.find_element(
-                                By.XPATH,
-                                '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input')
-                            skuInput.clear()
-                            attempts = 10
-                            while attempts > 0:
-                                try:
-                                    skuInput.send_keys(sn)
-                                    # เอาออกจาก memory queue (ตัวที่ใช้จริง)
-                                    self.obj_data_from_accel_file[current_sku].pop(0)
-                                    break
-                                except:
-                                    time.sleep(0.5)
-                                    attempts -= 1
-                            else:
-                                logger.error('sku input in smco cannot be interact from order: ',
-                                             self.main_app.cus_order.get())
-                                raise ValueError('sku input in smco cannot be interact')
-
-                            print("fill sn complete")
-
-                            skuInput.send_keys(Keys().ENTER)
-                            print("pressed Enter at SKU-Input")
-                            print(f'to_sent_dict = sku: {current_sku}, sn: {sn} ')
-                            to_sent_dict = {'sku': current_sku, 'sn': sn}
-                            self.used_serials.append(to_sent_dict)
-                            print("current self.used_serials = ", self.used_serials)
-                            time.sleep(2)
-                        else:
-                            logger.warning(f"ไม่มี SN เหลือที่ใช้งานได้ในสต็อกสำหรับ SKU: {current_sku}")
+                    successful_count = 0
+                    while successful_count < sku_qtys and not operation_thread.is_set():
+                        # ตรวจสอบว่ายังมี SN ในหน่วยความจำไหม
+                        candidates = self.obj_data_from_accel_file.get(current_sku, [])
+                        if not candidates:
+                            logger.warning(f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_sku}")
                             break
+
+                        candidate_sn = candidates[0]
+                        print(f"ลองใช้งาน SN จาก Excel: {candidate_sn}")
+
+                        # รอช่อง Input SKU แสดงขึ้นมา
+                        while not operation_thread.is_set():
+                            try:
+                                skuInput = driver.find_element(By.XPATH, sku_input_xpath)
+                                if skuInput.is_displayed():
+                                    break
+                            except:
+                                time.sleep(0.5)
+                                continue
+
+                        skuInput = driver.find_element(By.XPATH, sku_input_xpath)
+                        skuInput.clear()
+                        
+                        attempts = 10
+                        while attempts > 0:
+                            try:
+                                skuInput.send_keys(candidate_sn)
+                                break
+                            except:
+                                time.sleep(0.5)
+                                attempts -= 1
+                        else:
+                            logger.error(f'sku input in smco cannot be interacted with from order: {self.main_app.cus_order.get()}')
+                            raise ValueError('sku input in smco cannot be interacted with')
+
+                        print(f"กรอก SN: {candidate_sn} สำเร็จ")
+                        skuInput.send_keys(Keys.ENTER)
+                        print("กด Enter ที่ช่อง input สำเร็จ")
+
+                        # รอ SKU element และปุ่ม //i[@class='fa fa-check-square-o'] แสดงขึ้นมา
+                        sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}']"
+                        check_btn_xpath = "//i[@class='fa fa-check-square-o']"
+                        
+                        wait_timeout = 60
+                        start_wait = time.time()
+                        check_btn = None
+                        sku_elem = None
+
+                        print("กำลังรอปุ่มยืนยัน SN (fa-check-square-o) และ SKU element...")
+                        while (time.time() - start_wait) < wait_timeout and not operation_thread.is_set():
+                            try:
+                                sku_elem = driver.find_element(By.XPATH, sku_elem_xpath)
+                                check_btn = driver.find_element(By.XPATH, check_btn_xpath)
+                                if sku_elem.is_displayed() and check_btn.is_displayed():
+                                    break
+                            except:
+                                pass
+                            time.sleep(0.5)
+                        else:
+                            logger.error(f"หมดเวลารอปุ่มยืนยัน SN หรือ SKU element สำหรับ {candidate_sn}")
+                            # หากรอไม่เจอ ถือว่า SN นั้นมีปัญหา ให้เอาออกแล้วลองตัวถัดไป
+                            self.deduct_accel_file_data(
+                                self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
+                                remove_order=False, update_memory=False)
+                            if candidate_sn in self.obj_data_from_accel_file[current_sku]:
+                                self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                            continue
+
+                        # ดัก req response api
+                        # เคลียร์ logs ก่อนกดเพื่อความถูกต้อง
+                        try:
+                            self.main_app.bot.network_capture.clear_logs()
+                        except Exception as log_err:
+                            logger.warning(f"ไม่สามารถเคลียร์ log performance ได้: {log_err}")
+
+                        # กดปุ่มยืนยัน
+                        print(f"กำลังกดปุ่มยืนยัน SN...")
+                        try:
+                            driver.execute_script("arguments[0].click();", check_btn)
+                        except Exception as click_err:
+                            logger.warning(f"JS click ล้มเหลว จะลองคลิกแบบปกติ: {click_err}")
+                            check_btn.click()
+
+                        # รอและดัก response
+                        print("กำลังรอ response จาก /verifySerialFullBill.htm ...")
+                        response = self.main_app.bot.network_capture.capture_response(
+                            'verifySerialFullBill.htm', max_attempts=40, wait_interval=0.5
+                        )
+
+                        # ตรวจสอบความถูกต้อง
+                        is_invalid = False
+                        reasons = []
+
+                        if response is not None:
+                            if isinstance(response, list):
+                                for item in response:
+                                    if isinstance(item, dict):
+                                        if 'reasonNameEn' in item or 'reasonNameTh' in item:
+                                            is_invalid = True
+                                            reasons.append(item.get('reasonNameEn') or item.get('reasonNameTh') or 'Unknown Reason')
+                            elif isinstance(response, dict):
+                                if 'reasonNameEn' in response or 'reasonNameTh' in response:
+                                    is_invalid = True
+                                    reasons.append(response.get('reasonNameEn') or response.get('reasonNameTh') or 'Unknown Reason')
+
+                        # ตรวจสอบว่าปุ่ม //i[@class='fa fa-check-square-o'] หายไปหรือไม่
+                        button_disappeared = False
+                        for _ in range(10):
+                            try:
+                                btn = driver.find_element(By.XPATH, check_btn_xpath)
+                                if not btn.is_displayed():
+                                    button_disappeared = True
+                                    break
+                            except:
+                                button_disappeared = True
+                                break
+                            time.sleep(0.5)
+
+                        # ถ้ามี reasonNameEn/Th หรือปุ่มไม่ยอมหายไป แสดงว่าใช้งานไม่ได้
+                        if is_invalid or not button_disappeared:
+                            print(f"SN {candidate_sn} ใช้งานไม่ได้! เหตุผล: {reasons if is_invalid else 'ปุ่มไม่หายไป'}")
+                            
+                            # 1. ปิด Swal popup หรือ alert ที่เด้งขึ้นมา
+                            try:
+                                swal_ok = driver.find_element(By.XPATH, "//button[@class='swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
+                                if swal_ok.is_displayed():
+                                    swal_ok.click()
+                                    print("ปิด Swal popup สำเร็จ")
+                            except:
+                                pass
+
+                            try:
+                                alert = driver.switch_to.alert
+                                alert_text = alert.text
+                                alert.accept()
+                                print(f"ยอมรับ browser alert: {alert_text}")
+                            except:
+                                pass
+
+                            # 2. กดลบรายการที่แอดเข้าไปเพื่อเคลียร์ช่องสำหรับ SN ตัวใหม่
+                            try:
+                                delete_btn_xpath = f"//div[contains(@class, 'panel') and .//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}'] and .//i[@class='fa fa-check-square-o']]//button[@class='btn btn-danger btn-sm ng-scope']"
+                                delete_btn = driver.find_element(By.XPATH, delete_btn_xpath)
+                                driver.execute_script("arguments[0].click();", delete_btn)
+                                print("กดปุ่มลบรายการที่ตรวจสอบไม่ผ่านสำเร็จ")
+                                time.sleep(1)
+                            except Exception as del_err:
+                                print(f"ไม่สามารถกดปุ่มลบรายการได้: {del_err}")
+
+                            # 3. ลบ SN ตัวที่มีปัญหาออกจาก Excel และหน่วยความจำ
+                            self.deduct_accel_file_data(
+                                self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
+                                remove_order=False, update_memory=False
+                            )
+                            if candidate_sn in self.obj_data_from_accel_file[current_sku]:
+                                self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                                
+                            time.sleep(1)
+                            # วนกลับไปรันใหม่โดยไม่เพิ่ม successful_count
+                        else:
+                            print(f"SN {candidate_sn} ใช้งานได้สำเร็จ!")
+                            # แอดเข้า used serials
+                            self.used_serials.append({'sku': current_sku, 'sn': candidate_sn})
+                            # เอาออกจากหน่วยความจำ (เพราะใช้ได้แล้ว)
+                            if candidate_sn in self.obj_data_from_accel_file[current_sku]:
+                                self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                            successful_count += 1
+                            time.sleep(1)
                 else:
-                    logger.info(
-                        f"""มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}""")
-                    print("มี current_sku ใน Accel_File หรือไม่?:",
-                          current_sku in self.obj_data_from_accel_file)
+                    logger.info(f"มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}")
+                    print("มี current_sku ใน Accel_File หรือไม่?:", current_sku in self.obj_data_from_accel_file)
         else:
             print("No items, return!!")
             return
