@@ -311,6 +311,28 @@ class AccelMode:
             return "API_ERROR"
         return sn_to_check in res
 
+    def _filter_invalid_sns(self, driver, current_sku):
+        logger.info(f"จำนวนครั้งที่ใช้งานไม่ได้ของ SKU {current_sku} เกิน 2 ครั้ง (> 2) จะดึงข้อมูลสต็อกของ SKU นี้จาก SMCO...")
+        available_sns = self.get_available_sns_from_smco(driver, current_sku)
+        if available_sns != "API_ERROR":
+            logger.info(f"ดึงข้อมูลสำเร็จ: พบ SN ที่ใช้งานได้ใน SMCO ทั้งหมด {len(available_sns)} รายการ")
+            current_candidates = self.obj_data_from_accel_file.get(current_sku, [])
+            sns_to_remove = [sn for sn in current_candidates if sn not in available_sns]
+            
+            if sns_to_remove:
+                logger.info(f"พบ SN ใน Excel ที่ไม่มีในสต็อกของ SMCO {len(sns_to_remove)} ตัว: {sns_to_remove} จะทำการตัดออก...")
+                self.deduct_accel_file_data(
+                    self.main_app.cus_order,
+                    [{'sku': current_sku, 'sn': sn} for sn in sns_to_remove],
+                    remove_order=False,
+                    update_memory=True
+                )
+                logger.info(f"อัปเดต Excel และสถานะความทรงจำเรียบร้อยแล้ว คงเหลือ SN ในระบบ: {self.obj_data_from_accel_file.get(current_sku, [])}")
+            else:
+                logger.info("SN ทั้งหมดใน Excel สอดคล้องกับสต็อกของ SMCO ไม่มีตัวต้องตัดออก")
+        else:
+            logger.warning("ไม่สามารถดึงข้อมูลสต็อก SN จาก SMCO API ได้ (API_ERROR)")
+
     # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco และทำการ verify บนเว็บ
     def accel_fill_sku(self, driver, operation_thread):
         from loguru import logger
@@ -335,6 +357,7 @@ class AccelMode:
 
                 if len(is_sku_ready_to_pick) > 0:
                     successful_count = 0
+                    sku_fail_count = 0
                     while successful_count < sku_qtys and not operation_thread.is_set():
                         # ตรวจสอบว่ายังมี SN ในหน่วยความจำไหม
                         candidates = self.obj_data_from_accel_file.get(current_sku, [])
@@ -401,6 +424,10 @@ class AccelMode:
                                 remove_order=False, update_memory=False)
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
                                 self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                            
+                            sku_fail_count += 1
+                            if sku_fail_count > 2:
+                                self._filter_invalid_sns(driver, current_sku)
                             continue
 
                         # ดัก req response api
@@ -492,6 +519,9 @@ class AccelMode:
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
                                 self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
                                 
+                            sku_fail_count += 1
+                            if sku_fail_count > 2:
+                                self._filter_invalid_sns(driver, current_sku)
                             time.sleep(1)
                             # วนกลับไปรันใหม่โดยไม่เพิ่ม successful_count
                         else:
