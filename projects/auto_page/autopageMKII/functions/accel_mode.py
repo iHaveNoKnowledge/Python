@@ -4,10 +4,10 @@ import time
 from tkinter import filedialog
 
 import pandas as pd
+from loguru import logger
 from openpyxl import load_workbook
 from pypdf import PdfReader
 from selenium.webdriver.common.by import By
-from loguru import logger
 
 
 class AccelMode:
@@ -236,7 +236,8 @@ class AccelMode:
             # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
             # แต่ถ้าเซฟครั้งก่อนไม่สำเร็จ (PermissionError) ให้ใช้ข้อมูลในหน่วยความจำล่าสุดแทนการไปดึงจากไฟล์เดิมบนดิสก์
             if getattr(self, 'excel_save_failed', False):
-                logger.warning("ตรวจพบการบันทึก Excel ล้มเหลวก่อนหน้า จะใช้ข้อมูลในหน่วยความจำล่าสุดแทนการโหลดใหม่จากไฟล์ดิสก์")
+                logger.warning(
+                    "ตรวจพบการบันทึก Excel ล้มเหลวก่อนหน้า จะใช้ข้อมูลในหน่วยความจำล่าสุดแทนการโหลดใหม่จากไฟล์ดิสก์")
             else:
                 try:
                     self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
@@ -262,6 +263,7 @@ class AccelMode:
         """
         try:
             import re
+
             from loguru import logger
 
             # 1. เตรียม Cookies และ Origin จาก Browser
@@ -312,22 +314,25 @@ class AccelMode:
         return sn_to_check in res
 
     def _filter_invalid_sns(self, driver, current_sku):
-        logger.info(f"จำนวนครั้งที่ใช้งานไม่ได้ของ SKU {current_sku} เกิน 2 ครั้ง (> 2) จะดึงข้อมูลสต็อกของ SKU นี้จาก SMCO...")
+        logger.info(
+            f"จำนวนครั้งที่ใช้งานไม่ได้ของ SKU {current_sku} เกิน 2 ครั้ง (> 2) จะดึงข้อมูลสต็อกของ SKU นี้จาก SMCO...")
         available_sns = self.get_available_sns_from_smco(driver, current_sku)
         if available_sns != "API_ERROR":
             logger.info(f"ดึงข้อมูลสำเร็จ: พบ SN ที่ใช้งานได้ใน SMCO ทั้งหมด {len(available_sns)} รายการ")
             current_candidates = self.obj_data_from_accel_file.get(current_sku, [])
             sns_to_remove = [sn for sn in current_candidates if sn not in available_sns]
-            
+
             if sns_to_remove:
-                logger.info(f"พบ SN ใน Excel ที่ไม่มีในสต็อกของ SMCO {len(sns_to_remove)} ตัว: {sns_to_remove} จะทำการตัดออก...")
+                logger.info(
+                    f"พบ SN ใน Excel ที่ไม่มีในสต็อกของ SMCO {len(sns_to_remove)} ตัว: {sns_to_remove} จะทำการตัดออก...")
                 self.deduct_accel_file_data(
                     self.main_app.cus_order,
                     [{'sku': current_sku, 'sn': sn} for sn in sns_to_remove],
                     remove_order=False,
                     update_memory=True
                 )
-                logger.info(f"อัปเดต Excel และสถานะความทรงจำเรียบร้อยแล้ว คงเหลือ SN ในระบบ: {self.obj_data_from_accel_file.get(current_sku, [])}")
+                logger.info(
+                    f"อัปเดต Excel และสถานะความทรงจำเรียบร้อยแล้ว คงเหลือ SN ในระบบ: {self.obj_data_from_accel_file.get(current_sku, [])}")
             else:
                 logger.info("SN ทั้งหมดใน Excel สอดคล้องกับสต็อกของ SMCO ไม่มีตัวต้องตัดออก")
         else:
@@ -337,8 +342,8 @@ class AccelMode:
     def accel_fill_sku(self, driver, operation_thread):
         from loguru import logger
         from selenium.webdriver.common.keys import Keys
-        from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
 
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
@@ -380,7 +385,7 @@ class AccelMode:
 
                         skuInput = driver.find_element(By.XPATH, sku_input_xpath)
                         skuInput.clear()
-                        
+
                         attempts = 10
                         while attempts > 0:
                             try:
@@ -390,7 +395,8 @@ class AccelMode:
                                 time.sleep(0.5)
                                 attempts -= 1
                         else:
-                            logger.error(f'sku input in smco cannot be interacted with from order: {self.main_app.cus_order.get()}')
+                            logger.error(
+                                f'sku input in smco cannot be interacted with from order: {self.main_app.cus_order.get()}')
                             raise ValueError('sku input in smco cannot be interacted with')
 
                         print(f"กรอก SN: {candidate_sn} สำเร็จ")
@@ -400,7 +406,7 @@ class AccelMode:
                         # รอ SKU element และปุ่ม //i[@class='fa fa-check-square-o'] แสดงขึ้นมา
                         sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}']"
                         check_btn_xpath = "//i[@class='fa fa-check-square-o']"
-                        
+
                         wait_timeout = 60
                         start_wait = time.time()
                         check_btn = None
@@ -424,7 +430,7 @@ class AccelMode:
                                 remove_order=False, update_memory=False)
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
                                 self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
-                            
+
                             sku_fail_count += 1
                             if sku_fail_count > 2:
                                 self._filter_invalid_sns(driver, current_sku)
@@ -461,11 +467,13 @@ class AccelMode:
                                     if isinstance(item, dict):
                                         if 'reasonNameEn' in item or 'reasonNameTh' in item:
                                             is_invalid = True
-                                            reasons.append(item.get('reasonNameEn') or item.get('reasonNameTh') or 'Unknown Reason')
+                                            reasons.append(item.get('reasonNameEn') or item.get(
+                                                'reasonNameTh') or 'Unknown Reason')
                             elif isinstance(response, dict):
                                 if 'reasonNameEn' in response or 'reasonNameTh' in response:
                                     is_invalid = True
-                                    reasons.append(response.get('reasonNameEn') or response.get('reasonNameTh') or 'Unknown Reason')
+                                    reasons.append(response.get('reasonNameEn') or response.get(
+                                        'reasonNameTh') or 'Unknown Reason')
 
                         # ตรวจสอบว่าปุ่ม //i[@class='fa fa-check-square-o'] หายไปหรือไม่
                         button_disappeared = False
@@ -483,10 +491,12 @@ class AccelMode:
                         # ถ้ามี reasonNameEn/Th หรือปุ่มไม่ยอมหายไป แสดงว่าใช้งานไม่ได้
                         if is_invalid or not button_disappeared:
                             print(f"SN {candidate_sn} ใช้งานไม่ได้! เหตุผล: {reasons if is_invalid else 'ปุ่มไม่หายไป'}")
-                            
+
                             # 1. ปิด Swal popup หรือ alert ที่เด้งขึ้นมา
                             try:
-                                swal_ok = driver.find_element(By.XPATH, "//button[@class='swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
+                                swal_ok = driver.find_element(
+                                    By.XPATH,
+                                    "//button[@class='swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
                                 if swal_ok.is_displayed():
                                     swal_ok.click()
                                     print("ปิด Swal popup สำเร็จ")
@@ -518,7 +528,7 @@ class AccelMode:
                             )
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
                                 self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
-                                
+
                             sku_fail_count += 1
                             if sku_fail_count > 2:
                                 self._filter_invalid_sns(driver, current_sku)
@@ -534,7 +544,8 @@ class AccelMode:
                             successful_count += 1
                             time.sleep(1)
                 else:
-                    logger.info(f"มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}")
+                    logger.info(
+                        f"มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}")
                     print("มี current_sku ใน Accel_File หรือไม่?:", current_sku in self.obj_data_from_accel_file)
         else:
             print("No items, return!!")
