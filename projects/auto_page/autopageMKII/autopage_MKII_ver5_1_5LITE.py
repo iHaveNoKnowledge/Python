@@ -2578,15 +2578,15 @@ class MyApp:
 
         # --- patterns สำหรับสำนักงานใหญ่ ---
         head_office_patterns = [
-            r'\(สำนักงานใหญ่\)', r'สำนักงานใหญ่',
-            r'\(สํานักงานใหญ่\)', r'สํานักงานใหญ่',
-            r'\(สนญ\.?\)', r'สนญ\.?',
-            r'\(00000\)',
+            r'\(\s*สำนักงานใหญ่\s*\)?', r'สำนักงานใหญ่',
+            r'\(\s*สํานักงานใหญ่\s*\)?', r'สํานักงานใหญ่',
+            r'\(\s*สนญ\.?\s*\)?', r'สนญ\.?',
+            r'\(\s*00000\s*\)?',
         ]
 
         # --- patterns สำหรับสาขา ---
         branch_patterns = [
-            r'\(สาขา.*?\)',
+            r'\(\s*สาขา[^)]*\)?',
             r'สาขา\s*\d+'
         ]
 
@@ -2629,7 +2629,7 @@ class MyApp:
         # 3. กรณี บจก. (บริษัท จำกัด)
         elif name_edited.startswith(("บจก", "บริษัท", "บ.", "บจ.")):
             name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.|บจ\.?)', '', name_edited).strip()
-            name_edited = re.sub(r'จำกัด$', '', name_edited).strip()  # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
+            name_edited = re.sub(r'จำกัด\s*[A-Za-z0-9]*$', '', name_edited).strip()  # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
 
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
@@ -2638,6 +2638,9 @@ class MyApp:
 
         # --- ต่อ suffix คืน ---
         if extracted_suffix:
+            # ถ้ามีวงเล็บเปิดแต่ไม่มีวงเล็บปิด ให้เติมวงเล็บปิดให้ถูกต้อง
+            if extracted_suffix.startswith('(') and not extracted_suffix.endswith(')'):
+                extracted_suffix = extracted_suffix + ')'
             name_edited = f"{name_edited} {extracted_suffix}"
 
         # --- ลบช่องว่างเกิน ---
@@ -4118,13 +4121,14 @@ class Bot_POS:
         pattern_prefix = r'^(บริษัท|บจก\.?|หจก\.?|หสม\.?|บมจ.\.?|ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ|บจ\.?|บ\.)\s*'
 
         # ลบคำลงท้ายพวกสาขาก่อน
-        pattern_branch = r'(สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|\(สำนักงานใหญ่\)|\(สํานักงานใหญ่\)|\(สนญ\.?\)|\(00000\)|\sสาขา.*)$'
+        pattern_branch = r'(สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|\(สำนักงานใหญ่\)|\(สํานักงานใหญ่\)|\(สนญ\.?\)|\(00000\)|\s*\(?สาขา.*)$'
 
         # ลบคำว่าจำกัดที่อาจจะอยู่ท้ายสุดหลังจากลบสาขาแล้ว
-        pattern_suffix = r'จำกัด(\s*มหาชน)?$'
+        pattern_suffix = r'จำกัด(\s*มหาชน)?\s*[A-Za-z0-9]*$'
 
         current_cus_name: str = self.cus_name_span_elmt.text if self.cus_name_span_elmt else ""
 
+        cus_desire_name = cus_desire_name.strip()
         cus_desire_name = re.sub(pattern_prefix, '', cus_desire_name)
         cus_desire_name = re.sub(pattern_branch, '', cus_desire_name).strip()
         cus_desire_name = re.sub(pattern_suffix, '', cus_desire_name).strip()
@@ -4137,7 +4141,8 @@ class Bot_POS:
         is_branched: bool = self.app.branch_type == "สาขาย่อย"
 
         print(f"[select_cus_name_from_lis]cus_desire_name: {cus_desire_name} /// current_cus_name: {current_cus_name}")
-        if cus_desire_name in current_cus_name and self.app.tax_branch_num.get() in current_cus_name:
+        current_cus_name_cleaned = current_cus_name.replace(" ", "").replace("(", "").replace(")", "")
+        if cus_desire_name in current_cus_name_cleaned and self.app.tax_branch_num.get() in current_cus_name_cleaned:
             while not self.operation_thread.is_set():
                 try:
                     self.driver.find_element(By.XPATH, self.app.cus_name_dropdown_ul)
@@ -5737,7 +5742,7 @@ class Bot_POS:
             name = self.app.cus_name.get()
             # Remove any trailing branch info to standardize format
             name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
-            name = re.sub(r'\s*\(?สาขา\s*\d+\)?\s*$', '', name)
+            name = re.sub(r'\s*\(?สาขา[^)]*\)?\s*$', '', name)
             name = name.strip()
 
             # Add branch info for tax customers
@@ -5769,7 +5774,7 @@ class Bot_POS:
 
             # Remove any trailing branch info to standardize format
             name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
-            name = re.sub(r'\s*\(?สาขา\s*\d+\)?\s*$', '', name)
+            name = re.sub(r'\s*\(?สาขา[^)]*\)?\s*$', '', name)
             name = name.strip()
 
             # * Add branch info for lazada tax customers
