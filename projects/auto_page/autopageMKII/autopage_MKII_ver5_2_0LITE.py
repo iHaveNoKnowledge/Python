@@ -871,7 +871,7 @@ class MyApp:
         except Exception as e:
             logger.error(f"Error deleting order from accel file: {e}")
             self.update_log(f"🛑 Error: ลบออร์เดอร์ไม่สำเร็จ: {e}")
-            
+
         self.stop_operation()
 
     def seller_voucher_popup_checkbox_toggle(self):
@@ -2662,7 +2662,8 @@ class MyApp:
         # 3. กรณี บจก. (บริษัท จำกัด)
         elif name_edited.startswith(("บจก", "บริษัท", "บ.", "บจ.")):
             name_edited = re.sub(r'^(บจก\.?|บริษัท|บ\.|จก\.|บจ\.?)', '', name_edited).strip()
-            name_edited = re.sub(r'จำกัด\s*[A-Za-z0-9]*$', '', name_edited).strip()  # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
+            # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
+            name_edited = re.sub(r'จำกัด\s*[A-Za-z0-9]*$', '', name_edited).strip()
 
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
@@ -3518,11 +3519,12 @@ class Bot_POS:
             return None
 
         # 2. Filter by SKU
-        sku_clean = str(sku).strip().upper()
-        formatted_skus = [s.strip().upper() for s in self.app.correct_sku_pattern(sku)]
+        sku_clean = str(sku).strip().upper()  # / แบบย่อ เช่น SP2-1703
+        formatted_skus = [s.strip().upper() for s in self.app.correct_sku_pattern(sku)]  # / แบเต็ม SP2-001703
 
         def sku_match(row_sku):
             row_sku_str = str(row_sku).strip().upper()
+            # / เทียบสองแบบเพราะ sku ที่ input มาใน CP_data.xlsx อาจจะเป็นแบบย่อ หรือเต็มก็ได้ //แบบย่อ เช่น SP2-1703 //#/ แบบเต็ม SP2-001703
             return (row_sku_str == sku_clean) or (row_sku_str in formatted_skus)
 
         sku_mask = self.app.cp_df['sku'].apply(sku_match)
@@ -3538,7 +3540,7 @@ class Bot_POS:
             try:
                 start_date = pd.to_datetime(row.get('usage_start_date'))
                 end_date = pd.to_datetime(row.get('usage_end_date'))
-                
+
                 # Check date range
                 if pd.notna(start_date) and pd.notna(end_date):
                     if start_date.date() <= purchased_dt.date() <= end_date.date():
@@ -3567,7 +3569,8 @@ class Bot_POS:
         ]
 
         if df_price_matched.empty:
-            print(f"[CP Lookup] SKU {sku} and date matched, but no matching sale_price for platform_price={platform_price}. Available prices: {df_valid['sale_price'].tolist()}")
+            print(
+                f"[CP Lookup] SKU {sku} and date matched, but no matching sale_price for platform_price={platform_price}. Available prices: {df_valid['sale_price'].tolist()}")
             return None
 
         cp_name = df_price_matched.iloc[0].get('cp_name')
@@ -3582,7 +3585,7 @@ class Bot_POS:
         ตามขั้นตอนใน cp_adding2.drawio
         """
         price_result = verification_result.get("price", {})
-        
+
         # วนลูปตามรายการสินค้าใน order
         for i, item in enumerate(self.app.items):
             sku_key = item.get('เลขอ้างอิง SKU (SKU Reference No.)')
@@ -3594,22 +3597,24 @@ class Bot_POS:
                     actual_price = item_price_info.get("actual", 0)
                     item_no_1indexed = i + 1
 
-                    print(f"[Verification] SKU: {sku_key} expected={expected_price}, actual={actual_price}, diff={diff_val}")
+                    print(
+                        f"[Verification] SKU: {sku_key} expected={expected_price}, actual={actual_price}, diff={diff_val}")
 
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
                     if diff_val > 0:
-                        print(f"[Verification] Marketplace price is higher. Applying Overcharge (OC) for SKU: {sku_key} with amount: {diff_val}")
+                        print(
+                            f"[Verification] Marketplace price is higher. Applying Overcharge (OC) for SKU: {sku_key} with amount: {diff_val}")
                         self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
                         self.smco_set_overcharge_product(sku_key, str(diff_val))
-                    
+
                     # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
                     elif diff_val < 0:
                         print(f"[Verification] Marketplace price is lower. Searching coupon (CP) for SKU: {sku_key}")
                         self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key}")
-                        
+
                         purchased_date = self.app.cus_purchase_time.get()
                         cp_no = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
-                        
+
                         if cp_no:
                             print(f"[Verification] Found matching coupon: {cp_no}. Applying cp_sonic_blow_process...")
                             self.app.update_log(f"✅ พบคูปอง: {cp_no} สำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
