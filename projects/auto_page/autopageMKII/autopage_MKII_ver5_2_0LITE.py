@@ -1122,8 +1122,7 @@ class MyApp:
         self.display_cp_location_label = CTkLabel(self.cp_file_frame, text=f"CP Data: ")
         self.display_cp_location_label.grid(row=0, column=0, padx=(5, 0))
 
-        self.display_cp_location_btn = CTkButton(
-            self.cp_file_frame, text=f"ยังไม่เลือก CP Data File", command=self.select_cp_excel, fg_color="#969696")
+        self.display_cp_location_btn = CTkButton(self.cp_file_frame, text=f"ยังไม่เลือก CP Data File", command=self.select_cp_excel, fg_color="#969696")
         self.display_cp_location_btn.grid(row=0, column=1, padx=(0, 5))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -3672,7 +3671,7 @@ class Bot_POS:
                                 self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=1)
                                 time.sleep(0.5)
                         else:
-                            error_msg = f"ไม่เจอ CP ข้าม order สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาเป้าหมาย: {expected_price})"
+                            error_msg = f"Order skipped, CP/DC not found for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})"
                             self.app.update_log(f"❌ {error_msg}")
                             raise ValueError(error_msg)
 
@@ -3950,18 +3949,24 @@ class Bot_POS:
                         self.app.update_log("❌ Retry failed. Please restart the browser.")
                         self.app.display_bot_status_label.configure(
                             text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                        self.app.accel_mode.record_failed_order(
+                            self.app.cus_order, f"Retry failed after reconnect: {retry_err}")
                     except Exception as retry_err:
                         logger.error(f"Order: {self.app.order} - Retry error: {retry_err}")
                         self.app.update_log(f"❌ Retry error: {retry_err}")
+                        self.app.accel_mode.record_failed_order(self.app.cus_order, f"Retry error: {retry_err}")
                 else:
                     self.app.update_log("❌ Cannot reconnect. Please restart the browser.")
                     self.app.display_bot_status_label.configure(
                         text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                    self.app.accel_mode.record_failed_order(
+                        self.app.cus_order, "Driver disconnected and cannot reconnect")
             except Exception as err:
                 traceback_str = traceback.format_exc()
                 print(f"operation_task_thread, An error occirred: {err}")
                 print(traceback_str)
                 logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
+                self.app.accel_mode.record_failed_order(self.app.cus_order, str(err))
         else:
             print("Operation thread is already set, skipping operation task")
             self.app.update_log("หยุดการทำงานของ Bot บน Browser แล้ว")
@@ -5391,6 +5396,8 @@ class Bot_POS:
                     else:
                         print(f"Error occurred while verifying items: {err}")
                         logger.error(f"Error occurred while verifying items: {err}")
+                        self.app.accel_mode.record_failed_order(self.app.cus_order, str(err))
+                        raise err
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
@@ -6202,6 +6209,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -7663,6 +7671,7 @@ class Bot_POS:
                     except:
                         pass
                     print("พัง ข้ามไปเลยละกัน", err)
+                    self.app.accel_mode.record_failed_order(self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")
 
                 break
 

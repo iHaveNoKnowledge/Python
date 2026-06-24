@@ -72,7 +72,7 @@ class AccelMode:
         print(f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
 
         try:
-            df.to_excel(self.accel_file_dir, sheet_name='Sheet1', index=False)
+            self._save_df_to_excel(df, 'Sheet1')
             print(f"Successfully updated {self.accel_file_dir}")
             self.excel_save_failed = False
 
@@ -550,3 +550,66 @@ class AccelMode:
         else:
             print("No items, return!!")
             return
+
+    def _save_df_to_excel(self, target_df, sheet_name):
+        if not os.path.exists(self.accel_file_dir):
+            target_df.to_excel(self.accel_file_dir, sheet_name=sheet_name, index=False)
+            return
+
+        try:
+            with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                target_df.to_excel(writer, sheet_name=sheet_name, index=False)
+        except (TypeError, ValueError):
+            try:
+                book = load_workbook(self.accel_file_dir)
+                if sheet_name in book.sheetnames:
+                    del book[sheet_name]
+                    book.save(self.accel_file_dir)
+                book.close()
+                with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a') as writer:
+                    target_df.to_excel(writer, sheet_name=sheet_name, index=False)
+            except Exception as ex:
+                print(f"Append failed, overwriting entire excel file: {ex}")
+                target_df.to_excel(self.accel_file_dir, sheet_name=sheet_name, index=False)
+
+    def record_failed_order(self, order, reason):
+        if hasattr(order, 'get'):
+            order_str = order.get()
+        else:
+            order_str = str(order)
+
+        print(f"Recording failed order: {order_str} due to: {reason}")
+
+        if not self.accel_file_dir:
+            print("No accel file selected, cannot record failed order.")
+            return
+
+        try:
+            if not os.path.exists(self.accel_file_dir):
+                print(f"Accel file {self.accel_file_dir} does not exist, cannot record failed order.")
+                return
+
+            failed_df = pd.DataFrame(columns=['orders', 'failed_reason', 'timestamp'])
+
+            try:
+                failed_df = pd.read_excel(self.accel_file_dir, sheet_name='Failed_Orders', dtype=str)
+            except Exception:
+                print("Failed_Orders sheet does not exist yet. Creating a new one.")
+
+            new_row = pd.DataFrame([{
+                'orders': order_str,
+                'failed_reason': str(reason),
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+            }])
+
+            failed_df = failed_df[failed_df['orders'] != order_str]
+            failed_df = pd.concat([failed_df, new_row], ignore_index=True)
+
+            self._save_df_to_excel(failed_df, 'Failed_Orders')
+            print(f"Successfully recorded failed order {order_str} to Failed_Orders sheet.")
+        except PermissionError as e:
+            print(f"Permission denied while recording failed order: {e}")
+            logger.warning(f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึก Failed Order ไม่สำเร็จ: {e}")
+        except Exception as e:
+            print(f"Error recording failed order to Excel: {e}")
+            logger.error(f"Error recording failed order to Excel: {e}")
