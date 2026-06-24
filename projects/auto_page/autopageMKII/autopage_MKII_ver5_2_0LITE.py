@@ -3616,20 +3616,29 @@ class Bot_POS:
                     print(
                         f"[Verification] SKU: {sku_key} expected={expected_price}, actual={actual_price}, diff={diff_val}")
 
+                    # ดึงข้อมูลแคมเปญจาก Excel เสมอก่อนเพื่อตรวจสอบแนวทางการปรับราคาของสินค้าเซ็ต
+                    purchased_date = self.app.cus_purchase_time.get()
+                    cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
+
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
                     if diff_val > 0:
-                        print(
-                            f"[Verification] Marketplace price is higher. Applying Overcharge (OC) for SKU: {sku_key} with amount: {diff_val}")
-                        self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
-                        self.smco_set_overcharge_product(sku_key, str(diff_val))
+                        # ตรวจสอบว่าใน Excel มีการระบุ oc_amount สำหรับสินค้าเซ็ตเพื่อความถูกต้องหรือไม่
+                        if cp_info and is_valid_adjustment(cp_info.get("oc_amount", "")):
+                            oc_amount_str = cp_info.get("oc_amount", "")
+                            print(f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
+                            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                            self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
+                        else:
+                            # ปรับตาม diff_val ปกติ (สำหรับสินค้าเดี่ยวปกติ)
+                            print(
+                                f"[Verification] Marketplace price is higher. Applying Overcharge (OC) for SKU: {sku_key} with amount: {diff_val}")
+                            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
+                            self.smco_set_overcharge_product(sku_key, str(diff_val))
 
                     # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
                     elif diff_val < 0:
                         print(f"[Verification] Marketplace price is lower. Searching coupon (CP) for SKU: {sku_key}")
                         self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key}")
-
-                        purchased_date = self.app.cus_purchase_time.get()
-                        cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
 
                         if cp_info:
                             cp_name = cp_info.get("cp_name", "")
@@ -3796,7 +3805,7 @@ class Bot_POS:
 
         formatted_items_to_dc: list = self.sku_formater(items_user_input).split(" ")
         dc_amounts_list_prog = dc_amounts_input.split()  # * เอาไว้แยกทำลดพวกสินค้าที่สั่งมา 1 รายการแต่มีหลาย sku เช่น หมึก 4 สี
-        dc_amounts_list = [int(self.oc_amounts_calculator(dc_amount)) for dc_amount in dc_amounts_list_prog]
+        dc_amounts_list = [float(self.oc_amounts_calculator(dc_amount)) for dc_amount in dc_amounts_list_prog]
         # * เอาไว้เก็บ element ของ item ทั้งหมดในหน้ายิงขาย
         item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
 
@@ -3811,8 +3820,21 @@ class Bot_POS:
                 # qty = int(qtys[idx])
                 # except:
                 #     break
+
+            # Convert qty to float safely
+            qty_val = 1.0
+            if qty is not None:
+                try:
+                    if isinstance(qty, list):
+                        raw_qty = qty[idx] if idx < len(qty) else qty[0]
+                        qty_val = float(raw_qty)
+                    else:
+                        qty_val = float(qty)
+                except Exception:
+                    qty_val = 1.0
+
             print("after: round:", idx+1, "dc_amount: ", dc_amount,
-                  "qty: ", qty, "dc_amount * int(qty): ", dc_amount * qty)
+                  "qty: ", qty, "dc_amount * qty_val: ", dc_amount * qty_val)
             if dc_amount > 0:
                 for idx2, div in enumerate(item_elements):  # * loop ไล่ element บนหน้ายิงขาย
                     try:
@@ -3838,7 +3860,7 @@ class Bot_POS:
                             self.driver.execute_script(
                                 "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
                                 manual_dc_Input, 0)
-                            sum_dc_amount = dc_amount * qty
+                            sum_dc_amount = dc_amount * qty_val
                             self.driver.execute_script(
                                 "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
                                 manual_dc_Input, sum_dc_amount)
