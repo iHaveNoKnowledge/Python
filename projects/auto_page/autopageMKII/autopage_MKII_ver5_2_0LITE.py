@@ -3501,9 +3501,9 @@ class Bot_POS:
         print(f"[Placeholder] Finding cp_no for SKU: {sku}, diff: {diff}, item_index: {item_index}")
         return "1"
 
-    def find_cp_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> str:
+    def find_cp_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> dict:
         """
-        ค้นหา CP จากไฟล์ CP_data.xlsx (self.app.cp_df)
+        ค้นหา CP จากไฟล์ CP_data.xlsx (self.app.cp_df) และส่งกลับ dict ข้อมูลคูปอง ปรับเพิ่ม และปรับลด
         """
         if self.app.cp_df is None or self.app.cp_df.empty:
             print("[CP Lookup] No CP data loaded")
@@ -3573,11 +3573,17 @@ class Bot_POS:
                 f"[CP Lookup] SKU {sku} and date matched, but no matching sale_price for platform_price={platform_price}. Available prices: {df_valid['sale_price'].tolist()}")
             return None
 
-        cp_name = df_price_matched.iloc[0].get('cp_name')
-        if pd.isna(cp_name) or not str(cp_name).strip():
-            return None
+        # ดึงค่า cp_name, oc_amount, dc_amount จากแถวแรกที่เจอ
+        matched_row = df_price_matched.iloc[0]
+        cp_name = matched_row.get('cp_name')
+        oc_amount = matched_row.get('oc_amount')
+        dc_amount = matched_row.get('dc_amount')
 
-        return str(cp_name).strip()
+        return {
+            "cp_name": str(cp_name).strip() if pd.notna(cp_name) else "",
+            "oc_amount": str(oc_amount).strip() if pd.notna(oc_amount) else "",
+            "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else ""
+        }
 
     def process_price_mismatches(self, verification_result: dict) -> None:
         """
@@ -3585,6 +3591,16 @@ class Bot_POS:
         ตามขั้นตอนใน cp_adding2.drawio
         """
         price_result = verification_result.get("price", {})
+
+        def is_valid_adjustment(amount_str):
+            if not amount_str or str(amount_str).strip() == "" or str(amount_str).strip().upper() == "NONE":
+                return False
+            tokens = str(amount_str).split()
+            for token in tokens:
+                clean = token.replace('-', '').replace('+', '').split('.')[0].strip()
+                if clean.isdigit() and int(clean) > 0:
+                    return True
+            return False
 
         # วนลูปตามรายการสินค้าใน order
         for i, item in enumerate(self.app.items):
@@ -3613,12 +3629,33 @@ class Bot_POS:
                         self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key}")
 
                         purchased_date = self.app.cus_purchase_time.get()
-                        cp_no = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
+                        cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
 
-                        if cp_no:
-                            print(f"[Verification] Found matching coupon: {cp_no}. Applying cp_sonic_blow_process...")
-                            self.app.update_log(f"✅ พบคูปอง: {cp_no} สำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
-                            self.cp_sonic_blow_process(item_no_1indexed, cp_no)
+                        if cp_info:
+                            cp_name = cp_info.get("cp_name", "")
+                            oc_amount_str = cp_info.get("oc_amount", "")
+                            dc_amount_str = cp_info.get("dc_amount", "")
+
+                            # 1. แอดคูปอง (ถ้ามีระบุ cp_name)
+                            if cp_name and cp_name.upper() != "NONE" and cp_name.strip() != "":
+                                print(f"[Verification] Found matching coupon: {cp_name}. Applying cp_sonic_blow_process...")
+                                self.app.update_log(f"✅ พบคูปอง: {cp_name} สำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
+                                self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                                time.sleep(0.5)
+
+                            # 2. ปรับราคาเพิ่ม Overcharge (ถ้ามีระบุ oc_amount)
+                            if is_valid_adjustment(oc_amount_str):
+                                print(f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
+                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                                self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
+                                time.sleep(0.5)
+
+                            # 3. ปรับราคาลด Discount (ถ้ามีระบุ dc_amount)
+                            if is_valid_adjustment(dc_amount_str):
+                                print(f"[Verification] Applying Discount (DC) from CP Data: {dc_amount_str} for SKU: {sku_key}")
+                                self.app.update_log(f"📉 ปรับราคาลด (Discount) จากข้อมูลแคมเปญ: {dc_amount_str} บาท")
+                                self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=1)
+                                time.sleep(0.5)
                         else:
                             error_msg = f"ไม่เจอ CP ข้าม order สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาเป้าหมาย: {expected_price})"
                             self.app.update_log(f"❌ {error_msg}")
