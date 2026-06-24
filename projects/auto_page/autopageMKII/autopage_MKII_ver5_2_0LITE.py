@@ -400,7 +400,7 @@ class MyApp:
         """Callback สำหรับปุ่ม 'Reset Memory' Button"""
         try:
             if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
-                self.bot.reset_all_tabs_memory()
+                self.bot.browser.reset_all_tabs_memory()
                 print("Browser memory reset completed")
             else:
                 print("Browser not initialized yet")
@@ -422,7 +422,7 @@ class MyApp:
                     try:
                         self.bot.driver.switch_to.window(handle)
                         tab_title = self.bot.driver.title[:30]
-                        memory_usage = self.bot.get_current_tab_memory_usage()
+                        memory_usage = self.bot.browser.get_current_tab_memory_usage()
                         total_memory += memory_usage
                         print(f"Tab {i+1}: {tab_title} - {memory_usage:.1f}MB")
                     except Exception as e:
@@ -3625,14 +3625,16 @@ class Bot_POS:
                         # ตรวจสอบว่าใน Excel มีการระบุ oc_amount สำหรับสินค้าเซ็ตเพื่อความถูกต้องหรือไม่
                         if cp_info and is_valid_adjustment(cp_info.get("oc_amount", "")):
                             oc_amount_str = cp_info.get("oc_amount", "")
-                            print(f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
+                            print(
+                                f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
                             self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
                             self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
                         else:
                             # ปรับตาม diff_val ปกติ (สำหรับสินค้าเดี่ยวปกติ)
                             print(
                                 f"[Verification] Marketplace price is higher. Applying Overcharge (OC) for SKU: {sku_key} with amount: {diff_val}")
-                            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
+                            self.app.update_log(
+                                f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
                             self.smco_set_overcharge_product(sku_key, str(diff_val))
 
                     # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
@@ -3647,21 +3649,25 @@ class Bot_POS:
 
                             # 1. แอดคูปอง (ถ้ามีระบุ cp_name)
                             if cp_name and cp_name.upper() != "NONE" and cp_name.strip() != "":
-                                print(f"[Verification] Found matching coupon: {cp_name}. Applying cp_sonic_blow_process...")
-                                self.app.update_log(f"✅ พบคูปอง: {cp_name} สำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
+                                print(
+                                    f"[Verification] Found matching coupon: {cp_name}. Applying cp_sonic_blow_process...")
+                                self.app.update_log(
+                                    f"✅ พบคูปอง: {cp_name} สำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
                                 self.cp_sonic_blow_process(item_no_1indexed, cp_name)
                                 time.sleep(0.5)
 
                             # 2. ปรับราคาเพิ่ม Overcharge (ถ้ามีระบุ oc_amount)
                             if is_valid_adjustment(oc_amount_str):
-                                print(f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
+                                print(
+                                    f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
                                 self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
                                 self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
                                 time.sleep(0.5)
 
                             # 3. ปรับราคาลด Discount (ถ้ามีระบุ dc_amount)
                             if is_valid_adjustment(dc_amount_str):
-                                print(f"[Verification] Applying Discount (DC) from CP Data: {dc_amount_str} for SKU: {sku_key}")
+                                print(
+                                    f"[Verification] Applying Discount (DC) from CP Data: {dc_amount_str} for SKU: {sku_key}")
                                 self.app.update_log(f"📉 ปรับราคาลด (Discount) จากข้อมูลแคมเปญ: {dc_amount_str} บาท")
                                 self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=1)
                                 time.sleep(0.5)
@@ -6196,7 +6202,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

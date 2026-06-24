@@ -184,8 +184,8 @@ class ProductManager:
         qty_elements = self.driver.find_elements(By.XPATH, self.XPATH_QTY_DISPLAY)
 
         pos_prices: dict[str, float] = {}
-        print("zip(sku_elements, price_elements, qty_elements): ",
-              list(zip(sku_elements, price_elements, qty_elements)))
+        # print("zip(sku_elements, price_elements, qty_elements): ",
+        #       list(zip(sku_elements, price_elements, qty_elements)))
         for sku_el, price_el, qty_el in zip(sku_elements, price_elements, qty_elements):
             try:
                 sku_text = sku_el.text.strip()
