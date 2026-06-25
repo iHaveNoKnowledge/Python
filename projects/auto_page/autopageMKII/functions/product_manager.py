@@ -207,7 +207,12 @@ class ProductManager:
         for item in all_items:
             skus = self.app.correct_sku_pattern(item[self.COL_SKU])
             # TODO: ถ้าไม่มี column ราคาใน data ให้ skip หรือ set expected = None
-            expected = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
+            price_val = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
+            qty_val = float(str(item.get(self.COL_QTY, 1)).replace(",", ""))
+            shopee_discount = float(str(item.get("ส่วนลดจาก Shopee", 0)).replace(",", ""))
+            if qty_val == 0:
+                qty_val = 1.0
+            expected = price_val + (shopee_discount / qty_val)
             actual = 0.0
             for sku in skus:
                 val = pos_prices.get(sku, "NOT_FOUND")
