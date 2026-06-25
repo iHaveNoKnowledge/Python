@@ -7464,6 +7464,116 @@ class Bot_POS:
 
         return result
 
+    def save_order_details(self, order_no, tracking_no, bill_no):
+        """
+        บันทึกข้อมูล Order Number, Tracking Number และ เลขบิลใบเสร็จ
+        หลังจากเสร็จสิ้นหรือก่อนพิมพ์ โดยบันทึกเก็บไว้ใน logs/completed_orders.json
+        และไฟล์ logs/completed_orders.csv โดยจัดเรียงคอลัมน์เป็น: เวลา, tracking, order, inv
+        รวมถึงเตรียมความพร้อมในการส่ง API ไปเก็บยัง Server ในอนาคต
+        """
+        try:
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            logger.info(f"[SaveOrderDetails] Order No: {order_no} | Tracking No: {tracking_no} | Bill No: {bill_no}")
+            print(f"\n--- [SaveOrderDetails] ---")
+            print(f"Time: {timestamp}")
+            print(f"Tracking: {tracking_no}")
+            print(f"Order: {order_no}")
+            print(f"Bill/Receipt: {bill_no}")
+            print(f"--------------------------\n")
+
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            log_dir = os.path.join(current_dir, "logs")
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+
+            # 1. บันทึกลงในไฟล์ CSV (คอลัมน์เรียงตาม: time, tracking, order, inv)
+            csv_path = os.path.join(log_dir, "completed_orders.csv")
+            csv_file_exists = os.path.exists(csv_path)
+            
+            import csv
+            try:
+                with open(csv_path, mode='a', newline='', encoding='utf-8') as csv_file:
+                    writer = csv.writer(csv_file)
+                    if not csv_file_exists:
+                        writer.writerow(["time", "tracking", "order", "inv"])
+                    writer.writerow([timestamp, str(tracking_no), str(order_no), str(bill_no)])
+                logger.info(f"[SaveOrderDetails] บันทึกลง CSV สำเร็จ: {csv_path}")
+            except Exception as csv_err:
+                logger.error(f"[SaveOrderDetails] ไม่สามารถเขียนลง CSV ได้: {csv_err}")
+
+            # 2. บันทึกลงในไฟล์ JSON ประวัติ
+            json_path = os.path.join(log_dir, "completed_orders.json")
+            order_data = {
+                "timestamp": timestamp,
+                "tracking_number": str(tracking_no),
+                "order_number": str(order_no),
+                "bill_number": str(bill_no)
+            }
+
+            orders_history = []
+            if os.path.exists(json_path):
+                try:
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        orders_history = json.load(f)
+                except Exception as json_load_err:
+                    logger.warning(f"ไม่สามารถโหลด completed_orders.json เดิมได้: {json_load_err}")
+
+            orders_history.append(order_data)
+
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(orders_history, f, indent=4, ensure_ascii=False)
+
+            logger.info(f"[SaveOrderDetails] บันทึกลง JSON สำเร็จ: {json_path}")
+
+            # 3. บันทึกเพิ่มเติมไปยัง Excel (ถ้าใช้งาน Accel mode)
+            if hasattr(self.app.accel_mode, 'accel_file_dir') and self.app.accel_mode.accel_file_dir:
+                excel_path = self.app.accel_mode.accel_file_dir
+                if os.path.exists(excel_path):
+                    try:
+                        sheet_name = 'Completed_Orders'
+                        new_row = pd.DataFrame([{
+                            'orders': str(order_no),
+                            'tracking': str(tracking_no),
+                            'bill_no': str(bill_no),
+                            'timestamp': timestamp
+                        }])
+                        
+                        completed_df = pd.DataFrame(columns=['orders', 'tracking', 'bill_no', 'timestamp'])
+                        try:
+                            completed_df = pd.read_excel(excel_path, sheet_name=sheet_name, dtype=str)
+                        except Exception:
+                            pass
+                            
+                        completed_df = completed_df[completed_df['orders'] != str(order_no)]
+                        completed_df = pd.concat([completed_df, new_row], ignore_index=True)
+                        
+                        self.app.accel_mode._save_df_to_excel(completed_df, sheet_name)
+                        logger.info(f"[SaveOrderDetails] บันทึกลง Excel ใน Sheet '{sheet_name}' สำเร็จ")
+                    except Exception as xl_err:
+                        logger.warning(f"ไม่สามารถบันทึกลง Excel ได้: {xl_err}")
+
+            # 4. ส่งข้อมูลไปยัง API Server (เผื่อไว้สำหรับส่งข้อมูลเข้า Server ในอนาคต - Commented out)
+            # api_url = "http://your-server-api-endpoint/api/orders"
+            # headers = {"Content-Type": "application/json"}
+            # payload = {
+            #     "timestamp": timestamp,
+            #     "tracking": str(tracking_no),
+            #     "order_no": str(order_no),
+            #     "inv_no": str(bill_no)
+            # }
+            # try:
+            #     # response = requests.post(api_url, json=payload, headers=headers, timeout=5)
+            #     # if response.status_code == 200:
+            #     #     logger.info("[SaveOrderDetails] ส่งข้อมูลไป API Server สำเร็จ")
+            #     # else:
+            #     #     logger.warning(f"[SaveOrderDetails] ส่งข้อมูลไป API Server ล้มเหลว (Status Code: {response.status_code})")
+            #     pass
+            # except Exception as api_err:
+            #     logger.error(f"[SaveOrderDetails] เกิดข้อผิดพลาดในการส่ง API: {api_err}")
+
+        except Exception as e:
+            logger.error(f"เกิดข้อผิดพลาดในการรัน save_order_details: {e}")
+
     def final_popup_after_green_btn_handler(self, is_etax, operation_obj):
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
@@ -7597,6 +7707,14 @@ class Bot_POS:
                     inv_number = match.group()
                     print("inv_number: ", inv_number)
                     self.app.update_log(f'เลขบิล: {inv_number}')
+
+                    # # * เรียกใช้งานฟังก์ชันบันทึกข้อมูล Order Details (Commented out per user request)
+                    # try:
+                    #     order_no = self.app.cus_order.get()
+                    #     tracking_no = ", ".join(self.tracking_manager.trackings) if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings else ""
+                    #     self.save_order_details(order_no, tracking_no, inv_number)
+                    # except Exception as save_err:
+                    #     print(f"Error calling save_order_details: {save_err}")
 
                     # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
                     # * ไปหน้า Reprint ##########################################################################################
