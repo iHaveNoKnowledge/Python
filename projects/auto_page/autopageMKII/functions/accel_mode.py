@@ -573,6 +573,12 @@ class AccelMode:
                 target_df.to_excel(self.accel_file_dir, sheet_name=sheet_name, index=False)
 
     def record_failed_order(self, order, reason):
+        """Record failed order
+
+        Args:
+            order (_type_): _order to record
+            reason (_type_): 
+        """
         if hasattr(order, 'get'):
             order_str = order.get()
         else:

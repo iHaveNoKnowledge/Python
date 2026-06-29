@@ -279,7 +279,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * For testing purposes only
-        self.is_testing = False
+        self.is_testing = True
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -1122,7 +1122,8 @@ class MyApp:
         self.display_cp_location_label = CTkLabel(self.cp_file_frame, text=f"CP Data: ")
         self.display_cp_location_label.grid(row=0, column=0, padx=(5, 0))
 
-        self.display_cp_location_btn = CTkButton(self.cp_file_frame, text=f"ยังไม่เลือก CP Data File", command=self.select_cp_excel, fg_color="#969696")
+        self.display_cp_location_btn = CTkButton(
+            self.cp_file_frame, text=f"ยังไม่เลือก CP Data File", command=self.select_cp_excel, fg_color="#969696")
         self.display_cp_location_btn.grid(row=0, column=1, padx=(0, 5))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -6210,7 +6211,6 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
-
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -7489,7 +7489,7 @@ class Bot_POS:
             # 1. บันทึกลงในไฟล์ CSV (คอลัมน์เรียงตาม: time, tracking, order, inv)
             csv_path = os.path.join(log_dir, "completed_orders.csv")
             csv_file_exists = os.path.exists(csv_path)
-            
+
             import csv
             try:
                 with open(csv_path, mode='a', newline='', encoding='utf-8') as csv_file:
@@ -7537,16 +7537,16 @@ class Bot_POS:
                             'bill_no': str(bill_no),
                             'timestamp': timestamp
                         }])
-                        
+
                         completed_df = pd.DataFrame(columns=['orders', 'tracking', 'bill_no', 'timestamp'])
                         try:
                             completed_df = pd.read_excel(excel_path, sheet_name=sheet_name, dtype=str)
                         except Exception:
                             pass
-                            
+
                         completed_df = completed_df[completed_df['orders'] != str(order_no)]
                         completed_df = pd.concat([completed_df, new_row], ignore_index=True)
-                        
+
                         self.app.accel_mode._save_df_to_excel(completed_df, sheet_name)
                         logger.info(f"[SaveOrderDetails] บันทึกลง Excel ใน Sheet '{sheet_name}' สำเร็จ")
                     except Exception as xl_err:
