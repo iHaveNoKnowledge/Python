@@ -5412,6 +5412,8 @@ class Bot_POS:
                 try:
                     self.app.accel_mode.deduct_accel_file_data(
                         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+                    self.app.accel_mode.record_completed_order(
+                        self.app.cus_order, status="TEST_SUCCESS")
 
                 except Exception as err:
                     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
@@ -7526,31 +7528,13 @@ class Bot_POS:
             logger.info(f"[SaveOrderDetails] บันทึกลง JSON สำเร็จ: {json_path}")
 
             # 3. บันทึกเพิ่มเติมไปยัง Excel (ถ้าใช้งาน Accel mode)
-            if hasattr(self.app.accel_mode, 'accel_file_dir') and self.app.accel_mode.accel_file_dir:
-                excel_path = self.app.accel_mode.accel_file_dir
-                if os.path.exists(excel_path):
-                    try:
-                        sheet_name = 'Completed_Orders'
-                        new_row = pd.DataFrame([{
-                            'orders': str(order_no),
-                            'tracking': str(tracking_no),
-                            'bill_no': str(bill_no),
-                            'timestamp': timestamp
-                        }])
-
-                        completed_df = pd.DataFrame(columns=['orders', 'tracking', 'bill_no', 'timestamp'])
-                        try:
-                            completed_df = pd.read_excel(excel_path, sheet_name=sheet_name, dtype=str)
-                        except Exception:
-                            pass
-
-                        completed_df = completed_df[completed_df['orders'] != str(order_no)]
-                        completed_df = pd.concat([completed_df, new_row], ignore_index=True)
-
-                        self.app.accel_mode._save_df_to_excel(completed_df, sheet_name)
-                        logger.info(f"[SaveOrderDetails] บันทึกลง Excel ใน Sheet '{sheet_name}' สำเร็จ")
-                    except Exception as xl_err:
-                        logger.warning(f"ไม่สามารถบันทึกลง Excel ได้: {xl_err}")
+            if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_completed_order'):
+                try:
+                    self.app.accel_mode.record_completed_order(
+                        order_no, tracking=tracking_no, bill_no=bill_no, status="Completed")
+                    logger.info(f"[SaveOrderDetails] บันทึกลง Excel ใน Sheet 'Completed_Orders' สำเร็จ")
+                except Exception as xl_err:
+                    logger.warning(f"ไม่สามารถบันทึกลง Excel ได้: {xl_err}")
 
             # 4. ส่งข้อมูลไปยัง API Server (เผื่อไว้สำหรับส่งข้อมูลเข้า Server ในอนาคต - Commented out)
             # api_url = "http://your-server-api-endpoint/api/orders"

@@ -619,3 +619,56 @@ class AccelMode:
         except Exception as e:
             print(f"Error recording failed order to Excel: {e}")
             logger.error(f"Error recording failed order to Excel: {e}")
+
+    def record_completed_order(self, order, tracking="", bill_no="", status="Completed"):
+        """Record completed order into Completed_Orders sheet in Accel Excel file
+
+        Args:
+            order: order object or string
+            tracking: tracking number string
+            bill_no: bill/receipt number string
+            status: completion status string (e.g. Completed, TEST_SUCCESS)
+        """
+        if hasattr(order, 'get'):
+            order_str = order.get()
+        else:
+            order_str = str(order)
+
+        print(f"Recording completed order: {order_str} (Status: {status})")
+
+        if not self.accel_file_dir:
+            print("No accel file selected, cannot record completed order.")
+            return
+
+        try:
+            if not os.path.exists(self.accel_file_dir):
+                print(f"Accel file {self.accel_file_dir} does not exist, cannot record completed order.")
+                return
+
+            completed_df = pd.DataFrame(columns=['orders', 'tracking', 'bill_no', 'timestamp', 'status'])
+
+            try:
+                completed_df = pd.read_excel(self.accel_file_dir, sheet_name='Completed_Orders', dtype=str)
+            except Exception:
+                print("Completed_Orders sheet does not exist yet. Creating a new one.")
+
+            new_row = pd.DataFrame([{
+                'orders': order_str,
+                'tracking': str(tracking),
+                'bill_no': str(bill_no),
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+                'status': str(status)
+            }])
+
+            completed_df = completed_df[completed_df['orders'] != order_str]
+            completed_df = pd.concat([completed_df, new_row], ignore_index=True)
+
+            self._save_df_to_excel(completed_df, 'Completed_Orders')
+            print(f"Successfully recorded completed order {order_str} to Completed_Orders sheet.")
+        except PermissionError as e:
+            print(f"Permission denied while recording completed order: {e}")
+            logger.warning(f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึก Completed Order ไม่สำเร็จ: {e}")
+        except Exception as e:
+            print(f"Error recording completed order to Excel: {e}")
+            logger.error(f"Error recording completed order to Excel: {e}")
+
