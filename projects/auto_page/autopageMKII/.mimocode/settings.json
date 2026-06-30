@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "selenium": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-selenium"],
+      "env": {
+        "SELENIUM_HUB_URL": "http://localhost:4444/wd/hub"
+      }
+    }
+  }
+}
