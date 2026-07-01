@@ -5028,22 +5028,41 @@ class Bot_POS:
                 # * ตรวจสอบ Status และ update ของ MARKETPLACE
                 time.sleep(1)
 
+                found_order = False
+                search_timeout = 10.0
+                start_time = time.time()
                 while not self.operation_thread.is_set():
-                    # * ใช้ while loop รอดู interface ว่า มันโผล่มายัง
                     try:
-                        self.driver.find_element(By.CLASS_NAME, 'status-wrapper').is_displayed()
-                        break
+                        status_el = self.driver.find_elements(By.CLASS_NAME, 'status-wrapper')
+                        order_sn_el = self.driver.find_elements(By.XPATH, "//div/span[@class='order-sn']")
+                        
+                        if (status_el and status_el[0].is_displayed()) or (order_sn_el and order_sn_el[0].is_displayed()):
+                            found_order = True
+                            print("พบออเดอร์ใน Shopee แล้ว")
+                            break
+                    except Exception as e:
+                        print(f"Error checking Shopee elements: {e}")
+                    
+                    try:
+                        page_text = self.driver.page_source.lower()
+                        empty_indicators = ["no data", "ไม่มีข้อมูล", "no orders", "no results"]
+                        empty_el = self.driver.find_elements(By.CSS_SELECTOR, ".eds-empty, .empty-wrapper, .no-orders, .no-data")
+                        
+                        if (empty_el and any(el.is_displayed() for el in empty_el)) or any(ind in page_text for ind in empty_indicators):
+                            print("ตรวจพบหน้าว่างเปล่า (ไม่พบออเดอร์) ใน Shopee")
+                            break
                     except:
-                        continue
-                try:
-                    self.driver.find_element(By.CLASS_NAME, 'status-wrapper').is_displayed()
-                    print("Found element classed big-text")
-                except:
-                    print("Not found element classed big-text, try to wait and click element with XPATH")
-                    self.wait50.until(
-                        EC.element_to_be_clickable(
-                            (By.XPATH,
-                             '/html/body/div[2]/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]/div/div[2]/a/div[2]/div/div/div')))
+                        pass
+
+                    if time.time() - start_time > search_timeout:
+                        print("หมดเวลารอผลลัพธ์การค้นหาใน Shopee")
+                        break
+                    time.sleep(0.5)
+
+                if not found_order:
+                    error_msg = f"ไม่พบออเดอร์ {self.cus_order} ในระบบ Shopee หรือค้นหาไม่สำเร็จ"
+                    self.app.update_log(f"❌ {error_msg}")
+                    raise ValueError(error_msg)
 
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
@@ -5152,15 +5171,44 @@ class Bot_POS:
                 time.sleep(0.75)
 
                 # * ตรวจสอบ Status และ update
-                # รอให้ btn element กดได้
-                self.wait50.until(
-                    EC.element_to_be_clickable(
-                        (By.XPATH,
-                         '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button')))
+                found_order = False
+                search_timeout = 10.0
+                start_time = time.time()
+                status_btn_xpath = '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button'
+
+                while not self.operation_thread.is_set():
+                    try:
+                        status_el = self.driver.find_elements(By.XPATH, status_btn_xpath)
+                        if status_el and status_el[0].is_displayed():
+                            found_order = True
+                            print("พบออเดอร์ใน Lazada แล้ว")
+                            break
+                    except Exception as e:
+                        print(f"Error checking Lazada elements: {e}")
+
+                    try:
+                        page_text = self.driver.page_source.lower()
+                        empty_el = self.driver.find_elements(By.CSS_SELECTOR, ".next-table-empty, .empty, .no-data")
+                        
+                        if (empty_el and any(el.is_displayed() for el in empty_el)) or "ไม่มีข้อมูล" in page_text or "no data" in page_text:
+                            print("ตรวจพบหน้าว่างเปล่า (ไม่พบออเดอร์) ใน Lazada")
+                            break
+                    except:
+                        pass
+
+                    if time.time() - start_time > search_timeout:
+                        print("หมดเวลารอผลลัพธ์การค้นหาใน Lazada")
+                        break
+                    time.sleep(0.5)
+
+                if not found_order:
+                    error_msg = f"ไม่พบออเดอร์ {self.cus_order} ในระบบ Lazada หรือค้นหาไม่สำเร็จ"
+                    self.app.update_log(f"❌ {error_msg}")
+                    raise ValueError(error_msg)
 
                 # เก็บ status order เข้าตัวแปรไปแสดงผลใน GUI
                 self.app.cus_cur_status.set(self.driver.find_element(
-                    By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button/span').text)
+                    By.XPATH, status_btn_xpath + '/span').text)
 
                 # จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
