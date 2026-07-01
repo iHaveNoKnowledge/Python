@@ -3620,6 +3620,11 @@ class Bot_POS:
                     purchased_date = self.app.cus_purchase_time.get()
                     cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
 
+                    if not isinstance(diff_val, (int, float)):
+                        print(
+                            f"[Verification] SKU: {sku_key} price difference is not numeric (diff={diff_val}). Skipping price mismatch adjustment.")
+                        continue
+
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
                     if diff_val > 0:
                         # ตรวจสอบว่าใน Excel มีการระบุ oc_amount สำหรับสินค้าเซ็ตเพื่อความถูกต้องหรือไม่
@@ -3788,6 +3793,15 @@ class Bot_POS:
                                 By().XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')
                             self.driver.execute_script("arguments[0].click();", green_submit_btn)
 
+                            # รอให้หน้าต่างแก้ไขราคาปิดตัวลงอย่างสมบูรณ์
+                            try:
+                                self.wait50.until(EC.invisibility_of_element_located(
+                                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
+                                print("ปิดหน้าต่าง Overcharge สำเร็จ")
+                            except Exception as wait_err:
+                                print(f"Warning waiting for overcharge modal: {wait_err}")
+                                time.sleep(1)
+
                             break
                         else:
                             # print("ไม่เจอ", item, "นะ")
@@ -3903,6 +3917,15 @@ class Bot_POS:
                                 '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')
                             self.driver.execute_script("arguments[0].click();", green_btn_summit)
 
+                            # รอให้หน้าต่างแก้ไขราคาส่วนลดปิดตัวลงอย่างสมบูรณ์
+                            try:
+                                self.wait50.until(EC.invisibility_of_element_located(
+                                    (By.CSS_SELECTOR, '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')))
+                                print("ปิดหน้าต่าง Discount สำเร็จ")
+                            except Exception as wait_err:
+                                print(f"Warning waiting for discount modal: {wait_err}")
+                                time.sleep(1)
+
                             break
                         else:
                             # print("ไม่เจอ", item, "นะ")
@@ -3915,6 +3938,12 @@ class Bot_POS:
         # Todo
         #! ดูท่าทางว่าเลือกจาก bot gui จะใช้ไม่ได้
         pass
+
+    def record_failed_with_checkpoint(self, reason):
+        checkpoint = getattr(self, 'current_checkpoint', 'เริ่มรัน')
+        full_reason = f"{reason} (ด่านที่ติด: {checkpoint})"
+        if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_failed_order'):
+            self.app.accel_mode.record_failed_order(self.app.cus_order, full_reason)
 
     def operation_task_thread(self, event=None):
         # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
@@ -3932,6 +3961,7 @@ class Bot_POS:
                 # * เริ่มการทำงาน Operation Start
                 if self.app.order != "" and not self.operation_thread.is_set():
                     logger.info(f"Order: {self.app.order} Start!!")
+                    self.current_checkpoint = "เริ่มรัน"
                     self.operation_start()
                 else:
                     self.app.update_log("กรุณากรอก Order ก่อน")
@@ -3950,24 +3980,22 @@ class Bot_POS:
                         self.app.update_log("❌ Retry failed. Please restart the browser.")
                         self.app.display_bot_status_label.configure(
                             text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
-                        self.app.accel_mode.record_failed_order(
-                            self.app.cus_order, f"Retry failed after reconnect: {retry_err}")
+                        self.record_failed_with_checkpoint(f"Retry failed after reconnect: {retry_err}")
                     except Exception as retry_err:
                         logger.error(f"Order: {self.app.order} - Retry error: {retry_err}")
                         self.app.update_log(f"❌ Retry error: {retry_err}")
-                        self.app.accel_mode.record_failed_order(self.app.cus_order, f"Retry error: {retry_err}")
+                        self.record_failed_with_checkpoint(f"Retry error: {retry_err}")
                 else:
                     self.app.update_log("❌ Cannot reconnect. Please restart the browser.")
                     self.app.display_bot_status_label.configure(
                         text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
-                    self.app.accel_mode.record_failed_order(
-                        self.app.cus_order, "Driver disconnected and cannot reconnect")
+                    self.record_failed_with_checkpoint("Driver disconnected and cannot reconnect")
             except Exception as err:
                 traceback_str = traceback.format_exc()
                 print(f"operation_task_thread, An error occirred: {err}")
                 print(traceback_str)
                 logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
-                self.app.accel_mode.record_failed_order(self.app.cus_order, str(err))
+                self.record_failed_with_checkpoint(str(err))
         else:
             print("Operation thread is already set, skipping operation task")
             self.app.update_log("หยุดการทำงานของ Bot บน Browser แล้ว")
@@ -5338,6 +5366,7 @@ class Bot_POS:
                 if not self.cus_search_input in self.driver.find_element(
                         By.CSS_SELECTOR, "#select2-memberSearch-container").get_attribute("title"):
                     self.get_customer_name_ready(self.cus_search_input)
+                self.current_checkpoint = "ใส่ชื่อลูกค้าสำเร็จ"
 
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.is_tax_required.get():
@@ -5347,14 +5376,34 @@ class Bot_POS:
                     # * ที่กล้าเก็บค่า attribute มาใช้ตรงๆแบบนี้เพราะต่อให้ไม่มี attribute มันก็ return ค่าว่างอยู่ดี ซึ่งปกติ element นี้จะแสดง attribute title ด้วยถ้ามีการเลือกที่อยู่ลูกค้าแล้ว ถ้าไม่เลือก attribute title จะไม่แสดงใน html
                     self.text_from_name_span = self.cus_name_span.get_attribute("title")
                     self.tax_address_corrector(self.text_from_name_span)
+                    self.current_checkpoint = "ตรวจสอบ/แก้ไขที่อยู่สำเร็จ"
 
                 else:
                     print("no tax required, skip address check")
+                    self.current_checkpoint = "ข้ามการตรวจที่อยู่ (ไม่ต้องใช้ภาษี)"
+
+            # เคลียร์ข้อมูลสินค้าเดิมที่อาจค้างอยู่ในหน้ารถเข็น POS ก่อนแอดของและค่าขนส่งใหม่
+            if self.app.is_auto_invoice_mode.get():
+                try:
+                    print("Checking for existing items in cart to clear before adding new items...")
+                    while not self.operation_thread.is_set():
+                        delete_buttons = self.driver.find_elements(
+                            By.XPATH, "//div[contains(@class, 'panel')]//button[@class='btn btn-danger btn-sm ng-scope']"
+                        )
+                        if not delete_buttons:
+                            break
+                        print("Clearing an existing item from POS cart...")
+                        self.driver.execute_script("arguments[0].click();", delete_buttons[0])
+                        time.sleep(0.8)  # รอให้รายการนั้นหายไปและ DOM โหลดเสร็จ
+                    self.current_checkpoint = "เคลียร์สินค้าค้างตะกร้าสำเร็จ"
+                except Exception as e:
+                    print(f"Error during cart clearing: {e}")
 
             # / ใส่ค่าขนส่ง ================================================================================
             # / ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 self.add_shipping_cost()
+                self.current_checkpoint = "ใส่ค่าขนส่งสำเร็จ"
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
@@ -5377,28 +5426,33 @@ class Bot_POS:
             # if self.app.is_accel_mode_activated.get():
             if len(self.app.accel_mode.accel_df_state) > 0:
                 self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
+                self.current_checkpoint = "กรอกสินค้า Accel สำเร็จ"
 
             if self.app.is_auto_invoice_mode.get():
                 try:
                     self.ProductManager.auto_add_all_items()
+                    self.current_checkpoint = "กรอกสินค้าลง POS สำเร็จ"
+
                     verification_result = self.ProductManager.verify_all()
                     print("verification_result: ", verification_result)
+                    self.current_checkpoint = "ตรวจสอบราคาและจำนวนสำเร็จ"
 
                     # * ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหากมีส่วนต่าง
                     self.process_price_mismatches(verification_result)
+                    self.current_checkpoint = "ปรับราคา/ใส่คูปองสำเร็จ (จบ process ปรับราคา)"
                 except Exception as err:
                     err_str = str(err).lower()
                     if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
-                        print(f"Connection lost during adding items: {err}")
-                        logger.error(f"Connection lost during adding items: {err}")
-                        self.app.update_log("⚠️ Session lost while adding items. Attempting to reconnect...")
-                        self.reconnect_driver()
-                        self.app.update_log("⚠️ Reconnected. Please check the items manually.")
+                         print(f"Connection lost during adding items: {err}")
+                         logger.error(f"Connection lost during adding items: {err}")
+                         self.app.update_log("⚠️ Session lost while adding items. Attempting to reconnect...")
+                         self.reconnect_driver()
+                         self.app.update_log("⚠️ Reconnected. Please check the items manually.")
                     else:
-                        print(f"Error occurred while verifying items: {err}")
-                        logger.error(f"Error occurred while verifying items: {err}")
-                        self.app.accel_mode.record_failed_order(self.app.cus_order, str(err))
-                        raise err
+                         print(f"Error occurred while verifying items: {err}")
+                         logger.error(f"Error occurred while verifying items: {err}")
+                         self.record_failed_with_checkpoint(str(err))
+                         raise err
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
@@ -5413,13 +5467,15 @@ class Bot_POS:
                     self.app.accel_mode.deduct_accel_file_data(
                         self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
                     self.app.accel_mode.record_completed_order(
-                        self.app.cus_order, status="TEST_SUCCESS")
+                        self.app.cus_order, status="TEST_SUCCESS (จบ process ปรับราคา)")
 
                 except Exception as err:
                     logger.info(f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
                 logger.info(f"""Order: {self.cus_order} Testing End!!""")
                 return
+
+            self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
 
             # with self.driver_lock:
             #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน
@@ -7531,7 +7587,8 @@ class Bot_POS:
             if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_completed_order'):
                 try:
                     self.app.accel_mode.record_completed_order(
-                        order_no, tracking=tracking_no, bill_no=bill_no, status="Completed")
+                        order_no, tracking=tracking_no, bill_no=bill_no, status="Completed (จบกระบวนการ flow เต็ม)")
+                    self.current_checkpoint = "บันทึกประวัติออเดอร์สำเร็จ (จบกระบวนการ flow เต็ม)"
                     logger.info(f"[SaveOrderDetails] บันทึกลง Excel ใน Sheet 'Completed_Orders' สำเร็จ")
                 except Exception as xl_err:
                     logger.warning(f"ไม่สามารถบันทึกลง Excel ได้: {xl_err}")
@@ -7691,6 +7748,7 @@ class Bot_POS:
                     inv_number = match.group()
                     print("inv_number: ", inv_number)
                     self.app.update_log(f'เลขบิล: {inv_number}')
+                    self.current_checkpoint = f"สร้างใบเสร็จสำเร็จ (เลขบิล: {inv_number})"
 
                     # # * เรียกใช้งานฟังก์ชันบันทึกข้อมูล Order Details (Commented out per user request)
                     # try:
@@ -7748,6 +7806,7 @@ class Bot_POS:
                     # self.printing_thread.start()
                     try:
                         self.get_pdf_src_and_print(inv_number)
+                        self.current_checkpoint = "พิมพ์เอกสารใบเสร็จสำเร็จ"
                     except Exception as e:
                         print(f"get_pdf_src_and_print error: {e}")
                         logger.error(f"get_pdf_src_and_print error: {e}")
