@@ -43,7 +43,8 @@ from selenium import webdriver
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         NoSuchElementException,
                                         StaleElementReferenceException,
-                                        TimeoutException)
+                                        TimeoutException,
+                                        WebDriverException)
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -3945,6 +3946,26 @@ class Bot_POS:
         if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_failed_order'):
             self.app.accel_mode.record_failed_order(self.app.cus_order, full_reason)
 
+    def is_connection_error(self, err):
+        err_str = str(err).lower()
+        connection_keywords = [
+            "connection refused",
+            "target machine actively refused it",
+            "max retries exceeded",
+            "winerror 10061",
+            "invalid session id",
+            "chrome not reachable",
+            "no such window",
+            "failed to check if window was closed",
+            "disconnected",
+            "broken pipe"
+        ]
+        is_conn = (
+            isinstance(err, (ConnectionError, InvalidSessionIdException)) or
+            any(k in err_str for k in connection_keywords)
+        )
+        return is_conn
+
     def operation_task_thread(self, event=None):
         # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
         self._active_generation = getattr(self, '_active_generation', 0) + 1
@@ -3956,46 +3977,43 @@ class Bot_POS:
             time.sleep(0.5)
 
         if not self.operation_thread.is_set():
-            try:
-
-                # * เริ่มการทำงาน Operation Start
-                if self.app.order != "" and not self.operation_thread.is_set():
-                    logger.info(f"Order: {self.app.order} Start!!")
-                    self.current_checkpoint = "เริ่มรัน"
-                    self.operation_start()
-                else:
-                    self.app.update_log("กรุณากรอก Order ก่อน")
-
-            except (ConnectionError, InvalidSessionIdException) as err:
-                # WebDriver connection error - ลอง reconnect แล้ว retry
-                print(f"operation_task_thread, Connection Error: {err}")
-                logger.error(f"Order: {self.app.order} - WebDriver connection lost: {err}")
-                # ลอง reconnect แล้ว retry operation
-                if self.reconnect_driver():
-                    try:
+            while not self.operation_thread.is_set():
+                try:
+                    # * เริ่มการทำงาน Operation Start
+                    if self.app.order != "" and not self.operation_thread.is_set():
+                        logger.info(f"Order: {self.app.order} Start!!")
+                        self.current_checkpoint = "เริ่มรัน"
                         self.operation_start()
-                    except ConnectionError as retry_err:
-                        # reconnect สำเร็จแต่ operation ยังล้มเหลว
-                        logger.error(f"Order: {self.app.order} - Retry failed after reconnect: {retry_err}")
-                        self.app.update_log("❌ Retry failed. Please restart the browser.")
-                        self.app.display_bot_status_label.configure(
-                            text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
-                        self.record_failed_with_checkpoint(f"Retry failed after reconnect: {retry_err}")
-                    except Exception as retry_err:
-                        logger.error(f"Order: {self.app.order} - Retry error: {retry_err}")
-                        self.app.update_log(f"❌ Retry error: {retry_err}")
-                        self.record_failed_with_checkpoint(f"Retry error: {retry_err}")
-                else:
-                    self.app.update_log("❌ Cannot reconnect. Please restart the browser.")
-                    self.app.display_bot_status_label.configure(
-                        text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
-                    self.record_failed_with_checkpoint("Driver disconnected and cannot reconnect")
-            except Exception as err:
-                traceback_str = traceback.format_exc()
-                print(f"operation_task_thread, An error occirred: {err}")
-                print(traceback_str)
-                logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
-                self.record_failed_with_checkpoint(str(err))
+                        break  # รันสำเร็จ ออกจากลูปเพื่อไปทำออเดอร์ถัดไป
+                    else:
+                        self.app.update_log("กรุณากรอก Order ก่อน")
+                        break
+
+                except Exception as err:
+                    if self.is_connection_error(err):
+                        print(f"operation_task_thread, Connection Error: {err}")
+                        logger.error(f"Order: {self.app.order} - WebDriver connection lost: {err}")
+                        self.app.update_log("⚠️ การเชื่อมต่อเบราว์เซอร์หลุด กำลังพยายาม Reconnect...")
+
+                        # ลอง reconnect
+                        if self.reconnect_driver():
+                            self.app.update_log("⚠️ Reconnected สำเร็จ! กำลังเริ่มทำงานออเดอร์เดิมใหม่อีกครั้ง...")
+                            time.sleep(1)
+                            continue  # วนกลับไปรันออเดอร์เดิมใหม่
+                        else:
+                            self.app.update_log("❌ ไม่สามารถ Reconnect ได้ จะลองใหม่อีกครั้งใน 5 วินาที...")
+                            self.app.display_bot_status_label.configure(
+                                text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                            time.sleep(5)
+                            continue  # วนกลับไปพยายาม reconnect และรันใหม่เรื่อยๆ จนกว่าจะได้ หรือกดหยุด
+                    else:
+                        # Error จริงจากการทำออเดอร์ (เช่น ValueError หรือข้อมูลผิดพลาด) -> ข้ามออเดอร์
+                        traceback_str = traceback.format_exc()
+                        print(f"operation_task_thread, An error occurred: {err}")
+                        print(traceback_str)
+                        logger.info(f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
+                        self.record_failed_with_checkpoint(str(err))
+                        break  # ออกจากลูปเพื่อข้ามไปทำออเดอร์ถัดไป
         else:
             print("Operation thread is already set, skipping operation task")
             self.app.update_log("หยุดการทำงานของ Bot บน Browser แล้ว")
@@ -6220,7 +6238,7 @@ class Bot_POS:
                             self.dropdown_handler()
                             self.driver.find_element(
                                 By.XPATH, f"""//li[@role='treeitem' and text()='{postcode}']""").click()
-                        except Exception as err:
+                        except (NoSuchElementException, TimeoutException) as err:
 
                             print(f"Postal code {postcode} cannot be found in dropdown, skip postal code selection")
                             if hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get():
@@ -6249,6 +6267,9 @@ class Bot_POS:
 
                 break
 
+            except (InvalidSessionIdException, WebDriverException) as err:
+                print(f"addCustomer(): WebDriver connection error, raising to trigger reconnect. Error: {err}")
+                raise err
             except ValueError as ve:
                 print(f"addCustomer(): Stopped by ValueError: {ve}")
                 # ปิดหน้าต่างสร้างลูกค้า เพื่อไม่ให้ค้าง
