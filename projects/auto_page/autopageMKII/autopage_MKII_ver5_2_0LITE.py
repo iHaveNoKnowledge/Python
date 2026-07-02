@@ -5117,6 +5117,24 @@ class Bot_POS:
                     print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
                     print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
+                # * สำหรับโหมด auto_invoice_mode ให้กรองเฉพาะออเดอร์สถานะ "ที่ต้องจัดส่ง"
+                if hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get():
+                    shopee_status = self.app.cus_cur_status.get().strip()
+                    if not shopee_status:
+                        raise ValueError("ไม่สามารถระบุสถานะออเดอร์ Shopee ได้ (ค่าสถานะเป็นค่าว่าง)")
+                    
+                    if shopee_status != "ที่ต้องจัดส่ง":
+                        if "ยังไม่ชำระ" in shopee_status:
+                            error_msg = f"ออเดอร์มีสถานะ '{shopee_status}' (ถือว่า Failed ตามเงื่อนไข)"
+                            self.app.update_log(f"❌ {error_msg}")
+                            raise ValueError(error_msg)
+                        else:
+                            success_msg = f"ข้ามออเดอร์ (สถานะ: {shopee_status}) ถือว่า Complete ตามเงื่อนไข"
+                            self.app.update_log(f"✅ {success_msg}")
+                            if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_completed_order'):
+                                self.app.accel_mode.record_completed_order(self.app.cus_order, status=f"ข้าม (สถานะ: {shopee_status})")
+                            return
+
             #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################
             elif self.app.marketplace_target.get() == 'LAZADA':
                 try:
