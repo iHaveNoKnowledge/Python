@@ -52,6 +52,10 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+class RefreshRequiredException(BaseException):
+    """Raised when a session collision popup is detected, requiring a page refresh and order restart."""
+    pass
+
 
 class SmcoApiClient:
     """
@@ -3321,6 +3325,105 @@ class Bot_POS:
     def manage_browser_memory(self, *args, **kwargs):
         return self.browser.manage_browser_memory(*args, **kwargs)
 
+    def check_for_refresh_popup(self, element):
+        """
+        Helper to check if a popup element's text contains the word 'refresh' (case-insensitive).
+        If it does, raises RefreshRequiredException.
+        """
+        try:
+            text = element.text
+            if "refresh" in text.lower():
+                logger.warning(f"Detect 'refresh' popup: '{text}'. Raising RefreshRequiredException...")
+                self.click_popup_confirm_button(timeout=2)
+                raise RefreshRequiredException("ตรวจพบการ Login ซ้ำซ้อน")
+        except StaleElementReferenceException:
+            try:
+                el = self.driver.find_element(By.XPATH, "//div[@class = 'swal2-content']")
+                text = el.text
+                if "refresh" in text.lower():
+                    logger.warning(f"Detect 'refresh' popup: '{text}'. Raising RefreshRequiredException...")
+                    self.click_popup_confirm_button(timeout=2)
+                    raise RefreshRequiredException("ตรวจพบการ Login ซ้ำซ้อน")
+            except Exception:
+                pass
+        except RefreshRequiredException:
+            raise
+        except Exception as e:
+            print(f"Error checking refresh popup: {e}")
+
+    def wait_and_get_popup(self, timeout=5):
+        """
+        Wait for a popup with xpath //div[@class = 'swal2-content'] to be visible.
+        If it contains 'refresh', handles it and raises RefreshRequiredException.
+        Otherwise, returns the popup element.
+        """
+        try:
+            popup = WebDriverWait(self.driver, timeout).until(
+                EC.visibility_of_element_located((By.XPATH, "//div[@class = 'swal2-content']"))
+            )
+            time.sleep(0.3)
+            self.check_for_refresh_popup(popup)
+            return popup
+        except RefreshRequiredException:
+            raise
+        except Exception:
+            return None
+
+    def click_popup_confirm_button(self, timeout=5):
+        """
+        Attempts to click the popup confirm button (OK / ตกลง) using selenium's click
+        or falls back to javascript executor if needed.
+        """
+        try:
+            btn = WebDriverWait(self.driver, timeout).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"))
+            )
+            btn.click()
+            print("Successfully clicked swal confirm button via Selenium")
+            return True
+        except Exception:
+            try:
+                # Fallback to javascript click if standard click fails
+                btn = self.driver.find_element(By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
+                self.driver.execute_script("arguments[0].click();", btn)
+                print("Successfully clicked swal confirm button via JS fallback")
+                return True
+            except Exception:
+                pass
+        return False
+
+    def refresh_all_smco_tabs(self):
+        """
+        Refreshes all tabs where the title indicates it's an SMCO page.
+        """
+        try:
+            original_handle = self.driver.current_window_handle
+        except Exception:
+            original_handle = None
+
+        try:
+            self.get_tabs()
+        except Exception as e:
+            logger.error(f"Failed to refresh tabs list: {e}")
+
+        # Iterate over all window handles and refresh if title contains "SMCO"
+        for handle in self.driver.window_handles:
+            try:
+                self.driver.switch_to.window(handle)
+                title = self.driver.title
+                if "SMCO" in title:
+                    logger.info(f"Refreshing SMCO tab: '{title}' (handle: {handle})")
+                    self.driver.refresh()
+                    time.sleep(0.5)
+            except Exception as e:
+                logger.error(f"Failed to refresh tab (handle: {handle}): {e}")
+
+        if original_handle and original_handle in self.driver.window_handles:
+            try:
+                self.driver.switch_to.window(original_handle)
+            except Exception:
+                pass
+
     def cp_sonic_blow_process(self, item_no: int, cp_no: str):
         """
         เลือก coupon สำหรับสินค้าที่ระบุ รองรับการเลือกหลาย coupon ในครั้งเดียว
@@ -3989,6 +4092,18 @@ class Bot_POS:
                         self.app.update_log("กรุณากรอก Order ก่อน")
                         break
 
+                except RefreshRequiredException as err:
+                    print(f"operation_task_thread, Refresh Required: {err}")
+                    logger.warning(f"Order: {self.app.order} - Refresh Required: {err}")
+                    msg = str(err) if str(err) else "มีการ Login ที่หน้าจออื่น"
+                    self.app.update_log(f"⚠️ {msg} กำลัง Refresh ทุกแท็บของ SMCO และเริ่มงานใหม่...")
+                    try:
+                        self.refresh_all_smco_tabs()
+                    except Exception as e:
+                        print(f"Failed to refresh SMCO tabs: {e}")
+                    time.sleep(2)
+                    continue  # วนกลับไปรันออเดอร์เดิมใหม่
+
                 except Exception as err:
                     if self.is_connection_error(err):
                         print(f"operation_task_thread, Connection Error: {err}")
@@ -4247,19 +4362,19 @@ class Bot_POS:
             self.addCustomer("normal", self.cus_search_input)
 
         try:
-            self.wait5.until(EC.visibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
-            time.sleep(0.3)  # * บางครั้งหลัง add swal มันก็ค้างได้
-            cus_code_element = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
-            # * เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
-            # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
-            # * กรณี add แล้ว มี popup-duplicate customer
-            print("Check Duplicated customer!!")
-            if self.app.is_tax_required.get():
-                self.duplicated_cus_name_resolver(cus_code_element)
+            cus_code_element = self.wait_and_get_popup(5)
+            if cus_code_element:
+                # * เคส duplicate cus name จะเกิดโดยชื่อซ้ำ มักจะเกิดกับกรณีที่ ชื่อลูกค้าที่ชื่อเก่าไม่มีเลขผู้เสียภาษี แต่ถัดมาลูกค้าขอด้วยชื่อเดิมเพิ่มเติมคือมีเลขผู้เสียถาษีbotจะเสิชด้วยเลขผู้เสียภาษีแล้วจะทำให้หาไม่เจอทำให้เกิดการadd customer ใหม่ ทำให้ชื่อแบบที่ไม่มีเลขผู้เสียภาษี ซ้ำกับชื่อที่แอดใหม่(มีเลขผู้เสียภาษี)-
+                # *-duplicate_cus_name_resolver จึงแก้ไขโดยการเพิ่มเลขผู้เสียภาษีให้กับชื่อลูกค้าอันเดิมทำให้ไม่มีการซ้ำเกิดขึ้น
+                # * กรณี add แล้ว มี popup-duplicate customer
+                print("Check Duplicated customer!!")
+                if self.app.is_tax_required.get():
+                    self.duplicated_cus_name_resolver(cus_code_element)
+            else:
+                raise ValueError("Popup not found after adding customer.")
 
-            #! ! cb() น่าจะ deprecated เพราะมันจะ recursive กับตัวหลัก เพราะใน select_cus_name_from_lisจะเรียกget_customer_name_ready() เป็น cd แล้วมันจะทำงานวนซ้ำไปเรื่อยๆ
-            # cb()
-
+        except RefreshRequiredException:
+            raise
         except Exception as err:
             if self.app.is_auto_invoice_mode.get():
                 logger.error(
@@ -4269,12 +4384,10 @@ class Bot_POS:
 
             print("No duplicate!", err)
 
-        try:
-            swal_confirm_btn_xpath = """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""
-            self.driver.find_element(By.XPATH, swal_confirm_btn_xpath).click()
+        if self.click_popup_confirm_button():
             print("add_new_customer() end, swal confirm button is clicked after add customer")
-        except Exception as err:
-            print("add_new_customer() end, but No swal confirm button to click after add customer, maybe because of: ", err)
+        else:
+            print("add_new_customer() end, but No swal confirm button to click after add customer")
 
     def ensure_li_shown_cus_name(self):
         """
@@ -6270,8 +6383,19 @@ class Bot_POS:
 
                 # * CLick Save Button (commented out but kept for completeness)
                 if customer_type == "normal" or self.app.is_auto_invoice_mode.get():
-                    self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]').click()
+                    save_btn = self.driver.find_element(
+                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')
+                    is_disabled = save_btn.get_attribute("disabled")
+                    if is_disabled is not None or not save_btn.is_enabled():
+                        logger.warning(f"Order: {self.cus_order} - Save button is disabled (disabled={is_disabled}). Refreshing page and restarting...")
+                        try:
+                            self.driver.refresh()
+                        except Exception as e:
+                            logger.error(f"Failed to refresh browser: {e}")
+                        time.sleep(2)
+                        raise RefreshRequiredException("ปุ่มบันทึกถูกปิดใช้งาน (disabled)")
+                    
+                    save_btn.click()
 
                 # * Wait for saving process to complete
                 while is_functionworking and not self.operation_thread.is_set():
@@ -6280,6 +6404,8 @@ class Bot_POS:
                             (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
                         is_functionworking = False
                         break
+                    except RefreshRequiredException:
+                        raise
                     except:
                         print("[metthod]addCustomer: Save button still appear")
 
@@ -7717,25 +7843,25 @@ class Bot_POS:
 
             try:
                 final_popup = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""")
+                self.check_for_refresh_popup(final_popup)
                 convert_full_tax_modal_element = self.driver.execute_script(
                     """ return document.querySelector("div[id='convertFullTaxModal']"); """
                 )
                 is_final_page = self.driver.find_element(By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
                 # print("is_final_page= ", is_final_page)
+            except RefreshRequiredException:
+                raise
             except:
                 print("Element not found, continuing loop...")
                 continue
 
             if final_popup.is_displayed():
                 print("final_popup is displayed")
-                try:
-                    self.driver.find_element(
-                        By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-                    print('Click space behind final popup')
-                except:
-                    print('Cannot click space behind final popup')
-                pass
+                if self.click_popup_confirm_button():
+                    print('Click confirm button on final popup')
+                else:
+                    print('Cannot click confirm button on final popup')
             #! etax พังใช้ไม่ได้
             # elif is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
             #     print("Radio ยังไม่โผล่")
@@ -7823,6 +7949,7 @@ class Bot_POS:
                     final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
                         # (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""))) #! ปุ่มนี้น่าจะหายไปละ
                         (By.XPATH, """//div[@class = 'swal2-content']""")))
+                    self.check_for_refresh_popup(final_popup_btn)
                     # *> ให้เวลาดูเลขบิล 1 วิ
                     time.sleep(1)
 
@@ -7910,6 +8037,8 @@ class Bot_POS:
                         print("Accel mode not used")
                         pass
 
+                except RefreshRequiredException:
+                    raise
                 except Exception as err:
                     # time.sleep(1)
                     # print("ไม่ได้เลขบิล")
