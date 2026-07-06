@@ -43,14 +43,14 @@ from selenium import webdriver
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         NoSuchElementException,
                                         StaleElementReferenceException,
-                                        TimeoutException,
-                                        WebDriverException)
+                                        TimeoutException, WebDriverException)
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
 
 class RefreshRequiredException(BaseException):
     """Raised when a session collision popup is detected, requiring a page refresh and order restart."""
@@ -284,7 +284,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * For testing purposes only
-        self.is_testing = True
+        self.is_testing = False
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -3375,16 +3375,16 @@ class Bot_POS:
         or falls back to javascript executor if needed.
         """
         try:
-            btn = WebDriverWait(self.driver, timeout).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"))
-            )
+            btn = WebDriverWait(self.driver, timeout).until(EC.element_to_be_clickable(
+                (By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")))
             btn.click()
             print("Successfully clicked swal confirm button via Selenium")
             return True
         except Exception:
             try:
                 # Fallback to javascript click if standard click fails
-                btn = self.driver.find_element(By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
+                btn = self.driver.find_element(
+                    By.XPATH, "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
                 self.driver.execute_script("arguments[0].click();", btn)
                 print("Successfully clicked swal confirm button via JS fallback")
                 return True
@@ -4023,8 +4023,10 @@ class Bot_POS:
 
                             # รอให้หน้าต่างแก้ไขราคาส่วนลดปิดตัวลงอย่างสมบูรณ์
                             try:
-                                self.wait50.until(EC.invisibility_of_element_located(
-                                    (By.CSS_SELECTOR, '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')))
+                                self.wait50.until(
+                                    EC.invisibility_of_element_located(
+                                        (By.CSS_SELECTOR,
+                                         '.row.row-space div.text-center  a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')))
                                 print("ปิดหน้าต่าง Discount สำเร็จ")
                             except Exception as wait_err:
                                 print(f"Warning waiting for discount modal: {wait_err}")
@@ -5166,19 +5168,20 @@ class Bot_POS:
                     try:
                         status_el = self.driver.find_elements(By.CLASS_NAME, 'status-wrapper')
                         order_sn_el = self.driver.find_elements(By.XPATH, "//div/span[@class='order-sn']")
-                        
+
                         if (status_el and status_el[0].is_displayed()) or (order_sn_el and order_sn_el[0].is_displayed()):
                             found_order = True
                             print("พบออเดอร์ใน Shopee แล้ว")
                             break
                     except Exception as e:
                         print(f"Error checking Shopee elements: {e}")
-                    
+
                     try:
                         page_text = self.driver.page_source.lower()
                         empty_indicators = ["no data", "ไม่มีข้อมูล", "no orders", "no results"]
-                        empty_el = self.driver.find_elements(By.CSS_SELECTOR, ".eds-empty, .empty-wrapper, .no-orders, .no-data")
-                        
+                        empty_el = self.driver.find_elements(
+                            By.CSS_SELECTOR, ".eds-empty, .empty-wrapper, .no-orders, .no-data")
+
                         if (empty_el and any(el.is_displayed() for el in empty_el)) or any(ind in page_text for ind in empty_indicators):
                             print("ตรวจพบหน้าว่างเปล่า (ไม่พบออเดอร์) ใน Shopee")
                             break
@@ -5235,7 +5238,7 @@ class Bot_POS:
                     shopee_status = self.app.cus_cur_status.get().strip()
                     if not shopee_status:
                         raise ValueError("ไม่สามารถระบุสถานะออเดอร์ Shopee ได้ (ค่าสถานะเป็นค่าว่าง)")
-                    
+
                     if shopee_status != "ที่ต้องจัดส่ง":
                         if "ยังไม่ชำระ" in shopee_status:
                             error_msg = f"ออเดอร์มีสถานะ '{shopee_status}' (ถือว่า Failed ตามเงื่อนไข)"
@@ -5244,8 +5247,11 @@ class Bot_POS:
                         else:
                             success_msg = f"ข้ามออเดอร์ (สถานะ: {shopee_status}) ถือว่า Complete ตามเงื่อนไข"
                             self.app.update_log(f"✅ {success_msg}")
-                            if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_completed_order'):
-                                self.app.accel_mode.record_completed_order(self.app.cus_order, status=f"ข้าม (สถานะ: {shopee_status})")
+                            if hasattr(
+                                    self.app, 'accel_mode') and hasattr(
+                                    self.app.accel_mode, 'record_completed_order'):
+                                self.app.accel_mode.record_completed_order(
+                                    self.app.cus_order, status=f"ข้าม (สถานะ: {shopee_status})")
                             return
 
             #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################
@@ -5338,7 +5344,7 @@ class Bot_POS:
                     try:
                         page_text = self.driver.page_source.lower()
                         empty_el = self.driver.find_elements(By.CSS_SELECTOR, ".next-table-empty, .empty, .no-data")
-                        
+
                         if (empty_el and any(el.is_displayed() for el in empty_el)) or "ไม่มีข้อมูล" in page_text or "no data" in page_text:
                             print("ตรวจพบหน้าว่างเปล่า (ไม่พบออเดอร์) ใน Lazada")
                             break
@@ -5640,16 +5646,16 @@ class Bot_POS:
                 except Exception as err:
                     err_str = str(err).lower()
                     if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
-                         print(f"Connection lost during adding items: {err}")
-                         logger.error(f"Connection lost during adding items: {err}")
-                         self.app.update_log("⚠️ Session lost while adding items. Attempting to reconnect...")
-                         self.reconnect_driver()
-                         self.app.update_log("⚠️ Reconnected. Please check the items manually.")
+                        print(f"Connection lost during adding items: {err}")
+                        logger.error(f"Connection lost during adding items: {err}")
+                        self.app.update_log("⚠️ Session lost while adding items. Attempting to reconnect...")
+                        self.reconnect_driver()
+                        self.app.update_log("⚠️ Reconnected. Please check the items manually.")
                     else:
-                         print(f"Error occurred while verifying items: {err}")
-                         logger.error(f"Error occurred while verifying items: {err}")
-                         self.record_failed_with_checkpoint(str(err))
-                         raise err
+                        print(f"Error occurred while verifying items: {err}")
+                        logger.error(f"Error occurred while verifying items: {err}")
+                        self.record_failed_with_checkpoint(str(err))
+                        raise err
 
             self.app.update_log("Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
             self.app.display_bot_status_label.configure(
@@ -6387,14 +6393,15 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')
                     is_disabled = save_btn.get_attribute("disabled")
                     if is_disabled is not None or not save_btn.is_enabled():
-                        logger.warning(f"Order: {self.cus_order} - Save button is disabled (disabled={is_disabled}). Refreshing page and restarting...")
+                        logger.warning(
+                            f"Order: {self.cus_order} - Save button is disabled (disabled={is_disabled}). Refreshing page and restarting...")
                         try:
                             self.driver.refresh()
                         except Exception as e:
                             logger.error(f"Failed to refresh browser: {e}")
                         time.sleep(2)
                         raise RefreshRequiredException("ปุ่มบันทึกถูกปิดใช้งาน (disabled)")
-                    
+
                     save_btn.click()
 
                 # * Wait for saving process to complete
@@ -7851,6 +7858,7 @@ class Bot_POS:
                 #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
                 # print("is_final_page= ", is_final_page)
             except RefreshRequiredException:
+                print("Refresh required")
                 raise
             except:
                 print("Element not found, continuing loop...")
@@ -7858,19 +7866,20 @@ class Bot_POS:
 
             if final_popup.is_displayed():
                 print("final_popup is displayed")
-                if self.click_popup_confirm_button():
-                    print('Click confirm button on final popup')
-                else:
-                    print('Cannot click confirm button on final popup')
+                try:
+                    self.driver.find_element(
+                        By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
+                    print('Click space behind final popup')
+                except:
+                    print('Cannot click space behind final popup')
+                pass
             #! etax พังใช้ไม่ได้
             # elif is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
             #     print("Radio ยังไม่โผล่")
             #     continue
-
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
                 pass
-
             # Todo ทำไม่ทัน UAT โดนปรับไปใช้คอมมาทก่อน
             elif convert_full_tax_modal_element.is_displayed():
                 # while not self.operation_thread.is_set():
@@ -8207,4 +8216,4 @@ if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
-    print("Program closed")
+    False("Program closed")
