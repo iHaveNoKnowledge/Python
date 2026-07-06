@@ -2227,11 +2227,27 @@ class MyApp:
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
 
                 # *  ของมีอะไรบ้าง dtypeหลังใช้ .to_dict('records') จะเป็น list of dict ฉันั้น self.items = [{}, {}, ...]
-                self.items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
+                raw_items = self.data_frame[differential_col_data][self.target_row].to_dict('records')
                 # * ตัดช่องว่าง
-                for row in self.items:
+                for row in raw_items:
                     row['เลขอ้างอิง SKU (SKU Reference No.)'] = row['เลขอ้างอิง SKU (SKU Reference No.)'].replace(
                         ' ', '')
+
+                # Group items by SKU and Option (if they are the same, combine them)
+                grouped = {}
+                for row in raw_items:
+                    sku = row['เลขอ้างอิง SKU (SKU Reference No.)']
+                    option = str(row['ชื่อตัวเลือก'])
+                    
+                    key = (sku, option)
+                    if key not in grouped:
+                        grouped[key] = row.copy()
+                    else:
+                        grouped[key]['จำนวน'] = int(grouped[key]['จำนวน']) + int(row['จำนวน'])
+                        grouped[key]['ราคาขายสุทธิ'] = float(grouped[key]['ราคาขายสุทธิ']) + float(row['ราคาขายสุทธิ'])
+                        grouped[key]['ส่วนลดจาก Shopee'] = float(grouped[key]['ส่วนลดจาก Shopee']) + float(row['ส่วนลดจาก Shopee'])
+                
+                self.items = list(grouped.values())
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
@@ -3707,8 +3723,15 @@ class Bot_POS:
             return False
 
         # วนลูปตามรายการสินค้าใน order
+        processed_skus = set()
         for i, item in enumerate(self.app.items):
             sku_key = item.get('เลขอ้างอิง SKU (SKU Reference No.)')
+            if not sku_key:
+                continue
+            if sku_key in processed_skus:
+                continue
+            processed_skus.add(sku_key)
+
             if sku_key in price_result:
                 item_price_info = price_result[sku_key]
                 if not item_price_info.get("ok", True):
@@ -3720,7 +3743,7 @@ class Bot_POS:
                     print(
                         f"[Verification] SKU: {sku_key} expected={expected_price}, actual={actual_price}, diff={diff_val}")
 
-                    # ดึงข้อมูลแคมเปญจาก Excel เสมอก่อนเพื่อตรวจสอบแนวทางการปรับราคาของสินค้าเซ็ต
+                    #/ ดึงข้อมูลแคมเปญจาก Excel เสมอก่อนเพื่อตรวจสอบแนวทางการปรับราคาของสินค้าเซ็ต
                     purchased_date = self.app.cus_purchase_time.get()
                     cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
 

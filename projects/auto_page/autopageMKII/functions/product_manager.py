@@ -149,18 +149,24 @@ class ProductManager:
 
         print("self.shipping_dict: ", self.shipping_dict)
         all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
+        
+        # Aggregate expected quantities by SKU code
+        expected_qtys = {}
         for item in all_items:
             skus = self.app.correct_sku_pattern(item[self.COL_SKU])
             expected = int(item[self.COL_QTY])
             for sku in skus:
-                actual = pos_data.get(sku, "NOT_FOUND")
-                ok = (actual == expected)
-                result[sku] = {"expected": expected, "actual": actual, "ok": ok}
-                status_icon = "✅" if ok else "❌"
-                print(
-                    f"[ProductManager.verify_item_qty] {status_icon} "
-                    f"SKU={sku}  expected={expected}  actual={actual}"
-                )
+                expected_qtys[sku] = expected_qtys.get(sku, 0) + expected
+
+        for sku, expected in expected_qtys.items():
+            actual = pos_data.get(sku, "NOT_FOUND")
+            ok = (actual == expected)
+            result[sku] = {"expected": expected, "actual": actual, "ok": ok}
+            status_icon = "✅" if ok else "❌"
+            print(
+                f"[ProductManager.verify_item_qty] {status_icon} "
+                f"SKU={sku}  expected={expected}  actual={actual}"
+            )
 
         return result
 
@@ -204,15 +210,33 @@ class ProductManager:
 
         result: dict[str, dict] = {}
         all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
+        
+        # Group items by the raw SKU pattern to calculate aggregated expected prices
+        aggregated_items = {}
         for item in all_items:
-            skus = self.app.correct_sku_pattern(item[self.COL_SKU])
-            # TODO: ถ้าไม่มี column ราคาใน data ให้ skip หรือ set expected = None
+            sku_key = item[self.COL_SKU]
             price_val = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
             qty_val = float(str(item.get(self.COL_QTY, 1)).replace(",", ""))
             shopee_discount = float(str(item.get("ส่วนลดจาก Shopee", 0)).replace(",", ""))
-            if qty_val == 0:
-                qty_val = 1.0
-            expected = price_val + (shopee_discount / qty_val)
+            
+            if sku_key not in aggregated_items:
+                aggregated_items[sku_key] = {
+                    "total_qty": qty_val,
+                    "total_price": price_val * qty_val,
+                    "total_discount": shopee_discount
+                }
+            else:
+                aggregated_items[sku_key]["total_qty"] += qty_val
+                aggregated_items[sku_key]["total_price"] += price_val * qty_val
+                aggregated_items[sku_key]["total_discount"] += shopee_discount
+
+        for sku_key, data in aggregated_items.items():
+            total_qty = data["total_qty"]
+            if total_qty == 0:
+                total_qty = 1.0
+            expected = (data["total_price"] + data["total_discount"]) / total_qty
+            
+            skus = self.app.correct_sku_pattern(sku_key)
             actual = 0.0
             for sku in skus:
                 val = pos_prices.get(sku, "NOT_FOUND")
@@ -220,14 +244,14 @@ class ProductManager:
                     actual = "NOT_FOUND"
                     break
                 actual += float(val)
+            
             ok = (actual == expected) if actual != "NOT_FOUND" else False
-            # / actual มาจาก "SMCO" // ส่วน expected มาจาก "ที่ลูกค้าจ่ายมา" ซึ่งระบุมาจากไฟล์ import
             diff = expected - actual if actual != "NOT_FOUND" else "NOT_FOUND"
-            result[item[self.COL_SKU]] = {"expected": expected, "actual": actual, "diff": diff, "ok": ok}
+            result[sku_key] = {"expected": expected, "actual": actual, "diff": diff, "ok": ok}
             status_icon = "✅" if ok else "❌"
             print(
                 f"[ProductManager.verify_item_price] {status_icon} "
-                f"SKU={item[self.COL_SKU]}  expected={expected}  actual={actual}"
+                f"SKU={sku_key}  expected={expected}  actual={actual}"
             )
 
         return result
