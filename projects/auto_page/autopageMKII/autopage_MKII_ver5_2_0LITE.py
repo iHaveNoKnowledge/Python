@@ -284,7 +284,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * For testing purposes only
-        self.is_testing = False
+        self.is_testing = True
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -5666,6 +5666,40 @@ class Bot_POS:
                     # * ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหากมีส่วนต่าง
                     self.process_price_mismatches(verification_result)
                     self.current_checkpoint = "ปรับราคา/ใส่คูปองสำเร็จ (จบ process ปรับราคา)"
+
+                    # * ตรวจสอบราคาอีกครั้งหลังปรับราคา
+                    self.app.update_log("🔍 กำลังตรวจสอบราคาและจำนวนสินค้าอีกครั้งหลังปรับราคา...")
+                    post_verification = self.ProductManager.verify_all()
+                    print("post_verification_result: ", post_verification)
+
+                    if post_verification.get("all_ok"):
+                        self.app.update_log("✅ ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
+                        self.app.finish_order()
+                        self.current_checkpoint = "ออกบิลเรียบร้อย"
+                    else:
+                        qty_errors = []
+                        qty_res = post_verification.get("qty", {})
+                        for sku, info in qty_res.items():
+                            if not info.get("ok", True):
+                                qty_errors.append(f"SKU Qty mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')})")
+
+                        price_errors = []
+                        price_res = post_verification.get("price", {})
+                        for sku, info in price_res.items():
+                            if not info.get("ok", True):
+                                price_errors.append(
+                                    f"SKU Price mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')}, diff {info.get('diff')})"
+                                )
+
+                        total_errors = []
+                        total_res = post_verification.get("total", {})
+                        if not total_res.get("ok", True):
+                            total_errors.append(f"Total Price mismatch (expected {total_res.get('expected')}, actual {total_res.get('actual')})")
+
+                        all_errors = qty_errors + price_errors + total_errors
+                        error_msg = f"ราคา/จำนวนไม่ตรงหลังปรับราคา: " + " | ".join(all_errors)
+                        self.app.update_log(f"❌ {error_msg}")
+                        raise ValueError(error_msg)
                 except Exception as err:
                     err_str = str(err).lower()
                     if "connection refused" in err_str or "target machine actively refused it" in err_str or "max retries exceeded" in err_str or "winerror 10061" in err_str:
