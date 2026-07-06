@@ -29,9 +29,9 @@ class AccelMode:
         else:
             self.main_app.accl_dir_namedisplay_on_btn.configure(text=f"ยังไม่เลือก Accel File")
 
-        self.read_accel_file_to_state(self.accel_file_dir)
+        self._read_accel_file_to_state(self.accel_file_dir)
 
-    def read_accel_file_to_state(self, accel_file_dir):
+    def _read_accel_file_to_state(self, accel_file_dir):
         self.accel_file_dir = accel_file_dir
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         print("before self.accel_df_state: ", self.accel_df_state)
@@ -115,7 +115,7 @@ class AccelMode:
             print("You have not selected any transfer file, Extraction ends!!")
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
 
-        self.read_accel_file_to_state(self.accel_file_dir)
+        self._read_accel_file_to_state(self.accel_file_dir)
 
     def sn_extractor(self, output_excel, target_dir):
         extracted_txt = self._extract_text_from_pdf(target_dir)
