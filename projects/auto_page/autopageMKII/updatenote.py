@@ -294,7 +294,7 @@
 # * 291 /Feat/ 5.2.0LITE เพิ่ม functions และ ui ในการรับอ่านค่า CP_data
 # * 292 /Feat/ 5.2.0LITE update logic ของ auto_inv() ให้ทำการเลือกว่าจะปรับราาขึ้นหรือใช้ CP ตามผลลัพของ function product_manager.verify_all() เพราะอันเดิมเป็น placeholder ยังไม่ได้ implement logic จริง
 # * 293 /Feat/ 5.2.0LITE เพิ่ม logic ในการ ปรับ oc dc ตามค่า oc/dc amount ตามในไฟล์ cp_data.xlsx เพิ่มด้วย เนื่องจาก เดิมทีมีเพียง ใส่ cp แล้วจบ
-# * 294 /Fix/ 5.2.0LITE ปรับ logic ารรับ input สำหรับการใช้ค่าของ oc dc ให้ทำงานตาม สถาปัตยกรรมของ fn overcharge_product และ discount_product เช่น หมึกสี่สี ลด 14, 10, 10, 10 บาท ตามลำดับ ก็ใส่ค่าเป็น 14 10 10 10
+# * 294 /Fix/ 5.2.0LITE ปรับ logic ารรับ input จากการอ่านไฟล์ สำหรับการใช้ค่าของ oc dc ให้ทำงานตาม สถาปัตยกรรมของ fn overcharge_product และ discount_product เช่น หมึกสี่สี ลด 14, 10, 10, 10 บาท ตามลำดับ ก็ใส่ค่าเป็น 14 10 10 10
 # * 295 /Fix/ 5.2.0LITE ตัวเช็คและ reset memory ของ bot เสียหายเนื่องจาก refactor เนื่องจาก dot notation ผิด ทำให้หา attr ของ obj ที่ใช้ methods สำหรับจัดการ memory ไม่เจอ ทำให้เกิด error ใช้ไม่ได้หมด
 # * 296 /fix/ 5.2.0LITE ปรับให้ไม่มีการตัดorder ที่ไม่สำเร็จของ accelmode และเก็บรายละเอียด error และ order ไว้ใน accel ไฟล์ อีก sheet นึงจะได้ตัดสินใจได้ว่าควรจะรันใหม่หรือไม่ต้องแก้อะไรก่อนถึงจะรันได้อีกรอบ
 # * 297 /feat/ 5.2.0LITE เพิ่ม function ในการเก็บค่า order inv tracking ไว้ เพื่อใช้สำหรับ
