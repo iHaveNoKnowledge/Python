@@ -284,7 +284,7 @@ if getattr(sys, 'frozen', False):
 class MyApp:
     def __init__(self, root):
         # * For testing purposes only
-        self.is_testing = True
+        self.is_testing = False
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -2378,6 +2378,12 @@ class MyApp:
                         print("Cannot Extract Note: ", err)
                     # self.cus_name.set()
                     # self.cus_name_simplifyer(self.name_match.group())
+
+                    # กรองอักษรพิเศษสำหรับลูกค้า Shopee ปกติ (ไม่ขอใบกำกับภาษี)
+                    if not self.is_tax_required.get():
+                        cleaned_name = re.sub(r'[^\x20-\x7E\u0e00-\u0e7f]+', '', self.cus_name.get())
+                        cleaned_name = re.sub(r'\s{2,}', " ", cleaned_name.strip())
+                        self.cus_name.set(cleaned_name)
                 elif self.marketplace_target.get() == 'LAZADA':
                     pass
 
