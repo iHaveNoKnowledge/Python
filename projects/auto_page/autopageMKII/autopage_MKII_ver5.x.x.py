@@ -8279,4 +8279,4 @@ if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
-    False("Program closed")
+    Print("Program closed")
