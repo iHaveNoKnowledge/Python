@@ -5397,7 +5397,7 @@ class Bot_POS:
                 # จะได้ element มา
                 print("realtime_status_text", self.app.cus_cur_status.get())
                 self.app.display_current_status.configure(text_color="#000000", fg_color="#8fd4ff")
-                if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get():
+                if "พิมพ์ใบแจ้งหนี้" in self.app.cus_cur_status.get() or "ยกเลิก" in self.app.cus_cur_status.get():
                     self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                 elif self.app.cus_cur_status.get() == "สถานะการจัดส่ง":
@@ -5411,6 +5411,14 @@ class Bot_POS:
             # * ถ้าสถานะยกเลิก ก็หยุดเลย
             if self.is_forbid:
                 print("This order was forbidden.")
+                if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                    try:
+                        self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, remove_order=True)
+                        self.app.accel_mode.record_failed_order(
+                            self.app.cus_order, f"ยกเลิก (สถานะ: {self.app.cus_cur_status.get()})")
+                    except Exception as xl_err:
+                        print("Accel mode delete/log order failed:", xl_err)
+                        logger.error(f"Accel mode delete/log order failed: {xl_err}")
                 self.app.display_bot_status_label.configure(
                     text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 return
@@ -8054,16 +8062,17 @@ class Bot_POS:
                             print(f"etax_reprint error: {e}")
                             logger.error(f"etax_reprint error: {e}")
                         # * Update Accel file //////////////////////
-                        try:
-                            self.app.accel_mode.used_serials
-                            print("Accel mode used")
-                            # * ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
-                            self.app.accel_mode.deduct_accel_file_data(
-                                self.app.cus_order,
-                                getattr(self.app.accel_mode, "used_serials", []))
-                        except:
-                            print("Accel mode not used")
-                            pass
+                        if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                            try:
+                                tracking_no = ", ".join(self.tracking_manager.trackings) if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings else ""
+                                self.app.accel_mode.deduct_accel_file_data(
+                                    self.app.cus_order,
+                                    getattr(self.app.accel_mode, "used_serials", []))
+                                self.app.accel_mode.record_completed_order(
+                                    self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status="Completed (etax)")
+                            except Exception as xl_err:
+                                print("Accel mode update failed:", xl_err)
+                                logger.error(f"Accel mode update failed: {xl_err}")
                         # * ถ้ามี etax ก็ print แล้วจบไป
                         time.sleep(0.75)
                         # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
@@ -8098,16 +8107,16 @@ class Bot_POS:
                         logger.error(f"get_pdf_src_and_print error: {e}")
 
                     # * Update Accel file //////////////////////
-                    try:
-                        self.app.accel_mode.used_serials
-                        print("Accel mode used")
-                        # * ใช้ getattr() แทน self.app.accel_mode.used_serialsโดยตรง เพราะ ค่า self.app.accel_mode.used_serials จะเกิดขึ้นในกรณีใช้ accel mode เท่านั้น
-                        self.app.accel_mode.deduct_accel_file_data(
-                            self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-
-                    except:
-                        print("Accel mode not used")
-                        pass
+                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                        try:
+                            tracking_no = ", ".join(self.tracking_manager.trackings) if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings else ""
+                            self.app.accel_mode.deduct_accel_file_data(
+                                self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+                            self.app.accel_mode.record_completed_order(
+                                self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status="Completed")
+                        except Exception as xl_err:
+                            print("Accel mode update failed:", xl_err)
+                            logger.error(f"Accel mode update failed: {xl_err}")
 
                 except RefreshRequiredException:
                     raise
@@ -8120,7 +8129,11 @@ class Bot_POS:
                     except:
                         pass
                     print("พัง ข้ามไปเลยละกัน", err)
-                    self.app.accel_mode.record_failed_order(self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")
+                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                        try:
+                            self.app.accel_mode.record_failed_order(self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")
+                        except Exception as xl_err:
+                            logger.error(f"Accel mode record failed order error: {xl_err}")
 
                 break
 
