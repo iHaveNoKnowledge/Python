@@ -5276,11 +5276,15 @@ class Bot_POS:
                         else:
                             success_msg = f"ข้ามออเดอร์ (สถานะ: {shopee_status}) ถือว่า Complete ตามเงื่อนไข"
                             self.app.update_log(f"✅ {success_msg}")
-                            if hasattr(
-                                    self.app, 'accel_mode') and hasattr(
-                                    self.app.accel_mode, 'record_completed_order'):
-                                self.app.accel_mode.record_completed_order(
-                                    self.app.cus_order, status=f"ข้าม (สถานะ: {shopee_status})")
+                            if hasattr(self.app, 'accel_mode'):
+                                if hasattr(self.app.accel_mode, 'deduct_accel_file_data'):
+                                    try:
+                                        self.app.accel_mode.deduct_accel_file_data(self.app.cus_order, remove_order=True)
+                                    except Exception as xl_err:
+                                        logger.warning(f"ไม่สามารถ deduct order จาก Sheet1 ได้: {xl_err}")
+                                if hasattr(self.app.accel_mode, 'record_completed_order'):
+                                    self.app.accel_mode.record_completed_order(
+                                        self.app.cus_order, status=f"ข้าม (สถานะ: {shopee_status})")
                             return
 
             #### * IF MARKETPLACE IS LAZADA ###########################################################################################################################

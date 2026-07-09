@@ -34,6 +34,8 @@ class AccelMode:
     def _read_accel_file_to_state(self, accel_file_dir):
         self.accel_file_dir = accel_file_dir
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        if 'orders' in self.accel_df_state.columns:
+            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
         print("before self.accel_df_state: ", self.accel_df_state)
         self.accel_df_state.loc[self.accel_df_state.duplicated(subset=['orders']), 'orders'] = pd.NA
         self.accel_df_state['orders'].dropna(inplace=True)
@@ -51,7 +53,9 @@ class AccelMode:
         print(self.CP_list)
 
     def deduct_accel_file_data(self, order, sku_serials=[], remove_order=True, update_memory=True):
-        order = order.get()
+        if hasattr(order, 'get'):
+            order = order.get()
+        order = str(order).strip()
         df = self.accel_df_state
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
@@ -79,6 +83,8 @@ class AccelMode:
             if update_memory:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
                 self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+                if 'orders' in self.accel_df_state.columns:
+                    self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
                 self.obj_data_from_accel_file = {
                     col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist()
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
@@ -114,6 +120,8 @@ class AccelMode:
         else:
             print("You have not selected any transfer file, Extraction ends!!")
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        if 'orders' in self.accel_df_state.columns:
+            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
 
         self._read_accel_file_to_state(self.accel_file_dir)
 
@@ -241,6 +249,8 @@ class AccelMode:
             else:
                 try:
                     self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+                    if 'orders' in self.accel_df_state.columns:
+                        self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
                     self.obj_data_from_accel_file = {
                         col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan']
                         for col in self.accel_file_columns}
