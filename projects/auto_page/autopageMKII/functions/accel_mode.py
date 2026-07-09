@@ -238,7 +238,19 @@ class AccelMode:
     # * start searching orders from accel file to check if order needed to be processed
     def accel_search(self):
         self.main_app.is_accel_mode_activated.set(True)
+        
+        # Reload Excel file state to get the latest status, orders, and SNs
+        if self.accel_file_dir:
+            try:
+                self._read_accel_file_to_state(self.accel_file_dir)
+            except Exception as e:
+                logger.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel ที่เริ่มต้นค้นหา: {e}")
+
         self.accel_orders_count = len(self.accel_orders_list)
+        if self.accel_orders_count == 0:
+            logger.warning("ไม่มีออเดอร์ในไฟล์ Excel ให้ดำเนินการ")
+            self.main_app.is_accel_mode_activated.set(False)
+            return
 
         def start_next_cycle(count):
             # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
