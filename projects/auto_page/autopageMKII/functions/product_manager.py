@@ -276,7 +276,8 @@ class ProductManager:
         for item in all_items:
             try:
                 subtotal = float(str(item.get(self.COL_SUBTOTAL, 0)).replace(",", ""))
-                expected_total += subtotal
+                shopee_discount = float(str(item.get("ส่วนลดจาก Shopee", 0)).replace(",", ""))
+                expected_total += (subtotal + shopee_discount)
             except Exception as e:
                 print(f"[ProductManager.verify_total_price] calc error: {e}")
 

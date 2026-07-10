@@ -3788,11 +3788,66 @@ class Bot_POS:
                             # 1. แอดคูปอง (ถ้ามีระบุ cp_name)
                             if cp_name and cp_name.upper() != "NONE" and cp_name.strip() != "":
                                 print(
-                                    f"[Verification] Found matching coupon: {cp_name}. Applying cp_sonic_blow_process...")
+                                    f"[Verification] Found matching coupon: {cp_name}. Checking if already selected...")
                                 self.app.update_log(
-                                    f"✅ พบคูปอง: {cp_name} สำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
-                                self.cp_sonic_blow_process(item_no_1indexed, cp_name)
-                                time.sleep(0.5)
+                                    f"🔍 ตรวจสอบว่าคูปอง: {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ก่อนแล้วหรือไม่...")
+
+                                is_already_selected = False
+                                try:
+                                    sku_variants = [sku_key]
+                                    try:
+                                        sku_variants = self.app.correct_sku_pattern(sku_key)
+                                    except Exception:
+                                        pass
+
+                                    panels = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                                    target_panel = None
+                                    for panel in panels:
+                                        panel_text = panel.text
+                                        if any(variant in panel_text for variant in sku_variants):
+                                            target_panel = panel
+                                            break
+
+                                    if target_panel:
+                                        tooltip_elements = target_panel.find_elements(By.XPATH, ".//a[@data-toggle='tooltip']")
+                                        existing_cps = []
+                                        for el in tooltip_elements:
+                                            text = el.text or ""
+                                            title = el.get_attribute("title") or ""
+                                            combined = (text + " " + title).replace(" ", "").upper()
+                                            existing_cps.append(combined)
+
+                                        target_tokens = []
+                                        for part in str(cp_name).split(','):
+                                            for token in part.split():
+                                                tok = token.strip().upper()
+                                                if tok:
+                                                    target_tokens.append(tok)
+
+                                        if target_tokens and existing_cps:
+                                            all_matched = True
+                                            for token in target_tokens:
+                                                matched = False
+                                                for existing in existing_cps:
+                                                    if token in existing:
+                                                        matched = True
+                                                        break
+                                                if not matched:
+                                                    all_matched = False
+                                                    break
+                                            if all_matched:
+                                                is_already_selected = True
+                                except Exception as check_err:
+                                    print(f"Error checking existing cp/dc tooltips: {check_err}")
+
+                                if is_already_selected:
+                                    self.app.update_log(
+                                        f"✨ คูปอง {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ก่อนแล้ว ข้ามการเลือกซ้ำ")
+                                else:
+                                    self.app.update_log(
+                                        f"✅ คูปอง {cp_name} ยังไม่ถูกเลือกครบสำหรับ SKU: {sku_key} กำลังดำเนินการแอดคูปอง...")
+                                    self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                                    time.sleep(0.5)
 
                             # 2. ปรับราคาเพิ่ม Overcharge (ถ้ามีระบุ oc_amount)
                             if is_valid_adjustment(oc_amount_str):
@@ -5694,6 +5749,49 @@ class Bot_POS:
                         self.app.update_log("✅ ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
                         self.app.finish_order()
                         self.current_checkpoint = "ออกบิลเรียบร้อย"
+
+                        # * ตรวจสอบ popup แจ้งเตือน (กรณีสินค้ายังไม่มี serial) สำหรับ accelmode + auto_inv
+                        if self.app.is_accel_mode.get() and self.app.is_auto_invoice_mode.get():
+                            time.sleep(1.5)  # รอให้ popup โชว์
+                            warning_popups = self.driver.find_elements(
+                                By.XPATH, "//div[contains(@class, 'swal2-icon') and contains(@class, 'swal2-warning') and contains(@class, 'pulse-warning')]"
+                            )
+                            has_warning = False
+                            for popup in warning_popups:
+                                try:
+                                    style_attr = popup.get_attribute("style") or ""
+                                    if "display: block" in style_attr or "display:block" in style_attr:
+                                        has_warning = True
+                                        break
+                                except:
+                                    pass
+
+                            if has_warning:
+                                err_msg = "พบป๊อปอัปแจ้งเตือน แต่ไม่พบข้อความผิดพลาด"
+                                content_elems = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'swal2-content')]")
+                                for content in content_elems:
+                                    try:
+                                        content_style = content.get_attribute("style") or ""
+                                        if "display: block" in content_style or "display:block" in content_style:
+                                            err_msg = content.text
+                                            break
+                                    except:
+                                        pass
+
+                                # ปิด Swal popup เพื่อไม่ให้กีดขวางขั้นตอนถัดไป
+                                try:
+                                    swal_ok = self.driver.find_element(
+                                        By.XPATH,
+                                        "//button[contains(@class, 'swal2-confirm') and (text()='OK' or text()='ตกลง')]"
+                                    )
+                                    if swal_ok.is_displayed():
+                                        self.driver.execute_script("arguments[0].click();", swal_ok)
+                                        print("ปิด Swal popup สำเร็จ")
+                                except:
+                                    pass
+
+                                self.app.update_log(f"❌ พบข้อผิดพลาดจากป๊อปอัป: {err_msg}")
+                                raise ValueError(err_msg)
                     else:
                         qty_errors = []
                         qty_res = post_verification.get("qty", {})
