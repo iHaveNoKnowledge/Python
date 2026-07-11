@@ -3739,12 +3739,17 @@ class Bot_POS:
                     expected_price = item_price_info.get("expected", 0)
                     actual_price = item_price_info.get("actual", 0)
                     item_no_1indexed = i + 1
+                    purchased_date = self.app.cus_purchase_time.get()
+
+                    if actual_price == "NOT_FOUND":
+                        error_msg = f"ไม่มีสินค้าให้ตรวจสอบและปรับราคา สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})"
+                        self.app.update_log(f"❌ {error_msg}")
+                        raise ValueError(error_msg)
 
                     print(
                         f"[Verification] SKU: {sku_key} expected={expected_price}, actual={actual_price}, diff={diff_val}")
 
                     #/ ดึงข้อมูลแคมเปญจาก Excel เสมอก่อนเพื่อตรวจสอบแนวทางการปรับราคาของสินค้าเซ็ต
-                    purchased_date = self.app.cus_purchase_time.get()
                     cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
 
                     if not isinstance(diff_val, (int, float)):
@@ -3858,9 +3863,69 @@ class Bot_POS:
                                 self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=1)
                                 time.sleep(0.5)
                         else:
+                            # บันทึกข้อมูล SKU และราคาออกบิลที่ไม่พบ CP ลงไฟล์ CP_data.xlsx
+                            self.add_missing_cp_to_excel(sku_key, expected_price)
+
                             error_msg = f"Order skipped, CP/DC not found for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})"
                             self.app.update_log(f"❌ {error_msg}")
                             raise ValueError(error_msg)
+
+    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float):
+        """
+        บันทึกเฉพาะข้อมูล SKU และ expected_price (sale_price) ลงในไฟล์ CP_data.xlsx (self.app.cp_table_location)
+        เพื่อให้ผู้ใช้งานสามารถเข้าไปจัดการเงื่อนไขการปรับราคาต่อในภายหลัง
+        """
+        try:
+            excel_path = getattr(self.app, 'cp_table_location', '')
+            if not excel_path or str(excel_path).strip() == "":
+                print("[add_missing_cp_to_excel] No cp_table_location set. Skipping.")
+                return
+
+            import os
+            if not os.path.exists(excel_path):
+                print(f"[add_missing_cp_to_excel] File not found: {excel_path}. Skipping.")
+                return
+
+            # อ่านข้อมูลเก่า
+            try:
+                df = pd.read_excel(excel_path)
+            except Exception as read_err:
+                print(f"[add_missing_cp_to_excel] Error reading excel: {read_err}")
+                return
+
+            # สร้างข้อมูลแถวใหม่ (บันทึกเฉพาะ sku และ sale_price ตามความต้องการของผู้ใช้)
+            new_row = {
+                'sku': sku_key,
+                'sale_price': expected_price
+            }
+
+            # เพื่อไม่ให้เกิดปัญหากับคอลัมน์อื่นๆ ในไฟล์จริง เราจะแปลงเป็น DataFrame แล้ว concat
+            new_df = pd.DataFrame([new_row])
+            
+            # รักษาโครงสร้างคอลัมน์ของไฟล์ Excel เดิมไว้
+            for col in df.columns:
+                if col not in new_df.columns:
+                    new_df[col] = ""
+            
+            # เรียงลำดับคอลัมน์ให้ตรงกัน
+            new_df = new_df[df.columns]
+
+            # รวมและบันทึก
+            df_combined = pd.concat([df, new_df], ignore_index=True)
+            df_combined.to_excel(excel_path, index=False)
+
+            self.app.update_log(f"💾 บันทึก SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}) ลงใน CP Data เรียบร้อยแล้ว (เว้นค่าการปรับราคาให้กรอกเพิ่มในภายหลัง)")
+            
+            # อัปเดต DataFrame ในหน่วยความจำ (self.app.cp_df) เพื่อให้สามารถใช้งานได้ทันที
+            if self.app.cp_df is not None:
+                if 'usage_start_date' in new_df.columns:
+                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], errors='coerce')
+                if 'usage_end_date' in new_df.columns:
+                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], errors='coerce')
+                self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
+
+        except Exception as err:
+            print(f"[add_missing_cp_to_excel] Error appending row: {err}")
 
     def smco_pos_item_list_srp_bringer(self, sku: str):
         """return srp โดยดึงจากหน้า pos (ฉะนั้นในposต้องมี sku อยู่ก่อนนะ)ตาม sku ที่เราใส่เข้ามาใน fn นี้"""
