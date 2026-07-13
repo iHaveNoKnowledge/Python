@@ -23,11 +23,14 @@ class AccelMode:
         self.excel_save_failed = False
 
     def select_accel_file(self):
-        self.accel_file_dir = filedialog.askopenfilename(title="Select Accel File")
+        self.accel_file_dir = filedialog.askopenfilename(
+            title="Select Accel File")
         if self.accel_file_dir:
-            self.main_app.accl_dir_namedisplay_on_btn.configure(text=f"{self.accel_file_dir.split('/')[-1]}")
+            self.main_app.accl_dir_namedisplay_on_btn.configure(
+                text=f"{self.accel_file_dir.split('/')[-1]}")
         else:
-            self.main_app.accl_dir_namedisplay_on_btn.configure(text=f"ยังไม่เลือก Accel File")
+            self.main_app.accl_dir_namedisplay_on_btn.configure(
+                text=f"ยังไม่เลือก Accel File")
 
         self._read_accel_file_to_state(self.accel_file_dir)
 
@@ -35,18 +38,22 @@ class AccelMode:
         self.accel_file_dir = accel_file_dir
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         if 'orders' in self.accel_df_state.columns:
-            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
+            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
+            )
         print("before self.accel_df_state: ", self.accel_df_state)
-        self.accel_df_state.loc[self.accel_df_state.duplicated(subset=['orders']), 'orders'] = pd.NA
+        self.accel_df_state.loc[self.accel_df_state.duplicated(
+            subset=['orders']), 'orders'] = pd.NA
         self.accel_df_state['orders'].dropna(inplace=True)
         print("after self.accel_df_state: ", self.accel_df_state)
 
         self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
         self.obj_data_from_accel_file = {
-            col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan']
+            col: [str(x).strip() for x in self.accel_df_state[col].dropna(
+            ).tolist() if str(x).strip() != 'nan']
             for col in self.accel_file_columns}
 
-        self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist()
+        self.accel_orders_list = self.accel_df_state['orders'].dropna(
+        ).tolist()
         self.CP_list = self.accel_df_state['cp'].dropna().tolist()
         print(self.accel_orders_list)
         print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
@@ -61,7 +68,8 @@ class AccelMode:
         print("deduct_accel_file_data order: ", order)
 
         if remove_order:
-            print("deduct_accel_file_data ref: ", df.loc[df['orders'] == order, 'orders'])
+            print("deduct_accel_file_data ref: ",
+                  df.loc[df['orders'] == order, 'orders'])
             has_order = df.loc[df['orders'] == order, 'orders']
             if not has_order.empty:
                 print(f'remove {order} from state df')
@@ -73,7 +81,8 @@ class AccelMode:
                 df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
 
         print("form state df to new excel")
-        print(f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
+        print(
+            f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
 
         try:
             self._save_df_to_excel(df, 'Sheet1')
@@ -82,15 +91,18 @@ class AccelMode:
 
             if update_memory:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
-                self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+                self.accel_df_state = pd.read_excel(
+                    self.accel_file_dir, dtype=str)
                 if 'orders' in self.accel_df_state.columns:
-                    self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
+                    self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
+                    )
                 self.obj_data_from_accel_file = {
                     col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist()
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
         except PermissionError as e:
             print(f"Permission denied: {e}")
-            logger.warning(f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึกไม่สำเร็จ จะใช้ข้อมูลในหน่วยความจำแทน: {e}")
+            logger.warning(
+                f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึกไม่สำเร็จ จะใช้ข้อมูลในหน่วยความจำแทน: {e}")
             self.excel_save_failed = True
             if update_memory:
                 # ใช้ข้อมูลในหน่วยความจำแทน ไม่อัปเดตไฟล์
@@ -121,7 +133,8 @@ class AccelMode:
             print("You have not selected any transfer file, Extraction ends!!")
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         if 'orders' in self.accel_df_state.columns:
-            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
+            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
+            )
 
         self._read_accel_file_to_state(self.accel_file_dir)
 
@@ -133,10 +146,13 @@ class AccelMode:
         serial_numbers = self._extract_serial_numbers(extracted_txt)
 
         cleaned_serial_numbers = self._clean_serial_numbers(serial_numbers)
-        serial_numbers_grouped = self._group_serial_numbers(cleaned_serial_numbers)
+        serial_numbers_grouped = self._group_serial_numbers(
+            cleaned_serial_numbers)
 
-        self._print_debug_info(product_codes, cleaned_serial_numbers, serial_numbers_grouped)
-        self._write_to_excel(output_excel, product_codes, serial_numbers_grouped)
+        self._print_debug_info(
+            product_codes, cleaned_serial_numbers, serial_numbers_grouped)
+        self._write_to_excel(output_excel, product_codes,
+                             serial_numbers_grouped)
 
     def _extract_text_from_pdf(self, target_dir):
         reader = PdfReader(target_dir)
@@ -153,7 +169,8 @@ class AccelMode:
         text = re.sub(pattern2, '', text, flags=re.DOTALL)
 
         text = re.sub(r'Serial\s:', '', text, flags=re.DOTALL)
-        text = re.sub(r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))', '', text, flags=re.DOTALL)
+        text = re.sub(
+            r'\d+\s{0,}(?=([A-Z0-9]{3}-[0-9]{6}))', '', text, flags=re.DOTALL)
 
         return text
 
@@ -186,7 +203,8 @@ class AccelMode:
             print(f"{i} {len(serial_list)} [{serial}]")
 
         print("SKU Matches:", len(product_codes), product_codes)
-        print("Serial Numbers Grouped:", len(serial_numbers_grouped), serial_numbers_grouped)
+        print("Serial Numbers Grouped:", len(
+            serial_numbers_grouped), serial_numbers_grouped)
 
     def _write_to_excel(self, output_excel, product_codes, serial_numbers_grouped):
         try:
@@ -201,7 +219,8 @@ class AccelMode:
                     existing_skus[sku] = col
 
             # * Add new SKUs and their serial numbers, avoiding duplicates
-            for sku, serials in zip(product_codes, serial_numbers_grouped):  # *the incoming new data from PDF
+            # *the incoming new data from PDF
+            for sku, serials in zip(product_codes, serial_numbers_grouped):
                 if sku in existing_skus:
                     col = existing_skus[sku]
 
@@ -238,13 +257,14 @@ class AccelMode:
     # * start searching orders from accel file to check if order needed to be processed
     def accel_search(self):
         self.main_app.is_accel_mode_activated.set(True)
-        
+
         # Reload Excel file state to get the latest status, orders, and SNs
         if self.accel_file_dir:
             try:
                 self._read_accel_file_to_state(self.accel_file_dir)
             except Exception as e:
-                logger.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel ที่เริ่มต้นค้นหา: {e}")
+                logger.error(
+                    f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel ที่เริ่มต้นค้นหา: {e}")
 
         self.accel_orders_count = len(self.accel_orders_list)
         if self.accel_orders_count == 0:
@@ -260,23 +280,28 @@ class AccelMode:
                     "ตรวจพบการบันทึก Excel ล้มเหลวก่อนหน้า จะใช้ข้อมูลในหน่วยความจำล่าสุดแทนการโหลดใหม่จากไฟล์ดิสก์")
             else:
                 try:
-                    self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+                    self.accel_df_state = pd.read_excel(
+                        self.accel_file_dir, dtype=str)
                     if 'orders' in self.accel_df_state.columns:
-                        self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip()
+                        self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
+                        )
                     self.obj_data_from_accel_file = {
-                        col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() != 'nan']
+                        col: [str(x).strip() for x in self.accel_df_state[col].dropna(
+                        ).tolist() if str(x).strip() != 'nan']
                         for col in self.accel_file_columns}
                 except Exception as e:
                     logger.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel: {e}")
             if count < self.accel_orders_count:
                 if self.main_app.is_accel_mode_activated.get():
-                    self.main_app.search_order(self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                    self.main_app.search_order(
+                        self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
                     logger.info("Accel mode has been stopped by user.")
             else:
                 pass
 
-        self.main_app.search_order(self.accel_orders_list[0], lambda: start_next_cycle(1))
+        self.main_app.search_order(
+            self.accel_orders_list[0], lambda: start_next_cycle(1))
 
     # * ดึงรายการ SN ที่พร้อมใช้งานในสต็อกของ SMCO ทั้งหมดสำหรับ SKU นี้
     def get_available_sns_from_smco(self, driver, sku):
@@ -295,14 +320,16 @@ class AccelMode:
             origin = current_url.replace(matched_str, '')
 
             # 2. ค้นหา Product ID จาก SKU
-            resp_prod = self.main_app.smco_api.get_product_info(origin, sku, cookies)
+            resp_prod = self.main_app.smco_api.get_product_info(
+                origin, sku, cookies)
             product_data = resp_prod.json()
 
             if not product_data or len(product_data) == 0:
                 logger.warning(f"ไม่พบข้อมูลสินค้าสำหรับ SKU: {sku}")
                 return []
 
-            product_id = product_data[0].get('productId') or product_data[0].get('id')
+            product_id = product_data[0].get(
+                'productId') or product_data[0].get('id')
             master_id = 180
             parent_id = 441
 
@@ -316,8 +343,10 @@ class AccelMode:
             sn_list_data = resp_sn.json().get('data', [])
 
             # ดึงเฉพาะ serialNo ของตัวที่พร้อมใช้งาน
-            found_sns = [str(item.get('serialNo')).strip() for item in sn_list_data if item.get('serialNo')]
-            logger.debug(f"SMCO API ส่งกลับมารวม {len(found_sns)} รายการสำหรับ product {product_id}")
+            found_sns = [str(item.get('serialNo')).strip()
+                         for item in sn_list_data if item.get('serialNo')]
+            logger.debug(
+                f"SMCO API ส่งกลับมารวม {len(found_sns)} รายการสำหรับ product {product_id}")
             return found_sns
 
         except Exception as e:
@@ -340,9 +369,12 @@ class AccelMode:
             f"จำนวนครั้งที่ใช้งานไม่ได้ของ SKU {current_sku} เกิน 2 ครั้ง (> 2) จะดึงข้อมูลสต็อกของ SKU นี้จาก SMCO...")
         available_sns = self.get_available_sns_from_smco(driver, current_sku)
         if available_sns != "API_ERROR":
-            logger.info(f"ดึงข้อมูลสำเร็จ: พบ SN ที่ใช้งานได้ใน SMCO ทั้งหมด {len(available_sns)} รายการ")
-            current_candidates = self.obj_data_from_accel_file.get(current_sku, [])
-            sns_to_remove = [sn for sn in current_candidates if sn not in available_sns]
+            logger.info(
+                f"ดึงข้อมูลสำเร็จ: พบ SN ที่ใช้งานได้ใน SMCO ทั้งหมด {len(available_sns)} รายการ")
+            current_candidates = self.obj_data_from_accel_file.get(
+                current_sku, [])
+            sns_to_remove = [
+                sn for sn in current_candidates if sn not in available_sns]
 
             if sns_to_remove:
                 logger.info(
@@ -356,9 +388,11 @@ class AccelMode:
                 logger.info(
                     f"อัปเดต Excel และสถานะความทรงจำเรียบร้อยแล้ว คงเหลือ SN ในระบบ: {self.obj_data_from_accel_file.get(current_sku, [])}")
             else:
-                logger.info("SN ทั้งหมดใน Excel สอดคล้องกับสต็อกของ SMCO ไม่มีตัวต้องตัดออก")
+                logger.info(
+                    "SN ทั้งหมดใน Excel สอดคล้องกับสต็อกของ SMCO ไม่มีตัวต้องตัดออก")
         else:
-            logger.warning("ไม่สามารถดึงข้อมูลสต็อก SN จาก SMCO API ได้ (API_ERROR)")
+            logger.warning(
+                "ไม่สามารถดึงข้อมูลสต็อก SN จาก SMCO API ได้ (API_ERROR)")
 
     # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco และทำการ verify บนเว็บ
     def accel_fill_sku(self, driver, operation_thread):
@@ -366,6 +400,67 @@ class AccelMode:
         from selenium.webdriver.common.keys import Keys
         from selenium.webdriver.support import expected_conditions as EC
         from selenium.webdriver.support.ui import WebDriverWait
+
+        def adjust_qty_down(sku, target_qty):
+            print(
+                f"กำลังตรวจสอบและปรับลดจำนวนสินค้า SKU: {sku} ให้เท่ากับ {target_qty}")
+            for attempt in range(10):
+                if operation_thread.is_set():
+                    break
+
+                try:
+                    # ค้นหา index ของ SKU บนหน้าเว็บ
+                    sku_elements = driver.find_elements(
+                        By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                    )
+                    target_idx = None
+                    for idx, elem in enumerate(sku_elements):
+                        if elem.text.strip() == sku.strip():
+                            target_idx = idx
+                            break
+
+                    if target_idx is None:
+                        print(
+                            f"ไม่พบ SKU: {sku} บนหน้าเว็บ จึงไม่ต้องปรับลดจำนวน")
+                        break
+
+                    # ดึงจำนวนสินค้าปัจจุบันบนหน้าเว็บ
+                    current_qty_elements = driver.find_elements(
+                        By.XPATH, "//span[@class='col-sm-4 ng-binding' and not(contains(@class, 'ng-hide'))]"
+                    )
+                    if target_idx >= len(current_qty_elements):
+                        print(
+                            f"Warning: target_idx {target_idx} เกินจำนวนของ element แสดงจำนวนสินค้า")
+                        break
+
+                    current_qty = int(
+                        current_qty_elements[target_idx].text.strip())
+                    print(
+                        f"จำนวนปัจจุบันบนหน้าเว็บ: {current_qty}, จำนวนที่ควรจะเป็น (target): {target_qty}")
+
+                    if current_qty <= target_qty:
+                        # จำนวนเหมาะสมแล้ว หรือน้อยกว่า/เท่ากับเป้าหมาย ไม่ต้องปรับลด
+                        break
+
+                    # ดึงปุ่มปรับลดจำนวน
+                    decrease_buttons = driver.find_elements(
+                        By.XPATH, "//button[@ng-click='incrementMainQty(false, x)' and not(contains(@class, 'ng-hide'))]"
+                    )
+                    if target_idx >= len(decrease_buttons):
+                        print(
+                            f"Warning: target_idx {target_idx} เกินจำนวนของปุ่มปรับลดจำนวน")
+                        break
+
+                    # กดปุ่มปรับลดจำนวน
+                    print(
+                        f"กดปุ่มปรับลดจำนวนของ SKU: {sku} จาก {current_qty} เหลือ {current_qty - 1}")
+                    driver.execute_script(
+                        "arguments[0].click();", decrease_buttons[target_idx])
+                    time.sleep(0.5)  # รอให้หน้าจออัปเดต
+
+                except Exception as e:
+                    print(f"เกิดข้อผิดพลาดระหว่างปรับลดจำนวน: {e}")
+                    time.sleep(0.5)
 
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
@@ -380,16 +475,22 @@ class AccelMode:
                 current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
                 print("current_sku: ", current_sku)
                 sku_qtys = int(ordered_item['จำนวน'])
-                is_sku_ready_to_pick = [key for key in accel_available_skus_list if key in current_sku]
+                is_sku_ready_to_pick = [
+                    key for key in accel_available_skus_list if key in current_sku]
 
                 if len(is_sku_ready_to_pick) > 0:
                     successful_count = 0
                     sku_fail_count = 0
                     while successful_count < sku_qtys and not operation_thread.is_set():
+                        # ปรับลดจำนวนให้เท่ากับ successful_count ก่อนลอง SN ตัวใหม่
+                        adjust_qty_down(current_sku, successful_count)
+
                         # ตรวจสอบว่ายังมี SN ในหน่วยความจำไหม
-                        candidates = self.obj_data_from_accel_file.get(current_sku, [])
+                        candidates = self.obj_data_from_accel_file.get(
+                            current_sku, [])
                         if not candidates:
-                            logger.warning(f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_sku}")
+                            logger.warning(
+                                f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_sku}")
                             break
 
                         candidate_sn = candidates[0]
@@ -398,14 +499,16 @@ class AccelMode:
                         # รอช่อง Input SKU แสดงขึ้นมา
                         while not operation_thread.is_set():
                             try:
-                                skuInput = driver.find_element(By.XPATH, sku_input_xpath)
+                                skuInput = driver.find_element(
+                                    By.XPATH, sku_input_xpath)
                                 if skuInput.is_displayed():
                                     break
                             except:
                                 time.sleep(0.5)
                                 continue
 
-                        skuInput = driver.find_element(By.XPATH, sku_input_xpath)
+                        skuInput = driver.find_element(
+                            By.XPATH, sku_input_xpath)
                         skuInput.clear()
 
                         attempts = 10
@@ -419,7 +522,8 @@ class AccelMode:
                         else:
                             logger.error(
                                 f'sku input in smco cannot be interacted with from order: {self.main_app.cus_order.get()}')
-                            raise ValueError('sku input in smco cannot be interacted with')
+                            raise ValueError(
+                                'sku input in smco cannot be interacted with')
 
                         print(f"กรอก SN: {candidate_sn} สำเร็จ")
                         skuInput.send_keys(Keys.ENTER)
@@ -429,29 +533,35 @@ class AccelMode:
                         sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}']"
                         check_btn_xpath = "//i[@class='fa fa-check-square-o']"
 
-                        wait_timeout = 60
+                        wait_timeout = 44
                         start_wait = time.time()
                         check_btn = None
                         sku_elem = None
 
-                        print("กำลังรอปุ่มยืนยัน SN (fa-check-square-o) และ SKU element...")
+                        print(
+                            "กำลังรอปุ่มยืนยัน SN (fa-check-square-o) และ SKU element...")
                         while (time.time() - start_wait) < wait_timeout and not operation_thread.is_set():
                             try:
-                                sku_elem = driver.find_element(By.XPATH, sku_elem_xpath)
-                                check_btn = driver.find_element(By.XPATH, check_btn_xpath)
+                                sku_elem = driver.find_element(
+                                    By.XPATH, sku_elem_xpath)
+                                check_btn = driver.find_element(
+                                    By.XPATH, check_btn_xpath)
                                 if sku_elem.is_displayed() and check_btn.is_displayed():
                                     break
                             except:
                                 pass
                             time.sleep(0.5)
                         else:
-                            logger.error(f"หมดเวลารอปุ่มยืนยัน SN หรือ SKU element สำหรับ {candidate_sn}")
+                            logger.error(
+                                f"หมดเวลารอปุ่มยืนยัน SN หรือ SKU element สำหรับ {candidate_sn}")
                             # หากรอไม่เจอ ถือว่า SN นั้นมีปัญหา ให้เอาออกแล้วลองตัวถัดไป
                             self.deduct_accel_file_data(
-                                self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
+                                self.main_app.cus_order, [
+                                    {'sku': current_sku, 'sn': candidate_sn}],
                                 remove_order=False, update_memory=False)
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
-                                self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                                self.obj_data_from_accel_file[current_sku].remove(
+                                    candidate_sn)
 
                             sku_fail_count += 1
                             if sku_fail_count > 2:
@@ -463,14 +573,17 @@ class AccelMode:
                         try:
                             self.main_app.bot.network_capture.clear_logs()
                         except Exception as log_err:
-                            logger.warning(f"ไม่สามารถเคลียร์ log performance ได้: {log_err}")
+                            logger.warning(
+                                f"ไม่สามารถเคลียร์ log performance ได้: {log_err}")
 
                         # กดปุ่มยืนยัน
                         print(f"กำลังกดปุ่มยืนยัน SN...")
                         try:
-                            driver.execute_script("arguments[0].click();", check_btn)
+                            driver.execute_script(
+                                "arguments[0].click();", check_btn)
                         except Exception as click_err:
-                            logger.warning(f"JS click ล้มเหลว จะลองคลิกแบบปกติ: {click_err}")
+                            logger.warning(
+                                f"JS click ล้มเหลว จะลองคลิกแบบปกติ: {click_err}")
                             check_btn.click()
 
                         # รอและดัก response
@@ -501,7 +614,8 @@ class AccelMode:
                         button_disappeared = False
                         for _ in range(10):
                             try:
-                                btn = driver.find_element(By.XPATH, check_btn_xpath)
+                                btn = driver.find_element(
+                                    By.XPATH, check_btn_xpath)
                                 if not btn.is_displayed():
                                     button_disappeared = True
                                     break
@@ -512,7 +626,8 @@ class AccelMode:
 
                         # ถ้ามี reasonNameEn/Th หรือปุ่มไม่ยอมหายไป แสดงว่าใช้งานไม่ได้
                         if is_invalid or not button_disappeared:
-                            print(f"SN {candidate_sn} ใช้งานไม่ได้! เหตุผล: {reasons if is_invalid else 'ปุ่มไม่หายไป'}")
+                            print(
+                                f"SN {candidate_sn} ใช้งานไม่ได้! เหตุผล: {reasons if is_invalid else 'ปุ่มไม่หายไป'}")
 
                             # 1. ปิด Swal popup หรือ alert ที่เด้งขึ้นมา
                             try:
@@ -536,8 +651,10 @@ class AccelMode:
                             # 2. กดลบรายการที่แอดเข้าไปเพื่อเคลียร์ช่องสำหรับ SN ตัวใหม่
                             try:
                                 delete_btn_xpath = f"//div[contains(@class, 'panel') and .//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}'] and .//i[@class='fa fa-check-square-o']]//button[@class='btn btn-danger btn-sm ng-scope']"
-                                delete_btn = driver.find_element(By.XPATH, delete_btn_xpath)
-                                driver.execute_script("arguments[0].click();", delete_btn)
+                                delete_btn = driver.find_element(
+                                    By.XPATH, delete_btn_xpath)
+                                driver.execute_script(
+                                    "arguments[0].click();", delete_btn)
                                 print("กดปุ่มลบรายการที่ตรวจสอบไม่ผ่านสำเร็จ")
                                 time.sleep(1)
                             except Exception as del_err:
@@ -545,11 +662,13 @@ class AccelMode:
 
                             # 3. ลบ SN ตัวที่มีปัญหาออกจาก Excel และหน่วยความจำ
                             self.deduct_accel_file_data(
-                                self.main_app.cus_order, [{'sku': current_sku, 'sn': candidate_sn}],
+                                self.main_app.cus_order, [
+                                    {'sku': current_sku, 'sn': candidate_sn}],
                                 remove_order=False, update_memory=False
                             )
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
-                                self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                                self.obj_data_from_accel_file[current_sku].remove(
+                                    candidate_sn)
 
                             sku_fail_count += 1
                             if sku_fail_count > 2:
@@ -559,23 +678,30 @@ class AccelMode:
                         else:
                             print(f"SN {candidate_sn} ใช้งานได้สำเร็จ!")
                             # แอดเข้า used serials
-                            self.used_serials.append({'sku': current_sku, 'sn': candidate_sn})
+                            self.used_serials.append(
+                                {'sku': current_sku, 'sn': candidate_sn})
                             # เอาออกจากหน่วยความจำ (เพราะใช้ได้แล้ว)
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
-                                self.obj_data_from_accel_file[current_sku].remove(candidate_sn)
+                                self.obj_data_from_accel_file[current_sku].remove(
+                                    candidate_sn)
                             successful_count += 1
                             time.sleep(1)
+
+                    # เมื่อจบ loop ของ SKU นี้ ปรับลดจำนวนสินค้าให้ตรงตามจริงที่สำเร็จอีกครั้งเพื่อความถูกต้อง
+                    adjust_qty_down(current_sku, successful_count)
                 else:
                     logger.info(
                         f"มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}")
-                    print("มี current_sku ใน Accel_File หรือไม่?:", current_sku in self.obj_data_from_accel_file)
+                    print("มี current_sku ใน Accel_File หรือไม่?:",
+                          current_sku in self.obj_data_from_accel_file)
         else:
             print("No items, return!!")
             return
 
     def _save_df_to_excel(self, target_df, sheet_name):
         if not os.path.exists(self.accel_file_dir):
-            target_df.to_excel(self.accel_file_dir, sheet_name=sheet_name, index=False)
+            target_df.to_excel(self.accel_file_dir,
+                               sheet_name=sheet_name, index=False)
             return
 
         try:
@@ -589,10 +715,12 @@ class AccelMode:
                     book.save(self.accel_file_dir)
                 book.close()
                 with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a') as writer:
-                    target_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    target_df.to_excel(
+                        writer, sheet_name=sheet_name, index=False)
             except Exception as ex:
                 print(f"Append failed, overwriting entire excel file: {ex}")
-                target_df.to_excel(self.accel_file_dir, sheet_name=sheet_name, index=False)
+                target_df.to_excel(self.accel_file_dir,
+                                   sheet_name=sheet_name, index=False)
 
     def record_failed_order(self, order, reason):
         """Record failed order
@@ -614,13 +742,16 @@ class AccelMode:
 
         try:
             if not os.path.exists(self.accel_file_dir):
-                print(f"Accel file {self.accel_file_dir} does not exist, cannot record failed order.")
+                print(
+                    f"Accel file {self.accel_file_dir} does not exist, cannot record failed order.")
                 return
 
-            failed_df = pd.DataFrame(columns=['orders', 'failed_reason', 'timestamp'])
+            failed_df = pd.DataFrame(
+                columns=['orders', 'failed_reason', 'timestamp'])
 
             try:
-                failed_df = pd.read_excel(self.accel_file_dir, sheet_name='Failed_Orders', dtype=str)
+                failed_df = pd.read_excel(
+                    self.accel_file_dir, sheet_name='Failed_Orders', dtype=str)
             except Exception:
                 print("Failed_Orders sheet does not exist yet. Creating a new one.")
 
@@ -634,10 +765,12 @@ class AccelMode:
             failed_df = pd.concat([failed_df, new_row], ignore_index=True)
 
             self._save_df_to_excel(failed_df, 'Failed_Orders')
-            print(f"Successfully recorded failed order {order_str} to Failed_Orders sheet.")
+            print(
+                f"Successfully recorded failed order {order_str} to Failed_Orders sheet.")
         except PermissionError as e:
             print(f"Permission denied while recording failed order: {e}")
-            logger.warning(f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึก Failed Order ไม่สำเร็จ: {e}")
+            logger.warning(
+                f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึก Failed Order ไม่สำเร็จ: {e}")
         except Exception as e:
             print(f"Error recording failed order to Excel: {e}")
             logger.error(f"Error recording failed order to Excel: {e}")
@@ -664,13 +797,16 @@ class AccelMode:
 
         try:
             if not os.path.exists(self.accel_file_dir):
-                print(f"Accel file {self.accel_file_dir} does not exist, cannot record completed order.")
+                print(
+                    f"Accel file {self.accel_file_dir} does not exist, cannot record completed order.")
                 return
 
-            completed_df = pd.DataFrame(columns=['orders', 'tracking', 'bill_no', 'timestamp', 'status'])
+            completed_df = pd.DataFrame(
+                columns=['orders', 'tracking', 'bill_no', 'timestamp', 'status'])
 
             try:
-                completed_df = pd.read_excel(self.accel_file_dir, sheet_name='Completed_Orders', dtype=str)
+                completed_df = pd.read_excel(
+                    self.accel_file_dir, sheet_name='Completed_Orders', dtype=str)
             except Exception:
                 print("Completed_Orders sheet does not exist yet. Creating a new one.")
 
@@ -683,14 +819,16 @@ class AccelMode:
             }])
 
             completed_df = completed_df[completed_df['orders'] != order_str]
-            completed_df = pd.concat([completed_df, new_row], ignore_index=True)
+            completed_df = pd.concat(
+                [completed_df, new_row], ignore_index=True)
 
             self._save_df_to_excel(completed_df, 'Completed_Orders')
-            print(f"Successfully recorded completed order {order_str} to Completed_Orders sheet.")
+            print(
+                f"Successfully recorded completed order {order_str} to Completed_Orders sheet.")
         except PermissionError as e:
             print(f"Permission denied while recording completed order: {e}")
-            logger.warning(f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึก Completed Order ไม่สำเร็จ: {e}")
+            logger.warning(
+                f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึก Completed Order ไม่สำเร็จ: {e}")
         except Exception as e:
             print(f"Error recording completed order to Excel: {e}")
             logger.error(f"Error recording completed order to Excel: {e}")
-
