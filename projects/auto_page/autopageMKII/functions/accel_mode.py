@@ -209,7 +209,14 @@ class AccelMode:
     def _write_to_excel(self, output_excel, product_codes, serial_numbers_grouped):
         try:
             book = load_workbook(output_excel)
-            sheet = book.active
+            
+            # Target 'Sheet1' (case-insensitive) instead of active sheet, fallback to first sheet if not found
+            sheet_names_lower = [s.lower() for s in book.sheetnames]
+            if 'sheet1' in sheet_names_lower:
+                idx = sheet_names_lower.index('sheet1')
+                sheet = book[book.sheetnames[idx]]
+            else:
+                sheet = book.worksheets[0]
 
             # * Map existing SKUs to their columns to avoid duplicates
             existing_skus = {}
