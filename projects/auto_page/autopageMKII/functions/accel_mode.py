@@ -37,6 +37,7 @@ class AccelMode:
     def _read_accel_file_to_state(self, accel_file_dir):
         self.accel_file_dir = accel_file_dir
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
             self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
             )
@@ -93,6 +94,7 @@ class AccelMode:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
                 self.accel_df_state = pd.read_excel(
                     self.accel_file_dir, dtype=str)
+                self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                 if 'orders' in self.accel_df_state.columns:
                     self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
                     )
@@ -132,6 +134,7 @@ class AccelMode:
         else:
             print("You have not selected any transfer file, Extraction ends!!")
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
             self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
             )
@@ -289,6 +292,7 @@ class AccelMode:
                 try:
                     self.accel_df_state = pd.read_excel(
                         self.accel_file_dir, dtype=str)
+                    self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                     if 'orders' in self.accel_df_state.columns:
                         self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
                         )
@@ -483,7 +487,7 @@ class AccelMode:
                 print("current_sku: ", current_sku)
                 sku_qtys = int(ordered_item['จำนวน'])
                 is_sku_ready_to_pick = [
-                    key for key in accel_available_skus_list if key in current_sku]
+                    key for key in accel_available_skus_list if str(key) in str(current_sku)]
 
                 if len(is_sku_ready_to_pick) > 0:
                     successful_count = 0

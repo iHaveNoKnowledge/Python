@@ -4097,17 +4097,44 @@ class Bot_POS:
                             if is_valid_adjustment(dc_amount_str):
                                 print(
                                     f"[Verification] Applying Discount (DC) from CP Data: {dc_amount_str} for SKU: {sku_key}")
+                                item_qty = int(item.get('จำนวน', 1))
+                                total_dc = float(dc_amount_str) * item_qty
                                 self.app.update_log(
-                                    f"📉 ปรับราคาลด (Discount) จากข้อมูลแคมเปญ: {dc_amount_str} บาท")
+                                    f"📉 ปรับราคาลด (Discount) จากข้อมูลแคมเปญ: {dc_amount_str} x {item_qty} = {total_dc} บาท")
                                 self.smco_set_discount_product(
-                                    sku_key, str(dc_amount_str), qty=1)
+                                    sku_key, str(dc_amount_str), qty=item_qty)
                                 time.sleep(0.5)
                         else:
                             # บันทึกข้อมูล SKU และราคาออกบิลที่ไม่พบ CP ลงไฟล์ CP_data.xlsx
                             self.add_missing_cp_to_excel(
                                 sku_key, expected_price)
 
-                            error_msg = f"Order skipped, CP/DC not found for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})"
+                            # Print formatting template for user to copy-paste
+                            marketplace = self.app.marketplace_target.get()
+                            purchase_time = self.app.cus_purchase_time.get()
+                            product_name = str(item.get('ชื่อสินค้า', '')).strip()
+                            if product_name.lower() == 'nan':
+                                product_name = ''
+                            try:
+                                actual_formatted = f"{float(actual_price):,.2f}"
+                            except Exception:
+                                actual_formatted = str(actual_price)
+                            try:
+                                expected_formatted = f"{float(expected_price):,.2f}"
+                            except Exception:
+                                expected_formatted = str(expected_price)
+                            
+                            pattern_msg = (
+                                f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
+                                f"{sku_key} {product_name}\n"
+                                f"ยิงขายขึ้น {actual_formatted} บาท\n"
+                                f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+                                f"ขอวิธีปรับราคาครับ"
+                            )
+                            self.app.update_log(pattern_msg)
+                            print(pattern_msg)
+
+                            error_msg = f"Order skipped, CP/DC not found for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})\n{pattern_msg}"
                             self.app.update_log(f"❌ {error_msg}")
                             raise ValueError(error_msg)
 
@@ -6275,11 +6302,45 @@ class Bot_POS:
 
                         price_errors = []
                         price_res = post_verification.get("price", {})
+                        mismatch_patterns = []
                         for sku, info in price_res.items():
                             if not info.get("ok", True):
                                 price_errors.append(
                                     f"SKU Price mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')}, diff {info.get('diff')})"
                                 )
+                                
+                                # Print formatting template for user to copy-paste
+                                marketplace = self.app.marketplace_target.get()
+                                purchase_time = self.app.cus_purchase_time.get()
+                                product_name = ""
+                                for item in getattr(self.app, 'items', []):
+                                    if item.get('เลขอ้างอิง SKU (SKU Reference No.)') == sku:
+                                        product_name = str(item.get('ชื่อสินค้า', '')).strip()
+                                        if product_name.lower() == 'nan':
+                                            product_name = ''
+                                        break
+                                
+                                expected_price = info.get('expected', 0)
+                                actual_price = info.get('actual', 0)
+                                try:
+                                    actual_formatted = f"{float(actual_price):,.2f}"
+                                except Exception:
+                                    actual_formatted = str(actual_price)
+                                try:
+                                    expected_formatted = f"{float(expected_price):,.2f}"
+                                except Exception:
+                                    expected_formatted = str(expected_price)
+                                
+                                pattern_msg = (
+                                    f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
+                                    f"{sku} {product_name}\n"
+                                    f"ยิงขายขึ้น {actual_formatted} บาท\n"
+                                    f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+                                    f"ขอวิธีปรับราคาครับ"
+                                )
+                                self.app.update_log(pattern_msg)
+                                print(pattern_msg)
+                                mismatch_patterns.append(pattern_msg)
 
                         total_errors = []
                         total_res = post_verification.get("total", {})
@@ -6290,6 +6351,8 @@ class Bot_POS:
                         all_errors = qty_errors + price_errors + total_errors
                         error_msg = f"ราคา/จำนวนไม่ตรงหลังปรับราคา: " + \
                             " | ".join(all_errors)
+                        if mismatch_patterns:
+                            error_msg += "\n" + "\n".join(mismatch_patterns)
                         self.app.update_log(f"❌ {error_msg}")
                         raise ValueError(error_msg)
                 except Exception as err:
