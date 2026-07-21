@@ -3655,7 +3655,7 @@ class Bot_POS:
                 if token.strip():
                     raw_tokens.append(token.strip())
 
-        # * เก็บชื่อ coupon ที่เลือกแต่ละตัว
+        # * สำหรับหน้าเลือก coupon เก็บชื่อ coupon ที่เลือกแต่ละตัว
         cp_target_names = []
 
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
@@ -3955,8 +3955,7 @@ class Bot_POS:
             if sku_key in price_result:
                 item_price_info = price_result[sku_key]
                 if not item_price_info.get("ok", True):
-                    diff_val = item_price_info.get(
-                        "diff", 0)  # expected - actual
+                    diff_val = item_price_info.get("diff", 0)  # expected - actual
                     expected_price = item_price_info.get("expected", 0)
                     actual_price = item_price_info.get("actual", 0)
                     item_no_1indexed = i + 1
@@ -4068,27 +4067,22 @@ class Bot_POS:
                                         self.app.update_log(
                                             f"✨ คูปอง {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ครบก่อนแล้ว ข้ามการเลือกซ้ำ")
                                     else:
-                                        missing_cp_str = " ".join(
-                                            missing_tokens)
+                                        missing_cp_str = " ".join(missing_tokens)
                                         self.app.update_log(
                                             f"✅ คูปองที่ยังไม่ถูกเลือกคือ: {missing_cp_str} กำลังดำเนินการแอดคูปอง...")
-                                        self.cp_sonic_blow_process(
-                                            item_no_1indexed, missing_cp_str)
+                                        self.cp_sonic_blow_process(item_no_1indexed, missing_cp_str)
                                         time.sleep(0.5)
                                 except Exception as check_err:
-                                    print(
-                                        f"Error checking and filtering cp/dc tooltips: {check_err}")
+                                    print(f"Error checking and filtering cp/dc tooltips: {check_err}")
                                     # Fallback to applying original cp_name
-                                    self.cp_sonic_blow_process(
-                                        item_no_1indexed, cp_name)
+                                    self.cp_sonic_blow_process(item_no_1indexed, cp_name)
                                     time.sleep(0.5)
 
                             # 2. ปรับราคาเพิ่ม Overcharge (ถ้ามีระบุ oc_amount)
                             if is_valid_adjustment(oc_amount_str):
                                 print(
                                     f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
-                                self.app.update_log(
-                                    f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
                                 self.smco_set_overcharge_product(
                                     sku_key, str(oc_amount_str))
                                 time.sleep(0.5)
@@ -4123,7 +4117,7 @@ class Bot_POS:
                                 expected_formatted = f"{float(expected_price):,.2f}"
                             except Exception:
                                 expected_formatted = str(expected_price)
-                            
+
                             pattern_msg = (
                                 f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
                                 f"{sku_key} {product_name}\n"
@@ -6249,8 +6243,8 @@ class Bot_POS:
                         if self.app.is_accel_mode.get() and self.app.is_auto_invoice_mode.get():
                             time.sleep(1.5)  # รอให้ popup โชว์
                             warning_popups = self.driver.find_elements(
-                                By.XPATH, "//div[contains(@class, 'swal2-icon') and contains(@class, 'swal2-warning') and contains(@class, 'pulse-warning')]"
-                            )
+                                By.XPATH,
+                                "//div[contains(@class, 'swal2-icon') and contains(@class, 'swal2-warning') and contains(@class, 'pulse-warning')]")
                             has_warning = False
                             for popup in warning_popups:
                                 try:
@@ -6308,7 +6302,7 @@ class Bot_POS:
                                 price_errors.append(
                                     f"SKU Price mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')}, diff {info.get('diff')})"
                                 )
-                                
+
                                 # Print formatting template for user to copy-paste
                                 marketplace = self.app.marketplace_target.get()
                                 purchase_time = self.app.cus_purchase_time.get()
@@ -6319,7 +6313,7 @@ class Bot_POS:
                                         if product_name.lower() == 'nan':
                                             product_name = ''
                                         break
-                                
+
                                 expected_price = info.get('expected', 0)
                                 actual_price = info.get('actual', 0)
                                 try:
@@ -6330,7 +6324,7 @@ class Bot_POS:
                                     expected_formatted = f"{float(expected_price):,.2f}"
                                 except Exception:
                                     expected_formatted = str(expected_price)
-                                
+
                                 pattern_msg = (
                                     f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
                                     f"{sku} {product_name}\n"
@@ -7265,7 +7259,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -8849,7 +8842,8 @@ class Bot_POS:
                                     self.app.cus_order,
                                     getattr(self.app.accel_mode, "used_serials", []))
                                 self.app.accel_mode.record_completed_order(
-                                    self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status="Completed (etax)")
+                                    self.app.cus_order, tracking=tracking_no, bill_no=inv_number,
+                                    status="Completed (etax)")
                             except Exception as xl_err:
                                 print("Accel mode update failed:", xl_err)
                                 logger.error(

@@ -212,7 +212,7 @@ class AccelMode:
     def _write_to_excel(self, output_excel, product_codes, serial_numbers_grouped):
         try:
             book = load_workbook(output_excel)
-            
+
             # Target 'Sheet1' (case-insensitive) instead of active sheet, fallback to first sheet if not found
             sheet_names_lower = [s.lower() for s in book.sheetnames]
             if 'sheet1' in sheet_names_lower:
@@ -422,8 +422,8 @@ class AccelMode:
                 try:
                     # ค้นหา index ของ SKU บนหน้าเว็บ
                     sku_elements = driver.find_elements(
-                        By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
-                    )
+                        By.XPATH,
+                        "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u")
                     target_idx = None
                     for idx, elem in enumerate(sku_elements):
                         if elem.text.strip() == sku.strip():
@@ -689,8 +689,7 @@ class AccelMode:
                         else:
                             print(f"SN {candidate_sn} ใช้งานได้สำเร็จ!")
                             # แอดเข้า used serials
-                            self.used_serials.append(
-                                {'sku': current_sku, 'sn': candidate_sn})
+                            self.used_serials.append({'sku': current_sku, 'sn': candidate_sn})
                             # เอาออกจากหน่วยความจำ (เพราะใช้ได้แล้ว)
                             if candidate_sn in self.obj_data_from_accel_file[current_sku]:
                                 self.obj_data_from_accel_file[current_sku].remove(

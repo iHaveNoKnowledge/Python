@@ -76,13 +76,14 @@ class ProductManager:
 
         print("[ProductManager] Auto Invoice Mode is activated — เริ่ม add สินค้า")
 
-        # เตรียมตรวจสอบ accel file
-        is_accel_mode = False
+        # เตรียมตรวจสอบ accel file (เช็คว่ามีข้อมูล SN ในไฟล์ accel หรือไม่ แม้ไม่ได้เปิด toggle accel_mode)
+        has_accel_data = False
         available_sn_skus_list = []
         try:
-            if self.app.is_accel_mode.get() and hasattr(self.app, 'accel_mode'):
-                is_accel_mode = True
+            if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'obj_data_from_accel_file'):
                 available_sn_skus_list = list(self.app.accel_mode.obj_data_from_accel_file.keys())
+                if len(available_sn_skus_list) > 0:
+                    has_accel_data = True
         except Exception as e:
             print(f"[ProductManager] accel_mode check error: {e}")
 
@@ -91,11 +92,11 @@ class ProductManager:
 
             # --- ข้ามการแอดสินค้า ถ้าอยู่ใน accel_file (accel_mode จัดการไปแล้ว) ---
             original_sku = str(item.get(self.COL_SKU, ""))
-            if is_accel_mode:
+            if has_accel_data:
                 is_sku_ready_to_pick = [key for key in available_sn_skus_list if key in original_sku]
                 if len(is_sku_ready_to_pick) > 0:
                     print(
-                        f"[ProductManager] ⏩ Skip adding Item {i} ({original_sku}) เพราะมีอยู่ใน accel_file (accel_mode จะเป็นคนกรอก/หรือกรอกแล้ว)")
+                        f"[ProductManager] ⏩ Skip adding Item {i} ({original_sku}) เพราะมีอยู่ใน accel_file (accel_mode หรือ accel_fill_sku จัดการไปแล้ว)")
                     continue
             # ----------------------------------------------------
 
