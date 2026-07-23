@@ -690,6 +690,64 @@ class MyApp:
         # * Setup smart mouse wheel scrolling
         self._setup_smart_scroll()
 
+        # * ผูก hotkey ลับ Ctrl+Alt+T (ทำงานทุกภาษา keyboard)
+        self._bind_mode_hotkey()
+
+    # * ---- Mode Toggle (Test / Real) via Ctrl+Alt+T -----------------------------------
+
+    # * สีหลักของแต่ละ mode
+    _MODE_COLORS = {
+        "test": {
+            "bg":    "#1a3a5c",   # navy blue
+            "title": "Autosamatic ver5.x.xLITE  ⚠️ TEST MODE",
+        },
+        "real": {
+            "bg":    "#444444",   # charcoal
+            "title": "Autosamatic ver5.x.xLITE",
+        },
+    }
+
+    def _bind_mode_hotkey(self):
+        """ผูก Ctrl+Alt+T โดยใช้ keycode (ไม่ขึ้นกับภาษาหรือ IME ใดๆ)
+
+        keycode 84  = physical T key (QWERTY) — ไม่เปลี่ยนตาม layout
+        state 0x4   = Ctrl
+        state 0x8   = Alt (Left Alt ทั่วไป)
+        state 0x20000 = Mod1/Alt บน Windows (fallback)
+        """
+        _KEYCODE_T = 84
+        _CTRL     = 0x4
+        _ALT      = 0x20000   # Alt (Mod1) บน Windows — 0x8 คือ NumLock ไม่ใช่ Alt!
+
+        def _on_keypress(event):
+            ctrl = bool(event.state & _CTRL)
+            alt  = bool(event.state & _ALT)
+            if event.keycode == _KEYCODE_T and ctrl and alt:
+                self.toggle_test_mode()
+
+        self.root.bind("<KeyPress>", _on_keypress)
+
+    def toggle_test_mode(self):
+        """สลับระหว่าง test mode และ real mode แล้วอัปเดตสี UI ทั้งหมด"""
+        self.is_testing = not self.is_testing
+        mode_key = "test" if self.is_testing else "real"
+        colors = self._MODE_COLORS[mode_key]
+        bg = colors["bg"]
+
+        # * อัปเดต window title
+        self.root.title(colors["title"])
+
+        # * อัปเดตสีพื้นหลังหลัก
+        self.root.configure(fg_color=bg)
+        self.canvas.configure(bg=bg)
+        self.main_frame.configure(fg_color=bg)
+        self.mp_products_list_frame.configure(fg_color=bg)
+        self.demonic_frame.configure(fg_color=bg)
+        self.log_frame.configure(fg_color=bg)
+
+        mode_name = "TEST" if self.is_testing else "REAL"
+        print(f"[Mode] Switched to {mode_name} mode")
+
     def on_frame_configure(self, event=None):
         """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
         # อัพเดท scroll region ให้ตรงกับขนาดของ main_frame
@@ -7260,6 +7318,7 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
+
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -9072,4 +9131,4 @@ if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
         pyi_splash.close()
     root.mainloop()
-    Print("Program closed")
+    print("Program closed")
