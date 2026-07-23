@@ -5376,6 +5376,30 @@ class Bot_POS:
         print("กด ปุ่มแดง ออก แล้ว")
         # ถ้าเขียนเป็น cb แล้วมันจะพัง
 
+    def _update_accel_on_complete(self, inv_number: str, is_etax: bool = False) ->:
+        """อัปเดต Accel file เมื่อ order เสร็จ — ใช้ร่วมกันทั้ง etax และ non-etax path
+
+        Args:
+            inv_number: เลขใบเสร็จ
+            is_etax:    True = etax path (status จะใส่ "Completed (etax)")
+        """
+        if not (hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get()):
+            return
+        try:
+            tracking_no = (
+                ", ".join(self.tracking_manager.trackings)
+                if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings
+                else ""
+            )
+            status = "Completed (etax)" if is_etax else "Completed"
+            self.app.accel_mode.deduct_accel_file_data(
+                self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+            self.app.accel_mode.record_completed_order(
+                self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status=status)
+        except Exception as xl_err:
+            print("Accel mode update failed:", xl_err)
+            logger.error(f"Accel mode update failed: {xl_err}")
+
     def etax_reprint(self, inv_number):
         try:
             # * เก็บหน้าเก่าเพื่อ กลับไปหน้าเดิมก่อน reprint
@@ -8892,21 +8916,8 @@ class Bot_POS:
                         except Exception as e:
                             print(f"etax_reprint error: {e}")
                             logger.error(f"etax_reprint error: {e}")
-                        # * Update Accel file //////////////////////
-                        if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
-                            try:
-                                tracking_no = ", ".join(self.tracking_manager.trackings) if hasattr(
-                                    self, 'tracking_manager') and self.tracking_manager.trackings else ""
-                                self.app.accel_mode.deduct_accel_file_data(
-                                    self.app.cus_order,
-                                    getattr(self.app.accel_mode, "used_serials", []))
-                                self.app.accel_mode.record_completed_order(
-                                    self.app.cus_order, tracking=tracking_no, bill_no=inv_number,
-                                    status="Completed (etax)")
-                            except Exception as xl_err:
-                                print("Accel mode update failed:", xl_err)
-                                logger.error(
-                                    f"Accel mode update failed: {xl_err}")
+                        # * Update Accel file — order เสร็จแล้ว ตัดทันที
+                        self._update_accel_on_complete(inv_number, is_etax=True)
                         # * ถ้ามี etax ก็ print แล้วจบไป
                         time.sleep(0.75)
                         # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
@@ -8916,6 +8927,9 @@ class Bot_POS:
                     # time.sleep(1)
                     # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
 
+                    # * Update Accel file — order เสร็จแล้ว ตัดก่อน print
+                    self._update_accel_on_complete(inv_number, is_etax=False)
+
                     # * ลอง click container ดู ใช้ได้แล้ว
                     print("click container!")
                     self.driver.execute_script(
@@ -8923,8 +8937,7 @@ class Bot_POS:
 
                     # * > printing
                     # * >> รอหน้า canvas โผล่ก่อน
-                    self.wait50.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
+                    self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
                     time.sleep(1)
 
                     #! วิธี print แบบเก่า
@@ -8940,19 +8953,6 @@ class Bot_POS:
                     except Exception as e:
                         print(f"get_pdf_src_and_print error: {e}")
                         logger.error(f"get_pdf_src_and_print error: {e}")
-
-                    # * Update Accel file //////////////////////
-                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
-                        try:
-                            tracking_no = ", ".join(self.tracking_manager.trackings) if hasattr(
-                                self, 'tracking_manager') and self.tracking_manager.trackings else ""
-                            self.app.accel_mode.deduct_accel_file_data(
-                                self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
-                            self.app.accel_mode.record_completed_order(
-                                self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status="Completed")
-                        except Exception as xl_err:
-                            print("Accel mode update failed:", xl_err)
-                            logger.error(f"Accel mode update failed: {xl_err}")
 
                 except RefreshRequiredException:
                     raise
