@@ -5376,7 +5376,7 @@ class Bot_POS:
         print("กด ปุ่มแดง ออก แล้ว")
         # ถ้าเขียนเป็น cb แล้วมันจะพัง
 
-    def _update_accel_on_complete(self, inv_number: str, is_etax: bool = False) ->:
+    def _update_accel_on_complete(self, inv_number: str, is_etax: bool = False) -> None:
         """อัปเดต Accel file เมื่อ order เสร็จ — ใช้ร่วมกันทั้ง etax และ non-etax path
 
         Args:
@@ -6340,8 +6340,7 @@ class Bot_POS:
 
                             if has_warning:
                                 err_msg = "พบป๊อปอัปแจ้งเตือน แต่ไม่พบข้อความผิดพลาด"
-                                content_elems = self.driver.find_elements(
-                                    By.XPATH, "//div[contains(@class, 'swal2-content')]")
+                                content_elems = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'swal2-content')]")
                                 for content in content_elems:
                                     try:
                                         content_style = content.get_attribute(
@@ -6351,6 +6350,56 @@ class Bot_POS:
                                             break
                                     except:
                                         pass
+
+                                # * ถ้าข้อความเป็น "please input serial" ให้หาว่า item ไหนขาด SN
+                                _serial_keywords = [
+                                    "please input serial",
+                                    "กรุณาใส่ข้อมูลซีเรียล",
+                                ]
+                                if any(kw in err_msg.lower() for kw in _serial_keywords):
+                                    try:
+                                        used_serials = getattr(self.app.accel_mode, "used_serials", [])
+                                        # SKU ที่ยิง SN ครบแล้ว → นับจำนวนต่อ SKU
+                                        sn_count_by_sku: dict[str, int] = {}
+                                        for s in used_serials:
+                                            k = str(s.get("sku", ""))
+                                            sn_count_by_sku[k] = sn_count_by_sku.get(k, 0) + 1
+
+                                        # SKU ที่ต้องการ SN (อยู่ใน accel file)
+                                        accel_skus = list(getattr(
+                                            self.app.accel_mode, "obj_data_from_accel_file", {}).keys())
+
+                                        missing_lines = []
+                                        for item in getattr(self.app, "items", []):
+                                            sku_ref = str(item.get(
+                                                "เลขอ้างอิง SKU (SKU Reference No.)", "")).strip()
+                                            item_name = str(item.get(
+                                                "ชื่อสินค้า", "")).strip()
+                                            if item_name.lower() == "nan":
+                                                item_name = ""
+                                            ordered_qty = int(item.get("จำนวน", 1))
+
+                                            # ตรวจว่า sku นี้ต้องการ SN ไหม
+                                            matched_accel_sku = next(
+                                                (k for k in accel_skus if str(k) in sku_ref), None)
+                                            if matched_accel_sku is None:
+                                                continue  # SKU นี้ไม่ต้องการ SN ข้ามไป
+
+                                            sn_done = sn_count_by_sku.get(matched_accel_sku, 0)
+                                            sn_short = ordered_qty - sn_done
+                                            if sn_short > 0:
+                                                label = f"{sku_ref}"
+                                                if item_name:
+                                                    label += f" ({item_name})"
+                                                missing_lines.append(
+                                                    f"  • {label}: ต้องการ {ordered_qty} SN แต่ยิงได้ {sn_done} (ขาด {sn_short})")
+
+                                        if missing_lines:
+                                            err_msg += "\n\n📋 Item ที่น่าจะขาด SN:\n" + "\n".join(missing_lines)
+                                        else:
+                                            err_msg += "\n\n⚠️ ไม่สามารถระบุ item ที่ขาด SN ได้ (ตรวจสอบ used_serials manually)"
+                                    except Exception as sn_diag_err:
+                                        print(f"[SN Diag] Error: {sn_diag_err}")
 
                                 # ปิด Swal popup เพื่อไม่ให้กีดขวางขั้นตอนถัดไป
                                 try:
