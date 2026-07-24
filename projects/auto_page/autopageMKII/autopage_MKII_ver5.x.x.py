@@ -2399,7 +2399,7 @@ class MyApp:
                         grouped[key]['ส่วนลดจาก Shopee'] = float(
                             grouped[key]['ส่วนลดจาก Shopee']) + float(row['ส่วนลดจาก Shopee'])
 
-                self.items:list = list(grouped.values())
+                self.items: list = list(grouped.values())
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
                 )
@@ -3899,7 +3899,7 @@ class Bot_POS:
             print("[CP Lookup] No CP data loaded")
             return None
 
-        #/ 1. Parse purchased date
+        # / 1. Parse purchased date
         try:
             purchased_dt = pd.to_datetime(purchased_date_str)
             if pd.isna(purchased_dt):
@@ -3909,25 +3909,26 @@ class Bot_POS:
                 f"[CP Lookup] Date parsing error for '{purchased_date_str}': {e}")
             return None
 
-        #/ 2. Filter by SKU
+        # / 2. Filter by SKU
         sku_clean = str(sku).strip().upper()  # / แบบย่อ เช่น SP2-1703
         # / แบเต็ม SP2-001703
         formatted_skus = [s.strip().upper()
                           for s in self.app.correct_sku_pattern(sku)]
 
-        def sku_match(row_sku):
+        def sku_match(row_sku)-> bool:
             row_sku_str = str(row_sku).strip().upper()
             # / เทียบสองแบบเพราะ sku ที่ input มาใน CP_data.xlsx อาจจะเป็นแบบย่อ หรือเต็มก็ได้ //แบบย่อ เช่น SP2-1703 //#/ แบบเต็ม SP2-001703
             return (row_sku_str == sku_clean) or (row_sku_str in formatted_skus)
-
-        sku_mask:pd.Series = self.app.cp_df['sku'].apply(sku_match)
-        df_filtered:pd. = self.app.cp_df[sku_mask]
+        
+        #* tips สาเหตุที่เขาใช้คำว่า sku_mask เพราะพฤติกรรมการทำงานของมันเปรียบเสมือนหน้ากากที่เอามาทาบลงบนตารางข้อมูล มาจากหลัก boolean mask ซึ่งในชีวิตจริงมันคือ แผ่นเฉลยคำตอบเจาะรู
+        sku_mask: pd.Series[bool] = self.app.cp_df['sku'].apply(sku_match) #* df.apply() จะวนลูปผ่านแต่ละแถวของคอลัมน์ 'sku' และเรียกใช้ฟังก์ชัน sku_match() เพื่อสร้าง Series ของค่า True/False
+        df_filtered: pd.DataFrame = self.app.cp_df[sku_mask]
 
         if df_filtered.empty:
             print(f"[CP Lookup] No matching SKU found in CP Data for: {sku}")
             return None
 
-        # 3. Filter by Date Range
+        #/ 3. Filter by Date Range
         valid_rows = []
         for idx, row in df_filtered.iterrows():
             try:
@@ -7391,7 +7392,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
