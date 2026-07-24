@@ -716,12 +716,12 @@ class MyApp:
         state 0x20000 = Mod1/Alt บน Windows (fallback)
         """
         _KEYCODE_T = 84
-        _CTRL     = 0x4
-        _ALT      = 0x20000   # Alt (Mod1) บน Windows — 0x8 คือ NumLock ไม่ใช่ Alt!
+        _CTRL = 0x4
+        _ALT = 0x20000   # Alt (Mod1) บน Windows — 0x8 คือ NumLock ไม่ใช่ Alt!
 
         def _on_keypress(event):
             ctrl = bool(event.state & _CTRL)
-            alt  = bool(event.state & _ALT)
+            alt = bool(event.state & _ALT)
             if event.keycode == _KEYCODE_T and ctrl and alt:
                 self.toggle_test_mode()
 
@@ -3488,7 +3488,7 @@ class Bot_POS:
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.driver_lock = threading.Lock()
-        #/ Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
+        # / Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
         self.auto_add_product_stop_flag = threading.Event()
         self.browser = BrowserManager(app=self.app, bot_instance=self, logger_instance=logger)
         self.channel_options = {
@@ -6338,11 +6338,12 @@ class Bot_POS:
 
                             if has_warning:
                                 err_msg = "พบป๊อปอัปแจ้งเตือน แต่ไม่พบข้อความผิดพลาด"
-                                content_elems = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'swal2-content')]")
+                                content_elems = self.driver.find_elements(
+                                    By.XPATH, "//div[contains(@class, 'swal2-content')]")
                                 for content in content_elems:
                                     try:
-                                        content_style = content.get_attribute(
-                                            "style") or ""
+                                        content_style = content.get_attribute("style") or ""
+                                        # ! display: block" จริงๆมันเปนค่านี้ตลอด display มันไม่เคยเปนค่าอื่น จากที่ตรวจสอบดู ตอนให้ ไม่มี popup มันก็ display block
                                         if "display: block" in content_style or "display:block" in content_style:
                                             err_msg = content.text
                                             break
@@ -7388,7 +7389,6 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
-
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -8984,7 +8984,8 @@ class Bot_POS:
 
                     # * > printing
                     # * >> รอหน้า canvas โผล่ก่อน
-                    self.wait50.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
+                    self.wait50.until(EC.visibility_of_element_located(
+                        (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
                     time.sleep(1)
 
                     #! วิธี print แบบเก่า
