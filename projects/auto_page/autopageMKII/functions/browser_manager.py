@@ -21,17 +21,17 @@ class BrowserManager:
         self.logger = logger_instance
         self.max_memory_mb = max_memory_mb
         
-        # State tracking
+        #/ State tracking
         self.operation_count = 0
         self.memory_check_interval = 10
         self.is_memory_checking = False
         self.merged_dict = {}
         
-        # Setup WebDriver
+        #/ Setup WebDriver
         self.driver = self.setup_chrome()
         self.driver.execute_cdp_cmd("Network.enable", {})
         
-        # Setup helpers
+        #/ Setup helpers
         self.wait50 = WebDriverWait(self.driver, 50)
         self.wait5 = WebDriverWait(self.driver, 5)
         self.network_capture = NetworkResponseCapture(self.driver)

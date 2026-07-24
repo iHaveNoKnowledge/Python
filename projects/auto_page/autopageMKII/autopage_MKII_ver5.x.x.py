@@ -3488,10 +3488,9 @@ class Bot_POS:
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.driver_lock = threading.Lock()
-        # Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
+        #/ Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
         self.auto_add_product_stop_flag = threading.Event()
-        self.browser = BrowserManager(
-            app=self.app, bot_instance=self, logger_instance=logger)
+        self.browser = BrowserManager(app=self.app, bot_instance=self, logger_instance=logger)
         self.channel_options = {
             'shp_itcitymobile_master': 'SHP ITCITY Mobile',
             'itcity': 'SHOPEE',
@@ -3527,8 +3526,7 @@ class Bot_POS:
 
             # ใช้ absolute path โดยอิงจาก directory ของไฟล์นี้
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            excel_path = os.path.join(
-                current_dir, 'tables', 'Addresscleaner_TambonData.xlsx')
+            excel_path = os.path.join(current_dir, 'tables', 'Addresscleaner_TambonData.xlsx')
             self.address_data = pd.read_excel(excel_path, dtype=str)
             print(f"Loaded address data from: {excel_path}")
             print(f"Total rows: {len(self.address_data)}")
