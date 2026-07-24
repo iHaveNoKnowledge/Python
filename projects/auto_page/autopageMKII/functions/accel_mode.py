@@ -378,14 +378,11 @@ class AccelMode:
     def _filter_invalid_sns(self, driver, current_sku):
         logger.info(
             f"จำนวนครั้งที่ใช้งานไม่ได้ของ SKU {current_sku} เกิน 2 ครั้ง (> 2) จะดึงข้อมูลสต็อกของ SKU นี้จาก SMCO...")
-        available_sns = self.get_available_sns_from_smco(driver, current_sku)
-        if available_sns != "API_ERROR":
-            logger.info(
-                f"ดึงข้อมูลสำเร็จ: พบ SN ที่ใช้งานได้ใน SMCO ทั้งหมด {len(available_sns)} รายการ")
-            current_candidates = self.obj_data_from_accel_file.get(
-                current_sku, [])
-            sns_to_remove = [
-                sn for sn in current_candidates if sn not in available_sns]
+        available_smco_sns = self.get_available_sns_from_smco(driver, current_sku)
+        if available_smco_sns != "API_ERROR":
+            logger.info(f"ดึงข้อมูลสำเร็จ: พบ SN ที่ใช้งานได้ใน SMCO ทั้งหมด {len(available_smco_sns)} รายการ")
+            current_candidate_sns = self.obj_data_from_accel_file.get(current_sku, [])
+            sns_to_remove = [sn for sn in current_candidate_sns if sn not in available_smco_sns]
 
             if sns_to_remove:
                 logger.info(
@@ -475,7 +472,7 @@ class AccelMode:
 
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
-        ordered_product_data_rows = self.main_app.items
+        ordered_product_data_rows: list = self.main_app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_product_data_rows)
 
         sku_input_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input'
@@ -483,25 +480,25 @@ class AccelMode:
         if len(ordered_product_data_rows) > 0:
             for i, ordered_item in enumerate(ordered_product_data_rows):
                 print("item ordered by customer", ordered_item)
-                current_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
-                print("current_sku: ", current_sku)
+                current_ordered_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
+                print("current_sku: ", current_ordered_sku)
                 sku_qtys = int(ordered_item['จำนวน'])
-                is_sku_ready_to_pick = [
-                    key for key in accel_available_skus_list if str(key) in str(current_sku)]
+                is_sku_ready_to_pick = [key for key in accel_available_skus_list
+                                        if str(key) in str(current_ordered_sku)]
 
                 if len(is_sku_ready_to_pick) > 0:
                     successful_count = 0
                     sku_fail_count = 0
                     while successful_count < sku_qtys and not operation_thread.is_set():
                         # ปรับลดจำนวนให้เท่ากับ successful_count ก่อนลอง SN ตัวใหม่
-                        adjust_qty_down(current_sku, successful_count)
+                        adjust_qty_down(current_ordered_sku, successful_count)
 
                         # ตรวจสอบว่ายังมี SN ในหน่วยความจำไหม
                         candidates = self.obj_data_from_accel_file.get(
-                            current_sku, [])
+                            current_ordered_sku, [])
                         if not candidates:
                             logger.warning(
-                                f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_sku}")
+                                f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_ordered_sku}")
                             break
 
                         candidate_sn = candidates[0]
@@ -541,7 +538,7 @@ class AccelMode:
                         print("กด Enter ที่ช่อง input สำเร็จ")
 
                         # รอ SKU element และปุ่ม //i[@class='fa fa-check-square-o'] แสดงขึ้นมา
-                        sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}']"
+                        sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_ordered_sku}']"
                         check_btn_xpath = "//i[@class='fa fa-check-square-o']"
 
                         wait_timeout = 44
@@ -568,15 +565,15 @@ class AccelMode:
                             # หากรอไม่เจอ ถือว่า SN นั้นมีปัญหา ให้เอาออกแล้วลองตัวถัดไป
                             self.deduct_accel_file_data(
                                 self.main_app.cus_order, [
-                                    {'sku': current_sku, 'sn': candidate_sn}],
+                                    {'sku': current_ordered_sku, 'sn': candidate_sn}],
                                 remove_order=False, update_memory=False)
-                            if candidate_sn in self.obj_data_from_accel_file[current_sku]:
-                                self.obj_data_from_accel_file[current_sku].remove(
+                            if candidate_sn in self.obj_data_from_accel_file[current_ordered_sku]:
+                                self.obj_data_from_accel_file[current_ordered_sku].remove(
                                     candidate_sn)
 
                             sku_fail_count += 1
                             if sku_fail_count > 2:
-                                self._filter_invalid_sns(driver, current_sku)
+                                self._filter_invalid_sns(driver, current_ordered_sku)
                             continue
 
                         # ดัก req response api
@@ -661,7 +658,7 @@ class AccelMode:
 
                             # 2. กดลบรายการที่แอดเข้าไปเพื่อเคลียร์ช่องสำหรับ SN ตัวใหม่
                             try:
-                                delete_btn_xpath = f"//div[contains(@class, 'panel') and .//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_sku}'] and .//i[@class='fa fa-check-square-o']]//button[@class='btn btn-danger btn-sm ng-scope']"
+                                delete_btn_xpath = f"//div[contains(@class, 'panel') and .//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_ordered_sku}'] and .//i[@class='fa fa-check-square-o']]//button[@class='btn btn-danger btn-sm ng-scope']"
                                 delete_btn = driver.find_element(
                                     By.XPATH, delete_btn_xpath)
                                 driver.execute_script(
@@ -674,36 +671,36 @@ class AccelMode:
                             # 3. ลบ SN ตัวที่มีปัญหาออกจาก Excel และหน่วยความจำ
                             self.deduct_accel_file_data(
                                 self.main_app.cus_order, [
-                                    {'sku': current_sku, 'sn': candidate_sn}],
+                                    {'sku': current_ordered_sku, 'sn': candidate_sn}],
                                 remove_order=False, update_memory=False
                             )
-                            if candidate_sn in self.obj_data_from_accel_file[current_sku]:
-                                self.obj_data_from_accel_file[current_sku].remove(
+                            if candidate_sn in self.obj_data_from_accel_file[current_ordered_sku]:
+                                self.obj_data_from_accel_file[current_ordered_sku].remove(
                                     candidate_sn)
 
                             sku_fail_count += 1
                             if sku_fail_count > 2:
-                                self._filter_invalid_sns(driver, current_sku)
+                                self._filter_invalid_sns(driver, current_ordered_sku)
                             time.sleep(1)
                             # วนกลับไปรันใหม่โดยไม่เพิ่ม successful_count
                         else:
                             print(f"SN {candidate_sn} ใช้งานได้สำเร็จ!")
                             # แอดเข้า used serials
-                            self.used_serials.append({'sku': current_sku, 'sn': candidate_sn})
+                            self.used_serials.append({'sku': current_ordered_sku, 'sn': candidate_sn})
                             # เอาออกจากหน่วยความจำ (เพราะใช้ได้แล้ว)
-                            if candidate_sn in self.obj_data_from_accel_file[current_sku]:
-                                self.obj_data_from_accel_file[current_sku].remove(
+                            if candidate_sn in self.obj_data_from_accel_file[current_ordered_sku]:
+                                self.obj_data_from_accel_file[current_ordered_sku].remove(
                                     candidate_sn)
                             successful_count += 1
                             time.sleep(1)
 
                     # เมื่อจบ loop ของ SKU นี้ ปรับลดจำนวนสินค้าให้ตรงตามจริงที่สำเร็จอีกครั้งเพื่อความถูกต้อง
-                    adjust_qty_down(current_sku, successful_count)
+                    adjust_qty_down(current_ordered_sku, successful_count)
                 else:
                     logger.info(
-                        f"มี current_sku ใน Accel_File หรือไม่?: {current_sku in self.obj_data_from_accel_file}")
+                        f"มี current_sku ใน Accel_File หรือไม่?: {current_ordered_sku in self.obj_data_from_accel_file}")
                     print("มี current_sku ใน Accel_File หรือไม่?:",
-                          current_sku in self.obj_data_from_accel_file)
+                          current_ordered_sku in self.obj_data_from_accel_file)
         else:
             print("No items, return!!")
             return

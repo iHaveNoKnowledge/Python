@@ -2399,7 +2399,7 @@ class MyApp:
                         grouped[key]['ส่วนลดจาก Shopee'] = float(
                             grouped[key]['ส่วนลดจาก Shopee']) + float(row['ส่วนลดจาก Shopee'])
 
-                self.items = list(grouped.values())
+                self.items:list = list(grouped.values())
 
                 self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
                 )
@@ -3899,7 +3899,7 @@ class Bot_POS:
             print("[CP Lookup] No CP data loaded")
             return None
 
-        # 1. Parse purchased date
+        #/ 1. Parse purchased date
         try:
             purchased_dt = pd.to_datetime(purchased_date_str)
             if pd.isna(purchased_dt):
@@ -3909,7 +3909,7 @@ class Bot_POS:
                 f"[CP Lookup] Date parsing error for '{purchased_date_str}': {e}")
             return None
 
-        # 2. Filter by SKU
+        #/ 2. Filter by SKU
         sku_clean = str(sku).strip().upper()  # / แบบย่อ เช่น SP2-1703
         # / แบเต็ม SP2-001703
         formatted_skus = [s.strip().upper()
@@ -3920,8 +3920,8 @@ class Bot_POS:
             # / เทียบสองแบบเพราะ sku ที่ input มาใน CP_data.xlsx อาจจะเป็นแบบย่อ หรือเต็มก็ได้ //แบบย่อ เช่น SP2-1703 //#/ แบบเต็ม SP2-001703
             return (row_sku_str == sku_clean) or (row_sku_str in formatted_skus)
 
-        sku_mask = self.app.cp_df['sku'].apply(sku_match)
-        df_filtered = self.app.cp_df[sku_mask]
+        sku_mask:pd.Series = self.app.cp_df['sku'].apply(sku_match)
+        df_filtered:pd. = self.app.cp_df[sku_mask]
 
         if df_filtered.empty:
             print(f"[CP Lookup] No matching SKU found in CP Data for: {sku}")
@@ -3968,7 +3968,17 @@ class Bot_POS:
                 f"[CP Lookup] SKU {sku} and date matched, but no matching sale_price for platform_price={platform_price}. Available prices: {df_valid['sale_price'].tolist()}")
             return None
 
-        # ดึงค่า cp_name, oc_amount, dc_amount จากแถวแรกที่เจอ
+        # 5. หากเจอมากกว่า 1 แถว เรียงลำดับตาม usage_start_date ที่ใหม่กว่าขึ้นก่อน (Descending)
+        if len(df_price_matched) > 1:
+            df_price_matched = df_price_matched.copy()
+            df_price_matched['temp_start_date'] = pd.to_datetime(
+                df_price_matched.get('usage_start_date'), errors='coerce'
+            )
+            df_price_matched = df_price_matched.sort_values(
+                by='temp_start_date', ascending=False, na_position='last'
+            )
+
+        # ดึงค่า cp_name, oc_amount, dc_amount จากแถวแรกที่เจอ (อันที่ใหม่ที่สุด)
         matched_row = df_price_matched.iloc[0]
         cp_name = matched_row.get('cp_name')
         oc_amount = matched_row.get('oc_amount')
@@ -6290,9 +6300,8 @@ class Bot_POS:
             # * Add SKU จากไฟล์ Accel mode
             # if self.app.is_accel_mode_activated.get():
             if len(self.app.accel_mode.accel_df_state) > 0:
-                self.app.accel_mode.accel_fill_sku(
-                    self.driver, self.operation_thread)
-                self.current_checkpoint = "กรอกสินค้า Accel สำเร็จ"
+                self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
+                self.current_checkpoint = "เริ่มกระบวนการเติม SKU จากไฟล์ Accel mode เข้าสู่ POS, สำเร็จ"
 
             if self.app.is_auto_invoice_mode.get():
                 try:
@@ -6314,8 +6323,7 @@ class Bot_POS:
                     print("post_verification_result: ", post_verification)
 
                     if post_verification.get("all_ok"):
-                        self.app.update_log(
-                            "✅ ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
+                        self.app.update_log("✅ ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
                         self.app.finish_order()
                         self.current_checkpoint = "ออกบิลเรียบร้อย"
 
@@ -6668,16 +6676,14 @@ class Bot_POS:
                                 # * /กรอก remark
                                 time.sleep(0.75)
                                 remark_text = self.cus_order
-                                textarea_element = self.driver.find_element(
-                                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']")
+                                remark_textarea_xpath = "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']"
+                                textarea_element = self.driver.find_element(By.XPATH, remark_textarea_xpath)
 
-                                self.tracking_manager.collect_tracking(
-                                    remark_text)
+                                self.tracking_manager.collect_tracking(remark_text)
                                 self.tracking_manager.apply_tracking_to_final_page()
 
                                 # / Final way ใช้ function ที่เขียนแยกไว้
-                                self.js_input_value(
-                                    textarea_element, remark_text)
+                                self.js_input_value(textarea_element, remark_text)
 
                                 # / เลือกประเภทชำระเงิน และ กำหนด final price (โดยดูตาม marketplace ว่าเป็น shopee หรือ lazada เพราะค่าที่ต้องใส่จะต่างกัน)
                                 time.sleep(0.75)
@@ -6692,21 +6698,17 @@ class Bot_POS:
                                         payment_type_btn_element = self.driver.find_element(
                                             # By.XPATH, f"//a[contains(., '{channel}')]")
                                             By.XPATH, f"//a//label[text()='{channel}']")
-                                        self.driver.execute_script(
-                                            "arguments[0].click();", payment_type_btn_element)
+                                        self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
                                     except Exception as e:
                                         payment_type_btn_element = self.driver.find_element(
                                             By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
-                                        self.driver.execute_script(
-                                            "arguments[0].click();", payment_type_btn_element)
+                                        self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
                                 elif self.app.marketplace_target.get() == 'LAZADA':
-                                    final_price = (
-                                        self.app.sum_price) - self.app.cus_seller_voucher.get()
+                                    final_price = (self.app.sum_price) - self.app.cus_seller_voucher.get()
                                     # / เลือก lazada
                                     payment_type_btn_element = self.driver.find_element(
                                         By.XPATH, "//a[contains(., 'LAZ')]")
-                                    self.driver.execute_script(
-                                        "arguments[0].click();", payment_type_btn_element)
+                                    self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
 
                                 # / PO No:
                                 try:
@@ -7389,6 +7391,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()

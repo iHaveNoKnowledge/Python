@@ -3693,7 +3693,17 @@ class Bot_POS:
                 f"[CP Lookup] SKU {sku} and date matched, but no matching sale_price for platform_price={platform_price}. Available prices: {df_valid['sale_price'].tolist()}")
             return None
 
-        # ดึงค่า cp_name, oc_amount, dc_amount จากแถวแรกที่เจอ
+        # 5. หากเจอมากกว่า 1 แถว เรียงลำดับตาม usage_start_date ที่ใหม่กว่าขึ้นก่อน (Descending)
+        if len(df_price_matched) > 1:
+            df_price_matched = df_price_matched.copy()
+            df_price_matched['temp_start_date'] = pd.to_datetime(
+                df_price_matched.get('usage_start_date'), errors='coerce'
+            )
+            df_price_matched = df_price_matched.sort_values(
+                by='temp_start_date', ascending=False, na_position='last'
+            )
+
+        # ดึงค่า cp_name, oc_amount, dc_amount จากแถวแรกที่เจอ (อันที่ใหม่ที่สุด)
         matched_row = df_price_matched.iloc[0]
         cp_name = matched_row.get('cp_name')
         oc_amount = matched_row.get('oc_amount')
