@@ -13,6 +13,7 @@ import traceback
 import winreg
 from tkinter import *
 from tkinter import filedialog, font, messagebox
+from typing import Any, Dict, Optional, Union
 
 import customtkinter as ctk
 import httpcore
@@ -907,20 +908,22 @@ class MyApp:
             # * เอา gui ของ accel mode มาแปะแทน (บน top frame)
             self.accl_dir_label.grid(row=0, column=1, padx=5)
             self.accl_dir_namedisplay_on_btn.grid(row=0, column=2, padx=5)
-            self.add_trans_to_accel_file_btn.grid(row=0, column=3, padx=5)
+            self.open_accel_file_btn.grid(row=0, column=3, padx=5)
+            self.add_trans_to_accel_file_btn.grid(row=0, column=4, padx=5)
 
             # Grid accel mode buttons on entry_frame
-            self.accl_start_btn.grid(row=0, column=4, padx=5)
-            self.accel_skip_btn.grid(row=0, column=5, padx=5)
-            self.accel_del_btn.grid(row=0, column=6, padx=5)
-            self.accel_stop_all_btn.grid(row=0, column=7, padx=5)
-            self.display_acc_btn.grid(row=0, column=8, padx=5)
+            self.accl_start_btn.grid(row=0, column=5, padx=5)
+            self.accel_skip_btn.grid(row=0, column=6, padx=5)
+            self.accel_del_btn.grid(row=0, column=7, padx=5)
+            self.accel_stop_all_btn.grid(row=0, column=8, padx=5)
+            self.display_acc_btn.grid(row=0, column=9, padx=5)
 
         # * ถ้า Accel mode ไม่ทำงาน
         else:
             # * ลบ gui ของ accel mode ทิ้งรายตัว (บน top frame)
             self.accl_dir_label.grid_remove()
             self.accl_dir_namedisplay_on_btn.grid_remove()
+            self.open_accel_file_btn.grid_remove()
             self.add_trans_to_accel_file_btn.grid_remove()
 
             # Remove accel mode buttons from entry_frame
@@ -1029,6 +1032,16 @@ class MyApp:
             text=f"ยังไม่เลือก Accel File",
             command=self.accel_mode.select_accel_file,
             fg_color="#969696"
+        )
+
+        self.open_accel_file_btn = CTkButton(
+            self.entry_frame,
+            text="open",
+            command=lambda: self.open_file_by_default(getattr(self.accel_mode, 'accel_file_dir', '')),
+            fg_color="#2b5b84",
+            hover_color="#1e3f5c",
+            width=45,
+            height=25
         )
 
         # * >> Buttons
@@ -1178,31 +1191,36 @@ class MyApp:
         self.display_location_result.grid(row=0, column=1, padx=1)
 
         self.display_location_result_btn = CTkButton(
-            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, fg_color="#969696")
-        self.display_location_result_btn.grid(row=0, column=2, padx=(0, 5))
+            self.import_file_frame, text=f"ใส่ Import File", command=self.select_excel, fg_color="#969696", width=100, height=28)
+        self.display_location_result_btn.grid(row=0, column=2, padx=(0, 2))
+
+        self.open_import_file_btn = CTkButton(
+            self.import_file_frame, text="open", command=lambda: self.open_file_by_default(self.table_location),
+            fg_color="#2b5b84", hover_color="#1e3f5c", width=45, height=28)
+        self.open_import_file_btn.grid(row=0, column=3, padx=(0, 5))
 
         # >> bot status
         self.display_bot_status_label = CTkLabel(
             self.import_file_frame, text=f"Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁", fg_color="#1f242e",
             text_color="#ffec1f", padx=5)
-        self.display_bot_status_label.grid(row=0, column=3, padx=(5, 0))
+        self.display_bot_status_label.grid(row=0, column=4, padx=(5, 0))
 
         # >> Memory management buttons
         self.memory_reset_btn = CTkButton(
             self.import_file_frame, text="Reset Memory", command=self.reset_browser_memory, fg_color="#ff6b35",
             text_color="white", width=100, height=28)
-        self.memory_reset_btn.grid(row=0, column=4, padx=(5, 0))
+        self.memory_reset_btn.grid(row=0, column=5, padx=(5, 0))
 
         self.memory_check_btn = CTkButton(
             self.import_file_frame, text="Check Memory", command=self.check_browser_memory, fg_color="#4a90e2",
             text_color="white", width=100, height=28)
-        self.memory_check_btn.grid(row=0, column=5, padx=(5, 0))
+        self.memory_check_btn.grid(row=0, column=6, padx=(5, 0))
 
         # * >> Finishing up button
         self.finishing_up_btn = CTkButton(
             self.import_file_frame, text="Finish!", command=self.finish_order, fg_color="#77579e",
             hover_color="#563871", text_color="#FFF", width=50, height=28, border_color="#FFF", border_width=1.5)
-        self.finishing_up_btn.grid(row=0, column=6, padx=(5, 5))
+        self.finishing_up_btn.grid(row=0, column=7, padx=(5, 5))
 
         # * cp_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > CP Data File location display component
@@ -1212,7 +1230,12 @@ class MyApp:
 
         self.display_cp_location_btn = CTkButton(
             self.cp_file_frame, text=f"ยังไม่เลือก CP Data File", command=self.select_cp_excel, fg_color="#969696")
-        self.display_cp_location_btn.grid(row=0, column=1, padx=(0, 5))
+        self.display_cp_location_btn.grid(row=0, column=1, padx=(0, 2))
+
+        self.open_cp_file_btn = CTkButton(
+            self.cp_file_frame, text="open", command=lambda: self.open_file_by_default(self.cp_table_location),
+            fg_color="#2b5b84", hover_color="#1e3f5c", width=45, height=28)
+        self.open_cp_file_btn.grid(row=0, column=2, padx=(0, 5))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Current Order display component
@@ -1546,6 +1569,17 @@ class MyApp:
             except Exception as e:
                 self.update_log(f"โหลดไฟล์ CP Data ล้มเหลว: {e}")
                 self.cp_df = None
+
+    def open_file_by_default(self, file_path: str):
+        """เปิดไฟล์ด้วยโปรแกรมเริ่มต้นของระบบปฏิบัติการ (Default Application)"""
+        if file_path and os.path.exists(file_path):
+            try:
+                os.startfile(os.path.normpath(file_path))
+                self.update_log(f"เปิดไฟล์: {os.path.basename(file_path)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"ไม่สามารถเปิดไฟล์ได้: {e}")
+        else:
+            messagebox.showwarning("Warning", "ยังไม่ได้เลือกไฟล์ หรือไม่พบไฟล์ที่ระบุ")
 
     def group_by_order(self, file_input, dtype):
         df = pd.read_excel(file_input, dtype=dtype)
@@ -3720,8 +3754,7 @@ class Bot_POS:
                             '''
         cp_name_elements_list = self.driver.find_elements(
             By.XPATH, cp_name_loc)
-        print("ตอนแรกเปนงี้",
-              self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
+        print("ตอนแรกเปนงี้", self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.demonic_ordered_items_list = self.app.correct_sku_pattern(
             self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         print(
@@ -3915,20 +3948,21 @@ class Bot_POS:
         formatted_skus = [s.strip().upper()
                           for s in self.app.correct_sku_pattern(sku)]
 
-        def sku_match(row_sku)-> bool:
+        def sku_match(row_sku) -> bool:
             row_sku_str = str(row_sku).strip().upper()
             # / เทียบสองแบบเพราะ sku ที่ input มาใน CP_data.xlsx อาจจะเป็นแบบย่อ หรือเต็มก็ได้ //แบบย่อ เช่น SP2-1703 //#/ แบบเต็ม SP2-001703
             return (row_sku_str == sku_clean) or (row_sku_str in formatted_skus)
-        
-        #* tips สาเหตุที่เขาใช้คำว่า sku_mask เพราะพฤติกรรมการทำงานของมันเปรียบเสมือนหน้ากากที่เอามาทาบลงบนตารางข้อมูล มาจากหลัก boolean mask ซึ่งในชีวิตจริงมันคือ แผ่นเฉลยคำตอบเจาะรู
-        sku_mask: pd.Series[bool] = self.app.cp_df['sku'].apply(sku_match) #* df.apply() จะวนลูปผ่านแต่ละแถวของคอลัมน์ 'sku' และเรียกใช้ฟังก์ชัน sku_match() เพื่อสร้าง Series ของค่า True/False
+
+        # * tips สาเหตุที่เขาใช้คำว่า sku_mask เพราะพฤติกรรมการทำงานของมันเปรียบเสมือนหน้ากากที่เอามาทาบลงบนตารางข้อมูล มาจากหลัก boolean mask ซึ่งในชีวิตจริงมันคือ แผ่นเฉลยคำตอบเจาะรู
+        # * df.apply() จะวนลูปผ่านแต่ละแถวของคอลัมน์ 'sku' และเรียกใช้ฟังก์ชัน sku_match() เพื่อสร้าง Series ของค่า True/False
+        sku_mask: pd.Series[bool] = self.app.cp_df['sku'].apply(sku_match)
         df_filtered: pd.DataFrame = self.app.cp_df[sku_mask]
 
         if df_filtered.empty:
             print(f"[CP Lookup] No matching SKU found in CP Data for: {sku}")
             return None
 
-        #/ 3. Filter by Date Range
+        # / 3. Filter by Date Range
         valid_rows = []
         for idx, row in df_filtered.iterrows():
             try:
@@ -5014,8 +5048,7 @@ class Bot_POS:
                 cus_desire_name = self.tax_info[tax_num]['name']
             else:
                 # / ถ้าไม่มีใน dict ก็ยิง api ใหม่แล้วเก็บไว้ใน dict มาใช้ต่อ (ทำไมถึง else ไว้นะ มันก็น่าจะมีตั้งแต่แรกนี่หว่าจำที่มาไม่ได้)
-                vatinfo_data = self.get_vatinfo_data(
-                    tax_num, self.app.tax_branch_num.get())
+                vatinfo_data = self.get_vatinfo_data(tax_num, self.app.tax_branch_num.get())
                 self.tax_info[tax_num] = vatinfo_data if vatinfo_data else {}
                 cus_desire_name = self.tax_info[tax_num]['name']
 
@@ -7038,21 +7071,20 @@ class Bot_POS:
             cusname_fixed: For normal customers, the fixed customer name
         """
         is_functionworking = True
+
+        # * Check if the SMCO :: เปิดการขาย1 tab is still open, if not, reopen it
         try:
-            self.driver.switch_to.window(
-                self.merged_dict['SMCO :: เปิดการขาย1'])
+            self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย1'])
             print("SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
             logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย1 ไม่หาย ไปต่อ")
         except Exception as err:
             print("SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
-            logger.info(
-                f"{self.cus_order}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
+            logger.info(f"{self.cus_order}: SMCO :: เปิดการขาย1 หายไป เปิดใหม่ {err}")
             self.driver.execute_script("window.open('');")
             all_handles = self.driver.window_handles
             new_handle = all_handles[-1]  # tab ใหม่ล่าสุด
             self.driver.switch_to.window(new_handle)
-            self.driver.get(
-                f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
+            self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
             self.get_tabs()
             try:
                 self.driver.switch_to.window(
@@ -7067,16 +7099,14 @@ class Bot_POS:
                 self.driver.switch_to.window(
                     self.merged_dict['SMCO :: เปิดการขาย'])
 
+        # * เอาไว้ดักว่ามี pop-up ของ ของการ add รอบที่แล้วค้างไว้ไหม (swal2-confirm) ถ้ามีให้กดปิดก่อน
         try:
             self.driver.find_element(
                 By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-            logger.info(
-                f"{self.cus_order}: there is a 'Close' button in SMCO :: เปิดการขาย1")
-            print(
-                f"{self.cus_order}: there is a 'Close' button in SMCO :: เปิดการขาย1")
+            logger.info(f"{self.cus_order}: there is an previous pop-up from the previous round in SMCO :: เปิดการขาย1")
+            print(f"{self.cus_order}: there is an previous pop-up from the previous round in SMCO :: เปิดการขาย1")
         except:
-            print(
-                f"{self.cus_order}: there is no any 'Close' button in SMCO :: เปิดการขาย1")
+            print(f"{self.cus_order}: there is 'NO' previous pop-up from the previous round in SMCO :: เปิดการขาย1")
 
         self.open_customer_form(is_functionworking)
 
@@ -7092,8 +7122,7 @@ class Bot_POS:
         elif customer_type == "tax":
             name = self.app.cus_name.get()
             # Remove any trailing branch info to standardize format
-            name = re.sub(
-                r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
+            name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
             name = re.sub(r'\s*\(?สาขา[^)]*\)?\s*$', '', name)
             name = name.strip()
 
@@ -7121,8 +7150,7 @@ class Bot_POS:
             if self.tax_info.get(self.app.tax_num.get()):
                 tax_info = self.tax_info[self.app.tax_num.get()]
             else:
-                tax_info = self.get_vatinfo_data(
-                    self.app.tax_num.get(), self.app.tax_branch_num.get())
+                tax_info = self.get_vatinfo_data(self.app.tax_num.get(), self.app.tax_branch_num.get())
                 self.tax_info[self.app.tax_num.get()] = tax_info
             name = tax_info['name']
             self.app.cus_tax_name_lazada.set(name)
@@ -7392,6 +7420,7 @@ class Bot_POS:
 
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
+
 
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
@@ -8559,120 +8588,148 @@ class Bot_POS:
         print("resource_path: ", result)
         return result
 
-    def address_seperator(self, df, order):
+    def _address_seperator(
+        self,
+        df: pd.DataFrame,
+        order: Union[str, int]
+    ) -> Optional[Dict[str, Any]]:
+        """แยกและคัดกรองข้อมูลตำบล/แขวงจากรายละเอียดที่อยู่ของลูกค้าสำหรับนำไปใช้ออกใบกำกับภาษี
+
+        ทำการดึงข้อมูลที่อยู่หลังจาก DataFrame เปรียบเทียบกับตารางข้อมูลตำบลของไทย
+        (Addresscleaner_TambonData.xlsx) เพื่อค้นหาตำบล/แขวงที่ถูกต้อง 
+        หากไม่พบในตารางระบบจะทำการค้นหาผ่าน Google และแจ้งเตือนผู้ใช้งาน
+
+        Args:
+            df (pd.DataFrame): DataFrame ข้อมูลคำสั่งซื้อ (ต้องมีคอลัมน์ 'หมายเลขคำสั่งซื้อ',
+                'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป', 'รายละเอียดที่อยู่', 'เขต/อำเภอ.1', 
+                'จังหวัด.1', 'รหัสไปรษณีย์.1')
+            order (Union[str, int]): หมายเลขคำสั่งซื้อที่ต้องการค้นหาและจัดการที่อยู่
+
+        Returns:
+            Optional[Dict[str, Any]]: Dictionary ข้อมูลที่อยู่จัดรูปแบบแล้ว หรือ None หากไม่พบ order
+                - 'cleaned_address' (str): ที่อยู่ที่ทำความสะอาดแล้ว
+                - 'decent_tambon' (str): ชื่อตำบล/แขวง (พร้อมคำนำหน้า "ตำบล" หรือ "แขวง")
+                - 'amphoe' (str): ชื่ออำเภอ/เขตแบบสั้น (ตัดคำว่า "อำเภอ"/"เขต" ออก)
+                - 'province' (str): ชื่อจังหวัด
+                - 'postal' (str): รหัสไปรษณีย์
+                - 'alert' (bool): สถานะแจ้งเตือน True หากต้องใช้ Google ค้นหาตำบล
+        """
         # * function ใช้สำหรับลูกค้าขอใบกำกับ เพราะมันต้องย้ายค่าตำบล ออกไปใส่ใบกำกับ
         print("assign_address order:", order)
+
         # เตรียมข้อมูล Pattern ที่อยู่คนไทย
-        df.loc[:, 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(
-            str)
+        df.loc[:, 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'] = df['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].astype(str)
         df.loc[:, 'หมายเลขคำสั่งซื้อ'] = df['หมายเลขคำสั่งซื้อ'].astype(str)
 
+        order_str = str(order)
+        target_row_index = df['หมายเลขคำสั่งซื้อ'] == order_str
+
         # * หาตำบลจากไฟล์
-        target_row_index = df['หมายเลขคำสั่งซื้อ'] == order
-        if any(target_row_index) == True:
+        if target_row_index.any():
             print("เจอ Order ใน ไฟล์")
-            cus_address = df[target_row_index]['รายละเอียดที่อยู่'].iloc[0]
+            cus_address: str = df[target_row_index]['รายละเอียดที่อยู่'].iloc[0]
             print("cus_address", cus_address)
-            full_cus_address = df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
-            amphoe = str(df[target_row_index]['เขต/อำเภอ.1'].iloc[0])
-            amphoe_short = amphoe.replace("อำเภอ", "").replace("เขต", "")
-            province = str(df[target_row_index]['จังหวัด.1'].iloc[0])
+            full_cus_address: str = df[target_row_index]['ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป'].iloc[0]
+            amphoe: str = str(df[target_row_index]['เขต/อำเภอ.1'].iloc[0])
+            amphoe_short: str = amphoe.replace("อำเภอ", "").replace("เขต", "")
+            province: str = str(df[target_row_index]['จังหวัด.1'].iloc[0])
             print("amphoe", amphoe)
             print("amphoe_short", amphoe_short)
-            postal_code = str(df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
-            is_alert = False
+            postal_code: str = str(df[target_row_index]['รหัสไปรษณีย์.1'].iloc[0])
+            is_alert: bool = False
 
             # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
-            # จัวนี้ต้องผูกกับ exe
-            # tambon_data_address = r'test\tkinter_test\Addresscleaner_TambonData.xlsx'
-
-            tambon_data_address = self.resource_path(
-                r"tables\Addresscleaner_TambonData.xlsx")
+            tambon_data_address = self.resource_path(r"tables\Addresscleaner_TambonData.xlsx")
             df_thai_addr = pd.read_excel(tambon_data_address)
-            allfiltered_df = df_thai_addr[(df_thai_addr['PostCodeMain'].astype(
-                str) == postal_code) & (df_thai_addr['DistrictThaiShort'] == amphoe_short)]
+            allfiltered_df = df_thai_addr[
+                (df_thai_addr['PostCodeMain'].astype(str) == postal_code) &
+                (df_thai_addr['DistrictThaiShort'] == amphoe_short)
+            ]
             possible_tambons = list(allfiltered_df['TambonThaiShort'])
             possible_tambons.sort(key=len, reverse=True)
 
             print("ตำบลที่เป็นไปได้: ", possible_tambons)
 
-            ##
-            decent_tambon = []
+            decent_tambon: str = ""
             for tambon in possible_tambons:
                 # * เขต แขวง อ ต ไรก็ตามเอาออกให้หมด
-
                 if "ตำบล" in tambon:
-                    tambon = re.sub(r'\bตำบล\b', '', tambon)
+                    clean_t = re.sub(r'\bตำบล\b', '', tambon)
                 elif "ต." in tambon:
-                    tambon = re.sub(r'\bต.\b', '', tambon)
+                    clean_t = re.sub(r'\bต.\b', '', tambon)
                 elif "แขวง" in tambon:
-                    tambon = re.sub(r'แขวง', '', tambon)
-                # * ช่องว่างตั้งแต่ 1 อันขึ้นไป จะกลายเป็น โดนลบทั้งหมด
-                tambon = re.sub(r'\s{1,}', '', tambon)
+                    clean_t = re.sub(r'แขวง', '', tambon)
+                else:
+                    clean_t = tambon
 
-                # decent_tambon.append(tambon) เลิกใช้ list แล้ว เก็บค่าตรงๆไปเลย
-                if tambon in full_cus_address:
-                    decent_tambon = tambon
+                # * ช่องว่างตั้งแต่ 1 อันขึ้นไป จะกลายเป็น โดนลบทั้งหมด
+                clean_t = re.sub(r'\s{1,}', '', clean_t)
+
+                if clean_t in full_cus_address:
+                    decent_tambon = clean_t
                     break
 
             # *ลบตำบลออก
-            cleaned_address = self.app.get_pure_address(cus_address)
+            cleaned_address: str = self.app.get_pure_address(cus_address)
 
             # * หาค่าตัวแปรที่เหมาะสมลงใน decent_tambon
             if decent_tambon:
                 # * เจอตำบลในไฟล์
                 print("เลือกตำบลที่เหมาะสมมาแล้ว", decent_tambon)
-
             else:
                 # * ตำบลในไฟล์ไม่มีต้อง Google เอา
                 print("ไม่มีตำบลมาให้ต้อง search google")
-                address_dict = {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon,
-                                "amphoe": amphoe_short, "province": province, "postal": postal_code}
-                googled_tambon = self.google_for_tambon(
-                    address_dict, possible_tambons)
+                address_dict = {
+                    "cleaned_address": cleaned_address,
+                    "decent_tambon": decent_tambon,
+                    "amphoe": amphoe_short,
+                    "province": province,
+                    "postal": postal_code
+                }
+                googled_tambon = self.google_for_tambon(address_dict, possible_tambons)
                 decent_tambon = googled_tambon
                 is_alert = True
                 self.app.POP_UP.show(
-                    "Caution!!", f""""ตำบล/แขวง"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", "alert")
+                    "Caution!!", """"ตำบล/แขวง"อันนี้มั่วมาโปรดตรวจสอบก่อนออกบิล""", "alert"
+                )
                 self.is_random_subdistrict_used = True
 
-            # * บางคนไม่ใส่ ตำบล ต แขวง ต้องรู้ ชื่อตำบลก่อนค่อยลบ
             print("ก่อนลบ", cleaned_address)
-            #! ตรงนี้ผิด ลบทำไม
-            # prog = re.compile(fr'{re.escape(decent_tambon)}.*')
-            # cleaned_address = prog.sub('', cleaned_address)
-            # print("ลบไม่ได้", cleaned_address)
 
-            # * เลือกว่าจะ ตำบล หรหือ แขวง
+            # * เลือกว่าจะ ตำบล หรือ แขวง
             if decent_tambon in cus_address and ("กรุงเทพ" in cus_address or "กทม" in cus_address):
-                decent_tambon = "แขวง" + tambon
+                decent_tambon = "แขวง" + decent_tambon
             elif decent_tambon in cus_address:
-                decent_tambon = "ตำบล" + tambon
+                decent_tambon = "ตำบล" + decent_tambon
 
-            return {"cleaned_address": cleaned_address, "decent_tambon": decent_tambon, "amphoe": amphoe_short, "province": province, "postal": postal_code, "alert": is_alert}
+            return {
+                "cleaned_address": cleaned_address,
+                "decent_tambon": decent_tambon,
+                "amphoe": amphoe_short,
+                "province": province,
+                "postal": postal_code,
+                "alert": is_alert
+            }
 
-        # * หาตำบลจากไฟล์ไม่เจอ
-        elif any(target_row_index) == False:
+        else:
             print("ไม่เจอOrder")
+            return None
 
     def get_vatinfo_data(self, tax_num, branch="สำนักงานใหญ่"):
         # * value of branch can be "สำนักงานใหญ่" or ตัวเลขสาขา 5 หลัก
-        print(
-            f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
+        print(f'ใช้ vatinfo_req และส่ง data body ด้วย : {str(tax_num)}, สาขา {str(branch)}')
         branch_for_search_from_res = branch
         if branch == "สำนักงานใหญ่":
             branch_for_search_from_res = "00000"
 
         # * หาชื่อใบกำกับจาก vatinfo
-        result = self.get_res_vatinfo(
-            str(tax_num), str(branch_for_search_from_res))
+        result = self.get_res_vatinfo(str(tax_num), str(branch_for_search_from_res))
 
         # * กรณีหาจาก taxinfo ไม่มี ทำให้ต้อง หาจาก Excel ที่ import เข้ามา
         if bool(result) == False:
             print("no data from vatinfo, use manual data from excel instead")
             # * หาตำบล จาก address ที่ลูกค้าให้มา
-            cus_address_from_table = self.address_seperator(
-                self.app.data_frame, self.cus_order)
+            cus_address_from_table = self._address_seperator(self.app.data_frame, self.cus_order)
 
             manual_result_strcuture = {
                 'tax_num': f'{self.app.tax_num.get()}',
@@ -8774,13 +8831,19 @@ class Bot_POS:
                 f"[SaveOrderDetails] บันทึกลง JSON สำเร็จ: {json_path}")
 
             # 3. บันทึกเพิ่มเติมไปยัง Excel (ถ้าใช้งาน Accel mode)
-            if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_completed_order'):
+            if hasattr(self.app, 'accel_mode'):
                 try:
-                    self.app.accel_mode.record_completed_order(
-                        order_no, tracking=tracking_no, bill_no=bill_no, status="Completed (จบกระบวนการ flow เต็ม)")
+                    if hasattr(self.app.accel_mode, 'deduct_accel_file_data'):
+                        used_sns = getattr(self.app.accel_mode, "used_serials", [])
+                        self.app.accel_mode.deduct_accel_file_data(
+                            order_no, sku_serials=used_sns, remove_order=True, update_memory=True
+                        )
+                    if hasattr(self.app.accel_mode, 'record_completed_order'):
+                        self.app.accel_mode.record_completed_order(
+                            order_no, tracking=tracking_no, bill_no=bill_no, status="Completed (จบกระบวนการ flow เต็ม)")
                     self.current_checkpoint = "บันทึกประวัติออเดอร์สำเร็จ (จบกระบวนการ flow เต็ม)"
                     logger.info(
-                        f"[SaveOrderDetails] บันทึกลง Excel ใน Sheet 'Completed_Orders' สำเร็จ")
+                        f"[SaveOrderDetails] บันทึกลง Excel (ตัด order/SN และบันทึก Completed_Orders) สำเร็จ")
                 except Exception as xl_err:
                     logger.warning(f"ไม่สามารถบันทึกลง Excel ได้: {xl_err}")
 

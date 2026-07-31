@@ -39,12 +39,10 @@ class AccelMode:
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
-            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
-            )
+            self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
         print("before self.accel_df_state: ", self.accel_df_state)
         self.accel_df_state.loc[self.accel_df_state.duplicated(
             subset=['orders']), 'orders'] = pd.NA
-        self.accel_df_state['orders'].dropna(inplace=True)
         print("after self.accel_df_state: ", self.accel_df_state)
 
         self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
@@ -68,18 +66,35 @@ class AccelMode:
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
 
-        if remove_order:
-            print("deduct_accel_file_data ref: ",
-                  df.loc[df['orders'] == order, 'orders'])
-            has_order = df.loc[df['orders'] == order, 'orders']
+        if remove_order and 'orders' in df.columns:
+            mask_order = df['orders'].astype(str).str.strip() == order
+            has_order = df.loc[mask_order, 'orders']
             if not has_order.empty:
                 print(f'remove {order} from state df')
-                df.loc[df['orders'] == order, 'orders'] = pd.NA
+                df.loc[mask_order, 'orders'] = pd.NA
 
-        print("sku_serials ไม่ได้ได้ไง: ", sku_serials)
+        print("deduct_accel_file_data sku_serials: ", sku_serials)
         if sku_serials:
             for sn in sku_serials:
-                df.loc[df[sn['sku']] == sn['sn'], sn['sku']] = pd.NA
+                target_sku = str(sn.get('sku', '')).strip()
+                target_sn = str(sn.get('sn', '')).strip()
+                if not target_sku or not target_sn:
+                    continue
+
+                # ค้นหา column ที่ตรงกับ target_sku
+                matched_col = None
+                for col in df.columns:
+                    col_str = str(col).strip()
+                    if col_str.lower() == target_sku.lower() or target_sku.lower() in col_str.lower():
+                        matched_col = col
+                        break
+
+                if matched_col is not None:
+                    print(f"ตัด SN: {target_sn} ออกจากคอลัมน์ {matched_col}")
+                    mask_sn = df[matched_col].astype(str).str.strip() == target_sn
+                    df.loc[mask_sn, matched_col] = pd.NA
+                else:
+                    print(f"Warning: ไม่พบ คอลัมน์ SKU {target_sku} ใน DataFrame ของ Excel")
 
         print("form state df to new excel")
         print(
@@ -96,8 +111,7 @@ class AccelMode:
                     self.accel_file_dir, dtype=str)
                 self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                 if 'orders' in self.accel_df_state.columns:
-                    self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
-                    )
+                    self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
                 self.obj_data_from_accel_file = {
                     col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist()
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
@@ -136,8 +150,7 @@ class AccelMode:
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
-            self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
-            )
+            self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
 
         self._read_accel_file_to_state(self.accel_file_dir)
 
@@ -294,8 +307,7 @@ class AccelMode:
                         self.accel_file_dir, dtype=str)
                     self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                     if 'orders' in self.accel_df_state.columns:
-                        self.accel_df_state['orders'] = self.accel_df_state['orders'].str.strip(
-                        )
+                        self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
                     self.obj_data_from_accel_file = {
                         col: [str(x).strip() for x in self.accel_df_state[col].dropna(
                         ).tolist() if str(x).strip() != 'nan']
@@ -656,17 +668,72 @@ class AccelMode:
                             except:
                                 pass
 
-                            # 2. กดลบรายการที่แอดเข้าไปเพื่อเคลียร์ช่องสำหรับ SN ตัวใหม่
+                            # 2. ค้นหาลำดับของ SKU ที่มีปัญหาใน DOM แล้วกดปุ่มลบ (btn-danger) และเช็คว่าหายไปแล้วจริงๆ
                             try:
-                                delete_btn_xpath = f"//div[contains(@class, 'panel') and .//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_ordered_sku}'] and .//i[@class='fa fa-check-square-o']]//button[@class='btn btn-danger btn-sm ng-scope']"
-                                delete_btn = driver.find_element(
-                                    By.XPATH, delete_btn_xpath)
-                                driver.execute_script(
-                                    "arguments[0].click();", delete_btn)
-                                print("กดปุ่มลบรายการที่ตรวจสอบไม่ผ่านสำเร็จ")
-                                time.sleep(1)
+                                target_idx = None
+                                sku_elements = driver.find_elements(
+                                    By.XPATH,
+                                    "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                                )
+                                for idx, elem in enumerate(sku_elements):
+                                    text_content = elem.text.strip()
+                                    if (current_ordered_sku.strip().lower() in text_content.lower() or 
+                                        text_content.lower() in current_ordered_sku.strip().lower()):
+                                        target_idx = idx
+                                        break
+
+                                delete_buttons = driver.find_elements(
+                                    By.XPATH,
+                                    "//button[@class='btn btn-danger btn-sm ng-scope']"
+                                )
+
+                                deleted_button_clicked = False
+                                if target_idx is not None and target_idx < len(delete_buttons):
+                                    driver.execute_script("arguments[0].click();", delete_buttons[target_idx])
+                                    print(f"กดปุ่มลบรายการลำดับที่ {target_idx} (SKU: {current_ordered_sku}) ที่ตรวจสอบไม่ผ่านสำเร็จ")
+                                    deleted_button_clicked = True
+                                else:
+                                    # Fallback: ลองหาปุ่มลบผ่าน panel ancestor
+                                    for elem in sku_elements:
+                                        if (current_ordered_sku.strip().lower() in elem.text.strip().lower() or 
+                                            elem.text.strip().lower() in current_ordered_sku.strip().lower()):
+                                            try:
+                                                panel = elem.find_element(By.XPATH, "./ancestor::div[contains(@class, 'panel')][1]")
+                                                del_btns = panel.find_elements(By.XPATH, ".//button[contains(@class, 'btn-danger')]")
+                                                if del_btns:
+                                                    driver.execute_script("arguments[0].click();", del_btns[0])
+                                                    print(f"กดปุ่มลบรายการ SKU: {current_ordered_sku} ผ่าน panel ancestor สำเร็จ")
+                                                    deleted_button_clicked = True
+                                                    break
+                                            except:
+                                                pass
+
+                                if not deleted_button_clicked:
+                                    print(f"ไม่สามารถหาปุ่มลบสำหรับ SKU {current_ordered_sku} ได้ ลองปรับลดจำนวนด้วย adjust_qty_down")
+                                    adjust_qty_down(current_ordered_sku, successful_count)
+
+                                # เช็คว่า SKU ของ SN นั้น หายไปจาก DOM แล้วจริงๆ ก่อนเติม SN ถัดไป
+                                print(f"กำลังตรวจสอบว่า SKU {current_ordered_sku} หายไปจาก DOM หรือยัง...")
+                                start_check = time.time()
+                                while (time.time() - start_check) < 6:
+                                    current_skus = [
+                                        e.text.strip() for e in driver.find_elements(
+                                            By.XPATH,
+                                            "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                                        )
+                                    ]
+                                    is_still_in_dom = any(
+                                        current_ordered_sku.strip().lower() in s.lower() or s.lower() in current_ordered_sku.strip().lower()
+                                        for s in current_skus
+                                    )
+                                    if not is_still_in_dom:
+                                        print(f"ยืนยันเรียบร้อย: SKU {current_ordered_sku} หายไปจาก DOM แล้วจริงๆ!")
+                                        break
+                                    time.sleep(0.5)
+
                             except Exception as del_err:
-                                print(f"ไม่สามารถกดปุ่มลบรายการได้: {del_err}")
+                                print(f"เกิดข้อผิดพลาดในการลบรายการ: {del_err}")
+                                adjust_qty_down(current_ordered_sku, successful_count)
 
                             # 3. ลบ SN ตัวที่มีปัญหาออกจาก Excel และหน่วยความจำ
                             self.deduct_accel_file_data(
