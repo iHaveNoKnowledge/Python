@@ -6393,53 +6393,32 @@ class Bot_POS:
                                     except:
                                         pass
 
-                                # * ถ้าข้อความเป็น "please input serial" ให้หาว่า item ไหนขาด SN
+                                # * ถ้าข้อความเป็น "please input serial" ให้หาว่า item ไหนขาด SN โดยเทียบ SKU ที่สั่ง กับที่ลงบน POS
                                 _serial_keywords = [
                                     "please input serial",
                                     "กรุณาใส่ข้อมูลซีเรียล",
                                 ]
                                 if any(kw in err_msg.lower() for kw in _serial_keywords):
                                     try:
-                                        used_serials = getattr(self.app.accel_mode, "used_serials", [])
-                                        # SKU ที่ยิง SN ครบแล้ว → นับจำนวนต่อ SKU
-                                        sn_count_by_sku: dict[str, int] = {}
-                                        for s in used_serials:
-                                            k = str(s.get("sku", ""))
-                                            sn_count_by_sku[k] = sn_count_by_sku.get(k, 0) + 1
-
-                                        # SKU ที่ต้องการ SN (อยู่ใน accel file)
-                                        accel_skus = list(getattr(
-                                            self.app.accel_mode, "obj_data_from_accel_file", {}).keys())
-
-                                        missing_lines = []
-                                        for item in getattr(self.app, "items", []):
-                                            sku_ref = str(item.get(
-                                                "เลขอ้างอิง SKU (SKU Reference No.)", "")).strip()
-                                            item_name = str(item.get(
-                                                "ชื่อสินค้า", "")).strip()
-                                            if item_name.lower() == "nan":
-                                                item_name = ""
-                                            ordered_qty = int(item.get("จำนวน", 1))
-
-                                            # ตรวจว่า sku นี้ต้องการ SN ไหม
-                                            matched_accel_sku = next(
-                                                (k for k in accel_skus if str(k) in sku_ref), None)
-                                            if matched_accel_sku is None:
-                                                continue  # SKU นี้ไม่ต้องการ SN ข้ามไป
-
-                                            sn_done = sn_count_by_sku.get(matched_accel_sku, 0)
-                                            sn_short = ordered_qty - sn_done
-                                            if sn_short > 0:
-                                                label = f"{sku_ref}"
-                                                if item_name:
-                                                    label += f" ({item_name})"
-                                                missing_lines.append(
-                                                    f"  • {label}: ต้องการ {ordered_qty} SN แต่ยิงได้ {sn_done} (ขาด {sn_short})")
-
-                                        if missing_lines:
-                                            err_msg += "\n\n📋 Item ที่น่าจะขาด SN:\n" + "\n".join(missing_lines)
+                                        pm = getattr(self, "ProductManager", None)
+                                        if pm is None:
+                                            err_msg += "\n\n⚠️ ไม่สามารถระบุ item ที่ขาด SN ได้ (ไม่มี ProductManager)"
                                         else:
-                                            err_msg += "\n\n⚠️ ไม่สามารถระบุ item ที่ขาด SN ได้ (ตรวจสอบ used_serials manually)"
+                                            qty_result = pm.verify_item_qty()
+                                            missing_lines = []
+                                            for sku, info in qty_result.items():
+                                                expected = int(info.get("expected", 0))
+                                                actual = info.get("actual", "NOT_FOUND")
+                                                if actual == "NOT_FOUND":
+                                                    missing_lines.append(
+                                                        f"  • {sku}: ต้องการ {expected} ชิ้น แต่ไม่พบบน POS (ไม่ได้ add เข้าไป — คาดว่าขาด SN/ไม่มี SN ใน accel file)")
+                                                elif actual != expected:
+                                                    missing_lines.append(
+                                                        f"  • {sku}: ต้องการ {expected} ชิ้น แต่ลงบน POS ได้ {actual} (ขาด {expected - actual})")
+                                            if missing_lines:
+                                                err_msg += "\n\n📋 Item ที่น่าจะขาด SN (เทียบกับ POS):\n" + "\n".join(missing_lines)
+                                            else:
+                                                err_msg += "\n\n⚠️ SKU ทั้งหมดลงบน POS ครบแล้ว แต่ SMCO ยังขอ serial (ตรวจสอบ SN ที่กรอกด้วยมือ)"
                                     except Exception as sn_diag_err:
                                         print(f"[SN Diag] Error: {sn_diag_err}")
 
