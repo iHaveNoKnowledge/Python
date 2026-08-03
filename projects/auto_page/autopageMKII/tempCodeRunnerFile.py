@@ -1,1 +1,1 @@
-True
+cus_cur_status
