@@ -58,6 +58,11 @@ class RefreshRequiredException(BaseException):
     pass
 
 
+class AddressDropdownNoMatchError(Exception):
+    """Raised when select_li_from_dropdown() ไม่พบค่าใน dropdown (ที่อยู่ลูกค้าไม่สามารถสร้างได้จากระบบ SMCO)."""
+    pass
+
+
 class SmcoApiClient:
     """
     จัดการ HTTP requests ทั้งหมดสำหรับ SMCO API
@@ -3468,7 +3473,8 @@ class UserAccount:
                     # self.subwindow.destroy()
                     # return self.display_btn_txt
 
-                if self.app.user_id.get() in self.app.dev_account:
+                # if self.app.user_id.get() in self.app.dev_account: #/ สำหรับ ล็อคไว้ให้ dev ใช้เท่านั้น
+                if self.app.user_id.get():  # / เปิดให้ทุกคนใช้
                     print("Accel mode approachable")
                     if self.app.accel_mode_checkbox.winfo_ismapped():
                         pass
@@ -5817,10 +5823,8 @@ class Bot_POS:
                 start_time = time.time()
                 while not self.operation_thread.is_set():
                     try:
-                        status_el = self.driver.find_elements(
-                            By.CLASS_NAME, 'status-wrapper')
-                        order_sn_el = self.driver.find_elements(
-                            By.XPATH, "//div/span[@class='order-sn']")
+                        status_el = self.driver.find_elements(By.CLASS_NAME, 'status-wrapper')
+                        order_sn_el = self.driver.find_elements(By.XPATH, "//div/span[@class='order-sn']")
 
                         if (status_el and status_el[0].is_displayed()) or (order_sn_el and order_sn_el[0].is_displayed()):
                             found_order = True
@@ -5831,8 +5835,7 @@ class Bot_POS:
 
                     try:
                         page_text = self.driver.page_source.lower()
-                        empty_indicators = [
-                            "no data", "ไม่มีข้อมูล", "no orders", "no results"]
+                        empty_indicators = ["no data", "ไม่มีข้อมูล", "no orders", "no results"]
                         empty_el = self.driver.find_elements(
                             By.CSS_SELECTOR, ".eds-empty, .empty-wrapper, .no-orders, .no-data")
 
@@ -5855,8 +5858,7 @@ class Bot_POS:
                 # *>  ต้องใช้ try except เพราะ element ของ shopee มันดันแบ่งเป็นสองแบบหากมีสถานะ order ที่ต่างกัน แทนที่จะเขียนให้เหมือนกัน ยุ่งยากกว่าเดิม
                 try:
                     # * สำหรับ หาข้อความ "ที่ต้องจัดส่ง" ต่อให้มี element ที่บรรจุคำว่า "จะถูกยกเลินใน x วัน" หรือ "การจัดส่งช้า" ตราบใดที่ข้างล่างมี ที่ต้องจัดส่ง จะมี class big-text เสมอ
-                    self.app.cus_cur_status.set(self.driver.find_element(
-                        By.CLASS_NAME, 'status-wrapper').text)
+                    self.app.cus_cur_status.set(self.driver.find_element(By.CLASS_NAME, 'status-wrapper').text)
 
                 except:
                     # * elementจะแสดงตาม DOM DIR นี้ ถ้าหาก ดูในหน้า ทั้งหมด สำหรับ Order ที่มีสถานะ "ส่งสินค้าแล้ว", "ยกเลิกแล้ว", "สำเร็จ"
@@ -5867,16 +5869,13 @@ class Bot_POS:
                 self.app.display_current_status.configure(
                     text_color="#000000", fg_color="#8fd4ff")
                 if self.app.cus_cur_status.get() == "ส่งสินค้าแล้ว":
-                    self.app.display_current_status.configure(
-                        fg_color="#00ff11", text_color="#000000")
+                    self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
                     self.app.POP_UP.show(
                         "Caution!!", f"Order {self.app.order} มีสถานะ '{self.app.cus_cur_status.get()}'", "alert")
-                    logger.info(
-                        f"Order: {self.app.order} has status: '{self.app.cus_cur_status.get()}'")
+                    logger.info(f"Order: {self.app.order} has status: '{self.app.cus_cur_status.get()}'")
 
                 elif "ยกเลิก" in self.app.cus_cur_status.get():
-                    self.app.display_current_status.configure(
-                        fg_color="#ff2b2b", text_color="#FFF")
+                    self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
                     self.is_forbid = True
                     #! WIP accel_mode[3] ถ้าเป็น accel mode อาจจะไม่ต้องใช้ popup แต่ใช้เป็นการเก็บผลลัพธ์การทำงานแทน
                     self.app.POP_UP.show(
@@ -5886,26 +5885,29 @@ class Bot_POS:
 
                 self.is_status_true = self.app.order_status == self.app.cus_cur_status.get()
                 if self.is_status_true:
-                    print(self.app.order_status ==
-                          self.app.cus_cur_status.get())
+                    print(self.app.order_status == self.app.cus_cur_status.get())
                     print("Status in the file is reliable")
                 else:
-                    print(self.app.order_status ==
-                          self.app.cus_cur_status.get())
-                    print(
-                        "Status in the file is unreliable, suggest downloading a new Export File from the link below")
-                    print(
-                        "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
+                    print(self.app.order_status == self.app.cus_cur_status.get())
+                    print("Status in the file is unreliable, suggest downloading a new Export File from the link below")
+                    print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
                 # * สำหรับโหมด auto_invoice_mode ให้กรองเฉพาะออเดอร์สถานะ "ที่ต้องจัดส่ง"
                 if hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get():
                     shopee_status = self.app.cus_cur_status.get().strip()
                     if not shopee_status:
-                        raise ValueError(
-                            "ไม่สามารถระบุสถานะออเดอร์ Shopee ได้ (ค่าสถานะเป็นค่าว่าง)")
+                        raise ValueError("ไม่สามารถระบุสถานะออเดอร์ Shopee ได้ (ค่าสถานะเป็นค่าว่าง)")
 
                     if shopee_status != "ที่ต้องจัดส่ง":
-                        if "ยังไม่ชำระ" in shopee_status:
+                        # * order ที่ถูกยกเลิกถือว่า Complete เสมอ (แม้ status block จะมีคำว่า "ยังไม่ชำระ" ปนอยู่ก็ตาม)
+                        if "ยกเลิก" in shopee_status:
+                            is_failed = False
+                        elif "ยังไม่ชำระ" in shopee_status:
+                            is_failed = True
+                        else:
+                            is_failed = False
+
+                        if is_failed:
                             error_msg = f"ออเดอร์มีสถานะ '{shopee_status}' (ถือว่า Failed ตามเงื่อนไข)"
                             self.app.update_log(f"❌ {error_msg}")
                             raise ValueError(error_msg)
@@ -5918,8 +5920,7 @@ class Bot_POS:
                                         self.app.accel_mode.deduct_accel_file_data(
                                             self.app.cus_order, remove_order=True)
                                     except Exception as xl_err:
-                                        logger.warning(
-                                            f"ไม่สามารถ deduct order จาก Sheet1 ได้: {xl_err}")
+                                        logger.warning(f"ไม่สามารถ deduct order จาก Sheet1 ได้: {xl_err}")
                                 if hasattr(self.app.accel_mode, 'record_completed_order'):
                                     self.app.accel_mode.record_completed_order(
                                         self.app.cus_order, status=f"ข้าม (สถานะ: {shopee_status})")
@@ -7243,7 +7244,8 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_li_from_dropdown(
+                    self._select_dropdown_or_fail_in_auto_inv(
+                        source="add new customer",
                         input_element=province_input,
                         search_value=province,
                         th_field='provinceNameTh',
@@ -7259,7 +7261,8 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_li_from_dropdown(
+                    self._select_dropdown_or_fail_in_auto_inv(
+                        source="add new customer",
                         input_element=district_input,
                         search_value=district,
                         th_field='districtNameTh',
@@ -7278,7 +7281,8 @@ class Bot_POS:
                         By.XPATH, '/html/body/div[2]/div[3]/div[13]/span/span/span[1]/input')
 
                     # ใช้ helper method เพื่อเลือกจาก API response
-                    self.select_li_from_dropdown(
+                    self._select_dropdown_or_fail_in_auto_inv(
+                        source="add new customer",
                         input_element=subdistrict_input,
                         search_value=sub_district,
                         th_field='subdistrictNameTh',
@@ -7561,7 +7565,7 @@ class Bot_POS:
             print(f"Error in translation: {e}")
             return eng_name
 
-    def select_li_from_dropdown(self, input_element, search_value, th_field, en_field, place_type='district'):
+    def select_li_from_dropdown(self, input_element, search_value, th_field, en_field, place_type='district', source=''):
         """
         เลือก dropdown โดยใช้ข้อมูลจาก API response
         แก้ปัญหาการเลือกผิดเมื่อเว็บเป็น EN version แต่ลูกค้ากรอกภาษาไทย
@@ -7573,9 +7577,13 @@ class Bot_POS:
             th_field: ชื่อ field ภาษาไทยใน response (เช่น 'provinceNameTh')
             en_field: ชื่อ field ภาษาอังกฤษใน response (เช่น 'provinceNameEn')
             place_type: ประเภทสถานที่ ('province', 'district', 'subdistrict')
+            source: แหล่งที่เรียก (เช่น 'add new customer', 'แก้ไขที่อยู่ (revision)') ใช้ตอน log
 
         Returns:
             bool: True ถ้าเลือกสำเร็จ, False ถ้าไม่พบ
+
+        Raises:
+            AddressDropdownNoMatchError: เมื่อ API ตอบกลับมาแล้วแต่ไม่พบค่าที่ตรง
         """
 
         try:
@@ -7602,8 +7610,7 @@ class Bot_POS:
             api_url_part = "/getCountryInfomation.htm"
             response_data = self.network_capture.capture_response(api_url_part)
 
-            li_dropdowns = self.driver.find_elements(
-                By.XPATH, "//li[@role='treeitem']")
+            li_dropdowns = self.driver.find_elements(By.XPATH, "//li[@role='treeitem']")
 
             if response_data:
                 print(f"Got {len(response_data)} items from API")
@@ -7630,14 +7637,18 @@ class Bot_POS:
                     return True
                 else:
                     print(f"No match found for '{search_value}'")
+                    raise AddressDropdownNoMatchError(
+                        f"No match found for '{search_value}' (จาก {source or 'dropdown'})")
             else:
-                print("No response from API, using fallback")
+                print("No items response from API, using fallback")
 
             # Fallback: กด Enter ตามปกติ
             input_element.send_keys(Keys.ENTER)
             self.network_capture.clear_logs()
             return False
 
+        except AddressDropdownNoMatchError:
+            raise
         except Exception as e:
             print(f"Error in select_li_from_dropdown: {e}")
             # Fallback: กด Enter
@@ -7646,6 +7657,26 @@ class Bot_POS:
             except:
                 pass
             self.network_capture.clear_logs()
+            return False
+
+    def _select_dropdown_or_fail_in_auto_inv(self, source, **kwargs):
+        """เลือก dropdown ผ่าน select_li_from_dropdown()
+        - ถ้า auto_inv mode และ dropdown หาไม่เจอ (AddressDropdownNoMatchError) -> ถือว่า order failed
+          (ที่อยู่ลูกค้าสร้างไม่ได้จากระบบ SMCO) แล้วข้ามไป order ถัดไป
+        - ถ้าไม่ใช่ auto_inv -> log เตือนแล้วคืน False ให้ทำงานต่อแบบเดิม
+        """
+        try:
+            return self.select_li_from_dropdown(**kwargs, source=source)
+        except AddressDropdownNoMatchError as e:
+            is_auto_inv = hasattr(
+                self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get()
+            if is_auto_inv:
+                logger.error(
+                    f"order {self.cus_order}: auto_inv mode, SMCO ไม่สามารถสร้างที่อยู่ลูกค้าได้ ({source}): {e}")
+                raise ValueError(
+                    f"SMCO ไม่สามารถสร้างที่อยู่ลูกค้าได้ ({source}): {e}")
+            logger.warning(
+                f"{source}: เลือก dropdown ไม่พบ {e} -> ดำเนินการต่อแบบเดิม (fallback)")
             return False
 
     def smco_req_find_cus_address(self, cus_id: int = None, **kwargs):
@@ -8021,7 +8052,8 @@ class Bot_POS:
                     By.XPATH, district_dropdown_xpath).click()
                 district_input = self.driver.find_element(
                     By.XPATH, dropdown_input_xpath)
-                self.select_li_from_dropdown(
+                self._select_dropdown_or_fail_in_auto_inv(
+                    source="แก้ไขที่อยู่ (revision)",
                     input_element=district_input,
                     search_value=self.app.cus_district.get().replace(
                         "อำเภอ", "").replace("เขต", "").replace("ต.", ""),
@@ -8038,7 +8070,8 @@ class Bot_POS:
                 subdistrict_btn.click()
                 subdistrict_input = self.driver.find_element(
                     By.XPATH, dropdown_input_xpath)
-                self.select_li_from_dropdown(
+                self._select_dropdown_or_fail_in_auto_inv(
+                    source="แก้ไขที่อยู่ (revision)",
                     input_element=subdistrict_input,
                     search_value=self.app.cus_sub_district.get().replace(
                         "ตำบล", "").replace("แขวง", "").replace("ต.", ""),
@@ -8049,8 +8082,7 @@ class Bot_POS:
 
                 # * Postal code
                 zip_code_btn_xpath = "//span[@id='select2-zipCodeSel-container']"
-                zip_code_btn_element = self.driver.find_element(
-                    By.XPATH, zip_code_btn_xpath)
+                zip_code_btn_element = self.driver.find_element(By.XPATH, zip_code_btn_xpath)
                 postcode = self.app.cus_postcode.get()
                 try:
                     # * ถ้าหาไม่เจอมันจะ เข้า Except ไปเอง
@@ -8071,7 +8103,7 @@ class Bot_POS:
                             raise ValueError(
                                 f"Postal code {postcode} cannot be found in dropdown, auto invoice mode requires postal code selection, stopping the process. Error details: {err}")
 
-                print(f"""{self.cus_order}: Address Revise Complete""")
+                print(f"""{self.cus_order}: Address Revise End""")
                 break
             except ValueError as ve:
                 print(f"Address Revise Error: Stopped by ValueError: {ve}")
@@ -8105,8 +8137,7 @@ class Bot_POS:
                 continue
          # * CLick Save Button (commented out but kept for completeness)
         if self.app.is_auto_invoice_mode.get():
-            self.driver.find_element(
-                By.XPATH, "//button[@ng-click='saveAddress()']").click()
+            self.driver.find_element(By.XPATH, "//button[@ng-click='saveAddress()']").click()
 
         # * Wait for success popup
         self.app.is_bot_browser_busy.set(False)

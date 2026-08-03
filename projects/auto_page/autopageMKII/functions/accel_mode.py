@@ -34,12 +34,24 @@ class AccelMode:
 
         self._read_accel_file_to_state(self.accel_file_dir)
 
+    def _normalize_orders_col(self, df):
+        """ตัดช่องว่างรอบเลข order โดยคงค่า missing ไว้เป็น pd.NA
+        (ห้ามใช้ .astype(str).str.strip() ตรงๆ เพราะ NaN จะกลายเป็น string 'nan' แล้วถูกเขียนลง excel เป็นคำว่า nan)
+        """
+        if 'orders' not in df.columns:
+            return
+        orders = df['orders']
+        missing = orders.isna() | orders.astype(str).str.strip(
+        ).str.lower().isin(['nan', 'none', '<na>', 'null'])
+        df.loc[:, 'orders'] = orders.astype(str).str.strip()
+        df.loc[missing, 'orders'] = pd.NA
+
     def _read_accel_file_to_state(self, accel_file_dir):
         self.accel_file_dir = accel_file_dir
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
-            self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
+            self._normalize_orders_col(self.accel_df_state)
         print("before self.accel_df_state: ", self.accel_df_state)
         self.accel_df_state.loc[self.accel_df_state.duplicated(
             subset=['orders']), 'orders'] = pd.NA
@@ -111,7 +123,7 @@ class AccelMode:
                     self.accel_file_dir, dtype=str)
                 self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                 if 'orders' in self.accel_df_state.columns:
-                    self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
+                    self._normalize_orders_col(self.accel_df_state)
                 self.obj_data_from_accel_file = {
                     col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist()
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
@@ -150,7 +162,7 @@ class AccelMode:
         self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
-            self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
+            self._normalize_orders_col(self.accel_df_state)
 
         self._read_accel_file_to_state(self.accel_file_dir)
 
@@ -307,7 +319,7 @@ class AccelMode:
                         self.accel_file_dir, dtype=str)
                     self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                     if 'orders' in self.accel_df_state.columns:
-                        self.accel_df_state.loc[:, 'orders'] = self.accel_df_state['orders'].astype(str).str.strip()
+                        self._normalize_orders_col(self.accel_df_state)
                     self.obj_data_from_accel_file = {
                         col: [str(x).strip() for x in self.accel_df_state[col].dropna(
                         ).tolist() if str(x).strip() != 'nan']
