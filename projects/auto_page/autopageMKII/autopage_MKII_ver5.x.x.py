@@ -731,7 +731,9 @@ class MyApp:
             if event.keycode == _KEYCODE_T and ctrl and alt:
                 self.toggle_test_mode()
 
-        self.root.bind("<KeyPress>", _on_keypress)
+        # add="+" จำเป็น: <KeyPress> กับ <Key> เป็น binding ช่องเดียวกันใน Tk
+        # ไม่งั้นจะทับ _onKeyRelease (Ctrl+C/V/X/A รองรับคีย์บอร์ดภาษาไทย) ที่ผูก <Key> ไว้
+        self.root.bind("<KeyPress>", _on_keypress, add="+")
 
     def toggle_test_mode(self):
         """สลับระหว่าง test mode และ real mode แล้วอัปเดตสี UI ทั้งหมด"""
@@ -1469,7 +1471,7 @@ class MyApp:
 
     def reset_all_display(self):
         self.result = ""
-        self.table_location = ""
+        # เก็บ self.table_location ไว้ (ไม่ล้าง) เพื่อให้ปุ่ม open ยังเปิดไฟล์ที่โหลดไว้ได้
         self.cus_order.set("")
         self.is_tax_required.set(False)
         self.tax_num.set("")
@@ -1526,7 +1528,7 @@ class MyApp:
 
         # * ตัดเอาเฉพาะ ชื่อไฟล์
         self.display_location_result.configure(
-            text=f"{self.table_location.split('/')[-1]}")
+            text=f"{os.path.basename(self.table_location)}")
 
         # * target should come before get dataframe
         self.marketplace_target.set(self.define_marketplace())
@@ -1560,7 +1562,7 @@ class MyApp:
             title="Select CP Data file")
         if self.cp_table_location:
             self.display_cp_location_btn.configure(
-                text=f"{self.cp_table_location.split('/')[-1]}")
+                text=f"{os.path.basename(self.cp_table_location)}")
             try:
                 self.cp_df = pd.read_excel(self.cp_table_location)
                 if 'usage_start_date' in self.cp_df.columns:
@@ -1577,14 +1579,36 @@ class MyApp:
 
     def open_file_by_default(self, file_path: str):
         """เปิดไฟล์ด้วยโปรแกรมเริ่มต้นของระบบปฏิบัติการ (Default Application)"""
-        if file_path and os.path.exists(file_path):
-            try:
-                os.startfile(os.path.normpath(file_path))
-                self.update_log(f"เปิดไฟล์: {os.path.basename(file_path)}")
-            except Exception as e:
-                messagebox.showerror("Error", f"ไม่สามารถเปิดไฟล์ได้: {e}")
-        else:
+        if not file_path or not os.path.exists(file_path):
             messagebox.showwarning("Warning", "ยังไม่ได้เลือกไฟล์ หรือไม่พบไฟล์ที่ระบุ")
+            return
+        try:
+            file_path = os.path.normpath(file_path)
+            # เตรียมไฟล์ Excel ให้ Auto Filter ครอบทุกคอลัมน์ และ Freeze แถวแรกที่เป็นหัวตาราง
+            # - สั่ง save เฉพาะเมื่อมี sheet ที่ยังไม่ได้ตั้งค่า (ลดความเสี่ยงทำไฟล์พัง/ช้า)
+            # - keep_vba=True เพื่อรักษา macro ใน .xlsm ไม่ให้หายไป
+            if file_path.lower().endswith(('.xlsx', '.xlsm')):
+                try:
+                    wb = load_workbook(
+                        file_path, keep_vba=file_path.lower().endswith('.xlsm'))
+                    need_save = False
+                    for ws in wb.worksheets:
+                        if ws.max_row > 0 and ws.max_column > 0:
+                            if ws.auto_filter.ref != ws.dimensions:
+                                ws.auto_filter.ref = ws.dimensions
+                                need_save = True
+                            if ws.freeze_panes != "A2":
+                                ws.freeze_panes = "A2"
+                                need_save = True
+                    if need_save:
+                        wb.save(file_path)
+                    wb.close()
+                except Exception as e:
+                    self.update_log(f"เตรียมรูปแบบไฟล์ Excel ไม่สำเร็จ: {e}")
+            os.startfile(file_path)
+            self.update_log(f"เปิดไฟล์: {os.path.basename(file_path)}")
+        except Exception as e:
+            messagebox.showerror("Error", f"ไม่สามารถเปิดไฟล์ได้: {e}")
 
     def group_by_order(self, file_input, dtype):
         df = pd.read_excel(file_input, dtype=dtype)
@@ -3207,7 +3231,7 @@ class DataSourceSelector:
         self.app.table_location = filedialog.askopenfilename(
             title="Select Shopee order toship file")
         self.app.display_location_result.configure(
-            text=f"{self.app.table_location.split('/')[-1]}")
+            text=f"{os.path.basename(self.app.table_location)}")
         # target should come before getting dataframe
         self.app.marketplace_target.set(self.app.define_marketplace())
         result = self.app.marketplace_target.get()
@@ -6351,16 +6375,25 @@ class Bot_POS:
                     self.process_price_mismatches(verification_result)
                     self.current_checkpoint = "ปรับราคา/ใส่คูปองสำเร็จ (จบ process ปรับราคา)"
 
-                    # * ตรวจสอบราคาอีกครั้งหลังปรับราคา
-                    self.app.update_log(
-                        "🔍 กำลังตรวจสอบราคาและจำนวนสินค้าอีกครั้งหลังปรับราคา...")
-                    post_verification = self.ProductManager.verify_all()
-                    print("post_verification_result: ", post_verification)
+                    # * ตรวจสอบราคาอีกครั้งหลังปรับราคา (ตรวจซ้ำเฉพาะกรณีที่รอบแรกไม่ผ่าน)
+                    if verification_result.get("all_ok"):
+                        self.app.update_log(
+                            "ราคาตรงทั้งหมดตั้งแต่แรก ไม่ต้องตรวจสอบซ้ำ")
+                        post_verification = verification_result
+                    else:
+                        self.app.update_log(
+                            "🔍 กำลังตรวจสอบราคาและจำนวนสินค้าอีกครั้งหลังปรับราคา...")
+                        post_verification = self.ProductManager.verify_all()
+                        print("post_verification_result: ", post_verification)
 
                     if post_verification.get("all_ok"):
-                        self.app.update_log("✅ ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
-                        self.app.finish_order()
-                        self.current_checkpoint = "ออกบิลเรียบร้อย"
+                        if self.app.is_testing:
+                            self.app.update_log("TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
+                            self.current_checkpoint = "TEST MODE: ตรวจสินค้าผ่าน หยุดก่อน finish_order()"
+                        else:
+                            self.app.update_log("ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
+                            self.app.finish_order()
+                            self.current_checkpoint = "กรอก Skus ลง POS"
 
                         # * ตรวจสอบ popup แจ้งเตือน (กรณีสินค้ายังไม่มี serial) สำหรับ accelmode + auto_inv
                         if self.app.is_accel_mode.get() and self.app.is_auto_invoice_mode.get():
@@ -6416,7 +6449,8 @@ class Bot_POS:
                                                     missing_lines.append(
                                                         f"  • {sku}: ต้องการ {expected} ชิ้น แต่ลงบน POS ได้ {actual} (ขาด {expected - actual})")
                                             if missing_lines:
-                                                err_msg += "\n\n📋 Item ที่น่าจะขาด SN (เทียบกับ POS):\n" + "\n".join(missing_lines)
+                                                err_msg += "\n\n📋 Item ที่น่าจะขาด SN (เทียบกับ POS):\n" + "\n".join(
+                                                    missing_lines)
                                             else:
                                                 err_msg += "\n\n⚠️ SKU ทั้งหมดลงบน POS ครบแล้ว แต่ SMCO ยังขอ serial (ตรวจสอบ SN ที่กรอกด้วยมือ)"
                                     except Exception as sn_diag_err:
@@ -7404,7 +7438,6 @@ class Bot_POS:
 
 # *Customer Tax Address Correction--------------------------------------------------------------------------------------------------
 
-
     def get_cookies_from_driver(self):
         cookies = self.driver.get_cookies()
         cookies_from_webdriver = {}
@@ -7544,7 +7577,8 @@ class Bot_POS:
             print(f"Error in translation: {e}")
             return eng_name
 
-    def select_li_from_dropdown(self, input_element, search_value, th_field, en_field, place_type='district', source=''):
+    def select_li_from_dropdown(
+            self, input_element, search_value, th_field, en_field, place_type='district', source=''):
         """
         เลือก dropdown โดยใช้ข้อมูลจาก API response
         แก้ปัญหาการเลือกผิดเมื่อเว็บเป็น EN version แต่ลูกค้ากรอกภาษาไทย

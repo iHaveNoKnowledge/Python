@@ -27,7 +27,7 @@ class AccelMode:
             title="Select Accel File")
         if self.accel_file_dir:
             self.main_app.accl_dir_namedisplay_on_btn.configure(
-                text=f"{self.accel_file_dir.split('/')[-1]}")
+                text=f"{os.path.basename(self.accel_file_dir)}")
         else:
             self.main_app.accl_dir_namedisplay_on_btn.configure(
                 text=f"ยังไม่เลือก Accel File")
