@@ -861,7 +861,7 @@ class AccelMode:
             print(f"Error recording failed order to Excel: {e}")
             logger.error(f"Error recording failed order to Excel: {e}")
 
-    def record_completed_order(self, order, tracking="", bill_no="", status="Completed"):
+    def record_completed_order(self, order, tracking="", bill_no="", status="Completed", price=""):
         """Record completed order into Completed_Orders sheet in Accel Excel file
 
         Args:
@@ -869,6 +869,7 @@ class AccelMode:
             tracking: tracking number string
             bill_no: bill/receipt number string
             status: completion status string (e.g. Completed, TEST_SUCCESS)
+            price: ราคาออกบิลหน้าท้าย (final_price) ที่คำนวณได้ตอนยิงของ
         """
         if hasattr(order, 'get'):
             order_str = order.get()
@@ -888,7 +889,7 @@ class AccelMode:
                 return
 
             completed_df = pd.DataFrame(
-                columns=['tracking', 'orders', 'bill_no', 'timestamp', 'status'])
+                columns=['tracking', 'orders', 'bill_no', 'timestamp', 'status', 'price'])
 
             try:
                 completed_df = pd.read_excel(
@@ -898,7 +899,7 @@ class AccelMode:
 
             # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (ไฟล์เก่าที่เรียงแบบเดิมจะถูก reorder ด้วย)
             # align ด้วยชื่อ column ไม่ใช้ตำแหน่ง -> ข้อมูลไม่หลุดหาย
-            _col_order = ['tracking', 'orders', 'bill_no', 'timestamp', 'status']
+            _col_order = ['tracking', 'orders', 'bill_no', 'timestamp', 'status', 'price']
             for _col in _col_order:
                 if _col not in completed_df.columns:
                     completed_df[_col] = ""
@@ -909,7 +910,8 @@ class AccelMode:
                 'orders': order_str,
                 'bill_no': str(bill_no),
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                'status': str(status)
+                'status': str(status),
+                'price': price
             }])
 
             completed_df = completed_df[completed_df['orders'] != order_str]

@@ -5467,7 +5467,8 @@ class Bot_POS:
             self.app.accel_mode.deduct_accel_file_data(
                 self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
             self.app.accel_mode.record_completed_order(
-                self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status=status)
+                self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status=status,
+                price=getattr(self.app, 'final_price', ''))
         except Exception as xl_err:
             print("Accel mode update failed:", xl_err)
             logger.error(f"Accel mode update failed: {xl_err}")
@@ -6757,6 +6758,9 @@ class Bot_POS:
                                     payment_type_btn_element = self.driver.find_element(
                                         By.XPATH, "//a[contains(., 'LAZ')]")
                                     self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
+
+                                # * เก็บ final_price ไว้ใช้บันทึกลง Completed_Orders (column price)
+                                self.app.final_price = final_price
 
                                 # / PO No:
                                 try:
@@ -8884,7 +8888,8 @@ class Bot_POS:
                         )
                     if hasattr(self.app.accel_mode, 'record_completed_order'):
                         self.app.accel_mode.record_completed_order(
-                            order_no, tracking=tracking_no, bill_no=bill_no, status="Completed (จบกระบวนการ flow เต็ม)")
+                            order_no, tracking=tracking_no, bill_no=bill_no, status="Completed (จบกระบวนการ flow เต็ม)",
+                            price=getattr(self.app, 'final_price', ''))
                     self.current_checkpoint = "บันทึกประวัติออเดอร์สำเร็จ (จบกระบวนการ flow เต็ม)"
                     logger.info(
                         f"[SaveOrderDetails] บันทึกลง Excel (ตัด order/SN และบันทึก Completed_Orders) สำเร็จ")
