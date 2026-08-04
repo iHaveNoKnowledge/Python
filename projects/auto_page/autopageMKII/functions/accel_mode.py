@@ -888,7 +888,7 @@ class AccelMode:
                 return
 
             completed_df = pd.DataFrame(
-                columns=['orders', 'tracking', 'bill_no', 'timestamp', 'status'])
+                columns=['tracking', 'orders', 'bill_no', 'timestamp', 'status'])
 
             try:
                 completed_df = pd.read_excel(
@@ -896,9 +896,17 @@ class AccelMode:
             except Exception:
                 print("Completed_Orders sheet does not exist yet. Creating a new one.")
 
+            # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (ไฟล์เก่าที่เรียงแบบเดิมจะถูก reorder ด้วย)
+            # align ด้วยชื่อ column ไม่ใช้ตำแหน่ง -> ข้อมูลไม่หลุดหาย
+            _col_order = ['tracking', 'orders', 'bill_no', 'timestamp', 'status']
+            for _col in _col_order:
+                if _col not in completed_df.columns:
+                    completed_df[_col] = ""
+            completed_df = completed_df[_col_order]
+
             new_row = pd.DataFrame([{
-                'orders': order_str,
                 'tracking': str(tracking),
+                'orders': order_str,
                 'bill_no': str(bill_no),
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
                 'status': str(status)
@@ -907,6 +915,7 @@ class AccelMode:
             completed_df = completed_df[completed_df['orders'] != order_str]
             completed_df = pd.concat(
                 [completed_df, new_row], ignore_index=True)
+            completed_df = completed_df[_col_order]
 
             self._save_df_to_excel(completed_df, 'Completed_Orders')
             print(
