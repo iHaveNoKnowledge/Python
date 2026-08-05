@@ -314,6 +314,8 @@ class MyApp:
 
         # * Initialize AccelMode instance
         self.accel_mode = AccelMode(self)
+        # * ตัวนับ generation ของรอบค้นหา ใช้ยกเลิก thread/callback รอบเก่าเมื่อเริ่มรอบใหม่
+        self._cycle_generation = 0
         self.marketplace_target = StringVar(value="MarketPlace")
         self.bg_by_market_place = {
             'SHOPEE': '#ee4d2d', 'LAZADA': '#201adb', '': '#747474'}
@@ -2344,8 +2346,10 @@ class MyApp:
             pass
 
     def order_search(self, order, on_complete):
+        # * จำ generation ตอนเริ่มค้นหา เพื่อไม่ให้ thread เก่าที่เสร็จทีหลังไปหยุด thread ใหม่
+        my_gen = getattr(self, '_cycle_generation', 0)
         try:
-            self._order_search_internal(order, on_complete)
+            self._order_search_internal(order, on_complete, my_gen)
         except Exception as e:
             logger.error(f"Error in order_search: {e}")
             traceback.print_exc()
@@ -2357,14 +2361,23 @@ class MyApp:
             ))
             if on_complete is not None:
                 on_complete.set()
-            if hasattr(self, 'operation_thread') and self.operation_thread is not None:
+            # * หยุด operation เฉพาะเมื่อ cycle นี้ยังเป็น cycle ปัจจุบัน (กัน thread เก่าฆ่า thread ใหม่)
+            if my_gen == getattr(
+                    self, '_cycle_generation', 0) and hasattr(
+                    self, 'operation_thread') and self.operation_thread is not None:
                 self.operation_thread.set()
 
-    def _order_search_internal(self, order,  on_complete):
-        self.on_complete = on_complete
-        self.on_complete.clear()
-        print(
-            f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
+    def _order_search_internal(self, order,  on_complete, my_gen=None):
+        on_complete.clear()
+        # * ถ้า order ว่าง ให้หยุดทันที ไม่มี pop up (ครอบคลุม accel mode ที่ order ว่างในไฟล์)
+        if order is None or str(order).strip() == "":
+            on_complete.set()
+            # * หยุด operation เฉพาะเมื่อยังเป็น cycle ปัจจุบัน (กัน thread เก่าฆ่า thread ใหม่)
+            if my_gen == getattr(self, '_cycle_generation', 0) and hasattr(self, 'operation_thread') and self.operation_thread is not None:
+                self.operation_thread.set()
+            self.update_log("⚠️ ไม่ได้กรอกเลข Order")
+            return
+        print(f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
         self.reset_all_display()
         self.order = order.strip()
         is_laz_len_not_correct = self.marketplace_target.get(
@@ -2372,8 +2385,12 @@ class MyApp:
         is_shopee_len_not_correct = self.marketplace_target.get(
         ) == 'SHOPEE' and len(self.order) != 14
         if is_shopee_len_not_correct or is_laz_len_not_correct:
-            self.on_complete.set()
-            self.operation_thread.set()
+            on_complete.set()
+            # * หยุด operation เฉพาะเมื่อยังเป็น cycle ปัจจุบัน (กัน thread เก่าฆ่า thread ใหม่)
+            if my_gen == getattr(
+                    self, '_cycle_generation', 0) and hasattr(
+                    self, 'operation_thread') and self.operation_thread is not None:
+                self.operation_thread.set()
             raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
         # # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
@@ -2873,7 +2890,7 @@ class MyApp:
             ))
             print("seller voucher popup ต้องเด้งละ")
 
-        self.on_complete.set()
+        on_complete.set()
         print(
             f"order: {order} - order_search  ทำงาน, is_order_search_set: {self.order_Search_thread.is_set()}")
         print("order_search ทำงานจบ")
@@ -3032,7 +3049,11 @@ class MyApp:
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if is_current:
-                if self.is_bot_browser_busy.get() == True:
+                # * กด Stop แล้ว (operation_thread ถูก set) → ขึ้นสถานะหยุด/จบเลย ไม่ต้องรอ thread ตาย
+                if self.operation_thread.is_set():
+                    self.display_bot_status_label.configure(
+                        text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+                elif self.is_bot_browser_busy.get() == True:
                     self.display_bot_status_label.configure(
                         text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
                 elif self.is_bot_browser_busy.get() == False:
@@ -3051,9 +3072,9 @@ class MyApp:
                     text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
             else:
+                # * รอบเก่า (stale cycle) ห้ามแตะ status เพราะมีรอบใหม่ทำงานอยู่
+                # * (ก่อนหน้านี้ไปตั้ง "จบการทำงาน" ทับ ทำให้ user ดูผิดว่า bot จบแล้วทั้งที่กำลังเริ่มใหม่)
                 print("check_threads: Not current, skipping GUI update")
-                self.display_bot_status_label.configure(
-                    text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
 
             if callback:
                 callback()
@@ -3075,6 +3096,14 @@ class MyApp:
 
         print("search() ทำงานและได้ผลลัพธ์: ", self.search_query)
 
+        # * ถ้า order ว่าง ให้หยุดทันที ไม่สร้าง thread (ไม่งั้นจะค้างสถานะ "กำลังทำงาน" ตลอดไป)
+        # * ไม่มี pop up แค่ log ใน GUI
+        if not self.is_accel_mode.get() and (self.search_query is None or str(self.search_query).strip() == ""):
+            self.update_log("⚠️ ไม่ได้กรอกเลข Order")
+            self.display_bot_status_label.configure(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+            return
+
         self.entered_order.set("")
         if self.search_query != "":
             self.report_log.configure(state=NORMAL)
@@ -3086,22 +3115,27 @@ class MyApp:
             self.report_log.delete("1.0", "end")
             self.report_log.configure(state=DISABLED)
 
-        # * Stop previous threads if they exist
+        # * เพิ่ม generation ของรอบนี้ -> thread/callback รอบเก่าจะถูกมองว่าเป็น stale ทันที
+        self._cycle_generation = getattr(self, '_cycle_generation', 0) + 1
+        my_gen = self._cycle_generation
+
+        # * Stop previous threads แบบ non-blocking (ไม่ join => GUI ไม่ freeze)
+        # * old threads จะหยุดเองผ่าน StopEvent generation check เมื่อ bot._active_generation เปลี่ยน
         if hasattr(self, 'operation_thread') and self.operation_thread is not None:
-            print("Stopping previous threads...")
-            self.operation_thread.set()
-            self.stop_operation()
-            # รอให้ old threads ตายจริงก่อนสร้าง thread ใหม่ (แก้ race condition บน self.operation_thread)
-            if hasattr(self, 'longer_thread_cycle') and self.longer_thread_cycle.is_alive():
-                print("Waiting for longer_thread_cycle to die...")
-                self.longer_thread_cycle.join(timeout=5)
-                if self.longer_thread_cycle.is_alive():
-                    print("⚠️ longer_thread_cycle didn't die in time!")
-            if hasattr(self, 'shorter_thread_cycle') and self.shorter_thread_cycle.is_alive():
-                print("Waiting for shorter_thread_cycle to die...")
-                self.shorter_thread_cycle.join(timeout=5)
-                if self.shorter_thread_cycle.is_alive():
-                    print("⚠️ shorter_thread_cycle didn't die in time!")
+            print("Stopping previous threads (non-blocking)...")
+            try:
+                self.operation_thread.set()
+            except Exception as e:
+                print(f"Failed to set old operation_thread: {e}")
+        if hasattr(self, 'order_Search_thread') and self.order_Search_thread is not None:
+            try:
+                self.order_Search_thread.set()
+            except Exception as e:
+                print(f"Failed to set old order_Search_thread: {e}")
+        # * bump generation ของ bot ให้ old StopEvent.is_set() เป็น True ทันที (หยุด operation เก่า)
+        with self.bot._gen_lock:
+            self.bot._active_generation = getattr(self.bot, '_active_generation', 0) + 1
+            bot_gen = self.bot._active_generation
 
         self.operation_thread = threading.Event()
         self.order_Search_thread = threading.Event()
@@ -3113,7 +3147,7 @@ class MyApp:
         # * สร้าง Thread
         self.bot.get_tabs()
         self.longer_thread_cycle = threading.Thread(
-            target=lambda: self.bot.operation_task_thread(self.operation_thread))
+            target=lambda: self.bot.operation_task_thread(self.operation_thread, bot_gen))
         self.shorter_thread_cycle = threading.Thread(target=lambda: self.order_search(
             self.search_query, self.order_Search_thread))
         print("Thread Name: ", self.longer_thread_cycle.name)
@@ -3124,8 +3158,14 @@ class MyApp:
         self.longer_thread_cycle.start()
 
         # * ตรวจสอบว่า Thread ทั้งสองยังทำงานอยู่หรือไม่
+        # * callback จะถูกรันต่อเมื่อ cycle นี้ยังเป็น cycle ปัจจุบันเท่านั้น
+        # * (กัน thread ซ้อน: callback รอบเก่าที่ถ่วงเวลามาจะไม่ไปฆ่า thread รอบใหม่)
+        def guarded_callback():
+            if getattr(self, '_cycle_generation', 0) == my_gen and callback:
+                callback()
+
         self.check_threads(self.longer_thread_cycle,
-                           self.shorter_thread_cycle, callback)
+                           self.shorter_thread_cycle, guarded_callback)
         self.display_bot_status_label.configure(
             text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
 
@@ -3133,7 +3173,11 @@ class MyApp:
         # self.is_accel_mode_activated.set(False) ตัวแปรนี้การการhandleที่ทำให้บัค แต่มันทำงานดี
         self.is_bot_running.set(False)
         print("self.operation_thread.set()2182: ")
-        self.operation_thread.set()
+        if hasattr(self, 'operation_thread') and self.operation_thread is not None:
+            self.operation_thread.set()
+        # * ตั้งสถานะหยุด/จบการทำงานทันทีที่กด Stop (กันถูก "Your Turn" จาก operation_start เขียนทับ)
+        self.display_bot_status_label.configure(
+            text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
         logger.info(f"""Order: {self.order} stop operation
                     """)
 
@@ -3552,6 +3596,8 @@ class Bot_POS:
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
         self.driver_lock = threading.Lock()
+        # / ล็อกสำหรับ assign bot.operation_thread (StopEvent) กัน thread เก่า assign ทับ thread ใหม่
+        self._gen_lock = threading.Lock()
         # / Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
         self.auto_add_product_stop_flag = threading.Event()
         self.browser = BrowserManager(app=self.app, bot_instance=self, logger_instance=logger)
@@ -4634,11 +4680,22 @@ class Bot_POS:
         )
         return is_conn
 
-    def operation_task_thread(self, event=None):
-        # ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
-        self._active_generation = getattr(self, '_active_generation', 0) + 1
-        my_generation = self._active_generation
-        self.operation_thread = StopEvent(event, self, my_generation)
+    def operation_task_thread(self, event=None, gen=None):
+        # * ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
+        if gen is not None:
+            with self._gen_lock:
+                # * ถ้า search_order รอบใหม่เริ่มไปแล้ว (app._cycle_generation > gen) ให้ thread นี้ยอมแพ้
+                # * (กัน thread เก่า assign ทับ self.operation_thread ของ thread ใหม่)
+                if gen < getattr(self.app, '_cycle_generation', 0):
+                    print("Stale operation thread (gen mismatch), exiting.")
+                    return
+                self._active_generation = gen
+                my_generation = gen
+                self.operation_thread = StopEvent(event, self, my_generation)
+        else:
+            self._active_generation = getattr(self, '_active_generation', 0) + 1
+            my_generation = self._active_generation
+            self.operation_thread = StopEvent(event, self, my_generation)
 
         while not self.operation_thread.is_set() and not self.app.order_Search_thread.is_set():
             print(
@@ -5046,6 +5103,13 @@ class Bot_POS:
                 elif self.searching_condition.text == "No results found" and self.customer_added_times == 1:
                     print(
                         "I've already add it, but the element still shows 'No results found', you have to add by yourself")
+                    # * accel mode: add ลูกค้าแล้วแต่ search ยังไม่เจอ -> ถือเป็น failed บันทึกลง accel_file แล้วข้าม order นี้
+                    # * (ไม่ให้วนลูปหาชื่อไม่มีที่สิ้นสุด เพราะใน accel ไม่มีคนเฝ้าหน้าจอ)
+                    # * exception จะถูกจับที่ operation_task_thread -> record_failed_with_checkpoint -> ข้ามไปออเดอร์ถัดไป
+                    if self.app.is_accel_mode.get():
+                        self.current_checkpoint = "add ลูกค้าแล้ว search ไม่พบ (No results found)"
+                        raise ValueError(
+                            "add ชื่อลูกค้าแล้วแต่เสิชไม่พบ (No results found) ให้บันทึกเป็น failed")
                     self.enter_cus_name(self.cus_search_input)
                     self.customer_name_search_count += 1
                     time.sleep(1)
@@ -6389,7 +6453,8 @@ class Bot_POS:
 
                     if post_verification.get("all_ok"):
                         if self.app.is_testing:
-                            self.app.update_log("TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
+                            self.app.update_log(
+                                "TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
                             self.current_checkpoint = "TEST MODE: ตรวจสินค้าผ่าน หยุดก่อน finish_order()"
                         else:
                             self.app.update_log("ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
@@ -6556,8 +6621,11 @@ class Bot_POS:
 
             self.app.update_log(
                 "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
-            self.app.display_bot_status_label.configure(
-                text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+            # * ถ้ากด Stop ไปแล้ว อย่าเขียน "Your Turn" ทับสถานะ "จบการทำงาน"
+            _op_thread = getattr(self.app, 'operation_thread', None)
+            if _op_thread is None or not _op_thread.is_set():
+                self.app.display_bot_status_label.configure(
+                    text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
 
             # todo for testing
             # * Update Accel file //////////////////////
@@ -8947,7 +9015,7 @@ class Bot_POS:
                 print("Refresh required")
                 raise
             except:
-                print("Element not found, continuing loop...")
+                # print("Element not found, continuing loop...")
                 continue
 
             if final_popup.is_displayed():
@@ -9216,6 +9284,11 @@ if __name__ == "__main__":
             if hasattr(app, 'bot') and hasattr(app.bot, 'operation_thread'):
                 print("Stopping operation threads...")
                 app.bot.operation_thread.set()
+            # * set event ระดับ app ด้วย เพราะ StopEvent รอบปัจจุบันจะ wrap event นี้ไว้
+            if hasattr(app, 'operation_thread') and app.operation_thread is not None:
+                app.operation_thread.set()
+            if hasattr(app, 'order_Search_thread') and app.order_Search_thread is not None:
+                app.order_Search_thread.set()
 
             # Wait for printing thread to complete if it exists
             if hasattr(app, 'bot') and hasattr(app.bot, 'printing_thread'):

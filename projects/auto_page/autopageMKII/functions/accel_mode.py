@@ -292,6 +292,9 @@ class AccelMode:
     # * start searching orders from accel file to check if order needed to be processed
     def accel_search(self):
         self.main_app.is_accel_mode_activated.set(True)
+        # * run_id กัน cycle accel รอบเก่า (ที่ยังมี callback ตกค้าง) แย่งทำงานตอนเริ่มรอบใหม่
+        self._accel_run_id = getattr(self, '_accel_run_id', 0) + 1
+        my_run_id = self._accel_run_id
 
         # Reload Excel file state to get the latest status, orders, and SNs
         if self.accel_file_dir:
@@ -308,6 +311,11 @@ class AccelMode:
             return
 
         def start_next_cycle(count):
+            # * ถ้ารอบนี้ไม่ใช่รอบปัจจุบันอีกต่อไป (user กด Stop แล้วเริ่มใหม่ / กด Stop) ให้หยุดทันที
+            if not (self.main_app.is_accel_mode_activated.get() and
+                    getattr(self, '_accel_run_id', None) == my_run_id):
+                logger.info("Accel mode cycle is stale or stopped, not continuing.")
+                return
             # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
             # แต่ถ้าเซฟครั้งก่อนไม่สำเร็จ (PermissionError) ให้ใช้ข้อมูลในหน่วยความจำล่าสุดแทนการไปดึงจากไฟล์เดิมบนดิสก์
             if getattr(self, 'excel_save_failed', False):
@@ -327,7 +335,8 @@ class AccelMode:
                 except Exception as e:
                     logger.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel: {e}")
             if count < self.accel_orders_count:
-                if self.main_app.is_accel_mode_activated.get():
+                if (self.main_app.is_accel_mode_activated.get() and
+                        getattr(self, '_accel_run_id', None) == my_run_id):
                     self.main_app.search_order(
                         self.accel_orders_list[count], lambda: start_next_cycle(count+1))
                 else:
@@ -889,7 +898,7 @@ class AccelMode:
                 return
 
             completed_df = pd.DataFrame(
-                columns=['tracking', 'orders', 'bill_no', 'timestamp', 'status', 'price'])
+                columns=['tracking', 'orders', 'bill_no', 'price', 'status', 'timestamp'])
 
             try:
                 completed_df = pd.read_excel(
@@ -899,7 +908,7 @@ class AccelMode:
 
             # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (ไฟล์เก่าที่เรียงแบบเดิมจะถูก reorder ด้วย)
             # align ด้วยชื่อ column ไม่ใช้ตำแหน่ง -> ข้อมูลไม่หลุดหาย
-            _col_order = ['tracking', 'orders', 'bill_no', 'timestamp', 'status', 'price']
+            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'status', 'timestamp']
             for _col in _col_order:
                 if _col not in completed_df.columns:
                     completed_df[_col] = ""
