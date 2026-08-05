@@ -343,6 +343,7 @@
 # ? 340 /wtf/ ตรวจดูละแต่ไม่ bug แล้ว /Bug/ Tracking_manager() method get_tracking() ดึง tracking หรือป่าวไม่รู้ เพราะไม่มีการนำมากรอกในหน้าท้าย smco order 260805HF3RNVSQ
 # * 341 /fix/ 5.2.2LITE แก้ปัญหา threadซ้อน เวลากด start order ซ้ำลงไปในขณที่ order เดิมกำลังทำงาน
 #* 342 /patch/ 5.2.2LITE auto_inv + accel ดักกรณี add ชื่อลูกค้าเกินจำนวนครั้งแล้วมันจะ inf loop ให้มันตีว่า order_failed ไปเลย
+# * 343 /patch/ 5.x.x auto_inv + accel กรณี popup "please input serial" ทั้งที่ SKU ครบบน POS → เช็คปุ่ม //button[contains(@class,'btn-serial') and contains(@class,'ng-redalert')] แล้ว map กลับเป็น SKU (ผ่าน ancestor div.panel ก่อน ถ้าไม่ได้ใช้ index แถวของ //span[...productNameChangeChk...]//u) เพื่อระบุว่า SKU ไหน SN ไม่พอ/ต้องกรอกเอง
 
 # / tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
 #! 4.2.0 critical bugs ค่าขนส่งกับราคามัน fix กรอกหน้าท้าย ถ้าหน้าแรกไม่ตรงกับหน้าท้าย มันทะลุ ตัว validate ของ smco ได้เลย ทำให้ยอดที่ยิงลงบิลไม่ตรงกับยอดกรอกตอนท้าย

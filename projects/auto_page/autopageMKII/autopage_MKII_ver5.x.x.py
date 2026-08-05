@@ -6518,7 +6518,46 @@ class Bot_POS:
                                                 err_msg += "\n\n📋 Item ที่น่าจะขาด SN (เทียบกับ POS):\n" + "\n".join(
                                                     missing_lines)
                                             else:
-                                                err_msg += "\n\n⚠️ SKU ทั้งหมดลงบน POS ครบแล้ว แต่ SMCO ยังขอ serial (ตรวจสอบ SN ที่กรอกด้วยมือ)"
+                                                # * SKU ครบทุกตัวบน POS แล้ว แต่ SMCO ยังขอ serial
+                                                # * → เช็คปุ่ม serial สีแดง (ng-redalert) บน POS ว่าคู่กับ SKU ตัวไหน
+                                                red_alert_skus = []
+                                                try:
+                                                    red_buttons = self.driver.find_elements(
+                                                        By.XPATH,
+                                                        "//button[contains(@class, 'btn-serial') and contains(@class, 'ng-redalert')]")
+                                                    sku_elems = self.driver.find_elements(
+                                                        By.XPATH,
+                                                        "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u")
+                                                    for btn in red_buttons:
+                                                        matched_sku = None
+                                                        # * Map ผ่าน panel ancestor (ปุ่ม serial อยู่ใน row เดียวกับ SKU)
+                                                        try:
+                                                            panel = btn.find_element(
+                                                                By.XPATH, "./ancestor::div[contains(@class, 'panel')][1]")
+                                                            sku_in_panel = panel.find_elements(
+                                                                By.XPATH, ".//span[contains(@ng-click, 'productNameChangeChk(x)')]//u")
+                                                            if sku_in_panel:
+                                                                matched_sku = sku_in_panel[0].text.strip()
+                                                        except:
+                                                            pass
+                                                        # * Fallback: map ตามลำดับ index (DOM เรียงแถวตรงกับรายการ SKU)
+                                                        if not matched_sku:
+                                                            try:
+                                                                btn_idx = red_buttons.index(btn)
+                                                                if btn_idx < len(sku_elems):
+                                                                    matched_sku = sku_elems[btn_idx].text.strip()
+                                                            except:
+                                                                pass
+                                                        red_alert_skus.append(matched_sku or "<ไม่ทราบ SKU>")
+                                                except Exception as red_diag_err:
+                                                    print(f"[SN Diag] Red alert check error: {red_diag_err}")
+
+                                                if red_alert_skus:
+                                                    err_msg += (
+                                                        "\n\n🔴 SKU ที่ยังค้างปุ่ม serial สีแดง (ต้องกรอก SN เอง/SN ใน accel file ไม่พอ):\n"
+                                                        + "\n".join(f"  • {s}" for s in red_alert_skus))
+                                                else:
+                                                    err_msg += "\n\n⚠️ SKU ทั้งหมดลงบน POS ครบแล้ว แต่ SMCO ยังขอ serial (ตรวจสอบ SN ที่กรอกด้วยมือ)"
                                     except Exception as sn_diag_err:
                                         print(f"[SN Diag] Error: {sn_diag_err}")
 
