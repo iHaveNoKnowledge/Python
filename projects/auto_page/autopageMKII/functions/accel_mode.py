@@ -505,6 +505,8 @@ class AccelMode:
 
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
+        # * เก็บ SKU ที่ยิง SN ได้ไม่ครบตามที่ลูกค้าสั่ง (SN ใน accel file ไม่พอ)
+        self.sn_shortage = []
         ordered_product_data_rows: list = self.main_app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_product_data_rows)
 
@@ -784,11 +786,38 @@ class AccelMode:
 
                     # เมื่อจบ loop ของ SKU นี้ ปรับลดจำนวนสินค้าให้ตรงตามจริงที่สำเร็จอีกครั้งเพื่อความถูกต้อง
                     adjust_qty_down(current_ordered_sku, successful_count)
+
+                    # * ถ้ายิง SN ได้ไม่ครบตามจำนวนที่ลูกค้าสั่ง (SN ใน accel file ไม่พอ) ให้เก็บ SKU ที่ขาดไว้
+                    if successful_count < sku_qtys and not operation_thread.is_set():
+                        self.sn_shortage.append({
+                            'sku': current_ordered_sku,
+                            'item_name': str(ordered_item.get('ชื่อสินค้า', '')).strip(),
+                            'ordered': sku_qtys,
+                            'got': successful_count,
+                            'short': sku_qtys - successful_count,
+                        })
                 else:
                     logger.info(
                         f"มี current_sku ใน Accel_File หรือไม่?: {current_ordered_sku in self.obj_data_from_accel_file}")
                     print("มี current_sku ใน Accel_File หรือไม่?:",
                           current_ordered_sku in self.obj_data_from_accel_file)
+
+            # * auto_inv mode: ถ้ามี SKU ที่ SN ไม่พอ ให้ fail order นี้ทันที
+            # * (รวมทุก SKU ที่ขาดไว้ในข้อความ error เดียว → record_failed_order จะได้บันทึกครบทั้ง SKU1, SKU2
+            # *  ไม่ใช่เขียนทับกันเหลือแค่ SKU ล่าสุด)
+            if self.sn_shortage and self.main_app.is_auto_invoice_mode.get() and not operation_thread.is_set():
+                shortage_lines = []
+                for s in self.sn_shortage:
+                    label = s['sku']
+                    item_name = s['item_name']
+                    if item_name and item_name.lower() != 'nan':
+                        label += f" ({item_name})"
+                    shortage_lines.append(
+                        f"  • {label}: ลูกค้าสั่ง {s['ordered']} แต่ยิง SN ได้ {s['got']} (ขาด {s['short']})")
+                err_msg = "จำนวน SN ไม่พอ (SN ใน accel file น้อยกว่าจำนวนที่ลูกค้าสั่ง):\n" + \
+                    "\n".join(shortage_lines)
+                self.main_app.update_log(f"❌ {err_msg}")
+                raise ValueError(err_msg)
         else:
             print("No items, return!!")
             return

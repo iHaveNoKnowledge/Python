@@ -3045,7 +3045,7 @@ class MyApp:
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
             # * after(เวลาmillisec, callbackfunction)
             self.root.after(750, lambda: self.check_threads(
-                shorter_thread_cycle, longer_thread_cycle, callback))
+                longer_thread_cycle, shorter_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
             if is_current:
@@ -6436,6 +6436,20 @@ class Bot_POS:
                     print("verification_result: ", verification_result)
                     self.current_checkpoint = "ตรวจสอบราคาและจำนวนสำเร็จ"
 
+                    # * เช็คจำนวนสินค้าบน POS เทียบกับที่ลูกค้าสั่งก่อน → ถ้าจำนวนไม่พอ (เช่น SN ไม่พอ/ยิง SN ไม่สำเร็จ)
+                    # * ให้ fail order ทันที โดยรวมทุก SKU ที่จำนวนไม่พอไว้ใน error เดียว
+                    # * (ไม่งั้น process_price_mismatches จะ raise เฉพาะ SKU แรก → record_failed_order เขียนทับกัน เหลือแค่ SKU ล่าสุด)
+                    qty_shortage_lines = []
+                    for sku, info in verification_result.get("qty", {}).items():
+                        if not info.get("ok", True):
+                            qty_shortage_lines.append(
+                                f"  • {sku}: ลูกค้าสั่ง {info.get('expected')} แต่ลง POS ได้ {info.get('actual')}")
+                    if qty_shortage_lines:
+                        err_msg = "จำนวนไม่พอ (ลง POS ได้น้อยกว่าที่ลูกค้าสั่ง):\n" + \
+                            "\n".join(qty_shortage_lines)
+                        self.app.update_log(f"❌ {err_msg}")
+                        raise ValueError(err_msg)
+
                     # * ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหากมีส่วนต่าง
                     self.process_price_mismatches(verification_result)
                     self.current_checkpoint = "ปรับราคา/ใส่คูปองสำเร็จ (จบ process ปรับราคา)"
@@ -6583,7 +6597,7 @@ class Bot_POS:
                         for sku, info in qty_res.items():
                             if not info.get("ok", True):
                                 qty_errors.append(
-                                    f"SKU Qty mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')})")
+                                    f"จำนวนไม่พอ: {sku} (expected {info.get('expected')}, actual {info.get('actual')})")
 
                         price_errors = []
                         price_res = post_verification.get("price", {})
