@@ -2393,6 +2393,10 @@ class MyApp:
                 self.operation_thread.set()
             raise ValueError("The Order length is not correct")
         self.cus_order.set(self.order)
+        # * เก็บเลข tracking จาก column '*หมายเลขติดตามพัสดุ' ของ order นี้ (order อาจมีหลาย row บาง row ว่าง)
+        # * ไว้ตัดสินใจตอนหน้าท้ายว่าต้องย้อนไป shopee เอา tracking ใหม่หรือใช้ของจาก data ได้เลย
+        self.tracking_from_data = []
+        self.tracking_from_data_complete = False
         # # * Memory management - ตรวจสอบและจัดการ memory ก่อนเริ่มงาน
         # if hasattr(self, 'bot') and hasattr(self.bot, 'pre_operation_memory_cleanup'):
         #     self.bot.pre_operation_memory_cleanup("search_order")
@@ -2453,6 +2457,27 @@ class MyApp:
                 self.cus_masked_name = self.data_frame[self.target_row]['ชื่อผู้รับ'].iloc[0]
                 self.cus_masked_tel = self.data_frame[self.target_row]['หมายเลขโทรศัพท์'].iloc[0]
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
+
+                # * ดึงเลข tracking จาก column '*หมายเลขติดตามพัสดุ' ของ target_row (order อาจมีหลาย row บาง row ว่าง)
+                # * tracking_from_data_complete = ทุก row ของ order มี tracking ครบ → ตอนหน้าท้ายจะได้ไม่ต้องย้อนไป shopee
+                try:
+                    tracking_col = '*หมายเลขติดตามพัสดุ'
+                    if tracking_col in self.filter_data.columns:
+                        tracking_values = [
+                            str(x).strip() for x in self.filter_data[tracking_col].dropna().tolist()
+                            if str(x).strip() not in ('', 'nan', 'None')
+                        ]
+                        self.tracking_from_data = list(dict.fromkeys(tracking_values))
+                        self.tracking_from_data_complete = (
+                            len(tracking_values) == len(self.filter_data)
+                        )
+                    else:
+                        self.tracking_from_data = []
+                        self.tracking_from_data_complete = False
+                except Exception as e:
+                    print(f"Error extracting tracking from data: {e}")
+                    self.tracking_from_data = []
+                    self.tracking_from_data_complete = False
 
                 # *  ของมีอะไรบ้าง dtypeหลังใช้ .to_dict('records') จะเป็น list of dict ฉันั้น self.items = [{}, {}, ...]
                 raw_items = self.data_frame[differential_col_data][self.target_row].to_dict(
@@ -6849,7 +6874,16 @@ class Bot_POS:
                                 remark_textarea_xpath = "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']"
                                 textarea_element = self.driver.find_element(By.XPATH, remark_textarea_xpath)
 
-                                self.tracking_manager.collect_tracking(remark_text)
+                                # * ถ้า tracking ใน data ครบทุก row แล้ว ใช้ของที่ดึงมาตอนยิง order ได้เลย ไม่ต้องย้อนกลับไป shopee
+                                if getattr(self.app, 'tracking_from_data_complete', False):
+                                    print(
+                                        f"Tracking จาก data ครบ: {self.app.tracking_from_data} ข้าม collect_tracking")
+                                    self.app.update_log(
+                                        f"✅ เลข tracking มีใน data ครบ ({len(self.app.tracking_from_data)} รายการ) ไม่ต้องย้อนไป shopee")
+                                    self.tracking_manager.trackings = list(
+                                        self.app.tracking_from_data)
+                                else:
+                                    self.tracking_manager.collect_tracking(remark_text)
                                 self.tracking_manager.apply_tracking_to_final_page()
 
                                 # / Final way ใช้ function ที่เขียนแยกไว้
