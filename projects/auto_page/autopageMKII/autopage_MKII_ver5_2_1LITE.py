@@ -4077,94 +4077,128 @@ class Bot_POS:
                             oc_amount_str = cp_info.get("oc_amount", "")
                             dc_amount_str = cp_info.get("dc_amount", "")
 
-                            # 1. แอดคูปอง (ถ้ามีระบุ cp_name)
-                            if cp_name and cp_name.upper() != "NONE" and cp_name.strip() != "":
-                                print(
-                                    f"[Verification] Found matching coupon: {cp_name}. Checking for missing ones...")
-                                self.app.update_log(
-                                    f"🔍 ตรวจสอบว่าคูปอง: {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้แล้วหรือยัง...")
+                            has_valid_cp = bool(cp_name and cp_name.upper() != "NONE" and cp_name.strip() != "")
+                            has_valid_oc = is_valid_adjustment(oc_amount_str)
+                            has_valid_dc = is_valid_adjustment(dc_amount_str)
 
-                                try:
-                                    sku_variants = [sku_key]
+                            if has_valid_cp or has_valid_oc or has_valid_dc:
+                                # 1. แอดคูปอง (ถ้ามีระบุ cp_name)
+                                if has_valid_cp:
+                                    print(
+                                        f"[Verification] Found matching coupon: {cp_name}. Checking for missing ones...")
+                                    self.app.update_log(
+                                        f"🔍 ตรวจสอบว่าคูปอง: {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้แล้วหรือยัง...")
+
                                     try:
-                                        sku_variants = self.app.correct_sku_pattern(
-                                            sku_key)
-                                    except Exception:
-                                        pass
+                                        sku_variants = [sku_key]
+                                        try:
+                                            sku_variants = self.app.correct_sku_pattern(
+                                                sku_key)
+                                        except Exception:
+                                            pass
 
-                                    panels = self.driver.find_elements(
-                                        By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
-                                    target_panel = None
-                                    for panel in panels:
-                                        panel_text = panel.text
-                                        if any(variant in panel_text for variant in sku_variants):
-                                            target_panel = panel
-                                            break
-
-                                    existing_cps = []
-                                    if target_panel:
-                                        tooltip_elements = target_panel.find_elements(
-                                            By.XPATH, ".//a[@data-toggle='tooltip']")
-                                        for el in tooltip_elements:
-                                            text = el.text or ""
-                                            title = el.get_attribute(
-                                                "title") or ""
-                                            combined = (
-                                                text + " " + title).replace(" ", "").upper()
-                                            existing_cps.append(combined)
-
-                                    target_tokens = []
-                                    for part in str(cp_name).split(','):
-                                        for token in part.split():
-                                            tok = token.strip().upper()
-                                            if tok:
-                                                target_tokens.append(tok)
-
-                                    missing_tokens = []
-                                    for token in target_tokens:
-                                        matched = False
-                                        for existing in existing_cps:
-                                            if token in existing:
-                                                matched = True
+                                        panels = self.driver.find_elements(
+                                            By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                                        target_panel = None
+                                        for panel in panels:
+                                            panel_text = panel.text
+                                            if any(variant in panel_text for variant in sku_variants):
+                                                target_panel = panel
                                                 break
-                                        if not matched:
-                                            missing_tokens.append(token)
 
-                                    if not missing_tokens:
-                                        self.app.update_log(
-                                            f"✨ คูปอง {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ครบก่อนแล้ว ข้ามการเลือกซ้ำ")
-                                    else:
-                                        missing_cp_str = " ".join(missing_tokens)
-                                        self.app.update_log(
-                                            f"✅ คูปองที่ยังไม่ถูกเลือกคือ: {missing_cp_str} กำลังดำเนินการแอดคูปอง...")
-                                        self.cp_sonic_blow_process(item_no_1indexed, missing_cp_str)
+                                        existing_cps = []
+                                        if target_panel:
+                                            tooltip_elements = target_panel.find_elements(
+                                                By.XPATH, ".//a[@data-toggle='tooltip']")
+                                            for el in tooltip_elements:
+                                                text = el.text or ""
+                                                title = el.get_attribute(
+                                                    "title") or ""
+                                                combined = (
+                                                    text + " " + title).replace(" ", "").upper()
+                                                existing_cps.append(combined)
+
+                                        target_tokens = []
+                                        for part in str(cp_name).split(','):
+                                            for token in part.split():
+                                                tok = token.strip().upper()
+                                                if tok:
+                                                    target_tokens.append(tok)
+
+                                        missing_tokens = []
+                                        for token in target_tokens:
+                                            matched = False
+                                            for existing in existing_cps:
+                                                if token in existing:
+                                                    matched = True
+                                                    break
+                                            if not matched:
+                                                missing_tokens.append(token)
+
+                                        if not missing_tokens:
+                                            self.app.update_log(
+                                                f"✨ คูปอง {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ครบก่อนแล้ว ข้ามการเลือกซ้ำ")
+                                        else:
+                                            missing_cp_str = " ".join(missing_tokens)
+                                            self.app.update_log(
+                                                f"✅ คูปองที่ยังไม่ถูกเลือกคือ: {missing_cp_str} กำลังดำเนินการแอดคูปอง...")
+                                            self.cp_sonic_blow_process(item_no_1indexed, missing_cp_str)
+                                            time.sleep(0.5)
+                                    except Exception as check_err:
+                                        print(f"Error checking and filtering cp/dc tooltips: {check_err}")
+                                        # Fallback to applying original cp_name
+                                        self.cp_sonic_blow_process(item_no_1indexed, cp_name)
                                         time.sleep(0.5)
-                                except Exception as check_err:
-                                    print(f"Error checking and filtering cp/dc tooltips: {check_err}")
-                                    # Fallback to applying original cp_name
-                                    self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+
+                                # 2. ปรับราคาเพิ่ม Overcharge (ถ้ามีระบุ oc_amount)
+                                if has_valid_oc:
+                                    print(
+                                        f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
+                                    self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                                    self.smco_set_overcharge_product(
+                                        sku_key, str(oc_amount_str))
                                     time.sleep(0.5)
 
-                            # 2. ปรับราคาเพิ่ม Overcharge (ถ้ามีระบุ oc_amount)
-                            if is_valid_adjustment(oc_amount_str):
-                                print(
-                                    f"[Verification] Applying Overcharge (OC) from CP Data: {oc_amount_str} for SKU: {sku_key}")
-                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
-                                self.smco_set_overcharge_product(
-                                    sku_key, str(oc_amount_str))
-                                time.sleep(0.5)
+                                # 3. ปรับราคาลด Discount (ถ้ามีระบุ dc_amount)
+                                if has_valid_dc:
+                                    print(
+                                        f"[Verification] Applying Discount (DC) from CP Data: {dc_amount_str} for SKU: {sku_key}")
+                                    item_qty = int(item.get('จำนวน', 1))
+                                    total_dc = float(dc_amount_str) * item_qty
+                                    self.app.update_log(
+                                        f"📉 ปรับราคาลด (Discount) จากข้อมูลแคมเปญ: {dc_amount_str} x {item_qty} = {total_dc} บาท")
+                                    self.smco_set_discount_product(
+                                        sku_key, str(dc_amount_str), qty=item_qty)
+                                    time.sleep(0.5)
+                            else:
+                                # มี SKU ใน CP_data แล้ว แต่ยังไม่ได้ระบุคูปองหรือส่วนลด (เป็นแถว guide ที่รอ user เติมข้อมูล)
+                                marketplace = self.app.marketplace_target.get()
+                                purchase_time = self.app.cus_purchase_time.get()
+                                product_name = str(item.get('ชื่อสินค้า', '')).strip()
+                                if product_name.lower() == 'nan':
+                                    product_name = ''
+                                try:
+                                    actual_formatted = f"{float(actual_price):,.2f}"
+                                except Exception:
+                                    actual_formatted = str(actual_price)
+                                try:
+                                    expected_formatted = f"{float(expected_price):,.2f}"
+                                except Exception:
+                                    expected_formatted = str(expected_price)
 
-                            # 3. ปรับราคาลด Discount (ถ้ามีระบุ dc_amount)
-                            if is_valid_adjustment(dc_amount_str):
-                                print(
-                                    f"[Verification] Applying Discount (DC) from CP Data: {dc_amount_str} for SKU: {sku_key}")
-                                item_qty = int(item.get('จำนวน', 1))
-                                total_dc = float(dc_amount_str) * item_qty
-                                self.app.update_log(
-                                    f"📉 ปรับราคาลด (Discount) จากข้อมูลแคมเปญ: {dc_amount_str} x {item_qty} = {total_dc} บาท")
-                                self.smco_set_discount_product(
-                                    sku_key, str(dc_amount_str), qty=item_qty)
-                                time.sleep(0.5)
+                                pattern_msg = (
+                                    f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
+                                    f"{sku_key} {product_name}\n"
+                                    f"ยิงขายขึ้น {actual_formatted} บาท\n"
+                                    f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+                                    f"ขอวิธีปรับราคาครับ (มี SKU ใน CP_data แล้ว แต่ยังไม่มี CP/ส่วนลดให้เลือก)"
+                                )
+                                self.app.update_log(pattern_msg)
+                                print(pattern_msg)
+
+                                error_msg = f"Order skipped, found SKU in CP_data but CP/DC details not set yet for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})\n{pattern_msg}"
+                                self.app.update_log(f"❌ {error_msg}")
+                                raise ValueError(error_msg)
                         else:
                             # บันทึกข้อมูล SKU และราคาออกบิลที่ไม่พบ CP ลงไฟล์ CP_data.xlsx
                             self.add_missing_cp_to_excel(
