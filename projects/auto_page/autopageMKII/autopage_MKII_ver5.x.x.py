@@ -4212,7 +4212,16 @@ class Bot_POS:
                             oc_amount_str = cp_info.get("oc_amount", "")
                             dc_amount_str = cp_info.get("dc_amount", "")
 
-                            has_valid_cp = bool(cp_name and cp_name.upper() != "NONE" and cp_name.strip() != "")
+                            # ตรวจสอบว่าเป็นสัญญาณสั่ง Bypass หรือไม่ (เช่น NONE, BYPASS, NO_CP, NO CP, PASSTHROUGH)
+                            is_bypass_signal = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
+
+                            if is_bypass_signal:
+                                print(f"[Verification] CP is set to '{cp_name}' for SKU: {sku_key}. Bypassing price adjustment.")
+                                self.app.update_log(
+                                    f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cp_name} - ยิงขายราคานี้ได้ทันทีโดยไม่ต้องปรับราคา)")
+                                continue
+
+                            has_valid_cp = bool(cp_name and not is_bypass_signal and cp_name.strip() != "")
                             has_valid_oc = is_valid_adjustment(oc_amount_str)
                             has_valid_dc = is_valid_adjustment(dc_amount_str)
 
@@ -9292,11 +9301,40 @@ class Bot_POS:
                     time.sleep(1)
 
                     alert_text = self.driver.find_element(
-                        By().XPATH, """//div[@class = 'swal2-content']""").text  # * ตำแหน่งแสดงเลขบิล
+                        By.XPATH, """//div[@class = 'swal2-content']""").text  # * ตำแหน่งแสดงเลขบิล
 
                     match = re.search(r'(?:ABB-)?B\d+-\w.*\d+-\d+', alert_text)
                     print("match: ", match)
-                    # * ถ้าไม่มีบิล, match จะ = none ทำให้ .group() ไม่ได้ แล้ว return error ห
+
+                    if not match:
+                        print(f"Popup displayed but no receipt number found! alert_text: '{alert_text}'")
+                        self.app.update_log("⚠️ ตรวจพบ Popup อื่น (ไม่มีเลขใบเสร็จ) กำลังปิด Popup และกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
+
+                        # 1. ปิด/ตกลง popup นั้นออกไปก่อน
+                        try:
+                            self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
+                        except Exception:
+                            try:
+                                self.driver.find_element(By.XPATH, "//button[contains(@class, 'swal2-confirm')]").click()
+                            except Exception:
+                                pass
+                        time.sleep(0.5)
+
+                        # 2. กดปุ่มเขียว (btnPayment) ใหม่อีกครั้ง
+                        try:
+                            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
+                            if btn_payment.is_displayed():
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
+                                time.sleep(0.2)
+                                try:
+                                    btn_payment.click()
+                                except Exception:
+                                    self.driver.execute_script("arguments[0].click();", btn_payment)
+                        except Exception as btn_err:
+                            print(f"Error re-clicking green button: {btn_err}")
+
+                        continue
+
                     inv_number = match.group()
                     print("inv_number: ", inv_number)
                     self.app.update_log(f'เลขบิล: {inv_number}')
