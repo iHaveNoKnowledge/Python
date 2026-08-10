@@ -78,13 +78,28 @@ class NetworkResponseCapture:
                 except Exception:
                     continue
             
-            # พยายามดึง body ของ requests ที่เก็บมาได้
+            # ถ้ายังไม่มี POST request และเพิ่ง poll ไป 0 หรือ 1 ครั้ง ให้รออีกนิดเพื่อให้ POST request ส่งมาถึง
+            has_post = any(request_methods.get(r, "").upper() == "POST" for r in request_ids)
+            if not has_post and attempt < 2 and request_ids:
+                time.sleep(wait_interval if wait_interval < 0.2 else 0.15)
+                continue
+
+            # เรียงลำดับ request IDs:
+            # 1. ให้ความสำคัญกับ POST ก่อน (เพราะ API ค้นหาใน dropdown ของ SMCO เป็น POST)
+            # 2. ให้ความสำคัญกับ request ล่าสุดก่อน (reverse index) เพื่อไม่ให้ไปหยิบ request เก่าที่ค้างอยู่
+            candidates = sorted(
+                request_ids,
+                key=lambda r: (1 if request_methods.get(r, "").upper() == "POST" else 0, request_ids.index(r)),
+                reverse=True
+            )
+
+            # พยายามดึง body ของ requests ที่เรียงลำดับแล้ว
             # ทำใน loop เดียวกัน เพื่อให้ยังคงดึง logs ใหม่ได้ถ้าตัวเก่าดึง body ไม่ได้ (เช่น -32000)
-            for req_id in request_ids:
+            for req_id in candidates:
                 try:
                     res = self.driver.execute_cdp_cmd("Network.getResponseBody", {"requestId": req_id})
                     parsed_response = json.loads(res['body'])
-                    print(f"Got response body for request ID: {req_id}")
+                    print(f"Got response body for request ID: {req_id} (Method: {request_methods.get(req_id, '')})")
                     return parsed_response
                 except Exception as e:
                     # แสดง error แต่ไม่หยุดการทำงาน (อาจจะเป็น -32000 No resource with given identifier)

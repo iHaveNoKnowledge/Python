@@ -7843,11 +7843,14 @@ class Bot_POS:
                     search_value, place_type)
                 search_value = thai_value
                 print(f"Will search with Thai name: '{search_value}'")
-            # * Clear logs ก่อนส่ง request
+            # * Clear element ก่อน แล้วรอเล็กน้อยให้ request จากการ clear หรือ focus ทำงานเสร็จ
+            input_element.clear()
+            time.sleep(0.15)
+
+            # * Clear logs เพื่อล้าง request เก่าออกไป ก่อนพิมพ์คำค้นหาจริง
             self.network_capture.clear_logs()
 
-            # * Clear และ type ค่าเพื่อ trigger API call
-            input_element.clear()
+            # * Type ค่าเพื่อ trigger API search call
             input_element.send_keys(search_value)
             print(f"Typed '{search_value}' to trigger API")
 
@@ -7862,6 +7865,7 @@ class Bot_POS:
 
             if response_data:
                 print(f"Got {len(response_data)} items from API")
+                print(f"response_data from API: {response_data}")
 
                 # * หาค่าที่ตรงกับ search_value
                 matched_item = None
@@ -7874,11 +7878,31 @@ class Bot_POS:
                         break
 
                 if matched_item:
-                    # เลือกโดยกด Enter (dropdown จะเลือกตัวแรกที่ตรง)
-                    # input_element.send_keys(Keys.ENTER)
-                    li_dropdowns[matched_item_idx].click()
-                    print(
-                        f"Selected '{search_value}', item idx {matched_item_idx} successfully")
+                    # พยายามคลิกไอเทมที่ตรงกันโดยค้นจาก text ก่อน เพื่อป้องกัน IndexError หรือ index ไม่ตรงกับ DOM
+                    clicked = False
+                    th_val = matched_item.get(th_field, "")
+                    en_val = matched_item.get(en_field, "")
+                    for li in li_dropdowns:
+                        try:
+                            txt = li.text.strip()
+                            if txt and (txt == th_val or txt == en_val or th_val in txt or en_val in txt):
+                                li.click()
+                                clicked = True
+                                print(
+                                    f"Selected '{search_value}' by matching text '{txt}' successfully")
+                                break
+                        except Exception:
+                            continue
+
+                    if not clicked:
+                        if matched_item_idx < len(li_dropdowns):
+                            li_dropdowns[matched_item_idx].click()
+                            print(
+                                f"Selected '{search_value}', item idx {matched_item_idx} successfully")
+                        else:
+                            input_element.send_keys(Keys.ENTER)
+                            print(
+                                f"Selected '{search_value}' via Keys.ENTER fallback (idx {matched_item_idx} out of range {len(li_dropdowns)})")
 
                     # Clear logs หลังใช้งาน
                     self.network_capture.clear_logs()
