@@ -1575,9 +1575,158 @@ class MyApp:
                         self.cp_df['usage_end_date'], errors='coerce')
                 self.update_log(
                     f"โหลดไฟล์ CP Data สำเร็จ: {len(self.cp_df)} รายการ")
+                self.scan_and_sync_missing_cp_data()
             except Exception as e:
                 self.update_log(f"โหลดไฟล์ CP Data ล้มเหลว: {e}")
                 self.cp_df = None
+
+    def scan_and_sync_missing_cp_data(self):
+        """
+        สแกนรายการสินค้าใน self.data_frame เพื่อหา SKU และ expected_price (ราคาที่ต้องออกบิลต่อชิ้น)
+        จัดกลุ่ม Group By (sku, expected_price) แล้วเปรียบเทียบกับ self.cp_df
+        หากพบรายการที่ยังไม่มีใน CP_data.xlsx จะเด้ง Pop-up สอบถามผู้ใช้งานเพื่อยืนยันเพิ่มลง CP_data.xlsx
+        """
+        if getattr(self, 'cp_df', None) is None or self.cp_df.empty:
+            print("[scan_and_sync_missing_cp_data] cp_df is None or empty. Skipping.")
+            return
+
+        if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
+            print("[scan_and_sync_missing_cp_data] data_frame is None or empty. Skipping.")
+            return
+
+        excel_path = getattr(self, 'cp_table_location', '')
+        if not excel_path or not os.path.exists(excel_path):
+            print("[scan_and_sync_missing_cp_data] Invalid cp_table_location. Skipping.")
+            return
+
+        sku_col = 'เลขอ้างอิง SKU (SKU Reference No.)'
+        if sku_col not in self.data_frame.columns:
+            print(f"[scan_and_sync_missing_cp_data] Column '{sku_col}' not found in data_frame. Skipping.")
+            return
+
+        # 1. วนลูปอ่านรายการใน data_frame เพื่อหา unique (sku, expected_price)
+        candidate_items = {}  # key: (sku_clean, expected_price), value: (sku_raw, expected_price)
+
+        for _, row in self.data_frame.iterrows():
+            sku_raw = str(row.get(sku_col, '')).replace(' ', '').strip()
+            if not sku_raw or sku_raw.lower() in ('nan', 'none'):
+                continue
+
+            try:
+                qty = float(row.get('จำนวน', 1))
+                if qty <= 0:
+                    qty = 1.0
+            except (ValueError, TypeError):
+                qty = 1.0
+
+            try:
+                subtotal = float(str(row.get('ราคาขายสุทธิ', 0)).replace(',', ''))
+            except (ValueError, TypeError):
+                subtotal = 0.0
+
+            try:
+                shopee_discount = float(str(row.get('ส่วนลดจาก Shopee', 0)).replace(',', ''))
+            except (ValueError, TypeError):
+                shopee_discount = 0.0
+
+            # คำนวณราคาออกบิลต่อชิ้น (expected_price)
+            expected_price = round((subtotal + shopee_discount) / qty, 2)
+            if expected_price <= 0:
+                continue
+
+            sku_clean = sku_raw.upper()
+            key = (sku_clean, expected_price)
+            if key not in candidate_items:
+                candidate_items[key] = (sku_raw, expected_price)
+
+        if not candidate_items:
+            print("[scan_and_sync_missing_cp_data] No valid items found in data_frame.")
+            return
+
+        # 2. เช็คว่ามีรายการใน candidate_items ตัวไหนบ้างที่ยังไม่มีใน self.cp_df
+        missing_records = []
+        price_tolerance = 0.05
+
+        for (sku_clean, expected_price), (sku_raw, exp_p) in candidate_items.items():
+            formatted_skus = [s.strip().upper() for s in self.correct_sku_pattern(sku_raw)]
+
+            def sku_match(row_sku) -> bool:
+                row_sku_str = str(row_sku).strip().upper()
+                return (row_sku_str == sku_clean) or (row_sku_str in formatted_skus)
+
+            # กรองตาม SKU
+            sku_mask = self.cp_df['sku'].apply(sku_match)
+            df_sku_matched = self.cp_df[sku_mask]
+
+            # เช็คว่ามี sale_price ที่ตรงกับ expected_price หรือยัง
+            matched = False
+            if not df_sku_matched.empty:
+                if 'sale_price' in df_sku_matched.columns:
+                    for _, cp_row in df_sku_matched.iterrows():
+                        try:
+                            cp_sale_price = float(cp_row.get('sale_price', 0))
+                            if abs(cp_sale_price - expected_price) <= price_tolerance:
+                                matched = True
+                                break
+                        except (ValueError, TypeError):
+                            pass
+
+            if not matched:
+                missing_records.append({
+                    'sku': sku_raw,
+                    'sale_price': expected_price
+                })
+
+        if not missing_records:
+            print("[scan_and_sync_missing_cp_data] All items in data_frame already exist in CP Data.")
+            return
+
+        # 3. เด้ง Pop-up สอบถามผู้ใช้งาน
+        details_str = "\n".join([f" • {item['sku']}: {item['sale_price']:,.2f} บาท" for item in missing_records[:15]])
+        if len(missing_records) > 15:
+            details_str += f"\n ... และอีก {len(missing_records) - 15} รายการ"
+
+        confirm_msg = (
+            f"พบรายการ SKU และราคาที่ต้องออกบิลในไฟล์ Order ที่ยังไม่มีใน CP_data.xlsx ทั้งหมด {len(missing_records)} รายการ:\n\n"
+            f"{details_str}\n\n"
+            f"คุณต้องการบันทึก SKU และราคาเหล่านี้ลงในไฟล์ CP_data.xlsx เลยหรือไม่?"
+        )
+
+        reply = messagebox.askyesno("ยืนยันการเพิ่ม CP Data", confirm_msg)
+        if reply:
+            try:
+                # อ่านไฟล์ Excel ล่าสุด
+                df_excel = pd.read_excel(excel_path)
+                new_rows = []
+                for rec in missing_records:
+                    new_rows.append({'sku': rec['sku'], 'sale_price': rec['sale_price']})
+
+                new_df = pd.DataFrame(new_rows)
+                for col in df_excel.columns:
+                    if col not in new_df.columns:
+                        new_df[col] = ""
+
+                new_df = new_df[df_excel.columns]
+                df_combined = pd.concat([df_excel, new_df], ignore_index=True)
+                df_combined.to_excel(excel_path, index=False)
+
+                # อัปเดต cp_df ใน memory
+                if 'usage_start_date' in new_df.columns:
+                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], errors='coerce')
+                if 'usage_end_date' in new_df.columns:
+                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], errors='coerce')
+
+                self.cp_df = pd.concat([self.cp_df, new_df], ignore_index=True)
+                self.update_log(f"💾 เติม SKU และราคาที่ต้องออกลงใน CP_data.xlsx เรียบร้อยแล้ว ({len(missing_records)} รายการ)")
+                print(f"[scan_and_sync_missing_cp_data] Added {len(missing_records)} items to CP_data.xlsx")
+            except Exception as err:
+                self.update_log(f"❌ เกิดข้อผิดพลาดในการบันทึก CP Data: {err}")
+                print(f"[scan_and_sync_missing_cp_data] Error: {err}")
+        else:
+            self.update_log("ข้ามการเติม SKU ขาดลงใน CP_data.xlsx ตามคำสั่งผู้ใช้")
+            print("[scan_and_sync_missing_cp_data] User canceled sync.")
+
+
 
     def open_file_by_default(self, file_path: str):
         """เปิดไฟล์ด้วยโปรแกรมเริ่มต้นของระบบปฏิบัติการ (Default Application)"""
@@ -1971,6 +2120,7 @@ class MyApp:
             # * ตรวจสอบ Data
             if not self.data_frame.empty:
                 print(f"มี Data Frame (Type: {type(self.data_frame)})")
+                self.scan_and_sync_missing_cp_data()
             else:
                 print("Data Frame ว่างเปล่า")
 
