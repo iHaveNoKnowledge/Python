@@ -21,6 +21,8 @@ class AccelMode:
         self.CP_list = []
         self.accel_orders_count = 0
         self.excel_save_failed = False
+        self.used_serials = []
+        self.sn_shortage = []
 
     def select_accel_file(self):
         self.accel_file_dir = filedialog.askopenfilename(
@@ -899,7 +901,7 @@ class AccelMode:
             print(f"Error recording failed order to Excel: {e}")
             logger.error(f"Error recording failed order to Excel: {e}")
 
-    def record_completed_order(self, order, tracking="", bill_no="", status="Completed", price=""):
+    def record_completed_order(self, order, tracking="", bill_no="", status="Completed", price="", serials=None, sn=None):
         """Record completed order into Completed_Orders sheet in Accel Excel file
 
         Args:
@@ -908,13 +910,32 @@ class AccelMode:
             bill_no: bill/receipt number string
             status: completion status string (e.g. Completed, TEST_SUCCESS)
             price: ราคาออกบิลหน้าท้าย (final_price) ที่คำนวณได้ตอนยิงของ
+            serials: รายการ SN (list/str/dict) ที่ใช้ (ถ้าไม่ระบุ จะดึงจาก self.used_serials อัตโนมัติ)
+            sn: alias ของ serials (เผื่อเรียกด้วย keyword sn=...)
         """
         if hasattr(order, 'get'):
             order_str = order.get()
         else:
             order_str = str(order)
 
-        print(f"Recording completed order: {order_str} (Status: {status})")
+        # จัดการข้อมูล SN ที่ใช้ในออเดอร์นี้
+        target_serials = serials if serials is not None else (sn if sn is not None else getattr(self, 'used_serials', []))
+        if isinstance(target_serials, (list, tuple, set)):
+            sn_list = []
+            for item in target_serials:
+                if isinstance(item, dict):
+                    sn_val = item.get('sn') or item.get('serial') or item.get('serial_no') or ''
+                    if sn_val:
+                        sn_list.append(str(sn_val).strip())
+                elif isinstance(item, (list, tuple)) and len(item) > 1:
+                    sn_list.append(str(item[1]).strip())
+                elif item:
+                    sn_list.append(str(item).strip())
+            sn_str = ", ".join([s for s in sn_list if s and s.lower() != 'nan'])
+        else:
+            sn_str = str(target_serials).strip() if target_serials else ""
+
+        print(f"Recording completed order: {order_str} (Status: {status}, SN: {sn_str})")
 
         if not self.accel_file_dir:
             print("No accel file selected, cannot record completed order.")
@@ -927,7 +948,7 @@ class AccelMode:
                 return
 
             completed_df = pd.DataFrame(
-                columns=['tracking', 'orders', 'bill_no', 'price', 'status', 'timestamp'])
+                columns=['tracking', 'orders', 'bill_no', 'price', 'timestamp', 'status', 'sn'])
 
             try:
                 completed_df = pd.read_excel(
@@ -937,7 +958,7 @@ class AccelMode:
 
             # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (ไฟล์เก่าที่เรียงแบบเดิมจะถูก reorder ด้วย)
             # align ด้วยชื่อ column ไม่ใช้ตำแหน่ง -> ข้อมูลไม่หลุดหาย
-            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'status', 'timestamp']
+            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'timestamp', 'status', 'sn']
             for _col in _col_order:
                 if _col not in completed_df.columns:
                     completed_df[_col] = ""
@@ -947,6 +968,7 @@ class AccelMode:
                 'tracking': str(tracking),
                 'orders': order_str,
                 'bill_no': str(bill_no),
+                'sn': sn_str,
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
                 'status': str(status),
                 'price': price
@@ -959,7 +981,7 @@ class AccelMode:
 
             self._save_df_to_excel(completed_df, 'Completed_Orders')
             print(
-                f"Successfully recorded completed order {order_str} to Completed_Orders sheet.")
+                f"Successfully recorded completed order {order_str} (SN: {sn_str}) to Completed_Orders sheet.")
         except PermissionError as e:
             print(f"Permission denied while recording completed order: {e}")
             logger.warning(

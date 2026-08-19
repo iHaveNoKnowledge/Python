@@ -9293,8 +9293,11 @@ class Bot_POS:
                         )
                     if hasattr(self.app.accel_mode, 'record_completed_order'):
                         self.app.accel_mode.record_completed_order(
-                            order_no, tracking=tracking_no, bill_no=bill_no, status="Completed (จบกระบวนการ flow เต็ม)",
-                            price=getattr(self.app, 'final_price', ''))
+                            order_no, 
+                            tracking= tracking_no, 
+                            bill_no= bill_no, 
+                            status= "Completed (จบกระบวนการ flow เต็ม)",
+                            price= getattr(self.app, 'final_price', ''))
                     self.current_checkpoint = "บันทึกประวัติออเดอร์สำเร็จ (จบกระบวนการ flow เต็ม)"
                     logger.info(
                         f"[SaveOrderDetails] บันทึกลง Excel (ตัด order/SN และบันทึก Completed_Orders) สำเร็จ")
@@ -9327,6 +9330,7 @@ class Bot_POS:
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
         loop_counter = 0  # * Counter for GC
+        submit_retry_count = 0  # * Counter for submit button retries
         while not self.operation_thread.is_set():
             time.sleep(1)
             loop_counter += 1
@@ -9346,8 +9350,6 @@ class Bot_POS:
                 )
                 is_final_page = self.driver.find_element(
                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
-                #!พัง self.etax_radio_sendmail = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[6]/div[1]/div/div/div[2]/div/div[2]/label/input') element etax อยู่ไหนไม่รู้
-                # print("is_final_page= ", is_final_page)
             except RefreshRequiredException:
                 print("Refresh required")
                 raise
@@ -9375,43 +9377,163 @@ class Bot_POS:
                 continue
 
             if final_popup.is_displayed():
-                print("final_popup is displayed")
+                self.app.is_bot_browser_busy.set(True)
+                print("final pop-up has displayed!")
                 try:
-                    self.driver.find_element(
-                        By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]""").click()
-                    print('Click space behind final popup')
-                except:
-                    print('Cannot click space behind final popup')
-                pass
-            #! etax พังใช้ไม่ได้
-            # elif is_final_page.is_displayed() == True and self.etax_radio_sendmail.is_displayed() == False:
-            #     print("Radio ยังไม่โผล่")
-            #     continue
+                    final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
+                        (By.XPATH, """//div[@class = 'swal2-content']""")))
+                    self.check_for_refresh_popup(final_popup_btn)
+                    time.sleep(1)
+
+                    # 1. ตรวจสอบว่า popup ที่แสดงขึ้นมามี Success Icon (class: swal2-icon swal2-success animate) หรือไม่
+                    success_icons = self.driver.find_elements(
+                        By.XPATH, "//div[contains(@class, 'swal2-icon') and contains(@class, 'swal2-success')]")
+                    is_success_popup = False
+                    for icon in success_icons:
+                        try:
+                            class_attr = icon.get_attribute("class") or ""
+                            style_attr = icon.get_attribute("style") or ""
+                            if "swal2-success" in class_attr and ("animate" in class_attr or icon.is_displayed() or "display: block" in style_attr or "display:block" in style_attr):
+                                is_success_popup = True
+                                break
+                        except Exception:
+                            pass
+
+                    # 2. ดึงข้อความจาก //div[contains(@class, 'swal2-content')]
+                    alert_text = ""
+                    try:
+                        alert_text = self.driver.find_element(
+                            By.XPATH, """//div[@class = 'swal2-content']""").text
+                    except Exception:
+                        pass
+
+                    match = re.search(r'(?:ABB-)?B\d+-\w.*\d+-\d+', alert_text)
+                    print(f"is_success_popup: {is_success_popup}, match: {match}, alert_text: '{alert_text}'")
+
+                    # 3. ถ้าไม่ใช่ Success Popup หรือไม่มีเลขบิล
+                    if not (is_success_popup and match):
+                        submit_retry_count += 1
+                        error_content = alert_text.strip() if alert_text.strip() else "ไม่พบข้อความแจ้งเตือน"
+                        print(f"Popup ไม่ใช่บิลสำเร็จ (รอบที่ {submit_retry_count}/3): '{error_content}'")
+
+                        # หากกดไม่ติดเกิน 3 ครั้ง ให้ข้ามไปแล้วใส่ error log
+                        if submit_retry_count > 3:
+                            err_msg = f"ไม่สามารถกด submit orderได้: {error_content}"
+                            self.app.update_log(f"❌ {err_msg}")
+                            logger.error(f"Order: {self.cus_order} - {err_msg}")
+                            self.current_checkpoint = f"ล้มเหลว: {err_msg}"
+
+                            if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                                try:
+                                    self.app.accel_mode.record_failed_order(
+                                        self.app.cus_order, err_msg)
+                                except Exception as xl_err:
+                                    logger.error(
+                                        f"Accel mode record failed order error: {xl_err}")
+
+                            # ปิด popup เพื่อเคลียร์หน้าจอ
+                            try:
+                                self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
+                            except Exception:
+                                try:
+                                    self.driver.find_element(By.XPATH, "//button[contains(@class, 'swal2-confirm')]").click()
+                                except Exception:
+                                    pass
+                            break
+
+                        # หากยังไม่เกิน 3 ครั้ง ให้แจ้ง log, ปิด popup และกดปุ่มเขียวใหม่
+                        self.app.update_log(
+                            f"⚠️ ตรวจพบ Popup อื่น (ไม่ใช่บิลสำเร็จ: '{error_content}') กำลังปิด Popup และกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ (ครั้งที่ {submit_retry_count}/3)...")
+
+                        # ปิด/ตกลง popup นั้นออกไปก่อน
+                        try:
+                            self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
+                        except Exception:
+                            try:
+                                self.driver.find_element(By.XPATH, "//button[contains(@class, 'swal2-confirm')]").click()
+                            except Exception:
+                                pass
+                        time.sleep(0.5)
+
+                        # กดปุ่มเขียว (btnPayment) ใหม่อีกครั้ง
+                        try:
+                            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
+                            if btn_payment.is_displayed():
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
+                                time.sleep(0.2)
+                                try:
+                                    btn_payment.click()
+                                except Exception:
+                                    self.driver.execute_script("arguments[0].click();", btn_payment)
+                        except Exception as btn_err:
+                            print(f"Error re-clicking green button: {btn_err}")
+
+                        continue
+
+                    # 4. ถ้าเป็น Success Popup และมีเลขบิล
+                    inv_number = match.group()
+                    print("inv_number: ", inv_number)
+                    self.app.update_log(f'เลขบิล: {inv_number}')
+                    self.current_checkpoint = f"สร้างใบเสร็จสำเร็จ (เลขบิล: {inv_number})"
+
+                    # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
+                    # * ไปหน้า Reprint ##########################################################################################
+                    if is_etax and inv_number != "":
+                        print("has etax")
+                        try:
+                            self.etax_reprint(inv_number)
+                        except Exception as e:
+                            print(f"etax_reprint error: {e}")
+                            logger.error(f"etax_reprint error: {e}")
+                        # * Update Accel file — order เสร็จแล้ว ตัดทันที
+                        self._update_accel_on_complete(inv_number, is_etax=True)
+                        # * ถ้ามี etax ก็ print แล้วจบไป
+                        time.sleep(0.75)
+                        break
+
+                    # * Update Accel file — order เสร็จแล้ว ตัดก่อน print
+                    self._update_accel_on_complete(inv_number, is_etax=False)
+
+                    # * ลอง click container ดู ใช้ได้แล้ว
+                    print("click container!")
+                    self.driver.execute_script(
+                        "document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
+
+                    # * > printing
+                    # * >> รอหน้า canvas โผล่ก่อน
+                    self.wait50.until(EC.visibility_of_element_located(
+                        (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
+                    time.sleep(1)
+
+                    try:
+                        self.get_pdf_src_and_print(inv_number)
+                        self.current_checkpoint = "พิมพ์เอกสารใบเสร็จสำเร็จ"
+                    except Exception as e:
+                        print(f"get_pdf_src_and_print error: {e}")
+                        logger.error(f"get_pdf_src_and_print error: {e}")
+
+                except RefreshRequiredException:
+                    raise
+                except Exception as err:
+                    try:
+                        final_popup_btn.click()
+                    except:
+                        pass
+                    print("พัง ข้ามไปเลยละกัน", err)
+                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                        try:
+                            self.app.accel_mode.record_failed_order(
+                                self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")
+                        except Exception as xl_err:
+                            logger.error(
+                                f"Accel mode record failed order error: {xl_err}")
+
+                break
+
             elif is_final_page.is_displayed() == False:
                 print("หน้า final หายไป")
                 pass
-            # Todo ทำไม่ทัน UAT โดนปรับไปใช้คอมมาทก่อน
-            elif convert_full_tax_modal_element.is_displayed():
-                # while not self.operation_thread.is_set():
-                #     print("convertFullTaxModal displayed")
-                #     if not self.is_old_tax_form and self.app.is_tax_required.get():
-                #         try:
-                #             # * ต้องการใบกำกับ
-                #             self.driver.execute_script(
-                #                 """document.querySelector("input[ng-click='changeDataFtRadio(93003002)']").click();""")
-                #             break
-                #         except:
-                #             continue
-                #     else:
-                #         try:
-                #             # * ไม่ต้องการต้องการใบกำกับ
-                #             self.driver.execute_script(
-                #                 """document.querySelector("input[ng-click='changeDataFtRadio(93003001)']").click();""")
-                #             self.driver.find_element(
-                #                 By.XPATH, "//button[@ng-click='savePayment()' and @class='btn btn-success']").click()
-                #             break
-                #         except:
-                #             continue
+            elif convert_full_tax_modal_element and getattr(convert_full_tax_modal_element, 'is_displayed', lambda: False)():
                 while not self.operation_thread.is_set() and convert_full_tax_modal_element.is_displayed():
                     print("หน้าเลือกแบบย่อแบบเต็มยังแสดงผลอยู่")
                     if self.app.is_tax_required.get():
@@ -9428,7 +9550,7 @@ class Bot_POS:
                                 "return arguments[0].getAttribute('title');", cus_name_element)
                             print("convert_tax_cus_name: ",
                                   convert_tax_cus_name)
-                            if convert_tax_cus_name == None:  # ! ตรงนี้แม่ง err จริงๆด้วย แต่ก่อนหน้านี้แม่งใช้ได้นะ งงจัด
+                            if convert_tax_cus_name == None:
                                 print("ยังไม่ได้เลือกใบกำกับ")
                                 self.set_cus_name_search_type_last_page()
                                 self.select_cusname_address_last_page()
@@ -9441,172 +9563,8 @@ class Bot_POS:
                         print("ไม่เอาใบกำกับ กด submit ไปเลย แต่ไม่กล้ากดตอนนี้")
                     time.sleep(1)
                 pass
-            else:
-                try:
-                    # ? พังหมด
-                    # print("Radio appeared")
-                    if self.etax_radio_sendmail.is_displayed():
-                        is_etax = True
-                        print("Click Send Email Radio")
-                        if auto_radio_times < 1:
-                            self.etax_radio_sendmail.click()
-                            print(
-                                "Press Send Email, and break the loop")
-                            auto_radio_times += 1
-                        else:
-                            print("เคยเลือกไปแล้ว")
-
-                    elif not self.etax_radio_sendmail.is_displayed():
-                        print("ไม่โชว์ก็ออก")
-
-                except:
-                    # print("radio has Disappeared")
-                    pass
-
-            if final_popup.is_displayed() == True:
-                self.app.is_bot_browser_busy.set(True)
-                print("final pop-up has finally displayed!")
-                try:
-                    final_popup_btn = self.wait50.until(EC.element_to_be_clickable(
-                        # (By.XPATH, """//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"""))) #! ปุ่มนี้น่าจะหายไปละ
-                        (By.XPATH, """//div[@class = 'swal2-content']""")))
-                    self.check_for_refresh_popup(final_popup_btn)
-                    # *> ให้เวลาดูเลขบิล 1 วิ
-                    time.sleep(1)
-
-                    alert_text = self.driver.find_element(
-                        By.XPATH, """//div[@class = 'swal2-content']""").text  # * ตำแหน่งแสดงเลขบิล
-
-                    match = re.search(r'(?:ABB-)?B\d+-\w.*\d+-\d+', alert_text)
-                    print("match: ", match)
-
-                    if not match:
-                        print(f"Popup displayed but no receipt number found! alert_text: '{alert_text}'")
-                        self.app.update_log("⚠️ ตรวจพบ Popup อื่น (ไม่มีเลขใบเสร็จ) กำลังปิด Popup และกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
-
-                        # 1. ปิด/ตกลง popup นั้นออกไปก่อน
-                        try:
-                            self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
-                        except Exception:
-                            try:
-                                self.driver.find_element(By.XPATH, "//button[contains(@class, 'swal2-confirm')]").click()
-                            except Exception:
-                                pass
-                        time.sleep(0.5)
-
-                        # 2. กดปุ่มเขียว (btnPayment) ใหม่อีกครั้ง
-                        try:
-                            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
-                            if btn_payment.is_displayed():
-                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
-                                time.sleep(0.2)
-                                try:
-                                    btn_payment.click()
-                                except Exception:
-                                    self.driver.execute_script("arguments[0].click();", btn_payment)
-                        except Exception as btn_err:
-                            print(f"Error re-clicking green button: {btn_err}")
-
-                        continue
-
-                    inv_number = match.group()
-                    print("inv_number: ", inv_number)
-                    self.app.update_log(f'เลขบิล: {inv_number}')
-                    self.current_checkpoint = f"สร้างใบเสร็จสำเร็จ (เลขบิล: {inv_number})"
-
-                    # # * เรียกใช้งานฟังก์ชันบันทึกข้อมูล Order Details (Commented out per user request)
-                    # try:
-                    #     order_no = self.app.cus_order.get()
-                    #     tracking_no = ", ".join(self.tracking_manager.trackings) if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings else ""
-                    #     self.save_order_details(order_no, tracking_no, inv_number)
-                    # except Exception as save_err:
-                    #     print(f"Error calling save_order_details: {save_err}")
-
-                    # * สลับไปreprintก่อนแล้วค่อยกลับมากด เพราะมันช้ากรอกรอไว้เลย
-                    # * ไปหน้า Reprint ##########################################################################################
-                    if is_etax and inv_number != "":
-                        print("has etax")
-                        try:
-                            self.etax_reprint(inv_number)
-                        except Exception as e:
-                            print(f"etax_reprint error: {e}")
-                            logger.error(f"etax_reprint error: {e}")
-                        # * Update Accel file — order เสร็จแล้ว ตัดทันที
-                        self._update_accel_on_complete(inv_number, is_etax=True)
-                        # * ถ้ามี etax ก็ print แล้วจบไป
-                        time.sleep(0.75)
-                        # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
-                        break
-
-                    # self.wait50.until(EC.invisibility_of_element_located((By.XPATH, """//div[@class = 'swal2-content']""")))
-                    # time.sleep(1)
-                    # final_popup_btn.click() #! ปุ่มนี้น่าจะหายไปละ
-
-                    # * Update Accel file — order เสร็จแล้ว ตัดก่อน print
-                    self._update_accel_on_complete(inv_number, is_etax=False)
-
-                    # * ลอง click container ดู ใช้ได้แล้ว
-                    print("click container!")
-                    self.driver.execute_script(
-                        "document.querySelector('.swal2-overlay').click();")  # * อันนี้ดีย์
-
-                    # * > printing
-                    # * >> รอหน้า canvas โผล่ก่อน
-                    self.wait50.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
-                    time.sleep(1)
-
-                    #! วิธี print แบบเก่า
-                    # self.printtingPage()
-                    # self.just_press_p()
-                    # ! วิธี print แบบใหม่ // 2/2/2026 พัง มันจะมี thread ใหม่ทำงานชนกับ thread เก่า ทำให้ ปิดหน้า print ไม่ได้ ตอใช้ accel mode
-                    # self.printing_thread = threading.Thread(
-                    #     target=self.get_pdf_src_and_print, args=(inv_number,))
-                    # self.printing_thread.start()
-                    try:
-                        self.get_pdf_src_and_print(inv_number)
-                        self.current_checkpoint = "พิมพ์เอกสารใบเสร็จสำเร็จ"
-                    except Exception as e:
-                        print(f"get_pdf_src_and_print error: {e}")
-                        logger.error(f"get_pdf_src_and_print error: {e}")
-
-                except RefreshRequiredException:
-                    raise
-                except Exception as err:
-                    # time.sleep(1)
-                    # print("ไม่ได้เลขบิล")
-                    # final_popup.click()
-                    try:
-                        final_popup_btn.click()  # ! ปุ่มนี้น่าจะหายไปละ
-                    except:
-                        pass
-                    print("พัง ข้ามไปเลยละกัน", err)
-                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
-                        try:
-                            self.app.accel_mode.record_failed_order(
-                                self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")
-                        except Exception as xl_err:
-                            logger.error(
-                                f"Accel mode record failed order error: {xl_err}")
-
-                break
-
-                # * > รอหน้า canvas โผล่ก่อน
-                # * >> แบบไม่มีระบบ ETAX มันจะ Process ไปหน้า print มันเลย wait element ของ canvas ได้ แล้วมันจะจบ แค่นี้
-
-                #! WIP ต้องเปลี่ยนเป็น while loop แทน เพราะถ้าหาก ขั้นตอนด้านบนเป็น except มันจะรอนาน เพราะใช้ self.wait50
-                #! ย้ายไปข้างบนแล้ว ถ้าข้างบนใช้ได้ข้างล่างลบทิ้งได้เลย
-                # self.wait50.until(EC.visibility_of_element_located(
-                #     (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')))
-                # time.sleep(1)
-                # self.driver.find_element(
-                #     By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
-                # self.printtingPage()
-                # self.just_press_p()
-                # break
-
-            # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
             elif is_final_page.is_displayed() == False:
+                # * >> แบบมี ETAX มันจะ redirect กลับไปหน้าเดิม
                 print("End or back")
                 if bool(
                     re.search(
@@ -9622,8 +9580,22 @@ class Bot_POS:
                     # * ถ้าอันนี้ยัง true แปลว่าหน้าท้ายยัง loop อยู่น่าจะทำให้กลับหน้าเก่าได้
                     operation_obj.autofinal = True
                     break
-
             else:
+                try:
+                    if self.etax_radio_sendmail.is_displayed():
+                        is_etax = True
+                        print("Click Send Email Radio")
+                        if auto_radio_times < 1:
+                            self.etax_radio_sendmail.click()
+                            print(
+                                "Press Send Email, and break the loop")
+                            auto_radio_times += 1
+                        else:
+                            print("เคยเลือกไปแล้ว")
+                    elif not self.etax_radio_sendmail.is_displayed():
+                        print("ไม่โชว์ก็ออก")
+                except:
+                    pass
                 continue
 
                 # try:
