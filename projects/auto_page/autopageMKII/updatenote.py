@@ -358,7 +358,7 @@
 # * 352 /feat/ 5.2.3LITE  เพิ่มฟังชั่น scan_and_sync_missing_cp_data() ทำให้เพิ่มราคาที่ต้องออกบิลได้ทันทีที่เติม cp_data.xlsx โดยไม่ต้องรอให้ bot ค้นพบว่าไม่มี cp ให้เลือก
 # * 353 /patch/ 5.2.4LITE /issue/ บันทึก SN ที่ถูกใช้ไปแล้วลงใน accel_file ใน sheet completed เอาไว
 # * 354 /fixed/ 5.2.4LITE ตรวจสอบ popup หน้าท้ายหลังกดปุ่มเขียว: เช็ค class 'swal2-icon swal2-success animate' เพื่อยืนยันว่าเป็น popup เลขบิลสำเร็จจริง หากเป็น popup แจ้งเตือนอื่น (warning/error) ให้ปิด popup แล้วกดปุ่มเขียวซ้ำได้สูงสุด 3 ครั้ง หากเกิน 3 ครั้งให้บันทึก error log 'ไม่สามารถกด submit orderได้: {ข้อความ error}' และบันทึกลง Failed_Orders พร้อมข้ามออเดอร์ทันที
-# ! 355 /issue/ function กด check sn บางทีปุ่มบน smco มันไม่แสดงผลหลังกรอก SN ต้องทำ fucntion สำรองเช็คจาก sn ปุ่มแดงหลังกรอก หรือหาปุ่มไ่เจอหลังกรอกอีกชั้นนึง
+# * 355 /fixed/ 5.2.4LITE เพิ่มระบบรองรับกรอก SN ผ่าน Modal เมื่อปุ่ม check_btn (fa-check-square-o) ไม่โผล่: เช็คปุ่ม serial สีแดง (ng-redalert) ของ SKU แถวนั้น แล้วเปิด Modal กรอก SN ลงช่องว่างทุกช่อง กด verify เช็คปุ่ม ok (_okInsertSerial) หากติด disabled จะเช็คแถวสีแดง (font-color-secondary-red) ติ๊ก checkbox แล้วกดลบ (_deleteInsertSerial) พร้อมตัด SN ที่ไม่ผ่านออกจาก Excel และวนซ้ำกรอกตัวใหม่จนผ่าน
 # ! 356 /issue/ auto_inv มในfunction มันไม่ควรจะเรียกใช้ tracking_manager.apply_tracking_to_final_page() ในตอนท้ายได้หากมี tranckingไม่ครบมันจะต้องไปดู shopee และพบว่า ยังมีคำว่า "นัดรับ" อยู่ใน list รายการที่สั่ง เพราะจะเก็บ tracking ไม่ได้ เพราะมีไม่ครบ
 # ! 357 /issue/ auto_inv ตัวเลือกค่าจาก cp data หากราคาไม่ตรงมันจะเลือก ชุด cp dc แค่อันแรกสุด โดยที่บางครั้ง skuและราคา 1 pattern มีหลายรูปแบบของการใช้ cp dc ทำให้มันเลือกผิดแล้วทำต่อไปเลยไม่ได้เช็คว่ามการใช้ cp/dc ชุดนี้มันถูกหรือผิด
 

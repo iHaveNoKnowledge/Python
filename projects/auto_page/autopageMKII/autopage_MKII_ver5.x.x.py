@@ -2346,8 +2346,7 @@ class MyApp:
                 self.cus_email.set(
                     self.email_match.group(1)) if self.email_match else self.cus_email.set(
                     self.cus_email.get())
-                self.cus_tel.set(self.tel_match.group(
-                    1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
+                self.cus_tel.set(self.tel_match.group(1)) if self.tel_match else self.cus_tel.set(self.cus_tel.get())
 
             self.cus_name.set(self.name_match.group(
                 1)) if self.name_match else self.cus_name.set(self.cus_name.get())
