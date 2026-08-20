@@ -835,18 +835,24 @@ class AccelMode:
                                             f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_ordered_sku} หลังลบตัวที่ไม่ผ่าน")
                                         break
 
-                            # ปิด Modal อย่างปลอดภัยหากยังเปิดค้างอยู่
+                            # ปิด Modal อย่างปลอดภัยหากยังเปิดค้างอยู่ (เช่น SN ไม่พอหรือกดยกเลิก)
                             try:
                                 close_btns = driver.find_elements(
                                     By.XPATH,
-                                    "//button[@data-dismiss='modal' or @class='close' or text()='ยกเลิก']"
+                                    "//button[@class='btn smco-btn-cancel-pos' and @ng-click='exitInsertSerial()']"
                                 )
+                                if not close_btns:
+                                    close_btns = driver.find_elements(
+                                        By.XPATH,
+                                        "//button[@ng-click='exitInsertSerial()' or @data-dismiss='modal' or @class='close' or text()='ยกเลิก']"
+                                    )
                                 for cb in close_btns:
                                     if cb.is_displayed():
                                         driver.execute_script("arguments[0].click();", cb)
+                                        time.sleep(0.5)
                                         break
-                            except:
-                                pass
+                            except Exception as close_err:
+                                print(f"เกิดข้อผิดพลาดขณะปิด Modal: {close_err}")
 
                             continue
 
