@@ -314,6 +314,7 @@ class MyApp:
         self.table_location = ""
         self.cp_table_location = ""
         self.cp_df = None
+        self._cp_last_mtime = 0
 
         # * Initialize AccelMode instance
         self.accel_mode = AccelMode(self)
@@ -1562,6 +1563,32 @@ class MyApp:
         print("Table Location:", self.table_location)
         self.update_log("แอดไฟล์")
 
+    def reload_cp_df_if_modified(self):
+        """ตรวจสอบว่าไฟล์ CP Data มีการแก้ไขหรือบันทึกใหม่หรือไม่ ถ้ามีจะ reload DataFrame ทันที (mtime เปลี่ยน)"""
+        excel_path = getattr(self, 'cp_table_location', '')
+        if not excel_path or not os.path.exists(excel_path):
+            return self.cp_df
+
+        try:
+            current_mtime = os.path.getmtime(excel_path)
+            if getattr(self, 'cp_df', None) is None or current_mtime > getattr(self, '_cp_last_mtime', 0):
+                df = pd.read_excel(excel_path)
+                if 'usage_start_date' in df.columns:
+                    df['usage_start_date'] = pd.to_datetime(
+                        df['usage_start_date'], errors='coerce')
+                if 'usage_end_date' in df.columns:
+                    df['usage_end_date'] = pd.to_datetime(
+                        df['usage_end_date'], errors='coerce')
+                self.cp_df = df
+                self._cp_last_mtime = current_mtime
+                print(f"[CP Cache] ตรวจพบการแก้ไขไฟล์ CP Data -> โหลดข้อมูลใหม่สำเร็จ ({len(self.cp_df)} รายการ)")
+        except PermissionError as e:
+            print(f"[CP Cache] ไฟล์ CP Data ถูกเปิดอยู่ในโปรแกรมอื่น: {e}")
+        except Exception as e:
+            print(f"[CP Cache] เกิดข้อผิดพลาดในการตรวจสอบ/โหลด CP Data: {e}")
+
+        return self.cp_df
+
     def select_cp_excel(self):
         self.cp_table_location = filedialog.askopenfilename(
             title="Select CP Data file")
@@ -1569,16 +1596,15 @@ class MyApp:
             self.display_cp_location_btn.configure(
                 text=f"{os.path.basename(self.cp_table_location)}")
             try:
-                self.cp_df = pd.read_excel(self.cp_table_location)
-                if 'usage_start_date' in self.cp_df.columns:
-                    self.cp_df['usage_start_date'] = pd.to_datetime(
-                        self.cp_df['usage_start_date'], errors='coerce')
-                if 'usage_end_date' in self.cp_df.columns:
-                    self.cp_df['usage_end_date'] = pd.to_datetime(
-                        self.cp_df['usage_end_date'], errors='coerce')
-                self.update_log(
-                    f"โหลดไฟล์ CP Data สำเร็จ: {len(self.cp_df)} รายการ")
-                self.scan_and_sync_missing_cp_data()
+                self.cp_df = None
+                self._cp_last_mtime = 0
+                self.reload_cp_df_if_modified()
+                if self.cp_df is not None:
+                    self.update_log(
+                        f"โหลดไฟล์ CP Data สำเร็จ: {len(self.cp_df)} รายการ")
+                    self.scan_and_sync_missing_cp_data()
+                else:
+                    self.update_log("โหลดไฟล์ CP Data ล้มเหลว")
             except Exception as e:
                 self.update_log(f"โหลดไฟล์ CP Data ล้มเหลว: {e}")
                 self.cp_df = None
@@ -1589,6 +1615,7 @@ class MyApp:
         จัดกลุ่ม Group By (sku, expected_price) แล้วเปรียบเทียบกับ self.cp_df
         หากพบรายการที่ยังไม่มีใน CP_data.xlsx จะเด้ง Pop-up สอบถามผู้ใช้งานเพื่อยืนยันเพิ่มลง CP_data.xlsx
         """
+        self.reload_cp_df_if_modified()
         if getattr(self, 'cp_df', None) is None or self.cp_df.empty:
             print("[scan_and_sync_missing_cp_data] cp_df is None or empty. Skipping.")
             return
@@ -1712,6 +1739,11 @@ class MyApp:
                 new_df = new_df[df_excel.columns]
                 df_combined = pd.concat([df_excel, new_df], ignore_index=True)
                 df_combined.to_excel(excel_path, index=False)
+                if os.path.exists(excel_path):
+                    try:
+                        self._cp_last_mtime = os.path.getmtime(excel_path)
+                    except Exception:
+                        pass
 
                 # อัปเดต cp_df ใน memory
                 if 'usage_start_date' in new_df.columns:
@@ -3990,6 +4022,9 @@ class Bot_POS:
 
     def find_cp_no_placeholder(self, item_index: int, sku: str, diff) -> str:
         return "1"
+
+    def find_all_cp_candidates_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> list:
+        return self.pricing_reconciler.find_all_cp_candidates_from_excel(sku, platform_price, purchased_date_str)
 
     def find_cp_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> dict:
         return self.pricing_reconciler.find_cp_from_excel(sku, platform_price, purchased_date_str)

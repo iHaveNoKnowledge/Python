@@ -23,6 +23,7 @@ class AccelMode:
         self.excel_save_failed = False
         self.used_serials = []
         self.sn_shortage = []
+        self._accel_last_mtime = 0
 
     def select_accel_file(self):
         self.accel_file_dir = filedialog.askopenfilename(
@@ -66,11 +67,45 @@ class AccelMode:
             for col in self.accel_file_columns}
 
         self.accel_orders_list = self.accel_df_state['orders'].dropna(
-        ).tolist()
+            ).tolist()
         self.CP_list = self.accel_df_state['cp'].dropna().tolist()
+        if os.path.exists(self.accel_file_dir):
+            try:
+                self._accel_last_mtime = os.path.getmtime(self.accel_file_dir)
+            except Exception:
+                self._accel_last_mtime = 0
         print(self.accel_orders_list)
         print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
         print(self.CP_list)
+
+    def reload_accel_file_if_modified(self):
+        """ตรวจสอบว่าไฟล์ Accel Excel มีการแก้ไขหรือบันทึกใหม่หรือไม่ ถ้ามีจะ reload DataFrame ทันที"""
+        if not self.accel_file_dir or not os.path.exists(self.accel_file_dir):
+            return
+        if getattr(self, 'excel_save_failed', False):
+            logger.warning(
+                "ตรวจพบการบันทึก Excel ล้มเหลวก่อนหน้า จะใช้ข้อมูลในหน่วยความจำล่าสุดแทนการโหลดใหม่จากไฟล์ดิสก์")
+            return
+        try:
+            current_mtime = os.path.getmtime(self.accel_file_dir)
+            if current_mtime > getattr(self, '_accel_last_mtime', 0):
+                logger.info(
+                    f"ตรวจพบการแก้ไขไฟล์ Accel Excel ({os.path.basename(self.accel_file_dir)}) -> กำลังโหลดข้อมูลใหม่...")
+                df = pd.read_excel(self.accel_file_dir, dtype=str)
+                df.columns = df.columns.astype(str).str.strip()
+                if 'orders' in df.columns:
+                    self._normalize_orders_col(df)
+                self.accel_df_state = df
+                self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
+                self.obj_data_from_accel_file = {
+                    col: [str(x).strip() for x in self.accel_df_state[col].dropna(
+                    ).tolist() if str(x).strip() != 'nan']
+                    for col in self.accel_file_columns}
+                self._accel_last_mtime = current_mtime
+        except PermissionError as e:
+            logger.warning(f"ไฟล์ Accel Excel ถูกเปิดอยู่ในโปรแกรมอื่น: {e}")
+        except Exception as e:
+            logger.error(f"เกิดข้อผิดพลาดในการตรวจสอบ/โหลดไฟล์ Accel Excel: {e}")
 
     def deduct_accel_file_data(self, order, sku_serials=[], remove_order=True, update_memory=True):
         if hasattr(order, 'get'):
@@ -118,6 +153,11 @@ class AccelMode:
             self._save_df_to_excel(df, 'Sheet1')
             print(f"Successfully updated {self.accel_file_dir}")
             self.excel_save_failed = False
+            if os.path.exists(self.accel_file_dir):
+                try:
+                    self._accel_last_mtime = os.path.getmtime(self.accel_file_dir)
+                except Exception:
+                    pass
 
             if update_memory:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
@@ -318,24 +358,8 @@ class AccelMode:
                     getattr(self, '_accel_run_id', None) == my_run_id):
                 logger.info("Accel mode cycle is stale or stopped, not continuing.")
                 return
-            # ดึงข้อมูลจาก Excel ใหม่ทุกรอบเพื่อให้ได้ SN บนสุดที่ยังเหลืออยู่ (เหมือน reload magazine)
-            # แต่ถ้าเซฟครั้งก่อนไม่สำเร็จ (PermissionError) ให้ใช้ข้อมูลในหน่วยความจำล่าสุดแทนการไปดึงจากไฟล์เดิมบนดิสก์
-            if getattr(self, 'excel_save_failed', False):
-                logger.warning(
-                    "ตรวจพบการบันทึก Excel ล้มเหลวก่อนหน้า จะใช้ข้อมูลในหน่วยความจำล่าสุดแทนการโหลดใหม่จากไฟล์ดิสก์")
-            else:
-                try:
-                    self.accel_df_state = pd.read_excel(
-                        self.accel_file_dir, dtype=str)
-                    self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
-                    if 'orders' in self.accel_df_state.columns:
-                        self._normalize_orders_col(self.accel_df_state)
-                    self.obj_data_from_accel_file = {
-                        col: [str(x).strip() for x in self.accel_df_state[col].dropna(
-                        ).tolist() if str(x).strip() != 'nan']
-                        for col in self.accel_file_columns}
-                except Exception as e:
-                    logger.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์ Excel: {e}")
+            # ตรวจสอบและโหลดข้อมูลจาก Excel ใหม่เฉพาะเมื่อไฟล์มีการแก้ไข/บันทึกใหม่จริง (mtime เปลี่ยน)
+            self.reload_accel_file_if_modified()
             if count < self.accel_orders_count:
                 if (self.main_app.is_accel_mode_activated.get() and
                         getattr(self, '_accel_run_id', None) == my_run_id):

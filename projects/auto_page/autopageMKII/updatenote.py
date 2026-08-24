@@ -363,12 +363,18 @@
 #   1) ตรวจสอบ //div[@class='package-of-package-level-order-card'] และนับจำนวนให้ตรงกับรายการสินค้าใน Order (len = 4)
 #   2) ตรวจสอบแต่ละ Card ว่ามี //div[@class='tracking-number'] หรือไม่ พร้อม map ข้อมูล SKU จาก //div[@class='item-description']
 #   3) หากพบว่า Tracking ไม่ครบ (เช่น ยังเป็นสถานะ "นัดรับ" หรือได้เลขไม่ครบจำนวนรายการ) จะ raise Exception หยุดขั้นตอนการออกบิลทันที เพื่อให้ auto_inv (accel_mode) บันทึกลง Failed_Orders พร้อมระบุรายการที่ขาด และข้ามไปทำออเดอร์ถัดไปอัตโนมัติ โดยไม่ยิงข้อมูลที่ไม่สมบูรณ์ลง SMCO
-# ! 357 /issue/ auto_inv ตัวเลือกค่าจาก cp data หากราคาไม่ตรงมันจะเลือก ชุด cp dc แค่อันแรกสุด โดยที่บางครั้ง skuและราคา 1 pattern มีหลายรูปแบบของการใช้ cp dc ทำให้มันเลือกผิดแล้วทำต่อไปเลยไม่ได้เช็คว่ามการใช้ cp/dc ชุดนี้มันถูกหรือผิด
-# * 358 /refactor/ 5.x.x (Refactor Part 3) แยก Pricing Engine & Order Financials:
+# * 357 /fixed/ 5.2.4LITE / 5.x.x ปรับปรุงระบบเลือก CP/DC แบบ Multi-Candidate Validation & Ambiguity Guard:
+#   1) find_all_cp_candidates_from_excel ดึง candidates ทุกชุดจาก cp_data.xlsx ที่ตรง SKU/ราคา/ช่วงเวลา ออกมาเป็น Array
+#   2) scan_matching_cp_candidates_on_smco สแกนหน้า Modal บน SMCO เพื่อตรวจนับว่ามี candidate ที่ตรงเงื่อนไขบนหน้าเว็บกี่ชุด
+#   3) หากพบตรง 1 ชุดพอดี -> เลือกใช้คูปองและปรับ OC/DC ตามปกติต่อไป
+#   4) หากตรวจพบความคลุมเครือ (Ambiguity - พบตรง > 1 ชุดบน SMCO) -> ใช้ Option B (Strict Safety): หยุดปรับราคาเพื่อไม่ให้เดาผิดพลาด, บันทึก Log ลง accel .log อย่างละเอียด, และส่ง Pattern ถาม User พร้อมแสดงทุก Option ที่พบ (เตรียม Option A auto-resolve by date คอมเมนต์ไว้ให้สลับใช้ได้)
+#   5) หากไม่พบชุดใดตรงเลย (0 ชุด) -> หยุดปรับราคาทันที คงราคาจริงบน POS ไว้ และนำราคาจริงตั้งต้น (actual_price) ไปสร้าง pattern คำถามขอวิธีปรับราคา
+# * 358 /refactor/ 5.2.4LITE (Refactor Part 3) แยก Pricing Engine & Order Financials:
 #   1) สร้างโมดูล functions/pos/pricing_engine.py รวมคลาส OrderFinancials ทำหน้าที่เป็น Single Source of Truth (SSOT) สำหรับคำนวณราคาขายสุทธิ, ยอดรวมตะกร้า, ค่าจัดส่ง และยอดสุทธิหลังหัก seller voucher ป้องกันการคำนวณซ้ำซ้อนข้ามคลาส
 #   2) สร้าง POSPricingReconciler รวม logic การค้นหา/บันทึก CP คูปอง, การปรับ Overcharge/Discount บน POS และการคุม verify_all() ทั้ง 2 รอบ
 #   3) ลดขนาด autopage_MKII_ver5.x.x.py ลง 1,137 บรรทัด (เหลือ 7,909 บรรทัด) โดยคงความเข้ากันได้ 100% ด้วย delegation methods บน Bot_POS
 # todo 359 /patch/ ไฟล์ log ต้องการ log rotation เพื่อให้ log file ไม่ใหญ่เกินไปและสามารถเก็บ log ย้อนหลังได้หลายวัน
+# * 360 /patch/ 5.2.4LITE ปรับวิธีอ่านไฟล์ cp_data และ accel_file โดยนำเทคนิค Timestamp Modified Cache Invalidation (os.path.getmtime) แทนการอ่านทุกครั้งที่เรียกใช้ เพื่อเพิ่มประสิทธิภาพและลดเวลาในการโหลดไฟล์
 
 
 # / tip ไม่ต้องre ลูกค้าแล้ว หลังจาก edit แล้วใช้อันเดิมได้เลยตอน ออกบิล มันจะเอาที่อยู่ล่าสุดมาจริง (คราวก่อนก็จริงแบบนี้ พอไปเถียงคน แตกเฉย 5555)
