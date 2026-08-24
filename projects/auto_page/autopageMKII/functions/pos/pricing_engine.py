@@ -1,0 +1,810 @@
+"""
+Module: functions.pos.pricing_engine
+Contains:
+  - OrderFinancials: Single Source of Truth (SSOT) for order-level and item-level financial calculations.
+  - POSPricingReconciler: Handles price mismatch detection, campaign coupon (CP) matching from Excel,
+    overcharge (OC) / discount (DC) adjustments on the SMCO POS cart, and 2-step verification.
+"""
+
+from __future__ import annotations
+
+import re
+import time
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Union
+
+import pandas as pd
+from loguru import logger
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+
+
+@dataclass
+class OrderFinancials:
+    """
+    Single Source of Truth (SSOT) สำหรับการคำนวณราคาและส่วนลดทั้งหมดใน Order
+    """
+    items: List[Dict[str, Any]]
+    shipping_cost: float = 0.0
+    seller_voucher: float = 0.0
+    marketplace: str = "SHOPEE"
+    
+    # Computed fields
+    aggregated_items: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    item_expected_prices: Dict[str, float] = field(default_factory=dict)
+    sum_price: float = 0.0
+    total_cart_price: float = 0.0
+    final_billing_price: float = 0.0
+
+    def __post_init__(self):
+        self.recalculate()
+
+    def recalculate(self) -> None:
+        """คำนวณตัวเลขทางการเงินทั้งหมดจาก items, shipping_cost, seller_voucher"""
+        self.aggregated_items.clear()
+        self.item_expected_prices.clear()
+
+        total_net_sum = 0.0
+
+        for item in self.items:
+            sku_key = str(item.get('เลขอ้างอิง SKU (SKU Reference No.)', '')).strip()
+            if not sku_key:
+                continue
+
+            raw_price = str(item.get('ราคาขายสุทธิ', item.get('ราคาตั้งต้น', 0))).replace(',', '')
+            price_val = float(raw_price) if raw_price else 0.0
+
+            raw_qty = str(item.get('จำนวน', 1)).replace(',', '')
+            qty_val = float(raw_qty) if raw_qty else 1.0
+
+            raw_discount = str(item.get('ส่วนลดจาก Shopee', 0)).replace(',', '')
+            shopee_discount = float(raw_discount) if raw_discount else 0.0
+
+            if sku_key not in self.aggregated_items:
+                self.aggregated_items[sku_key] = {
+                    "total_qty": qty_val,
+                    "total_price": price_val * qty_val,
+                    "total_discount": shopee_discount
+                }
+            else:
+                self.aggregated_items[sku_key]["total_qty"] += qty_val
+                self.aggregated_items[sku_key]["total_price"] += price_val * qty_val
+                self.aggregated_items[sku_key]["total_discount"] += shopee_discount
+
+            total_net_sum += (price_val * qty_val) + shopee_discount
+
+        for sku_key, data in self.aggregated_items.items():
+            t_qty = data["total_qty"] if data["total_qty"] > 0 else 1.0
+            unit_expected = (data["total_price"] + data["total_discount"]) / t_qty
+            self.item_expected_prices[sku_key] = round(unit_expected, 2)
+
+        self.sum_price = round(total_net_sum, 2)
+
+        # คำนวณราคายอดรวมตะกร้า (Shopee คิดค่าส่งร่วมด้วย)
+        if self.marketplace.upper() == "SHOPEE":
+            self.total_cart_price = round(self.sum_price + self.shipping_cost, 2)
+            self.final_billing_price = max(0.0, round(self.total_cart_price - self.seller_voucher, 2))
+        else:  # LAZADA
+            self.total_cart_price = self.sum_price
+            self.final_billing_price = max(0.0, round(self.sum_price - self.seller_voucher, 2))
+
+
+class POSPricingReconciler:
+    """
+    รับผิดชอบงานตรวจเช็คราคา (Price Reconciliation) และปรับราคาในหน้า POS
+    - แมตช์คูปอง CP จาก Excel (cp_data.xlsx)
+    - ใส่ส่วนลดสินค้า (smco_set_discount_product) / ปรับราคาขึ้น (smco_set_overcharge_product)
+    - เลือกคูปอง (cp_sonic_blow_process)
+    - ดำเนินการขั้นตอน verify_all() ทั้ง 2 รอบ
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.app = bot.app
+        self.driver = bot.driver
+        self.wait50 = bot.wait50
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HELPER UTILITIES
+    # ══════════════════════════════════════════════════════════════════════════
+    def sku_formater(self, sku_input: str) -> str:
+        """แปลง SKU ให้อยู่ในฟอร์แมตมาตรฐาน เช่น sp2-1703 -> SP2-001703"""
+        prog = re.findall(r'[A-Za-z]{2,}[A-Za-z0-9]?-?\d{1,6}', str(sku_input))
+        result = ""
+        for item in prog:
+            if '-' in item:
+                prefix, number = item.split('-', 1)
+                uppered_prefix = prefix.upper()
+                number_padded = number.zfill(6)
+                result += f"{uppered_prefix}-{number_padded} "
+            else:
+                result += f"{item.upper()} "
+        return result.strip()
+
+    def oc_amounts_calculator(self, entered_data: Any) -> Union[int, float, str]:
+        """คำนวณยอดเงิน OC / DC ที่อาจเป็น expression เช่น 100+20 หรือ 500-50"""
+        entered_data = str(entered_data).replace(',', '')
+        if "+" in entered_data:
+            operands = [float(x.strip()) for x in entered_data.split("+") if x.strip()]
+            return sum(operands)
+        elif "-" in entered_data and not entered_data.strip().startswith("-"):
+            operands = [float(x.strip()) for x in entered_data.split("-") if x.strip()]
+            if operands:
+                res = operands[0]
+                for op in operands[1:]:
+                    res -= op
+                return res
+        try:
+            return float(entered_data.strip())
+        except ValueError:
+            return entered_data
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # EXCEL CP LOOKUP & MISSING RECORDING
+    # ══════════════════════════════════════════════════════════════════════════
+    def find_cp_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> Optional[dict]:
+        """
+        ค้นหา CP จากไฟล์ cp_data.xlsx (self.app.cp_df) และส่งกลับ dict ข้อมูลคูปอง
+        """
+        if self.app.cp_df is None or self.app.cp_df.empty:
+            print("[CP Lookup] No CP data loaded")
+            return None
+
+        # 1. Parse purchased date
+        try:
+            purchased_dt = pd.to_datetime(purchased_date_str)
+            if pd.isna(purchased_dt):
+                return None
+        except Exception as e:
+            print(f"[CP Lookup] Date parsing error for '{purchased_date_str}': {e}")
+            return None
+
+        # 2. Filter by SKU
+        sku_clean = str(sku).strip().upper()
+        formatted_skus = [s.strip().upper() for s in self.app.correct_sku_pattern(sku)]
+
+        def sku_match(row_sku) -> bool:
+            row_sku_str = str(row_sku).strip().upper()
+            return (row_sku_str == sku_clean) or (row_sku_str in formatted_skus)
+
+        sku_mask = self.app.cp_df['sku'].apply(sku_match)
+        df_filtered = self.app.cp_df[sku_mask]
+
+        if df_filtered.empty:
+            print(f"[CP Lookup] No matching SKU found in CP Data for: {sku}")
+            return None
+
+        # 3. Filter by Date Range
+        valid_rows = []
+        for idx, row in df_filtered.iterrows():
+            try:
+                start_date = pd.to_datetime(row.get('usage_start_date'))
+                end_date = pd.to_datetime(row.get('usage_end_date'))
+
+                if pd.notna(start_date) and pd.notna(end_date):
+                    if start_date.date() <= purchased_dt.date() <= end_date.date():
+                        valid_rows.append(row)
+                elif pd.notna(start_date):
+                    if start_date.date() <= purchased_dt.date():
+                        valid_rows.append(row)
+                elif pd.notna(end_date):
+                    if purchased_dt.date() <= end_date.date():
+                        valid_rows.append(row)
+                else:
+                    valid_rows.append(row)
+            except Exception as date_err:
+                print(f"[CP Lookup] Row date validation error at index {idx}: {date_err}")
+
+        if not valid_rows:
+            print(f"[CP Lookup] SKU {sku} found, but date {purchased_dt.date()} is not within any CP usage range.")
+            return None
+
+        df_valid = pd.DataFrame(valid_rows)
+
+        # 4. Filter by Price (sale_price == platform_price)
+        price_tolerance = 0.05
+        df_price_matched = df_valid[(df_valid['sale_price'] - platform_price).abs() <= price_tolerance]
+
+        if df_price_matched.empty:
+            print(f"[CP Lookup] SKU {sku} date matched, but no matching sale_price for platform_price={platform_price}.")
+            return None
+
+        # 5. เรียงลำดับตาม usage_start_date ล่าสุด
+        if len(df_price_matched) > 1:
+            df_price_matched = df_price_matched.copy()
+            df_price_matched['temp_start_date'] = pd.to_datetime(
+                df_price_matched.get('usage_start_date'), errors='coerce'
+            )
+            df_price_matched = df_price_matched.sort_values(
+                by='temp_start_date', ascending=False, na_position='last'
+            )
+
+        matched_row = df_price_matched.iloc[0]
+        cp_name = matched_row.get('cp_name')
+        oc_amount = matched_row.get('oc_amount')
+        dc_amount = matched_row.get('dc_amount')
+
+        return {
+            "cp_name": str(cp_name).strip() if pd.notna(cp_name) else "",
+            "oc_amount": str(oc_amount).strip() if pd.notna(oc_amount) else "",
+            "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else ""
+        }
+
+    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float) -> None:
+        """บันทึก SKU และราคาที่ยังไม่มี CP ลงไฟล์ Excel เพื่อให้กรอกข้อมูลต่อได้"""
+        try:
+            excel_path = getattr(self.app, 'cp_table_location', '')
+            if not excel_path or str(excel_path).strip() == "":
+                return
+
+            import os
+            if not os.path.exists(excel_path):
+                return
+
+            try:
+                df = pd.read_excel(excel_path)
+            except Exception as read_err:
+                print(f"[add_missing_cp_to_excel] Error reading excel: {read_err}")
+                return
+
+            new_row = {'sku': sku_key, 'sale_price': expected_price}
+            new_df = pd.DataFrame([new_row])
+
+            for col in df.columns:
+                if col not in new_df.columns:
+                    new_df[col] = ""
+            new_df = new_df[df.columns]
+
+            df_combined = pd.concat([df, new_df], ignore_index=True)
+            df_combined.to_excel(excel_path, index=False)
+
+            self.app.update_log(
+                f"💾 บันทึก SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}) ลงใน CP Data เรียบร้อยแล้ว"
+            )
+
+            if self.app.cp_df is not None:
+                if 'usage_start_date' in new_df.columns:
+                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], errors='coerce')
+                if 'usage_end_date' in new_df.columns:
+                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], errors='coerce')
+                self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
+
+        except Exception as err:
+            print(f"[add_missing_cp_to_excel] Error appending row: {err}")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # COUPON SELECTION & ADJUSTMENTS ON POS CART
+    # ══════════════════════════════════════════════════════════════════════════
+    def cp_sonic_blow_process(self, item_no: int, cp_no: str) -> None:
+        """เลือก Coupon สำหรับสินค้าที่ระบุใน POS"""
+        item_idx = int(item_no) - 1
+        raw_tokens = []
+        for part in str(cp_no).split(','):
+            for token in part.split():
+                if token.strip():
+                    raw_tokens.append(token.strip())
+
+        cp_target_names = []
+        cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
+        selected_cp_btn_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']"
+
+        demonic_ordered_items_list = self.app.correct_sku_pattern(
+            self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)']
+        )
+        self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
+        green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
+
+        for idx, item in enumerate(demonic_ordered_items_list):
+            try:
+                item_texts = self.driver.execute_script("""
+                    return Array.from(document.querySelectorAll('.col-sm-12.panel.panel-default.ng-scope')).map(el => el.innerText);
+                """)
+            except Exception as e:
+                item_texts = []
+
+            sku_to_index = {}
+            for pos_idx, text in enumerate(item_texts):
+                if item in text:
+                    sku_to_index[item] = pos_idx
+                    break
+
+            if item not in sku_to_index:
+                continue
+
+            target_idx = sku_to_index[item]
+
+            try:
+                item_list_cp_btn_elements = self.driver.find_elements(
+                    By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm'
+                )
+                if target_idx >= len(item_list_cp_btn_elements):
+                    continue
+
+                item_list_cp_btn_elements[target_idx].click()
+                time.sleep(0.1)
+
+                for cp_idx, token in enumerate(raw_tokens):
+                    target_btn_idx = -1
+                    cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                    cp_btn_elements = self.driver.find_elements(By.XPATH, selected_cp_btn_loc)
+
+                    if not cp_name_elements or not cp_btn_elements:
+                        continue
+
+                    if not token.isdigit():
+                        for idx3, element in enumerate(cp_name_elements):
+                            if token in element.text.replace(" ", ""):
+                                target_btn_idx = idx3
+                                break
+                    else:
+                        original_idx = int(token) - 1
+                        if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
+                            for idx3, element in enumerate(cp_name_elements):
+                                if cp_target_names[cp_idx] in element.text.replace(" ", ""):
+                                    target_btn_idx = idx3
+                                    break
+                            if target_btn_idx == -1:
+                                target_btn_idx = original_idx
+                        else:
+                            target_btn_idx = original_idx
+
+                    if 0 <= target_btn_idx < len(cp_btn_elements):
+                        cp_btn_elements[target_btn_idx].click()
+                        time.sleep(0.2)
+
+                        latest_cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                        selected_cp_name = (
+                            latest_cp_name_elements[target_btn_idx].text.replace(" ", "")
+                            if target_btn_idx < len(latest_cp_name_elements) else ""
+                        )
+
+                        if cp_idx >= len(cp_target_names):
+                            cp_target_names.append(selected_cp_name)
+                        else:
+                            cp_target_names[cp_idx] = selected_cp_name
+
+                self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
+
+            except Exception as err:
+                print("Demonic CP Bot inner Exception Error:", err)
+
+    def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None) -> None:
+        """ปรับราคาขึ้น (Overcharge) สำหรับ SKU ที่ต้องการ"""
+        if items_user_input is None or oc_amounts_input is None:
+            return
+
+        formatted_items_to_oc = self.sku_formater(items_user_input).split(" ")
+        oc_amounts_list_prog = str(oc_amounts_input).split()
+        oc_amounts_list = [int(self.oc_amounts_calculator(a)) for a in oc_amounts_list_prog]
+        items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+
+        for idx, item in enumerate(formatted_items_to_oc):
+            oc_amount = oc_amounts_list[0]
+            if len(oc_amounts_list) > 1 and idx < len(oc_amounts_list):
+                oc_amount = oc_amounts_list[idx]
+
+            if oc_amount > 0:
+                for idx2, div in enumerate(items_list_element):
+                    try:
+                        if div.text.find(item) != -1:
+                            li_loc = idx2 + 1
+                            srp_btn_css = f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div.panel-body:nth-child(1) div.row.col-sm-6:nth-child(2) > div:nth-child(1) div:nth-child(1) div a:nth-child(1)'
+                            self.driver.find_element(By.CSS_SELECTOR, srp_btn_css).click()
+                            time.sleep(0.5)
+
+                            change_price_input = self.driver.find_element(By.XPATH, "//input[@ng-keyup='onPistive(oms)']")
+                            based_price = self.driver.execute_script("return angular.element(arguments[0]).val();", change_price_input)
+                            new_price = float(str(based_price).replace(",", "")) + float(oc_amount)
+
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                change_price_input, 0)
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                change_price_input, new_price)
+
+                            user_id_input = self.driver.find_element(
+                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
+                            self.bot.js_input_value(user_id_input, self.app.user_id.get())
+
+                            user_pw_input = self.driver.find_element(
+                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
+                            self.bot.js_input_value(user_pw_input, self.app.user_pw.get())
+
+                            note_textarea = self.driver.find_element(
+                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
+                            self.bot.js_input_value(note_textarea, "Online")
+
+                            green_submit_btn = self.driver.find_element(
+                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')
+                            self.driver.execute_script("arguments[0].click();", green_submit_btn)
+
+                            try:
+                                self.wait50.until(EC.invisibility_of_element_located(
+                                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
+                            except Exception:
+                                time.sleep(1)
+                            break
+                    except Exception as err:
+                        logger.error(f"Order: {self.bot.cus_order}: smco_set_overcharge error: {err}")
+
+    def smco_set_discount_product(self, items_user_input: str = None, dc_amounts_input: str = None, qty: Any = ["1"]) -> None:
+        """ปรับราคาลด (Discount) สำหรับ SKU ที่ต้องการ"""
+        if items_user_input is None or dc_amounts_input is None:
+            return
+
+        formatted_items_to_dc = self.sku_formater(items_user_input).split(" ")
+        dc_amounts_list_prog = str(dc_amounts_input).split()
+        dc_amounts_list = [float(self.oc_amounts_calculator(a)) for a in dc_amounts_list_prog]
+        item_elements = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+
+        for idx, item in enumerate(formatted_items_to_dc):
+            dc_amount = dc_amounts_list[0]
+            if len(dc_amounts_list) > 1 and idx < len(dc_amounts_list):
+                dc_amount = dc_amounts_list[idx]
+
+            qty_val = 1.0
+            if qty is not None:
+                try:
+                    if isinstance(qty, list):
+                        qty_val = float(qty[idx] if idx < len(qty) else qty[0])
+                    else:
+                        qty_val = float(qty)
+                except Exception:
+                    qty_val = 1.0
+
+            if dc_amount > 0:
+                for idx2, div in enumerate(item_elements):
+                    try:
+                        if div.text.find(item) != -1:
+                            li_loc = idx2 + 1
+                            total_net_btn_css = f'#bodyOfSku > div:nth-child({li_loc}) > div > div:nth-child(2) > div:nth-child(1) > div:nth-child(9) > a:nth-child(3)'
+                            self.driver.find_element(By.CSS_SELECTOR, total_net_btn_css).click()
+                            time.sleep(0.5)
+
+                            manual_dc_input = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(1) > div > div:nth-child(1) > input'
+                            )
+                            sum_dc_amount = dc_amount * qty_val
+                            self.driver.execute_script(
+                                "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                                manual_dc_input, sum_dc_amount
+                            )
+
+                            note_textarea = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(2) > div > div > textarea'
+                            )
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, note_textarea, "Online")
+
+                            user_id_input = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(3) > div > div:nth-child(1) > input'
+                            )
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, user_id_input, self.app.user_id.get())
+
+                            user_pw_input = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '#mdseScroll > div.panel.panel-default > div.panel-body > div:nth-child(3) > div > div:nth-child(2) > input'
+                            )
+                            self.driver.execute_script("""
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input'));
+                                arguments[0].dispatchEvent(new Event('change'));
+                            """, user_pw_input, self.app.user_pw.get())
+
+                            green_btn_submit = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                '.row.row-space div.text-center a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]'
+                            )
+                            self.driver.execute_script("arguments[0].click();", green_btn_submit)
+
+                            try:
+                                self.wait50.until(EC.invisibility_of_element_located(
+                                    (By.CSS_SELECTOR, '.row.row-space div.text-center a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')))
+                            except Exception:
+                                time.sleep(1)
+                            break
+                    except Exception as err:
+                        logger.error(f"Order: {self.bot.cus_order}: smco_set_discount error: {err}")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PRICE MISMATCH RESOLUTION PIPELINE
+    # ══════════════════════════════════════════════════════════════════════════
+    def process_price_mismatches(self, verification_result: dict) -> None:
+        """
+        ตรวจสอบความแตกต่างของราคาสินค้าแต่ละ SKU และเรียกใช้คูปองหรือปรับราคาหากมีส่วนต่าง
+        """
+        price_result = verification_result.get("price", {})
+
+        def is_valid_adjustment(amount_str: Any) -> bool:
+            if not amount_str or str(amount_str).strip() == "" or str(amount_str).strip().upper() == "NONE":
+                return False
+            tokens = str(amount_str).split()
+            for token in tokens:
+                clean = token.replace('-', '').replace('+', '').split('.')[0].strip()
+                if clean.isdigit() and int(clean) > 0:
+                    return True
+            return False
+
+        processed_skus = set()
+        for i, item in enumerate(self.app.items):
+            sku_key = item.get('เลขอ้างอิง SKU (SKU Reference No.)')
+            if not sku_key or sku_key in processed_skus:
+                continue
+            processed_skus.add(sku_key)
+
+            if sku_key in price_result:
+                item_price_info = price_result[sku_key]
+                if not item_price_info.get("ok", True):
+                    diff_val = item_price_info.get("diff", 0)
+                    expected_price = item_price_info.get("expected", 0)
+                    actual_price = item_price_info.get("actual", 0)
+                    item_no_1indexed = i + 1
+                    purchased_date = self.app.cus_purchase_time.get()
+
+                    if actual_price == "NOT_FOUND":
+                        error_msg = f"ไม่มีสินค้าให้ตรวจสอบและปรับราคา สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})"
+                        self.app.update_log(f"❌ {error_msg}")
+                        raise ValueError(error_msg)
+
+                    cp_info = self.find_cp_from_excel(sku_key, expected_price, purchased_date)
+
+                    if not isinstance(diff_val, (int, float)):
+                        continue
+
+                    # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
+                    if diff_val > 0:
+                        if cp_info and is_valid_adjustment(cp_info.get("oc_amount", "")):
+                            oc_amount_str = cp_info.get("oc_amount", "")
+                            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                            self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
+                        else:
+                            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
+                            self.smco_set_overcharge_product(sku_key, str(diff_val))
+
+                    # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
+                    elif diff_val < 0:
+                        self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key}")
+                        if cp_info:
+                            cp_name = cp_info.get("cp_name", "")
+                            oc_amount_str = cp_info.get("oc_amount", "")
+                            dc_amount_str = cp_info.get("dc_amount", "")
+                            is_bypass_signal = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
+
+                            if is_bypass_signal:
+                                self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cp_name})")
+                                continue
+
+                            has_valid_cp = bool(cp_name and not is_bypass_signal and cp_name.strip() != "")
+                            has_valid_oc = is_valid_adjustment(oc_amount_str)
+                            has_valid_dc = is_valid_adjustment(dc_amount_str)
+
+                            if has_valid_cp or has_valid_oc or has_valid_dc:
+                                if has_valid_cp:
+                                    self.app.update_log(f"🔍 ตรวจสอบคูปอง {cp_name} สำหรับ SKU: {sku_key}...")
+                                    try:
+                                        self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                                        time.sleep(0.5)
+                                    except Exception as check_err:
+                                        print(f"Error applying cp: {check_err}")
+
+                                if has_valid_oc:
+                                    self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                                    self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
+                                    time.sleep(0.5)
+
+                                if has_valid_dc:
+                                    item_qty = int(item.get('จำนวน', 1))
+                                    total_dc = float(dc_amount_str) * item_qty
+                                    self.app.update_log(f"📉 ปรับราคาลด (Discount): {dc_amount_str} x {item_qty} = {total_dc} บาท")
+                                    self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=item_qty)
+                                    time.sleep(0.5)
+                            else:
+                                self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
+                        else:
+                            self.add_missing_cp_to_excel(sku_key, expected_price)
+                            self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=False)
+
+    def _raise_missing_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, has_entry: bool) -> None:
+        """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อไม่พบคูปอง"""
+        marketplace = self.app.marketplace_target.get()
+        purchase_time = self.app.cus_purchase_time.get()
+        product_name = str(item.get('ชื่อสินค้า', '')).strip()
+        if product_name.lower() == 'nan':
+            product_name = ''
+
+        try:
+            actual_formatted = f"{float(actual_price):,.2f}"
+        except Exception:
+            actual_formatted = str(actual_price)
+        try:
+            expected_formatted = f"{float(expected_price):,.2f}"
+        except Exception:
+            expected_formatted = str(expected_price)
+
+        extra_note = " (มี SKU ใน CP_data แล้ว แต่ยังไม่มี CP/ส่วนลดให้เลือก)" if has_entry else ""
+        pattern_msg = (
+            f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
+            f"{sku_key} {product_name}\n"
+            f"ยิงขายขึ้น {actual_formatted} บาท\n"
+            f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+            f"ขอวิธีปรับราคาครับ{extra_note}"
+        )
+        self.app.update_log(pattern_msg)
+        error_msg = f"Order skipped, CP/DC not set for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})\n{pattern_msg}"
+        self.app.update_log(f"❌ {error_msg}")
+        raise ValueError(error_msg)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # FULL RECONCILIATION & VERIFICATION PIPELINE
+    # ══════════════════════════════════════════════════════════════════════════
+    def reconcile_and_verify(self) -> None:
+        """
+        ดำเนินการยิงสินค้าลง POS, ตรวจสอบรอบที่ 1, ปรับราคา mismatch, และตรวจสอบรอบที่ 2
+        """
+        try:
+            self.bot.ProductManager.auto_add_all_items()
+            self.bot.current_checkpoint = "กรอกสินค้าลง POS สำเร็จ"
+
+            # รอบที่ 1: ตรวจสอบราคาและจำนวน
+            verification_result = self.bot.ProductManager.verify_all()
+            print("verification_result (Round 1): ", verification_result)
+            self.bot.current_checkpoint = "ตรวจสอบราคาและจำนวนสำเร็จ"
+
+            # เช็คจำนวนสินค้า (ขาด SN หรือ ยิงไม่ติด) -> fail order ทันที
+            qty_shortage_lines = []
+            for sku, info in verification_result.get("qty", {}).items():
+                if not info.get("ok", True):
+                    qty_shortage_lines.append(
+                        f"  • {sku}: ลูกค้าสั่ง {info.get('expected')} แต่ลง POS ได้ {info.get('actual')}"
+                    )
+            if qty_shortage_lines:
+                err_msg = "จำนวนไม่พอ (ลง POS ได้น้อยกว่าที่ลูกค้าสั่ง):\n" + "\n".join(qty_shortage_lines)
+                self.app.update_log(f"❌ {err_msg}")
+                raise ValueError(err_msg)
+
+            # ดำเนินการปรับราคาและใส่คูปอง
+            self.process_price_mismatches(verification_result)
+            self.bot.current_checkpoint = "ปรับราคา/ใส่คูปองสำเร็จ (จบ process ปรับราคา)"
+
+            # รอบที่ 2: ตรวจสอบซ้ำเฉพาะกรณีที่รอบแรกไม่ผ่าน
+            if verification_result.get("all_ok"):
+                self.app.update_log("ราคาตรงทั้งหมดตั้งแต่แรก ไม่ต้องตรวจสอบซ้ำ")
+                post_verification = verification_result
+            else:
+                self.app.update_log("🔍 กำลังตรวจสอบราคาและจำนวนสินค้าอีกครั้งหลังปรับราคา...")
+                post_verification = self.bot.ProductManager.verify_all()
+                print("post_verification_result (Round 2): ", post_verification)
+
+            if post_verification.get("all_ok"):
+                if self.app.is_testing:
+                    self.app.update_log("TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
+                    self.bot.current_checkpoint = "TEST MODE: ตรวจสินค้าผ่าน หยุดก่อน finish_order()"
+                else:
+                    self.app.update_log("ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
+                    self.app.finish_order()
+                    self.bot.current_checkpoint = "กรอก Skus ลง POS"
+
+                # ตรวจสอบ Popup แจ้งเตือนขาด Serial
+                if self.app.is_accel_mode.get() and self.app.is_auto_invoice_mode.get():
+                    self._check_missing_serial_popups()
+            else:
+                self._handle_post_verification_failures(post_verification)
+
+        except Exception as err:
+            err_str = str(err).lower()
+            if any(k in err_str for k in ["connection refused", "target machine actively refused it", "max retries exceeded", "winerror 10061"]):
+                logger.error(f"Connection lost during items verification: {err}")
+                self.app.update_log("⚠️ Session lost while adding items. Attempting to reconnect...")
+                self.bot.reconnect_driver()
+                self.app.update_log("⚠️ Reconnected. Please check the items manually.")
+            else:
+                logger.error(f"Error occurred while verifying items: {err}")
+                self.bot.record_failed_with_checkpoint(str(err))
+                raise err
+
+    def _check_missing_serial_popups(self) -> None:
+        """ตรวจสอบ Warning Popup และปุ่มสีแดง ng-redalert ในกรณีขาด Serial Number"""
+        time.sleep(1.5)
+        warning_popups = self.driver.find_elements(
+            By.XPATH,
+            "//div[contains(@class, 'swal2-icon') and contains(@class, 'swal2-warning') and contains(@class, 'pulse-warning')]"
+        )
+        has_warning = any(
+            "display: block" in (p.get_attribute("style") or "") or "display:block" in (p.get_attribute("style") or "")
+            for p in warning_popups
+        )
+
+        if has_warning:
+            err_msg = "พบป๊อปอัปแจ้งเตือน แต่ไม่พบข้อความผิดพลาด"
+            for content in self.driver.find_elements(By.XPATH, "//div[contains(@class, 'swal2-content')]"):
+                c_style = content.get_attribute("style") or ""
+                if "display: block" in c_style or "display:block" in c_style:
+                    err_msg = content.text
+                    break
+
+            if any(kw in err_msg.lower() for kw in ["please input serial", "กรุณาใส่ข้อมูลซีเรียล"]):
+                pm = getattr(self.bot, "ProductManager", None)
+                if pm:
+                    qty_res = pm.verify_item_qty()
+                    missing_lines = []
+                    for sku, info in qty_res.items():
+                        expected = int(info.get("expected", 0))
+                        actual = info.get("actual", "NOT_FOUND")
+                        if actual == "NOT_FOUND":
+                            missing_lines.append(f"  • {sku}: ต้องการ {expected} ชิ้น แต่ไม่พบบน POS (ขาด SN)")
+                        elif actual != expected:
+                            missing_lines.append(f"  • {sku}: ต้องการ {expected} ชิ้น แต่ลงได้ {actual} (ขาด {expected - actual})")
+                    if missing_lines:
+                        err_msg += "\n\n📋 Item ที่น่าจะขาด SN:\n" + "\n".join(missing_lines)
+                    else:
+                        red_buttons = self.driver.find_elements(
+                            By.XPATH, "//button[contains(@class, 'btn-serial') and contains(@class, 'ng-redalert')]"
+                        )
+                        sku_elems = self.driver.find_elements(
+                            By.XPATH, "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                        )
+                        red_alert_skus = []
+                        for btn in red_buttons:
+                            matched_sku = None
+                            try:
+                                panel = btn.find_element(By.XPATH, "./ancestor::div[contains(@class, 'panel')][1]")
+                                sku_panel = panel.find_elements(By.XPATH, ".//span[contains(@ng-click, 'productNameChangeChk(x)')]//u")
+                                if sku_panel:
+                                    matched_sku = sku_panel[0].text.strip()
+                            except Exception:
+                                pass
+                            if not matched_sku:
+                                try:
+                                    idx = red_buttons.index(btn)
+                                    if idx < len(sku_elems):
+                                        matched_sku = sku_elems[idx].text.strip()
+                                except Exception:
+                                    pass
+                            red_alert_skus.append(matched_sku or "<ไม่ทราบ SKU>")
+
+                        if red_alert_skus:
+                            err_msg += "\n\n🔴 SKU ที่ยังค้างปุ่ม serial สีแดง:\n" + "\n".join(f"  • {s}" for s in red_alert_skus)
+
+            try:
+                swal_ok = self.driver.find_element(
+                    By.XPATH, "//button[contains(@class, 'swal2-confirm') and (text()='OK' or text()='ตกลง')]"
+                )
+                if swal_ok.is_displayed():
+                    self.driver.execute_script("arguments[0].click();", swal_ok)
+            except Exception:
+                pass
+
+            self.app.update_log(f"❌ พบข้อผิดพลาดจากป๊อปอัป: {err_msg}")
+            raise ValueError(err_msg)
+
+    def _handle_post_verification_failures(self, post_verification: dict) -> None:
+        """รวบรวม Error และแจ้งเตือนเมื่อการตรวจสอบรอบ 2 ยังไม่ผ่าน"""
+        qty_errors = [
+            f"จำนวนไม่พอ: {sku} (expected {info.get('expected')}, actual {info.get('actual')})"
+            for sku, info in post_verification.get("qty", {}).items() if not info.get("ok", True)
+        ]
+        price_errors = [
+            f"SKU Price mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')}, diff {info.get('diff')})"
+            for sku, info in post_verification.get("price", {}).items() if not info.get("ok", True)
+        ]
+        total_res = post_verification.get("total", {})
+        total_errors = (
+            [f"Total Price mismatch (expected {total_res.get('expected')}, actual {total_res.get('actual')})"]
+            if not total_res.get("ok", True) else []
+        )
+
+        all_errors = qty_errors + price_errors + total_errors
+        error_msg = f"ราคา/จำนวนไม่ตรงหลังปรับราคา: " + " | ".join(all_errors)
+        self.app.update_log(f"❌ {error_msg}")
+        raise ValueError(error_msg)

@@ -145,7 +145,19 @@ class POSPaymentHandler:
                                 )
                                 self.bot.tracking_manager.trackings = list(self.app.tracking_from_data)
                             else:
-                                self.bot.tracking_manager.collect_tracking(remark_text)
+                                expected_tracking_count = (
+                                    len(self.app.filter_data)
+                                    if hasattr(self.app, 'filter_data') and self.app.filter_data is not None and not getattr(self.app.filter_data, 'empty', True)
+                                    else None
+                                )
+                                try:
+                                    self.bot.tracking_manager.collect_tracking(remark_text, expected_count=expected_tracking_count)
+                                except Exception as track_err:
+                                    print(f"Tracking collection failed: {track_err}, returning SMCO to first page...")
+                                    self.app.update_log(f"⚠️ {track_err} -> กำลังกดย้อนกลับไปหน้าแรกของ SMCO...")
+                                    self.return_to_first_page()
+                                    raise track_err
+
                             self.bot.tracking_manager.apply_tracking_to_final_page()
 
                             self.bot.js_input_value(textarea_element, remark_text)
@@ -492,3 +504,59 @@ class POSPaymentHandler:
                     time.sleep(1)
             else:
                 continue
+
+    def return_to_first_page(self) -> None:
+        """
+        กดย้อนกลับจากหน้าชำระเงิน (Payment) กลับไปยังหน้าแรก (เปิดการขาย) ของ SMCO
+        """
+        try:
+            # 1. สลับมาที่แท็บ SMCO เปิดการขาย
+            if hasattr(self.bot, 'merged_dict') and 'SMCO :: เปิดการขาย' in self.bot.merged_dict:
+                try:
+                    self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
+                except Exception:
+                    pass
+
+            # 2. ค้นหาและกดปุ่มย้อนกลับ / Cancel บนหน้าจอชำระเงิน
+            back_clicked = False
+            back_selectors = [
+                (By.XPATH, "//a[@class='btn btn-danger btn-sm' and @ng-click='cancelPayment()']"),
+                (By.XPATH, "//button[@ng-click='cancelPayment()' or @ng-click='back()' or @ng-click='cancel()']"),
+                (By.XPATH, "//a[@id='btnBack' or @id='btnCancel']"),
+                (By.XPATH, "//button[contains(., 'ย้อนกลับ') or contains(., 'กลับหน้าแรก') or contains(., 'ยกเลิก')]"),
+                (By.XPATH, "//a[contains(., 'ย้อนกลับ') or contains(., 'กลับหน้าแรก') or contains(., 'ยกเลิก')]"),
+                (By.XPATH, "//div/a[@id='controlKeyF1' or @id='controlKeyEsc']"),
+            ]
+
+            for by, selector in back_selectors:
+                try:
+                    elements = self.driver.find_elements(by, selector)
+                    for el in elements:
+                        if el.is_displayed():
+                            try:
+                                el.click()
+                            except Exception:
+                                self.driver.execute_script("arguments[0].click();", el)
+                            print(f"Clicked back button using selector: {selector}")
+                            back_clicked = True
+                            time.sleep(0.75)
+                            break
+                    if back_clicked:
+                        break
+                except Exception:
+                    continue
+
+            # 3. ลองส่งปุ่ม ESC (Keyboard fallback)
+            if not back_clicked:
+                try:
+                    from selenium.webdriver.common.action_chains import ActionChains
+                    from selenium.webdriver.common.keys import Keys
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                    print("Sent ESC key to return from payment page")
+                    time.sleep(0.5)
+                except Exception as esc_err:
+                    print(f"Error sending ESC key: {esc_err}")
+
+        except Exception as e:
+            print(f"Error returning to first page: {e}")
+

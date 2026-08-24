@@ -36,18 +36,27 @@ class TrackingManager:
                 time.sleep(1)  # Wait a bit before retrying
                 continue
 
-    def collect_tracking(self, current_order) -> None:
+    def collect_tracking(self, current_order, expected_count: int = None) -> None:
         self.merged_dict = self.bot.merged_dict
         """
-        1. เก็บค่า
+        1. เก็บค่า tracking จาก marketplace
         """
         # * clear ค่า trackings list
         self.trackings.clear()
 
+        # คำนวณ expected_count อัตโนมัติหากไม่ได้ส่งเข้ามา
+        if expected_count is None:
+            if hasattr(self.bot, 'app') and hasattr(self.bot.app, 'filter_data') and self.bot.app.filter_data is not None:
+                try:
+                    if not self.bot.app.filter_data.empty:
+                        expected_count = len(self.bot.app.filter_data)
+                except Exception:
+                    pass
+            if expected_count is None and hasattr(self.bot, 'items') and self.bot.items:
+                expected_count = len(self.bot.items)
+
         # * driver สลับ tab ไป marketplace (Assuming marketplace is tab index 1 or using window handles)
         try:
-            # * Placeholder: switchTo the marketplace tab
-            # * e.g., self.driver.switch_to.window(self.driver.window_handles[1])
             if self.marketplace == 'SHOPEE':
                 try:
                     self.driver.switch_to.window(self.merged_dict['Seller Centre'])
@@ -72,29 +81,41 @@ class TrackingManager:
         if not is_homepage:
             # * redicrect กลับไปหน้าแรก
             self._redirect_to_marketplace_homepage()
-            # * Followed by re-enter? The diagram has a loop back.
-            pass
 
         # * Reenter current_order
         self._reenter_current_order(current_order)
 
-        # เก็บ tracking elements
-        elements = self._get_tracking_elements()
+        # ตรวจสอบและดึงข้อมูล Tracking ตาม Marketplace
+        shopee_incomplete_err = None
+        if self.marketplace == 'SHOPEE':
+            shopee_result = self._collect_shopee_trackings(expected_count=expected_count)
+            self.trackings = shopee_result.get('trackings', [])
+            if not shopee_result.get('is_complete', True):
+                shopee_incomplete_err = shopee_result.get('error_message', "เลข Tracking บน Shopee ไม่ครบถ้วน")
+        else:
+            # เก็บ tracking elements
+            elements = self._get_tracking_elements()
+            # สกัด trackings จาก elements as list
+            self.trackings = self._extract_trackings_from_elements(elements)
 
-        # สกัด trackings จาก elements as list
-        self.trackings = self._extract_trackings_from_elements(elements)
-        print(f"Collected trackings: {self.trackings}")
+        print(f"Collected trackings: {self.trackings} (Expected: {expected_count})")
 
-        # driver สลับ tab ไป เปิดการขาย0 (Assuming it's the first tab)
+        # driver สลับ tab กลับไป SMCO (เปิดการขาย) เสมอ ก่อนจะตัดสินใจต่อ
         try:
-            # Placeholder: switch back to the main POS tab
-            # e.g., self.driver.switch_to.window(self.driver.window_handles[0])
             self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
             pass
         except Exception as e:
             print(f"Error switching returning tab: {e}")
 
-        # return self.trackings
+        # หากข้อมูล Tracking ไม่สมบูรณ์ ให้ raise Exception เพื่อให้ auto_inv ตัดเป็น Failed Order ทันที
+        if shopee_incomplete_err:
+            raise ValueError(shopee_incomplete_err)
+
+        if expected_count is not None and expected_count > 0:
+            if len(self.trackings) < expected_count:
+                raise ValueError(
+                    f"เลข Tracking บน {self.marketplace} ไม่ครบ: พบ {len(self.trackings)} จากที่ต้องมี {expected_count} รายการ (อาจยังเป็นสถานะนัดรับ หรือยังไม่ออกเลข)"
+                )
 
     def apply_tracking_to_final_page(self) -> None:
         """
@@ -150,7 +171,104 @@ class TrackingManager:
             print(f"Error applying trackings: {e}")
         pass
 
-    # --- Private Helper Methods (To be implemented by the user) ---
+    # --- Private Helper Methods ---
+
+    def _collect_shopee_trackings(self, expected_count: int = None) -> dict:
+        """
+        ตรวจสอบหน้า Shopee Order ราย Package Card:
+        1. ตรวจ element //div[@class='package-of-package-level-order-card']
+        2. นับจำนวนว่าตรงกับ expected_count ไหม
+        3. ตรวจว่าแต่ละ Card มี //div[@class='tracking-number'] หรือไม่ และตรงกับ SKU ไหนจาก //div[@class='item-description']
+        """
+        time.sleep(1.5)  # รอ element โหลดให้สมบูรณ์
+
+        package_card_xpath = "//div[contains(@class, 'package-of-package-level-order-card')]"
+        package_cards = self.driver.find_elements(By.XPATH, package_card_xpath)
+
+        collected_trackings = []
+        package_details = []
+        missing_skus = []
+
+        if package_cards:
+            print(f"Shopee package cards found: {len(package_cards)} cards")
+            for idx, card in enumerate(package_cards):
+                # ดึง item description / SKU
+                item_desc_text = f"Package #{idx+1}"
+                try:
+                    desc_el = card.find_element(By.XPATH, ".//div[contains(@class, 'item-description')]")
+                    if desc_el and desc_el.text.strip():
+                        item_desc_text = desc_el.text.strip().replace("\n", " ")
+                except Exception:
+                    pass
+
+                # ดึง tracking number ใน card นี้
+                tracking_no = None
+                try:
+                    track_el = card.find_element(By.XPATH, ".//div[contains(@class, 'tracking-number')]")
+                    if track_el and track_el.text.strip():
+                        tracking_no = track_el.text.strip()
+                except Exception:
+                    pass
+
+                package_details.append({
+                    "card_index": idx + 1,
+                    "item_description": item_desc_text,
+                    "tracking_number": tracking_no
+                })
+
+                if tracking_no:
+                    collected_trackings.append(tracking_no)
+                else:
+                    missing_skus.append(f"[{item_desc_text}]")
+
+            # ตรวจสอบความครบถ้วน
+            is_complete = True
+            error_message = None
+
+            if expected_count is not None and expected_count > 0:
+                if len(package_cards) != expected_count:
+                    is_complete = False
+                    error_message = (
+                        f"จำนวน Package บน Shopee ({len(package_cards)}) ไม่ตรงกับรายการใน Order ({expected_count}) "
+                        f"Tracking ที่พบ: {len(collected_trackings)}"
+                    )
+                elif missing_skus or len(collected_trackings) < expected_count:
+                    is_complete = False
+                    missing_str = ", ".join(missing_skus) if missing_skus else "บางรายการไม่มี tracking"
+                    error_message = (
+                        f"เลข Tracking บน Shopee ไม่ครบ: ได้ {len(collected_trackings)}/{expected_count} รายการ "
+                        f"(รายการที่ขาดเลข Tracking หรือติดนัดรับ: {missing_str})"
+                    )
+            elif missing_skus:
+                is_complete = False
+                error_message = f"พบ Package บน Shopee ที่ยังไม่มีเลข Tracking: {', '.join(missing_skus)}"
+
+            return {
+                "is_complete": is_complete,
+                "error_message": error_message,
+                "trackings": collected_trackings,
+                "package_details": package_details
+            }
+        else:
+            # Fallback หาก Shopee ไม่ได้แสดงเป็น package-of-package-level-order-card
+            print("No package-of-package-level-order-card found, falling back to tracking-number elements")
+            elements = self._get_tracking_elements()
+            collected_trackings = self._extract_trackings_from_elements(elements)
+            
+            is_complete = True
+            error_message = None
+            if expected_count is not None and expected_count > 0 and len(collected_trackings) < expected_count:
+                is_complete = False
+                error_message = (
+                    f"เลข Tracking บน Shopee ไม่ครบ: ได้ {len(collected_trackings)}/{expected_count} รายการ (โหมด fallback)"
+                )
+
+            return {
+                "is_complete": is_complete,
+                "error_message": error_message,
+                "trackings": collected_trackings,
+                "package_details": []
+            }
 
     def _check_is_marketplace_homepage(self):
         # Placeholder: logic to verify if current page is marketplace home page.
