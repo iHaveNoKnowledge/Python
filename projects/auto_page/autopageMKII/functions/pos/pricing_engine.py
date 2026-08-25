@@ -157,9 +157,9 @@ class POSPricingReconciler:
             if getattr(self.app, 'cp_df', None) is None or current_mtime > getattr(self.app, '_cp_last_mtime', 0):
                 df = pd.read_excel(excel_path)
                 if 'usage_start_date' in df.columns:
-                    df['usage_start_date'] = pd.to_datetime(df['usage_start_date'], errors='coerce')
+                    df['usage_start_date'] = pd.to_datetime(df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
                 if 'usage_end_date' in df.columns:
-                    df['usage_end_date'] = pd.to_datetime(df['usage_end_date'], errors='coerce')
+                    df['usage_end_date'] = pd.to_datetime(df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
                 self.app.cp_df = df
                 self.app._cp_last_mtime = current_mtime
                 print(f"[CP Cache] ตรวจพบการแก้ไขไฟล์ CP Data -> โหลดข้อมูลใหม่สำเร็จ ({len(self.app.cp_df)} รายการ)")
@@ -181,7 +181,7 @@ class POSPricingReconciler:
 
         # 1. Parse purchased date
         try:
-            purchased_dt = pd.to_datetime(purchased_date_str)
+            purchased_dt = pd.to_datetime(purchased_date_str, format='mixed', dayfirst=True)
             if pd.isna(purchased_dt):
                 return []
         except Exception as e:
@@ -205,27 +205,37 @@ class POSPricingReconciler:
 
         # 3. Filter by Date Range
         valid_rows = []
+        date_rejected_reasons = []
         for idx, row in df_filtered.iterrows():
             try:
-                start_date = pd.to_datetime(row.get('usage_start_date'))
-                end_date = pd.to_datetime(row.get('usage_end_date'))
+                start_date = pd.to_datetime(row.get('usage_start_date'), format='mixed', dayfirst=True)
+                end_date = pd.to_datetime(row.get('usage_end_date'), format='mixed', dayfirst=True)
 
+                in_range = True
                 if pd.notna(start_date) and pd.notna(end_date):
-                    if start_date.date() <= purchased_dt.date() <= end_date.date():
-                        valid_rows.append(row)
+                    if not (start_date.date() <= purchased_dt.date() <= end_date.date()):
+                        in_range = False
                 elif pd.notna(start_date):
-                    if start_date.date() <= purchased_dt.date():
-                        valid_rows.append(row)
+                    if not (start_date.date() <= purchased_dt.date()):
+                        in_range = False
                 elif pd.notna(end_date):
-                    if purchased_dt.date() <= end_date.date():
-                        valid_rows.append(row)
-                else:
+                    if not (purchased_dt.date() <= end_date.date()):
+                        in_range = False
+
+                if in_range:
                     valid_rows.append(row)
+                else:
+                    s_str = start_date.strftime('%d/%m/%Y') if pd.notna(start_date) else 'N/A'
+                    e_str = end_date.strftime('%d/%m/%Y') if pd.notna(end_date) else 'N/A'
+                    cp_code = row.get('cp_name', '')
+                    price_val = row.get('sale_price', '')
+                    date_rejected_reasons.append(f"CP: '{cp_code}' (ราคา {price_val}, ช่วงวัน: {s_str} - {e_str})")
             except Exception as date_err:
                 print(f"[CP Lookup] Row date validation error at index {idx}: {date_err}")
 
         if not valid_rows:
-            print(f"[CP Lookup] SKU {sku} found, but date {purchased_dt.date()} is not within any CP usage range.")
+            reasons_str = "; ".join(date_rejected_reasons) if date_rejected_reasons else "ไม่มีช่วงวันระบุ"
+            print(f"[CP Lookup] SKU {sku} found, but date {purchased_dt.date()} is not within any CP usage range. (รายละเอียดช่วงวัน: {reasons_str})")
             return []
 
         df_valid = pd.DataFrame(valid_rows)
@@ -235,14 +245,14 @@ class POSPricingReconciler:
         df_price_matched = df_valid[(df_valid['sale_price'] - platform_price).abs() <= price_tolerance]
 
         if df_price_matched.empty:
-            print(f"[CP Lookup] SKU {sku} date matched, but no matching sale_price for platform_price={platform_price}.")
+            print(f"[CP Lookup] SKU {sku} date matched, but no matching sale_price for platform_price={platform_price}. Available prices in valid date range: {df_valid['sale_price'].tolist()}")
             return []
 
         # 5. เรียงลำดับตาม usage_start_date ล่าสุด
         if len(df_price_matched) > 1:
             df_price_matched = df_price_matched.copy()
             df_price_matched['temp_start_date'] = pd.to_datetime(
-                df_price_matched.get('usage_start_date'), errors='coerce'
+                df_price_matched.get('usage_start_date'), format='mixed', dayfirst=True, errors='coerce'
             )
             df_price_matched = df_price_matched.sort_values(
                 by='temp_start_date', ascending=False, na_position='last'
@@ -307,9 +317,9 @@ class POSPricingReconciler:
 
             if self.app.cp_df is not None:
                 if 'usage_start_date' in new_df.columns:
-                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], errors='coerce')
+                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
                 if 'usage_end_date' in new_df.columns:
-                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], errors='coerce')
+                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
                 self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
 
         except Exception as err:
@@ -459,6 +469,7 @@ class POSPricingReconciler:
 
             cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
             smco_coupon_names = [el.text.replace(" ", "").upper() for el in cp_name_elements if el.text.strip()]
+            self.last_scanned_smco_coupons = [el.text.strip() for el in cp_name_elements if el.text.strip()]
 
             # ปิด Modal ชั่วคราว (ยังไม่เลือก)
             try:
@@ -732,7 +743,7 @@ class POSPricingReconciler:
                             log_msg = f"❌ ไม่พบชุด CP/DC ใดที่ตรงกับในระบบ SMCO สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออก: {expected_price}) -> หยุดปรับราคาและสร้างคำถาม"
                             logger.warning(log_msg)
                             self.app.update_log(log_msg)
-                            self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=has_entry)
+                            self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=has_entry, cp_candidates=cp_candidates)
 
                         # ─── CASE 1: พบชุดที่ตรงบน SMCO พอดี 1 ชุด ───
                         elif len(available_candidates) == 1:
@@ -858,7 +869,7 @@ class POSPricingReconciler:
         logger.warning(f"Order: {self.bot.cus_order}: {error_msg}")
         raise ValueError(error_msg)
 
-    def _raise_missing_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, has_entry: bool) -> None:
+    def _raise_missing_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, has_entry: bool, cp_candidates: list = None) -> None:
         """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อไม่พบคูปอง"""
         marketplace = self.app.marketplace_target.get()
         purchase_time = self.app.cus_purchase_time.get()
@@ -875,7 +886,16 @@ class POSPricingReconciler:
         except Exception:
             expected_formatted = str(expected_price)
 
-        extra_note = " (มี SKU ใน CP_data แล้ว แต่ยังไม่มี CP/ส่วนลดให้เลือก)" if has_entry else ""
+        excel_cp_names = [c.get('cp_name') for c in (cp_candidates or []) if c.get('cp_name')]
+        smco_scanned = getattr(self, 'last_scanned_smco_coupons', [])
+
+        if has_entry:
+            excel_str = ", ".join(excel_cp_names) if excel_cp_names else "ระบุแต่ยังไม่มีรหัส CP"
+            smco_str = ", ".join(smco_scanned) if smco_scanned else "ไม่พบปุ่ม CP หรือไม่มีคูปองบนหน้า SMCO"
+            extra_note = f" (มี SKU ใน CP_data แล้ว แต่ CP ใน Excel กับหน้า SMCO ไม่ตรงกัน:\n  • ใน cp_data.xlsx ระบุ: {excel_str}\n  • บนหน้า SMCO มี: {smco_str})"
+        else:
+            extra_note = ""
+
         pattern_msg = (
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
             f"{sku_key} {product_name}\n"

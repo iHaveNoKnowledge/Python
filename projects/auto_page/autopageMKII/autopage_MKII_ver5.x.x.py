@@ -1575,10 +1575,10 @@ class MyApp:
                 df = pd.read_excel(excel_path)
                 if 'usage_start_date' in df.columns:
                     df['usage_start_date'] = pd.to_datetime(
-                        df['usage_start_date'], errors='coerce')
+                        df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
                 if 'usage_end_date' in df.columns:
                     df['usage_end_date'] = pd.to_datetime(
-                        df['usage_end_date'], errors='coerce')
+                        df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
                 self.cp_df = df
                 self._cp_last_mtime = current_mtime
                 print(f"[CP Cache] ตรวจพบการแก้ไขไฟล์ CP Data -> โหลดข้อมูลใหม่สำเร็จ ({len(self.cp_df)} รายการ)")
@@ -1747,9 +1747,9 @@ class MyApp:
 
                 # อัปเดต cp_df ใน memory
                 if 'usage_start_date' in new_df.columns:
-                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], errors='coerce')
+                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
                 if 'usage_end_date' in new_df.columns:
-                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], errors='coerce')
+                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
 
                 self.cp_df = pd.concat([self.cp_df, new_df], ignore_index=True)
                 self.update_log(f"💾 เติม SKU และราคาที่ต้องออกลงใน CP_data.xlsx เรียบร้อยแล้ว ({len(missing_records)} รายการ)")
