@@ -329,7 +329,15 @@ class POSPricingReconciler:
     # COUPON SELECTION & ADJUSTMENTS ON POS CART
     # ══════════════════════════════════════════════════════════════════════════
     def cp_sonic_blow_process(self, item_no: int, cp_no: str) -> bool:
-        """เลือก Coupon สำหรับสินค้าที่ระบุใน POS คืนค่า True หากพบคูปองและเลือกสำเร็จ คืนค่า False หากไม่พบหรือเลือกไม่สำเร็จ"""
+        """
+        เลือก coupon สำหรับสินค้าที่ระบุ รองรับการเลือกหลาย coupon ในครั้งเดียว
+        รองรับทั้งการระบุเป็นลำดับตัวเลข (Index เช่น "1 5") หรือระบุเป็นชื่อ/รหัสคูปองโดยตรง (เช่น "CP2605220025, DC2605220017")
+        และรองรับสินค้าที่มีหลาย SKU ใน 1 รายการ (เช่น "SP2-001610+SP2-001611+...") ให้เลือกคูปองให้ครบทุก SKU
+
+        Args:
+            item_no (int): เลขลำดับสินค้า (1-indexed)
+            cp_no (str): ลำดับคูปอง (ตัวเลข) หรือ รหัสคูปอง (ข้อความ) แยกด้วยเว้นวรรคหรือเครื่องหมายจุลภาค
+        """
         item_idx = int(item_no) - 1
         raw_tokens = []
         for part in str(cp_no).split(','):
@@ -340,23 +348,38 @@ class POSPricingReconciler:
         if not raw_tokens:
             return False
 
+        # * สำหรับหน้าเลือก coupon เก็บชื่อ coupon ที่เลือกแต่ละตัว เพื่อนำไปใช้กับ SKU ถัดไป
+        cp_target_names = []
+
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
         selected_cp_btn_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//button[@ng-click='selectCoupon(oms.currentProductByProcessCoupon,pmt)']"
 
         demonic_ordered_items_list = self.app.correct_sku_pattern(
             self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)']
         )
+        print(f"demonic_ordered_items_list: {demonic_ordered_items_list}")
+        print(f"raw_tokens: {raw_tokens}")
+
         self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
 
+        any_success = False
+
+        # * Loop ผ่านแต่ละ item ในรายการสินค้า (สำหรับ pattern ที่ 1 รายการมีหลาย SKU เช่น SP2-001610+SP2-001611+...)
         for idx, item in enumerate(demonic_ordered_items_list):
+            item_position = idx + 1
+            print(f"item [{item_position}/{len(demonic_ordered_items_list)}] จาก demonic_ordered_items_list: {item}")
+
+            # ดึงข้อมูลรายการสินค้าบนหน้าเว็บใหม่ทุกรอบของแต่ละสินค้า เพื่อรองรับความเปลี่ยนแปลงของหน้าเว็บและตำแหน่งที่อาจสลับได้เสมอ!
             try:
                 item_texts = self.driver.execute_script("""
                     return Array.from(document.querySelectorAll('.col-sm-12.panel.panel-default.ng-scope')).map(el => el.innerText);
                 """)
             except Exception as e:
+                print("ไม่สามารถดึงข้อมูลรายการสินค้าจากหน้าเว็บได้:", e)
                 item_texts = []
 
+            # สร้าง dict mapping ระหว่าง SKU -> Index สำหรับรอบนั้นๆ
             sku_to_index = {}
             for pos_idx, text in enumerate(item_texts):
                 if item in text:
@@ -364,53 +387,103 @@ class POSPricingReconciler:
                     break
 
             if item not in sku_to_index:
+                print(f"ไม่พบ SKU: {item} ในรายการขายหน้าเว็บ (ข้าม)")
                 continue
 
             target_idx = sku_to_index[item]
+            print(f"เจอสินค้า {item} ที่ตำแหน่ง Index: {target_idx}")
 
             try:
+                # ดึงรายการปุ่ม Coupon ล่าสุดสดๆ เสมอเพื่อเลี่ยง Stale Element
                 item_list_cp_btn_elements = self.driver.find_elements(
                     By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm'
                 )
                 if target_idx >= len(item_list_cp_btn_elements):
+                    print(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (index เกินรายการ)")
                     continue
 
-                item_list_cp_btn_elements[target_idx].click()
-                time.sleep(0.3)
+                # * คลิกปุ่ม coupon เพื่อเปิดหน้ารายการ coupon (เปิดครั้งเดียว)
+                cp_btn_xpath = item_list_cp_btn_elements[target_idx]
+                cp_btn_xpath.click()
+                time.sleep(0.3)  # * รอให้หน้า coupon list โหลด
 
-                all_tokens_matched = True
+                # * Loop ผ่านแต่ละ coupon token ที่ต้องการเลือก
                 for cp_idx, token in enumerate(raw_tokens):
+                    print(f"กำลังเลือก coupon: {token} สำหรับ item: {item}")
+
+                    # ค้นหาปุ่มคูปองเป้าหมาย
                     target_btn_idx = -1
+
+                    # ดึงข้อมูลชื่อคูปองและปุ่มบนหน้าจอสดๆ เสมอ
                     cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
                     cp_btn_elements = self.driver.find_elements(By.XPATH, selected_cp_btn_loc)
 
                     if not cp_name_elements or not cp_btn_elements:
-                        all_tokens_matched = False
-                        break
+                        print("ไม่พบรายการคูปองหรือปุ่มคูปองบนหน้าจอ")
+                        continue
 
-                    token_clean = token.replace(" ", "").upper()
-                    for idx3, element in enumerate(cp_name_elements):
-                        elem_text = element.text.replace(" ", "").upper()
-                        if token_clean in elem_text or (token.isdigit() and int(token) - 1 == idx3):
-                            target_btn_idx = idx3
-                            break
+                    # กรณีที่ 1: token เป็นรหัสคูปอง/ชื่อคูปองโดยตรง (มีตัวอักษรปน เช่น CPxxxx, DCxxxx)
+                    if not token.isdigit():
+                        token_clean = token.replace(" ", "").upper()
+                        for idx3, element in enumerate(cp_name_elements):
+                            element_text_cleaned = element.text.replace(" ", "").upper()
+                            if token_clean in element_text_cleaned:
+                                target_btn_idx = idx3
+                                break
+                        if target_btn_idx == -1:
+                            print(f"ไม่พบคูปองที่มีชื่อ/รหัส: {token} ในรายการ")
+                            continue
 
+                    # กรณีที่ 2: token เป็นลำดับตัวเลข (Index เช่น "1", "2")
+                    else:
+                        original_idx = int(token) - 1
+
+                        # รักษาความสามารถเดิม: ถ้ามี cp_target_name จากรอบก่อน ให้ใช้ชื่อนั้นค้นหาแทนเพื่อกันตำแหน่งสลับ
+                        if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
+                            for idx3, element in enumerate(cp_name_elements):
+                                element_text_cleaned = element.text.replace(" ", "").upper()
+                                if cp_target_names[cp_idx] in element_text_cleaned:
+                                    target_btn_idx = idx3
+                                    break
+                            if target_btn_idx == -1:
+                                target_btn_idx = original_idx
+                        else:
+                            target_btn_idx = original_idx
+
+                    # คลิกเลือกคูปองที่ต้องการ
                     if 0 <= target_btn_idx < len(cp_btn_elements):
                         cp_btn_elements[target_btn_idx].click()
-                        time.sleep(0.2)
-                    else:
-                        all_tokens_matched = False
-                        break
+                        time.sleep(0.2)  # * รอให้ UI อัพเดท
 
-                # ปิด Modal คูปอง
+                        # ดึงชื่อคูปองล่าสุดอีกรอบในกรณีที่มีการ update เพื่อความปลอดภัย
+                        latest_cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                        if target_btn_idx < len(latest_cp_name_elements):
+                            selected_cp_name = latest_cp_name_elements[target_btn_idx].text.replace(" ", "").upper()
+                        else:
+                            selected_cp_name = ""
+
+                        # * เก็บหรืออัพเดทชื่อ CP ที่เลือกเพื่อใช้ในสินค้าตัวถัดไป
+                        if cp_idx >= len(cp_target_names):
+                            cp_target_names.append(selected_cp_name)
+                            print(f"cp_target_name[{cp_idx}] now is: {selected_cp_name}")
+                        else:
+                            cp_target_names[cp_idx] = selected_cp_name
+
+                        any_success = True
+                    else:
+                        print(f"ตำแหน่ง Index {target_btn_idx} นอกขอบเขตของรายการปุ่มคูปองที่มีอยู่ ({len(cp_btn_elements)})")
+
+                # * กดยืนยัน (ครั้งเดียวหลังจากเลือกครบทุก coupon แล้วสำหรับ SKU นี้)
+                print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {raw_tokens}")
                 try:
                     agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
                     if agree_btns and agree_btns[0].is_displayed():
                         agree_btns[0].click()
+                    else:
+                        self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
                 except Exception:
                     pass
-
-                return all_tokens_matched
+                time.sleep(0.2)
 
             except Exception as err:
                 print("Demonic CP Bot inner Exception Error:", err)
@@ -420,9 +493,9 @@ class POSPricingReconciler:
                         agree_btns[0].click()
                 except Exception:
                     pass
-                return False
 
-        return False
+        print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
+        return any_success
 
     def scan_matching_cp_candidates_on_smco(self, item_no: int, cp_candidates: list) -> list:
         """
@@ -494,10 +567,15 @@ class POSPricingReconciler:
                     for token in raw_tokens:
                         token_clean = token.replace(" ", "")
                         found = False
-                        for idx_el, elem_name in enumerate(smco_coupon_names):
-                            if token_clean in elem_name or (token.isdigit() and int(token) - 1 == idx_el):
+                        if token.isdigit():
+                            target_i = int(token) - 1
+                            if 0 <= target_i < len(smco_coupon_names):
                                 found = True
-                                break
+                        else:
+                            for idx_el, elem_name in enumerate(smco_coupon_names):
+                                if token_clean in elem_name:
+                                    found = True
+                                    break
                         if not found:
                             all_tokens_in_smco = False
                             break
@@ -944,17 +1022,25 @@ class POSPricingReconciler:
             if verification_result.get("all_ok"):
                 self.app.update_log("ราคาตรงทั้งหมดตั้งแต่แรก ไม่ต้องตรวจสอบซ้ำ")
                 post_verification = verification_result
+                self.app.last_pricing_status = "TEST_SUCCESS (ราคาตรงตั้งแต่แรก/All OK)"
             else:
                 self.app.update_log("🔍 กำลังตรวจสอบราคาและจำนวนสินค้าอีกครั้งหลังปรับราคา...")
                 post_verification = self.bot.ProductManager.verify_all()
                 print("post_verification_result (Round 2): ", post_verification)
+                if post_verification.get("all_ok"):
+                    self.app.last_pricing_status = "TEST_SUCCESS (ปรับราคาและใส่คูปองสำเร็จ/All OK)"
+                else:
+                    self.app.last_pricing_status = "TEST_FAILED (ตรวจสอบราคาไม่ผ่านหลังปรับ)"
+
+            self.app.last_pricing_detail = self._format_pricing_detail(post_verification)
 
             if post_verification.get("all_ok"):
+                self._log_price_verification_summary(post_verification)
                 if self.app.is_testing:
-                    self.app.update_log("TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
+                    self.app.update_log("🧪 TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
                     self.bot.current_checkpoint = "TEST MODE: ตรวจสินค้าผ่าน หยุดก่อน finish_order()"
                 else:
-                    self.app.update_log("ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
+                    self.app.update_log("✅ ตรวจสอบราคาสำเร็จและถูกต้อง (All OK). กำลังดำเนินการออกบิล...")
                     self.app.finish_order()
                     self.bot.current_checkpoint = "กรอก Skus ลง POS"
 
@@ -1051,8 +1137,50 @@ class POSPricingReconciler:
             self.app.update_log(f"❌ พบข้อผิดพลาดจากป๊อปอัป: {err_msg}")
             raise ValueError(err_msg)
 
+    def _log_price_verification_summary(self, verification_res: dict) -> None:
+        """พิมพ์สรุปรายงานผลการตรวจสอบราคาสินค้าแต่ละ SKU และยอดรวมทั้งหมดลง Log"""
+        price_lines = []
+        for sku, pinfo in verification_res.get("price", {}).items():
+            expected = pinfo.get('expected', 0)
+            actual = pinfo.get('actual', 0)
+            is_ok = pinfo.get('ok', False)
+            status_icon = "✅" if is_ok else "❌"
+            
+            try:
+                exp_str = f"{float(expected):,.2f}"
+            except Exception:
+                exp_str = str(expected)
+            try:
+                act_str = f"{float(actual):,.2f}" if actual != "NOT_FOUND" else "ไม่พบสินค้าบน POS"
+            except Exception:
+                act_str = str(actual)
+
+            price_lines.append(f"  • {sku}: บน POS = {act_str} บาท | ราคาที่ต้องออกบิล = {exp_str} บาท [{status_icon}]")
+
+        total_info = verification_res.get("total", {})
+        t_exp = total_info.get("expected", 0)
+        t_act = total_info.get("actual", 0)
+        t_ok = total_info.get("ok", False)
+        t_icon = "✅" if t_ok else "❌"
+        try:
+            t_exp_str = f"{float(t_exp):,.2f}"
+        except Exception:
+            t_exp_str = str(t_exp)
+        try:
+            t_act_str = f"{float(t_act):,.2f}" if t_act != "NOT_FOUND" else "N/A"
+        except Exception:
+            t_act_str = str(t_act)
+
+        summary_msg = (
+            "📊 รายงานผลการตรวจสอบราคาสินค้าบน SMCO POS:\n" +
+            "\n".join(price_lines) +
+            f"\n  • ยอดรวมตระกร้าทั้งหมด (Grand Total): บน POS = {t_act_str} บาท | เป้าหมาย = {t_exp_str} บาท [{t_icon}]"
+        )
+        self.app.update_log(summary_msg)
+
     def _handle_post_verification_failures(self, post_verification: dict) -> None:
         """รวบรวม Error และแจ้งเตือนเมื่อการตรวจสอบรอบ 2 ยังไม่ผ่าน"""
+        self._log_price_verification_summary(post_verification)
         qty_errors = [
             f"จำนวนไม่พอ: {sku} (expected {info.get('expected')}, actual {info.get('actual')})"
             for sku, info in post_verification.get("qty", {}).items() if not info.get("ok", True)
@@ -1071,3 +1199,39 @@ class POSPricingReconciler:
         error_msg = f"ราคา/จำนวนไม่ตรงหลังปรับราคา: " + " | ".join(all_errors)
         self.app.update_log(f"❌ {error_msg}")
         raise ValueError(error_msg)
+
+    def _format_pricing_detail(self, verification_res: dict) -> str:
+        """สร้างข้อความสรุปผลการปรับราคาแต่ละ SKU และผลลัพธ์ว่าตรงหรือไม่ตรง"""
+        parts = []
+        for sku, pinfo in verification_res.get("price", {}).items():
+            expected = pinfo.get('expected', 0)
+            actual = pinfo.get('actual', 0)
+            is_ok = pinfo.get('ok', False)
+            match_str = "ตรง ✅" if is_ok else f"ต่าง {pinfo.get('diff', 0):+,.2f} ❌"
+            try:
+                act_str = f"{float(actual):,.2f}" if actual != "NOT_FOUND" else "NOT_FOUND"
+            except Exception:
+                act_str = str(actual)
+            try:
+                exp_str = f"{float(expected):,.2f}"
+            except Exception:
+                exp_str = str(expected)
+            parts.append(f"{sku}: POS={act_str}/เป้า={exp_str} [{match_str}]")
+
+        total_info = verification_res.get("total", {})
+        t_exp = total_info.get("expected", 0)
+        t_act = total_info.get("actual", 0)
+        t_ok = total_info.get("ok", False)
+        t_match_str = "ตรง ✅" if t_ok else f"ต่าง {total_info.get('diff', 0):+,.2f} ❌"
+        try:
+            t_act_str = f"{float(t_act):,.2f}" if t_act != "NOT_FOUND" else "N/A"
+        except Exception:
+            t_act_str = str(t_act)
+        try:
+            t_exp_str = f"{float(t_exp):,.2f}"
+        except Exception:
+            t_exp_str = str(t_exp)
+
+        parts.append(f"Total: POS={t_act_str}/เป้า={t_exp_str} [{t_match_str}]")
+        return " | ".join(parts)
+

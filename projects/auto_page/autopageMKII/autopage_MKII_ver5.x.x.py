@@ -1614,24 +1614,40 @@ class MyApp:
         สแกนรายการสินค้าใน self.data_frame เพื่อหา SKU และ expected_price (ราคาที่ต้องออกบิลต่อชิ้น)
         จัดกลุ่ม Group By (sku, expected_price) แล้วเปรียบเทียบกับ self.cp_df
         หากพบรายการที่ยังไม่มีใน CP_data.xlsx จะเด้ง Pop-up สอบถามผู้ใช้งานเพื่อยืนยันเพิ่มลง CP_data.xlsx
+        (รองรับแม้ไฟล์ CP_data.xlsx จะเป็นไฟล์เปล่า/โล่ง ก็จะดึง SKU และราคาทั้งหมดลงไปเติมให้)
         """
         self.reload_cp_df_if_modified()
-        if getattr(self, 'cp_df', None) is None or self.cp_df.empty:
-            print("[scan_and_sync_missing_cp_data] cp_df is None or empty. Skipping.")
-            return
-
-        if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
-            print("[scan_and_sync_missing_cp_data] data_frame is None or empty. Skipping.")
-            return
 
         excel_path = getattr(self, 'cp_table_location', '')
         if not excel_path or not os.path.exists(excel_path):
             print("[scan_and_sync_missing_cp_data] Invalid cp_table_location. Skipping.")
             return
 
-        sku_col = 'เลขอ้างอิง SKU (SKU Reference No.)'
-        if sku_col not in self.data_frame.columns:
-            print(f"[scan_and_sync_missing_cp_data] Column '{sku_col}' not found in data_frame. Skipping.")
+        if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
+            print("[scan_and_sync_missing_cp_data] data_frame is None or empty. Skipping.")
+            return
+
+        # ตรวจสอบและเตรียม self.cp_df (หากไฟล์เปล่า ให้ initialize เป็น DataFrame เปล่า)
+        if getattr(self, 'cp_df', None) is None:
+            self.cp_df = pd.DataFrame(columns=['sku', 'sale_price', 'cp_name', 'usage_start_date', 'usage_end_date', 'oc_amount', 'dc_amount'])
+
+        # ค้นหาคอลัมน์ SKU ที่ตรงกับประเภทไฟล์
+        possible_sku_cols = [
+            'เลขอ้างอิง SKU (SKU Reference No.)',
+            'เลขอ้างอิง SKU',
+            'sellerSku',
+            'Seller SKU',
+            'SKU',
+            'sku'
+        ]
+        sku_col = None
+        for col in possible_sku_cols:
+            if col in self.data_frame.columns:
+                sku_col = col
+                break
+
+        if not sku_col:
+            print(f"[scan_and_sync_missing_cp_data] SKU column not found in data_frame. Skipping.")
             return
 
         # 1. วนลูปอ่านรายการใน data_frame เพื่อหา unique (sku, expected_price)
@@ -1639,28 +1655,31 @@ class MyApp:
 
         for _, row in self.data_frame.iterrows():
             sku_raw = str(row.get(sku_col, '')).replace(' ', '').strip()
-            if not sku_raw or sku_raw.lower() in ('nan', 'none'):
+            if not sku_raw or sku_raw.lower() in ('nan', 'none', '<na>'):
                 continue
 
             try:
-                qty = float(row.get('จำนวน', 1))
+                raw_qty = row.get('จำนวน', row.get('QTY', row.get('quantity', 1)))
+                qty = float(str(raw_qty).replace(',', ''))
                 if qty <= 0:
                     qty = 1.0
             except (ValueError, TypeError):
                 qty = 1.0
 
             try:
-                subtotal = float(str(row.get('ราคาขายสุทธิ', 0)).replace(',', ''))
+                raw_subtotal = row.get('ราคาขายสุทธิ', row.get('ราคาตั้งต้น', row.get('unitPrice', row.get('paidPrice', 0))))
+                subtotal = float(str(raw_subtotal).replace(',', ''))
             except (ValueError, TypeError):
                 subtotal = 0.0
 
             try:
-                shopee_discount = float(str(row.get('ส่วนลดจาก Shopee', 0)).replace(',', ''))
+                raw_disc = row.get('ส่วนลดจาก Shopee', row.get('ส่วนลดจาก Lazada', row.get('ส่วนลด', 0)))
+                platform_discount = float(str(raw_disc).replace(',', ''))
             except (ValueError, TypeError):
-                shopee_discount = 0.0
+                platform_discount = 0.0
 
             # คำนวณราคาออกบิลต่อชิ้น (expected_price)
-            expected_price = round((subtotal + shopee_discount) / qty, 2)
+            expected_price = round((subtotal + platform_discount) / qty, 2)
             if expected_price <= 0:
                 continue
 
@@ -1677,7 +1696,17 @@ class MyApp:
         missing_records = []
         price_tolerance = 0.05
 
+        has_cp_sku_col = ('sku' in self.cp_df.columns) if (self.cp_df is not None and not self.cp_df.empty) else False
+
         for (sku_clean, expected_price), (sku_raw, exp_p) in candidate_items.items():
+            if not has_cp_sku_col:
+                # ถ้า cp_df ยังไม่มีข้อมูลหรือไม่มีคอลัมน์ sku -> ทุกรายการคือ missing
+                missing_records.append({
+                    'sku': sku_raw,
+                    'sale_price': expected_price
+                })
+                continue
+
             formatted_skus = [s.strip().upper() for s in self.correct_sku_pattern(sku_raw)]
 
             def sku_match(row_sku) -> bool:
@@ -1725,8 +1754,12 @@ class MyApp:
         reply = messagebox.askyesno("ยืนยันการเพิ่ม CP Data", confirm_msg)
         if reply:
             try:
-                # อ่านไฟล์ Excel ล่าสุด
-                df_excel = pd.read_excel(excel_path)
+                # อ่านไฟล์ Excel ล่าสุด หรือสร้างใหม่ถ้าว่าง
+                try:
+                    df_excel = pd.read_excel(excel_path)
+                except Exception:
+                    df_excel = pd.DataFrame(columns=['sku', 'sale_price', 'cp_name', 'usage_start_date', 'usage_end_date', 'oc_amount', 'dc_amount'])
+
                 new_rows = []
                 for rec in missing_records:
                     new_rows.append({'sku': rec['sku'], 'sale_price': rec['sale_price']})
@@ -1736,8 +1769,12 @@ class MyApp:
                     if col not in new_df.columns:
                         new_df[col] = ""
 
-                new_df = new_df[df_excel.columns]
-                df_combined = pd.concat([df_excel, new_df], ignore_index=True)
+                if df_excel.empty:
+                    df_combined = new_df
+                else:
+                    new_df = new_df[df_excel.columns]
+                    df_combined = pd.concat([df_excel, new_df], ignore_index=True)
+
                 df_combined.to_excel(excel_path, index=False)
                 if os.path.exists(excel_path):
                     try:
@@ -1746,12 +1783,12 @@ class MyApp:
                         pass
 
                 # อัปเดต cp_df ใน memory
-                if 'usage_start_date' in new_df.columns:
-                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
-                if 'usage_end_date' in new_df.columns:
-                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
+                if 'usage_start_date' in df_combined.columns:
+                    df_combined['usage_start_date'] = pd.to_datetime(df_combined['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
+                if 'usage_end_date' in df_combined.columns:
+                    df_combined['usage_end_date'] = pd.to_datetime(df_combined['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
 
-                self.cp_df = pd.concat([self.cp_df, new_df], ignore_index=True)
+                self.cp_df = df_combined
                 self.update_log(f"💾 เติม SKU และราคาที่ต้องออกลงใน CP_data.xlsx เรียบร้อยแล้ว ({len(missing_records)} รายการ)")
                 print(f"[scan_and_sync_missing_cp_data] Added {len(missing_records)} items to CP_data.xlsx")
             except Exception as err:
@@ -3430,13 +3467,19 @@ class MyApp:
     #! ตัวกากกว่า sku_formater,  sku_formaterเทพกว่า
     def correct_sku_pattern(self, text: str) -> list:
         result = []
-        text = text.replace(" ", "")
+        text = str(text).replace(" ", "")
         elements = text.split("+")
 
         for element in elements:
-            prefix, code = element.split("-")
-            code = code.zfill(6)
-            result.append(prefix + "-" + code)
+            if not element:
+                continue
+            if "-" in element:
+                parts = element.split("-", 1)
+                prefix = parts[0]
+                code = parts[1].zfill(6)
+                result.append(f"{prefix}-{code}")
+            else:
+                result.append(element)
 
         return result
 
@@ -5524,10 +5567,33 @@ class Bot_POS:
                 logger.info(
                     f"Order: {self.cus_order} Testing mode is ON. Attempting to update Accel file with order data.")
                 try:
+                    tracking_no = (
+                        ", ".join(self.tracking_manager.trackings)
+                        if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings
+                        else ""
+                    )
+                    if self.app.marketplace_target.get() == 'SHOPEE':
+                        calc_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                    else:
+                        calc_price = self.app.sum_price - self.app.cus_seller_voucher.get()
+                    self.app.final_price = calc_price
+                    price_val = str(round(calc_price, 2))
+
+                    test_status = getattr(self.app, 'last_pricing_status', "TEST_SUCCESS (ปรับราคาผ่าน/All OK)")
+                    pricing_detail = getattr(self.app, 'last_pricing_detail', "")
+                    used_sns = getattr(self.app.accel_mode, "used_serials", [])
+
                     self.app.accel_mode.deduct_accel_file_data(
-                        self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+                        self.app.cus_order, used_sns)
                     self.app.accel_mode.record_completed_order(
-                        self.app.cus_order, status="TEST_SUCCESS (จบ process ปรับราคา)")
+                        self.app.cus_order,
+                        tracking=tracking_no,
+                        bill_no="TEST_MODE",
+                        status=test_status,
+                        price=price_val,
+                        serials=used_sns,
+                        pricing_detail=pricing_detail
+                    )
 
                 except Exception as err:
                     logger.info(

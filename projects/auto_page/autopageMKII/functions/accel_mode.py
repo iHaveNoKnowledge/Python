@@ -1173,7 +1173,7 @@ class AccelMode:
             logger.error(f"Error recording failed order to Excel: {e}")
 
     def record_completed_order(
-            self, order, tracking="", bill_no="", status="Completed", price="", serials=None, sn=None):
+            self, order, tracking="", bill_no="", status="Completed", price="", serials=None, sn=None, pricing_detail=""):
         """Record completed order into Completed_Orders sheet in Accel Excel file
 
         Args:
@@ -1184,6 +1184,7 @@ class AccelMode:
             price: ราคาออกบิลหน้าท้าย (final_price) ที่คำนวณได้ตอนยิงของ
             serials: รายการ SN (list/str/dict) ที่ใช้ (ถ้าไม่ระบุ จะดึงจาก self.used_serials อัตโนมัติ)
             sn: alias ของ serials (เผื่อเรียกด้วย keyword sn=...)
+            pricing_detail: รายละเอียดการตรวจสอบราคาแต่ละ SKU และยอดรวม (ตรง/ไม่ตรง)
         """
         if hasattr(order, 'get'):
             order_str = order.get()
@@ -1221,7 +1222,7 @@ class AccelMode:
                 return
 
             completed_df = pd.DataFrame(
-                columns=['tracking', 'orders', 'bill_no', 'price', 'timestamp', 'status', 'sn'])
+                columns=['tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'timestamp', 'status', 'sn'])
 
             try:
                 completed_df = pd.read_excel(
@@ -1231,7 +1232,7 @@ class AccelMode:
 
             # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (ไฟล์เก่าที่เรียงแบบเดิมจะถูก reorder ด้วย)
             # align ด้วยชื่อ column ไม่ใช้ตำแหน่ง -> ข้อมูลไม่หลุดหาย
-            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'timestamp', 'status', 'sn']
+            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'timestamp', 'status', 'sn']
             for _col in _col_order:
                 if _col not in completed_df.columns:
                     completed_df[_col] = ""
@@ -1244,7 +1245,8 @@ class AccelMode:
                 'sn': sn_str,
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
                 'status': str(status),
-                'price': price
+                'price': price,
+                'pricing_detail': str(pricing_detail)
             }])
 
             completed_df = completed_df[completed_df['orders'] != order_str]
