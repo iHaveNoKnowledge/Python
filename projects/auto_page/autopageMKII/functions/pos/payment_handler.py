@@ -131,13 +131,9 @@ class POSPaymentHandler:
 
                     if self.last_page and self.last_page.text in ["Payment:", "ชำระเงิน:"]:
                         try:
-                            # 1. Fill Remark (Order No)
+                            # 1. Collect and apply Tracking Number & Order No to Remark Modal
                             time.sleep(0.75)
                             remark_text = self.cus_order
-                            remark_textarea_xpath = "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']"
-                            textarea_element = self.driver.find_element(By.XPATH, remark_textarea_xpath)
-
-                            # 2. Collect and apply Tracking Number
                             if getattr(self.app, 'tracking_from_data_complete', False):
                                 print(f"Tracking จาก data ครบ: {self.app.tracking_from_data} ข้าม collect_tracking")
                                 self.app.update_log(
@@ -158,9 +154,9 @@ class POSPaymentHandler:
                                     self.return_to_first_page()
                                     raise track_err
 
-                            self.bot.tracking_manager.apply_tracking_to_final_page()
-
-                            self.bot.js_input_value(textarea_element, remark_text)
+                            # เปิด modal และกรอก Order ไปที่ ref1RemarkTemp, Tracking ไปที่ ref2/ref3RemarkTemp
+                            # (ช่อง cnRemark จะปล่อยโล่ง)
+                            self.bot.tracking_manager.apply_tracking_to_final_page(order_no=self.cus_order)
 
                             # 3. Select Payment Type and Calculate final_price
                             time.sleep(0.75)

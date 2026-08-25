@@ -63,15 +63,15 @@ class OrderFinancials:
             if sku_key not in self.aggregated_items:
                 self.aggregated_items[sku_key] = {
                     "total_qty": qty_val,
-                    "total_price": price_val * qty_val,
+                    "total_price": price_val,
                     "total_discount": shopee_discount
                 }
             else:
                 self.aggregated_items[sku_key]["total_qty"] += qty_val
-                self.aggregated_items[sku_key]["total_price"] += price_val * qty_val
+                self.aggregated_items[sku_key]["total_price"] += price_val
                 self.aggregated_items[sku_key]["total_discount"] += shopee_discount
 
-            total_net_sum += (price_val * qty_val) + shopee_discount
+            total_net_sum += price_val + shopee_discount
 
         for sku_key, data in self.aggregated_items.items():
             t_qty = data["total_qty"] if data["total_qty"] > 0 else 1.0

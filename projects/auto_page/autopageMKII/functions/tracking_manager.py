@@ -117,59 +117,119 @@ class TrackingManager:
                     f"เลข Tracking บน {self.marketplace} ไม่ครบ: พบ {len(self.trackings)} จากที่ต้องมี {expected_count} รายการ (อาจยังเป็นสถานะนัดรับ หรือยังไม่ออกเลข)"
                 )
 
-    def apply_tracking_to_final_page(self) -> None:
+    def apply_tracking_to_final_page(self, order_no: str = "") -> None:
         """
-        2. เอาไปใส่ในหน้าท้าย
+        นำข้อมูล Order No และ Tracking Numbers ไปใส่ใน Modal หมายเหตุหน้าท้าย:
+        1. เปิด Modal หมายเหตุ (AddRemarkRef)
+        2. ใส่ Order No ลงใน //textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']
+        3. กระจาย Tracking Numbers ลงใน:
+           - //textarea[@ng-model='posPaymentHead.data.ref2RemarkTemp'] (ความยาวไม่เกิน 255 ตัวอักษร)
+           - //textarea[@ng-model='posPaymentHead.data.ref3RemarkTemp'] (ส่วนที่เหลือ ความยาวไม่เกิน 255 ตัวอักษร)
+           * โดยต้องใส่ให้ครบ pattern ของแต่ละ tracking หากตัวถัดไปใส่แล้วเกิน 255 จะย้ายไปใส่ใน ref3
+        4. กดปุ่มยืนยัน //button[@ng-click='okAddRemarkRef()']
         """
-        ref_element_xpath = "//textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']"
-        if not self.trackings:
-            print("No trackings to apply.")
-            return
+        order_val = order_no if order_no else str(getattr(self.bot, 'cus_order', ''))
 
-        # Placeholder: logic to insert trackings into the specific element in the final page
-        # Example:
-        # try:
-        #     tracking_input = self.wait10.until(EC.presence_of_element_located((By.XPATH, "YOUR_XPATH_HERE")))
-        #     tracking_text = ", ".join(self.trackings)
-        #     tracking_input.send_keys(tracking_text)
-        # except Exception as e:
-        #     print(f"Error applying trackings: {e}")
+        # แบ่ง tracking ใส่ ref2 และ ref3 (ไม่เกิน 255 ตัวอักษรต่อช่อง และไม่ตัด pattern)
+        ref2_text, ref3_text = self._split_trackings_into_chunks(self.trackings, max_len=255)
 
         try:
-            tracking_input = self.driver.find_element(By.XPATH, ref_element_xpath)
-            tracking_text = ", ".join(self.trackings)
-            # self.bot.js_input_value(tracking_input, tracking_text)
-            self.driver.execute_script("""
-                var el = arguments[0];
-    // เก็บค่า style เดิมไว้ก่อน
-    var originalStyle = el.style.display;
-    
-    // บังคับให้โชว์
-    el.style.display = 'block';
-    el.style.visibility = 'visible';
-    el.style.opacity = '1';
-    
-    // set attribute title
-    el.setAttribute('title', arguments[1]);
-    
-    // ใส่ค่าและ trigger events
-    el.value = arguments[1];
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    
-    // คืนค่า style เดิม (ถ้าต้องการ)
-    // el.style.display = originalStyle;
-            """, tracking_input, tracking_text)
+            # 1. เปิด Modal หมายเหตุ ถ้ายังไม่ได้เปิด
+            modal_open_selectors = [
+                "//button[@ng-click='addRemarkRef()']",
+                "//a[@ng-click='addRemarkRef()']",
+                "//button[contains(@ng-click, 'RemarkRef') or contains(@ng-click, 'addRemark')]",
+                "//a[contains(@ng-click, 'RemarkRef') or contains(@ng-click, 'addRemark')]",
+                "//div[@class='col-sm-4 nopadding']//button",
+                "//div[@class='col-sm-4 nopadding']//a"
+            ]
+            for xpath in modal_open_selectors:
+                try:
+                    btns = self.driver.find_elements(By.XPATH, xpath)
+                    for btn in btns:
+                        if btn.is_displayed():
+                            self.driver.execute_script("arguments[0].click();", btn)
+                            time.sleep(0.3)
+                            break
+                except Exception:
+                    pass
 
-            ok_button = self.driver.find_element("xpath", "//button[@ng-click='okAddRemarkRef()']")
+            # 2. ฟังก์ชันช่วยกรอกค่าลง Textarea และ Dispatch Event
+            def _set_ref_textarea_value(xpath: str, value: str):
+                try:
+                    el = self.driver.find_element(By.XPATH, xpath)
+                    self.driver.execute_script("""
+                        var el = arguments[0];
+                        var val = arguments[1] || '';
+                        el.style.display = 'block';
+                        el.style.visibility = 'visible';
+                        el.style.opacity = '1';
+                        el.setAttribute('title', val);
+                        el.value = val;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    """, el, value)
+                    print(f"Applied {xpath} -> '{value}' (len={len(value)})")
+                except Exception as ex:
+                    print(f"Error setting {xpath}: {ex}")
 
-            # ใช้ JavaScript คลิกเพื่อความชัวร์ (เผื่อปุ่มโดนบัง)
-            self.driver.execute_script("arguments[0].click();", ok_button)
-            time.sleep(0.5)
-            ok_button.click()  # กดปุ่ม OK เพื่อบันทึก
+            # ref1: ใส่เลขออเดอร์ (Order No)
+            _set_ref_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']", order_val)
+
+            # ref2: ใส่เลข Tracking ชุดแรก (สูงสุด 255 ตัวอักษร)
+            _set_ref_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref2RemarkTemp']", ref2_text)
+
+            # ref3: ใส่เลข Tracking ชุดที่สอง (ถ้ามี ส่วนที่เหลือ สูงสุด 255 ตัวอักษร)
+            _set_ref_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref3RemarkTemp']", ref3_text)
+
+            # 3. กดปุ่ม OK เพื่อบันทึกและปิด Modal
+            time.sleep(0.3)
+            try:
+                ok_button = self.driver.find_element(By.XPATH, "//button[@ng-click='okAddRemarkRef()']")
+                self.driver.execute_script("arguments[0].click();", ok_button)
+                time.sleep(0.3)
+            except Exception as ok_err:
+                print(f"Error clicking okAddRemarkRef button: {ok_err}")
+
         except Exception as e:
-            print(f"Error applying trackings: {e}")
-        pass
+            print(f"Error applying order and trackings to remark modal: {e}")
+
+    def _split_trackings_into_chunks(self, trackings: list, max_len: int = 255) -> tuple:
+        """
+        แบ่งรายการ tracking ออกเป็น 2 ชุด (ref2 และ ref3)
+        โดยแต่ละชุดมีความยาวไม่เกิน max_len (255 ตัวอักษร)
+        และคง pattern ของ tracking แต่ละตัวให้สมบูรณ์ (ไม่ตัดคำกลาง tracking)
+        """
+        ref2_items = []
+        ref3_items = []
+        target_list = ref2_items
+
+        for t in trackings:
+            t_str = str(t).strip()
+            if not t_str:
+                continue
+
+            test_items = target_list + [t_str]
+            test_text = ", ".join(test_items)
+
+            if len(test_text) <= max_len:
+                target_list.append(t_str)
+            else:
+                if target_list is ref2_items:
+                    # ย้ายไปเติมใน ref3
+                    target_list = ref3_items
+                    test_items_ref3 = target_list + [t_str]
+                    test_text_ref3 = ", ".join(test_items_ref3)
+                    if len(test_text_ref3) <= max_len:
+                        target_list.append(t_str)
+                    else:
+                        print(f"⚠️ Tracking '{t_str}' เกินความจุของ ref3 (Max 255 chars)")
+                else:
+                    print(f"⚠️ Tracking '{t_str}' เกินความจุของ ref3 (Max 255 chars)")
+
+        ref2_text = ", ".join(ref2_items)
+        ref3_text = ", ".join(ref3_items)
+        return ref2_text, ref3_text
 
     # --- Private Helper Methods ---
 

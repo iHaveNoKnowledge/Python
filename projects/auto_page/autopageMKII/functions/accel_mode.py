@@ -536,8 +536,7 @@ class AccelMode:
         ordered_product_data_rows: list = self.main_app.items
         print('accel_fill_sku() ตรวจสอบ items = ', ordered_product_data_rows)
 
-        # sku_input_xpath = '/html/body/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]/from/div/div/div[1]/div[1]/span/input' เก่า
-        sku_input_xpath = "//input[(contains(@class, 'arFilterBox-search ng-valid ng-dirty ng-touched'))]"
+        sku_input_xpath = "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search')]"
 
         if len(ordered_product_data_rows) > 0:
             for i, ordered_item in enumerate(ordered_product_data_rows):
@@ -567,18 +566,31 @@ class AccelMode:
                         print(f"ลองใช้งาน SN จาก Excel: {candidate_sn}")
 
                         # รอช่อง Input SKU แสดงขึ้นมา
-                        while not operation_thread.is_set():
-                            try:
-                                skuInput = driver.find_element(
-                                    By.XPATH, sku_input_xpath)
-                                if skuInput.is_displayed():
-                                    break
-                            except:
-                                time.sleep(0.5)
-                                continue
+                        skuInput = None
+                        sku_input_selectors = [
+                            "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search')]",
+                            "//input[@name='svalue' and contains(@class, 'arFilterBox-search')]",
+                            "//input[contains(@class, 'arFilterBox-search')]",
+                            "//input[@name='svalue']"
+                        ]
 
-                        skuInput = driver.find_element(
-                            By.XPATH, sku_input_xpath)
+                        while not operation_thread.is_set():
+                            for sel in sku_input_selectors:
+                                try:
+                                    el = driver.find_element(By.XPATH, sel)
+                                    if el.is_displayed():
+                                        skuInput = el
+                                        break
+                                except Exception:
+                                    pass
+                            if skuInput is not None:
+                                break
+                            time.sleep(0.5)
+
+                        if skuInput is None:
+                            logger.error(f"ไม่พบช่อง Input SKU บนหน้าเว็บ SMCO สำหรับ order: {self.main_app.cus_order.get()}")
+                            break
+
                         skuInput.clear()
 
                         attempts = 10
