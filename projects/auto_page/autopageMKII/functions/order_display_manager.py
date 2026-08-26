@@ -1,13 +1,15 @@
 """
 OrderDisplayManager - จัดการการแสดงผล order ที่ลูกค้าสั่งมา
 รวม header, data rows, และ summary section (ค่าขนส่ง, voucher, ราคารวม)
-Re-exports from functions.order_display_manager for backward compatibility.
 """
-try:
-    from functions.order_display_manager import OrderDisplayManager
-except ImportError:
-    pass
+from tkinter import StringVar
 
+import customtkinter as ctk
+import pandas as pd
+from customtkinter import CTkButton, CTkEntry
+
+
+class OrderDisplayManager:
     """
     Class สำหรับจัดการการแสดงผล order ในรูปแบบตาราง
     รวมถึง header, data rows, และ summary section

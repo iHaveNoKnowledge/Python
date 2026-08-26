@@ -1,0 +1,3 @@
+"""
+Autopage functions package.
+"""

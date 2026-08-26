@@ -356,7 +356,7 @@
 # * 350 /patch/ 5.2.3LITE แก้ปัญหาหน้าท้ายค้างหลังกดปุ่มเขียว: หากพบ popup เด้งขึ้นมาแต่ไม่มีเลขใบเสร็จ (เช่น alert/popup อื่นๆ) ให้ทำการปิด popup นั้นและลองกดปุ่มชำระเงิน (ปุ่มเขียว) ใหม่อัตโนมัติ
 # * 351 /patch/ 5.2.3LITE แก้ปัญหา add ชื่อลูกค้า dropdown ยังทำงานไม่ทันเสร็๗แต่พังตอน add ก่อน ซึ่งมันมีสาเหตุมาจาก การยิง req เพราะมัน error แบบ asyncronous ทำให้processการเช็คdropdown อยู่นั้น จู่ๆก็โดนตัด process แล้วbotจบการทำงานไปเลยเพราะ error ไม่ได้มาจาก process หลักแต่มาจาก asyncro function ที่ยิง req
 # * 352 /feat/ 5.2.3LITE  เพิ่มฟังชั่น scan_and_sync_missing_cp_data() ทำให้เพิ่มราคาที่ต้องออกบิลได้ทันทีที่เติม cp_data.xlsx โดยไม่ต้องรอให้ bot ค้นพบว่าไม่มี cp ให้เลือก
-# * 353 /patch/ 5.2.4LITE /issue/ บันทึก SN ที่ถูกใช้ไปแล้วลงใน accel_file ใน sheet completed เอาไว
+# * 353 /patch/ 5.2.4LITE /issue/ บันทึก SN ที่ถูกใช้ไปแล้วลงใน accel_file ใน sheet completed 
 # * 354 /fixed/ 5.2.4LITE ตรวจสอบ popup หน้าท้ายหลังกดปุ่มเขียว: เช็ค class 'swal2-icon swal2-success animate' เพื่อยืนยันว่าเป็น popup เลขบิลสำเร็จจริง หากเป็น popup แจ้งเตือนอื่น (warning/error) ให้ปิด popup แล้วกดปุ่มเขียวซ้ำได้สูงสุด 3 ครั้ง หากเกิน 3 ครั้งให้บันทึก error log 'ไม่สามารถกด submit orderได้: {ข้อความ error}' และบันทึกลง Failed_Orders พร้อมข้ามออเดอร์ทันที
 # * 355 /fixed/ 5.2.4LITE เพิ่มระบบรองรับกรอก SN ผ่าน Modal เมื่อปุ่ม check_btn (fa-check-square-o) ไม่โผล่: เช็คปุ่ม serial สีแดง (ng-redalert) ของ SKU แถวนั้น แล้วเปิด Modal กรอก SN ลงช่องว่างทุกช่อง กด verify เช็คปุ่ม ok (_okInsertSerial) หากติด disabled จะเช็คแถวสีแดง (font-color-secondary-red) ติ๊ก checkbox แล้วกดลบ (_deleteInsertSerial) พร้อมตัด SN ที่ไม่ผ่านออกจาก Excel และวนซ้ำกรอกตัวใหม่จนผ่าน
 # * 356 /fixed/ 5.2.4LITE / 5.x.x ปรับปรุง TrackingManager ให้ตรวจสอบระดับ Package Card:

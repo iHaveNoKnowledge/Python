@@ -1,0 +1,3 @@
+"""
+POS frontpage functions subpackage.
+"""

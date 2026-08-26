@@ -38,10 +38,14 @@ from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler)
 from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
+from functions.utils.helpers import resource_path
 from googletrans import Translator
 from loguru import logger
 from openpyxl import load_workbook
-from order_display_manager import OrderDisplayManager
+try:
+    from functions.order_display_manager import OrderDisplayManager
+except ImportError:
+    from order_display_manager import OrderDisplayManager
 from PIL import Image, ImageTk
 from selenium import webdriver
 from selenium.common.exceptions import (InvalidSessionIdException,
@@ -270,16 +274,16 @@ class SmcoApiClient:
 
 
 # * images
-icon_path = os.path.join(os.path.dirname(__file__), 'imgs', 'kheedluang.ico')
-arrow_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'Arrow.gif')
-stop_icon = os.path.join(os.path.dirname(__file__), 'imgs', 'stop.jpg')
+icon_path = resource_path("assets/imgs/kheedluang.ico")
+arrow_icon = resource_path("assets/imgs/Arrow.gif")
+stop_icon = resource_path("assets/imgs/stop.jpg")
 
 # * initial settings
 locale.setlocale(locale.LC_ALL, 'en_us')
-current_directory = os.getcwd()
+current_directory = os.path.dirname(os.path.abspath(__file__)) if not getattr(sys, 'frozen', False) else sys._MEIPASS
 print("current_directory:", current_directory)
-address_file = r"tables\Addresscleaner_TambonData.xlsx"
-file_path = os.path.join(current_directory, address_file)
+address_file = resource_path("assets/tables/Addresscleaner_TambonData.xlsx")
+file_path = address_file
 directory_of_file = os.path.dirname(file_path)
 print("file located:", directory_of_file)
 load_dotenv()
@@ -2910,9 +2914,8 @@ class MyApp:
                                 f"Subdistrict for order {self.order} is missing. Filling...")
                             if not hasattr(self, 'address_df') or self.address_df is None:
                                 try:
-                                    address_data_path = os.path.join(
-                                        os.path.dirname(__file__),
-                                        'tables', 'Addresscleaner_TambonData.xlsx')
+                                    address_data_path = resource_path(
+                                        'assets/tables/Addresscleaner_TambonData.xlsx')
                                     self.address_df = pd.read_excel(
                                         address_data_path, dtype=str)
                                     print("Lazy-loaded TambonData successfully.")
@@ -3888,9 +3891,7 @@ class Bot_POS:
         try:
             import pandas as pd
 
-            # ใช้ absolute path โดยอิงจาก directory ของไฟล์นี้
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            excel_path = os.path.join(current_dir, 'tables', 'Addresscleaner_TambonData.xlsx')
+            excel_path = resource_path('assets/tables/Addresscleaner_TambonData.xlsx')
             self.address_data = pd.read_excel(excel_path, dtype=str)
             print(f"Loaded address data from: {excel_path}")
             print(f"Total rows: {len(self.address_data)}")
@@ -7311,14 +7312,7 @@ class Bot_POS:
             return possible_tambons[0]
 
     def resource_path(self, relative_path):
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            # Use the directory where the script is located instead of current working directory
-            base_path = os.path.dirname(os.path.abspath(__file__))
-        result = os.path.join(base_path, relative_path)
-        print("resource_path: ", result)
-        return result
+        return resource_path(relative_path)
 
     def _address_seperator(
         self,
@@ -7371,7 +7365,7 @@ class Bot_POS:
             is_alert: bool = False
 
             # เอาข้อมูลลูกค้ามาเทียบกับตาราง Pattern ที่อยู่คนไทย
-            tambon_data_address = self.resource_path(r"tables\Addresscleaner_TambonData.xlsx")
+            tambon_data_address = resource_path("assets/tables/Addresscleaner_TambonData.xlsx")
             df_thai_addr = pd.read_excel(tambon_data_address)
             allfiltered_df = df_thai_addr[
                 (df_thai_addr['PostCodeMain'].astype(str) == postal_code) &
