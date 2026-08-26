@@ -268,8 +268,9 @@ class POSPaymentHandler:
                                 self.app.is_finish_order_triggered.set(False)
 
                         # 9. Handle final popup after clicking green button
-                        self.final_popup_handler(is_etax=False, operation_obj=self.bot)
-                        continue
+                        popup_success = self.final_popup_handler(is_etax=False, operation_obj=self.bot)
+                        self.bot.autofinal = False
+                        return popup_success
 
                     else:
                         print("จบสูตร")
@@ -277,16 +278,70 @@ class POSPaymentHandler:
                     break
 
                 print("While หลัก ถ้ามาถึงนี่แปลว่าต้องเริ่มใหม่")
-                continue
+                break
             break
 
         print("operation_thread is set or autofinal is false, exit final loop")
         return True
 
-    def final_popup_handler(self, is_etax: bool = False, operation_obj: Any = None):
+    def _dismiss_swal_popup(self):
+        """ปิด Popup ของ SweetAlert2 โดยเน้นใช้ WebDriver Click เป็นหลัก"""
+        dismissed = False
+        # 1. ตรวจสอบและคลิกปุ่มบน Popup ด้วย WebDriver Click โดยตรง
+        dismiss_xpaths = [
+            "//button[contains(@class, 'swal2-confirm')]",
+            "//button[contains(@class, 'swal2-cancel')]",
+            "//button[contains(@class, 'swal2-close')]",
+            "//div[contains(@class, 'swal2-container')]",
+            "//div[contains(@class, 'swal2-overlay')]"
+        ]
+
+        for xpath in dismiss_xpaths:
+            try:
+                elements = self.driver.find_elements(By.XPATH, xpath)
+                for el in elements:
+                    if el.is_displayed():
+                        try:
+                            el.click()
+                            dismissed = True
+                            print(f"Dismissed popup via WebDriver click on: {xpath}")
+                            break
+                        except Exception as click_err:
+                            # Fallback เฉพาะกรณีที่ WebDriver ติด ElementClickIntercepted
+                            try:
+                                self.driver.execute_script("arguments[0].click();", el)
+                                dismissed = True
+                                break
+                            except Exception:
+                                pass
+                if dismissed:
+                    break
+            except Exception:
+                pass
+
+        time.sleep(0.5)
+
+    def _click_green_button(self) -> bool:
+        """กดปุ่มชำระเงิน (ปุ่มเขียว #btnPayment)"""
+        try:
+            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
+            if btn_payment.is_displayed():
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
+                time.sleep(0.2)
+                try:
+                    btn_payment.click()
+                except Exception:
+                    self.driver.execute_script("arguments[0].click();", btn_payment)
+                print("✅ กดปุ่มชำระเงิน (ปุ่มเขียว) สำเร็จ")
+                return True
+        except Exception as e:
+            print(f"Cannot click btnPayment: {e}")
+        return False
+
+    def final_popup_handler(self, is_etax: bool = False, operation_obj: Any = None) -> bool:
         """
         Monitors for the SweetAlert2 popup after clicking the green payment button.
-        Verifies success icon, handles retries, prints receipt, and updates Excel records.
+        Verifies success icon, handles retries continuously until success, prints receipt, and updates Excel records.
         """
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0
@@ -311,32 +366,17 @@ class POSPaymentHandler:
                 is_final_page = self.driver.find_element(
                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
             except Exception as loop_err:
-                # Safety net: If stuck on payment page without popup for >3s, retry clicking btnPayment
-                if loop_counter >= 3 and loop_counter % 3 == 0:
-                    try:
-                        btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
-                        if btn_payment.is_displayed():
-                            print(f"⚠️ [Safety Net] ค้างหน้าชำระเงินโดยไม่มี popup (รอบที่ {loop_counter}) กำลังลองกดปุ่มเขียว ซ้ำ...")
-                            self.app.update_log("⚠️ ตรวจพบว่ายังค้างอยู่หน้าชำระเงิน กำลังลองกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
-                            try:
-                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
-                                time.sleep(0.2)
-                                btn_payment.click()
-                            except Exception:
-                                self.driver.execute_script("arguments[0].click();", btn_payment)
-                    except Exception:
-                        pass
+                # Safety net: If stuck on payment page without popup for >=2s, retry clicking btnPayment
+                if loop_counter >= 2 and loop_counter % 2 == 0:
+                    print(f"⚠️ [Safety Net] รอ Popup (รอบที่ {loop_counter}) กำลังกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
+                    self._click_green_button()
                 continue
 
             if final_popup.is_displayed():
                 self.app.is_bot_browser_busy.set(True)
                 print("final pop-up has displayed!")
                 try:
-                    final_popup_btn = self.wait50.until(
-                        EC.element_to_be_clickable((By.XPATH, """//div[@class = 'swal2-content']"""))
-                    )
-                    self.bot.check_for_refresh_popup(final_popup_btn)
-                    time.sleep(1)
+                    time.sleep(0.5)
 
                     # 1. Check for success icon class 'swal2-icon swal2-success animate'
                     success_icons = self.driver.find_elements(
@@ -366,57 +406,18 @@ class POSPaymentHandler:
                     if not (is_success_popup and match):
                         submit_retry_count += 1
                         error_content = alert_text.strip() if alert_text.strip() else "ไม่พบข้อความแจ้งเตือน"
-                        print(f"Popup ไม่ใช่บิลสำเร็จ (รอบที่ {submit_retry_count}/3): '{error_content}'")
+                        print(f"Popup ไม่ใช่บิลสำเร็จ (รอบที่ {submit_retry_count}): '{error_content}'")
 
-                        # If retries exceeded 3 times -> record failure & abort
-                        if submit_retry_count > 3:
-                            err_msg = f"ไม่สามารถกด submit orderได้: {error_content}"
-                            self.app.update_log(f"❌ {err_msg}")
-                            logger.error(f"Order: {self.cus_order} - {err_msg}")
-                            self.bot.current_checkpoint = f"ล้มเหลว: {err_msg}"
-
-                            if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
-                                try:
-                                    self.app.accel_mode.record_failed_order(self.app.cus_order, err_msg)
-                                except Exception as xl_err:
-                                    logger.error(f"Accel mode record failed order error: {xl_err}")
-
-                            # Dismiss popup
-                            try:
-                                self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
-                            except Exception:
-                                try:
-                                    self.driver.find_element(By.XPATH, "//button[contains(@class, 'swal2-confirm')]").click()
-                                except Exception:
-                                    pass
-                            break
-
-                        # Retry <= 3: dismiss popup and click btnPayment again
                         self.app.update_log(
-                            f"⚠️ ตรวจพบ Popup อื่น (ไม่ใช่บิลสำเร็จ: '{error_content}') กำลังปิด Popup และกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ (ครั้งที่ {submit_retry_count}/3)..."
+                            f"⚠️ ตรวจพบ Popup: '{error_content}' -> กำลังปิด Popup และกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ (ครั้งที่ {submit_retry_count})..."
                         )
 
-                        try:
-                            self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
-                        except Exception:
-                            try:
-                                self.driver.find_element(By.XPATH, "//button[contains(@class, 'swal2-confirm')]").click()
-                            except Exception:
-                                pass
-                        time.sleep(0.5)
+                        # Dismiss popup (ปิด Popup แจ้งเตือน)
+                        self._dismiss_swal_popup()
+                        time.sleep(0.8)
 
-                        try:
-                            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
-                            if btn_payment.is_displayed():
-                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
-                                time.sleep(0.2)
-                                try:
-                                    btn_payment.click()
-                                except Exception:
-                                    self.driver.execute_script("arguments[0].click();", btn_payment)
-                        except Exception as btn_err:
-                            print(f"Error re-clicking green button: {btn_err}")
-
+                        # กดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำอีกครั้ง
+                        self._click_green_button()
                         continue
 
                     # 4. If success popup with receipt number
@@ -435,12 +436,12 @@ class POSPaymentHandler:
                             logger.error(f"etax_reprint error: {e}")
                         self.bot._update_accel_on_complete(inv_number, is_etax=True)
                         time.sleep(0.75)
-                        break
+                        return True
 
                     # Update Excel record
                     self.bot._update_accel_on_complete(inv_number, is_etax=False)
 
-                    # Close popup overlay
+                    # Close popup overlay (คลิกพื้นหลังสีดำ)
                     print("click container!")
                     self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
 
@@ -457,19 +458,12 @@ class POSPaymentHandler:
                         print(f"get_pdf_src_and_print error: {e}")
                         logger.error(f"get_pdf_src_and_print error: {e}")
 
-                except Exception as err:
-                    try:
-                        final_popup_btn.click()
-                    except Exception:
-                        pass
-                    print("พัง ข้ามไปเลยละกัน", err)
-                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
-                        try:
-                            self.app.accel_mode.record_failed_order(self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")
-                        except Exception as xl_err:
-                            logger.error(f"Accel mode record failed order error: {xl_err}")
+                    return True
 
-                break
+                except Exception as err:
+                    print("เกิดข้อผิดพลาดระหว่างจัดการ Popup หน้าท้าย:", err)
+                    time.sleep(1)
+                    continue
 
             elif not is_final_page.is_displayed():
                 print("หน้า final หายไป")

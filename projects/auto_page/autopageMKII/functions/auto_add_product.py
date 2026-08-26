@@ -166,7 +166,7 @@ class AutoAddProduct:
                 try:
                     # * SKU input location
                     sku_input_element = self.wait50.until(EC.visibility_of_element_located(
-                        (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search ')]")))
+                        (By.XPATH, "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue']")))
                     sku_qty_element = self.driver.find_element(
                         By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
 

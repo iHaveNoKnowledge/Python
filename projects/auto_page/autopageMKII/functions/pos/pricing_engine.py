@@ -843,14 +843,70 @@ class POSPricingReconciler:
                                 self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
 
                             if has_valid_cp:
-                                self.app.update_log(f"🔍 เลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
-                                cp_ok = self.cp_sonic_blow_process(item_no_1indexed, cp_name)
-                                if not cp_ok:
-                                    log_err = f"❌ เกิดข้อผิดพลาดขณะกดเลือกคูปอง [{cp_name}] บน SMCO สำหรับ SKU: {sku_key}"
-                                    logger.error(log_err)
-                                    self.app.update_log(log_err)
-                                    self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
-                                time.sleep(0.5)
+                                self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
+                                # ตรวจสอบคูปองที่มีอยู่เดิมบนหน้าเว็บ SMCO (จาก tooltip บน panel ของสินค้านั้น)
+                                try:
+                                    sku_variants = [sku_key]
+                                    try:
+                                        sku_variants = self.app.correct_sku_pattern(sku_key)
+                                    except Exception:
+                                        pass
+
+                                    panels = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                                    target_panel = None
+                                    for panel in panels:
+                                        panel_text = panel.text
+                                        if any(variant in panel_text for variant in sku_variants):
+                                            target_panel = panel
+                                            break
+
+                                    existing_cps = []
+                                    if target_panel:
+                                        tooltip_elements = target_panel.find_elements(By.XPATH, ".//a[@data-toggle='tooltip']")
+                                        for el in tooltip_elements:
+                                            text = el.text or ""
+                                            title = el.get_attribute("title") or ""
+                                            combined = (text + " " + title).replace(" ", "").upper()
+                                            existing_cps.append(combined)
+
+                                    target_tokens = []
+                                    for part in str(cp_name).split(','):
+                                        for token in part.split():
+                                            tok = token.strip().upper()
+                                            if tok:
+                                                target_tokens.append(tok)
+
+                                    missing_tokens = []
+                                    for token in target_tokens:
+                                        matched = False
+                                        for existing in existing_cps:
+                                            if token in existing:
+                                                matched = True
+                                                break
+                                        if not matched:
+                                            missing_tokens.append(token)
+
+                                    if not missing_tokens:
+                                        self.app.update_log(f"✨ คูปอง {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ครบก่อนแล้ว ข้ามการเลือกซ้ำ")
+                                    else:
+                                        missing_cp_str = " ".join(missing_tokens)
+                                        self.app.update_log(f"✅ คูปองที่ยังไม่ถูกเลือกคือ: {missing_cp_str} กำลังดำเนินการแอดคูปอง...")
+                                        cp_ok = self.cp_sonic_blow_process(item_no_1indexed, missing_cp_str)
+                                        if not cp_ok:
+                                            log_err = f"❌ เกิดข้อผิดพลาดขณะกดเลือกคูปอง [{missing_cp_str}] บน SMCO สำหรับ SKU: {sku_key}"
+                                            logger.error(log_err)
+                                            self.app.update_log(log_err)
+                                            self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
+                                        time.sleep(0.5)
+                                except Exception as check_err:
+                                    print(f"Error checking and filtering cp/dc tooltips: {check_err}")
+                                    cp_ok = self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                                    if not cp_ok:
+                                        log_err = f"❌ เกิดข้อผิดพลาดขณะกดเลือกคูปอง [{cp_name}] บน SMCO สำหรับ SKU: {sku_key}"
+                                        logger.error(log_err)
+                                        self.app.update_log(log_err)
+                                        self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
+                                    time.sleep(0.5)
 
                             if has_valid_oc:
                                 self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")

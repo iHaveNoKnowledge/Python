@@ -613,7 +613,7 @@ class AccelMode:
 
                         # รอ SKU element และปุ่ม //i[@class='fa fa-check-square-o'] หรือปุ่ม Red Alert Modal แสดงขึ้นมา
                         sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_ordered_sku}']"
-                        check_btn_xpath = "//i[@class='fa fa-check-square-o']"
+                        check_btn_xpath = "//i[contains(@class, 'fa-check-square-o') or contains(@class, 'fa-check-square')]"
 
                         wait_timeout = 44
                         start_wait = time.time()
@@ -631,35 +631,38 @@ class AccelMode:
                                 if sku_elem.is_displayed() and check_btn.is_displayed():
                                     found_mode = 'inline_check'
                                     break
-                            except:
+                            except Exception:
                                 pass
 
                             # 2. เช็คกรณีพิเศษ: sku_elem โผล่มาแล้ว แต่ check_btn ไม่โผล่ และปุ่ม SN กลายเป็น redalert
-                            try:
-                                sku_elems = driver.find_elements(
-                                    By.XPATH,
-                                    "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
-                                )
-                                serial_btns = driver.find_elements(
-                                    By.XPATH,
-                                    "//button[contains(@class, 'btn-serial btn btn-sm btn-outline')]"
-                                )
-                                for idx, s_el in enumerate(sku_elems):
-                                    s_text = s_el.text.strip()
-                                    if (current_ordered_sku.strip().lower() in s_text.lower() or
-                                            s_text.lower() in current_ordered_sku.strip().lower()):
-                                        if idx < len(serial_btns):
-                                            btn = serial_btns[idx]
-                                            btn_class = btn.get_attribute('class') or ''
-                                            if 'ng-redalert' in btn_class or 'btn-danger' in btn_class:
-                                                target_red_btn = btn
-                                                break
+                            # (ต้องรออย่างน้อย 15 วินาที เพื่อให้ SMCO ทำการ validate SN และ render DOM ให้เสร็จก่อน)
+                            elapsed = time.time() - start_wait
+                            if elapsed > 15:
+                                try:
+                                    sku_elems = driver.find_elements(
+                                        By.XPATH,
+                                        "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                                    )
+                                    serial_btns = driver.find_elements(
+                                        By.XPATH,
+                                        "//button[contains(@class, 'btn-serial btn btn-sm btn-outline')]"
+                                    )
+                                    for idx, s_el in enumerate(sku_elems):
+                                        s_text = s_el.text.strip()
+                                        if (current_ordered_sku.strip().lower() in s_text.lower() or
+                                                s_text.lower() in current_ordered_sku.strip().lower()):
+                                            if idx < len(serial_btns):
+                                                btn = serial_btns[idx]
+                                                btn_class = btn.get_attribute('class') or ''
+                                                if 'ng-redalert' in btn_class or 'btn-danger' in btn_class:
+                                                    target_red_btn = btn
+                                                    break
 
-                                if target_red_btn is not None and (time.time() - start_wait) > 3:
-                                    found_mode = 'redalert_modal'
-                                    break
-                            except:
-                                pass
+                                    if target_red_btn is not None:
+                                        found_mode = 'redalert_modal'
+                                        break
+                                except Exception:
+                                    pass
 
                             time.sleep(0.5)
 
