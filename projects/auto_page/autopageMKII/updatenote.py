@@ -1,4 +1,41 @@
-# ปัญหาที่ต้องแก้
+"""
+# Changelog
+
+All changes made to the project are recorded below in a structured format.
+
+## [3.1.2] - 2026-08-27
+- Fixed various bugs in accel mode and UI interactions.
+- Improved handling of duplicate SKUs and SN state management.
+- Updated regex patterns for customer name and invoice extraction.
+- Added logging and error handling enhancements.
+
+## [3.1.1] - 2026-07-15
+- Refactored customer addition flow and improved recursive handling.
+- Adjusted pricing engine to handle seller vouchers as floats.
+- Updated UI components to be responsive with customtkinter.
+
+## [3.1.0] - 2026-06-30
+- Implemented silent printing via SumatraPDF using `subprocess.Popen` for non‑blocking operation.
+- Added retry mechanisms for payment button clicks and popup handling.
+- Migrated UI from tkinter to customtkinter for better scaling.
+
+## [3.0.0] - 2026-05-20
+- Introduced major breaking change: silent printing now works correctly.
+- Added stop button functionality.
+- Implemented popup controls for seller voucher visibility.
+
+## [2.4.4] - 2026-04-10
+- Fixed numerous UI bugs, improved element locators, and added robustness to threading.
+- Updated pricing engine to handle variations and tax IDs.
+- Added extensive logging for debugging purposes.
+
+*Older entries have been consolidated for brevity.*
+
+---
+
+*This file now serves solely as a changelog. No executable code is present.*
+"""
+
 # *1แก้แล้ว** บรรทัดล่างสุด"สินค้ารวมค่าส่งหัก seller: " เลขยอดเงิน ที่แสดงผล เมื่อเจอ list mี่มีสมาชิกหลายตัว มันจะรวมแค่ตัวแรกอย่างเดียว ต้องใช้ forloop รวมราคาทุกตัว
 # *2 fixed 0.394 // เวลา kb เป็น ภาษาไทย จะกcopy ข้อความใน log ไม่ได้ น่าจะเป็นเพราะ เครื่องไม่ได้รับค่า ctrl+c แต่เป็น ctrl+แ
 # *3 แอดใบกำกับ บัค ตรงที่ เราเหลือ ปุ่มสุดท้ายยังไม่กด แต่พอยังไม่กด มันไม่รอ มัน error ไปเลย

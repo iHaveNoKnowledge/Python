@@ -529,6 +529,13 @@ class AccelMode:
                     print(f"เกิดข้อผิดพลาดระหว่างปรับลดจำนวน: {e}")
                     time.sleep(0.5)
 
+        # ซิงค์ obj_data_from_accel_file จาก accel_df_state ล่าสุดเสมอ เพื่อป้องกัน SN หายกรณีรอบก่อนหน้า abort/fail
+        if hasattr(self, 'accel_df_state') and isinstance(self.accel_df_state, pd.DataFrame) and not self.accel_df_state.empty:
+            self.obj_data_from_accel_file = {
+                col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() not in ('nan', '<NA>', 'None', '')]
+                for col in self.accel_df_state.columns if pd.notna(col)
+            }
+
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
         # * เก็บ SKU ที่ยิง SN ได้ไม่ครบตามที่ลูกค้าสั่ง (SN ใน accel file ไม่พอ)
@@ -1179,6 +1186,8 @@ class AccelMode:
             self._save_df_to_excel(failed_df, 'Failed_Orders')
             print(
                 f"Successfully recorded failed order {order_str} to Failed_Orders sheet.")
+            self.used_serials = []
+            self.sn_shortage = []
         except PermissionError as e:
             print(f"Permission denied while recording failed order: {e}")
             logger.warning(
@@ -1189,11 +1198,12 @@ class AccelMode:
 
     def record_completed_order(
             self, order, tracking="", bill_no="", status="Completed", price="", serials=None, sn=None, pricing_detail=""):
-        """Record completed order into Completed_Orders sheet in Accel Excel file
+        """Record completed order into Completed_Orders sheet in Accel Excel file.
+        รองรับการแยกหลาย Rows ตามจำนวน Tracking โดยจับคู่ SKU และ SN ของแต่ละ Tracking อัตโนมัติ
 
         Args:
             order: order object or string
-            tracking: tracking number string
+            tracking: tracking number string or list
             bill_no: bill/receipt number string
             status: completion status string (e.g. Completed, TEST_SUCCESS)
             price: ราคาออกบิลหน้าท้าย (final_price) ที่คำนวณได้ตอนยิงของ
@@ -1202,29 +1212,171 @@ class AccelMode:
             pricing_detail: รายละเอียดการตรวจสอบราคาแต่ละ SKU และยอดรวม (ตรง/ไม่ตรง)
         """
         if hasattr(order, 'get'):
-            order_str = order.get()
+            order_str = str(order.get()).strip()
         else:
-            order_str = str(order)
+            order_str = str(order).strip()
 
-        # จัดการข้อมูล SN ที่ใช้ในออเดอร์นี้
-        target_serials = serials if serials is not None else (
-            sn if sn is not None else getattr(self, 'used_serials', []))
+        # 1. จัดการและสกัดข้อมูล SN ทั้งหมดที่ใช้ในออเดอร์นี้
+        # * ถ้าเป็น Order ที่ถูกยกเลิก/ข้าม/Failed จะต้องไม่มีค่า SN โดยเด็ดขาด
+        is_cancelled_or_skipped = any(
+            kw in str(status).lower() for kw in ['ยกเลิก', 'ข้าม', 'cancel', 'failed', 'forbid', 'ยังไม่ชำระ', 'shortage']
+        )
+        if is_cancelled_or_skipped:
+            target_serials = []
+        else:
+            target_serials = serials if serials is not None else (
+                sn if sn is not None else getattr(self, 'used_serials', []))
+
+        parsed_serials = []
         if isinstance(target_serials, (list, tuple, set)):
-            sn_list = []
             for item in target_serials:
                 if isinstance(item, dict):
                     sn_val = item.get('sn') or item.get('serial') or item.get('serial_no') or ''
-                    if sn_val:
-                        sn_list.append(str(sn_val).strip())
+                    sku_val = item.get('sku') or item.get('item') or item.get('sku_code') or ''
+                    if sn_val and str(sn_val).strip().lower() != 'nan':
+                        parsed_serials.append({'sku': str(sku_val).strip().replace(' ', ''), 'sn': str(sn_val).strip()})
                 elif isinstance(item, (list, tuple)) and len(item) > 1:
-                    sn_list.append(str(item[1]).strip())
+                    sku_val = str(item[0]).strip().replace(' ', '')
+                    sn_val = str(item[1]).strip()
+                    if sn_val and sn_val.lower() != 'nan':
+                        parsed_serials.append({'sku': sku_val, 'sn': sn_val})
                 elif item:
-                    sn_list.append(str(item).strip())
-            sn_str = ", ".join([s for s in sn_list if s and s.lower() != 'nan'])
-        else:
-            sn_str = str(target_serials).strip() if target_serials else ""
+                    sn_val = str(item).strip()
+                    if sn_val and sn_val.lower() != 'nan':
+                        parsed_serials.append({'sku': '', 'sn': sn_val})
+        elif target_serials:
+            raw_s = str(target_serials).strip()
+            if raw_s and raw_s.lower() != 'nan':
+                for s in raw_s.split(','):
+                    s = s.strip()
+                    if s and s.lower() != 'nan':
+                        parsed_serials.append({'sku': '', 'sn': s})
 
-        print(f"Recording completed order: {order_str} (Status: {status}, SN: {sn_str})")
+        # 2. สกัด Tracking numbers จาก parameter และ App state
+        tracking_list = []
+        if isinstance(tracking, (list, tuple, set)):
+            tracking_list = [str(t).strip() for t in tracking if str(t).strip() and str(t).strip().lower() != 'nan']
+        elif tracking:
+            tracking_list = [t.strip() for t in re.split(r'[,;\n]+', str(tracking)) if t.strip() and t.strip().lower() != 'nan']
+
+        # ถ้า tracking_list ยังว่าง ให้ลองดึงจาก main_app
+        if not tracking_list and hasattr(self, 'main_app') and self.main_app:
+            if hasattr(self.main_app, 'tracking_from_data') and self.main_app.tracking_from_data:
+                tracking_list = [str(t).strip() for t in self.main_app.tracking_from_data if str(t).strip() and str(t).strip().lower() != 'nan']
+
+        # 3. ดึงข้อมูล Order Data (filter_data หรือ data_frame) เพื่อหาความสัมพันธ์ระหว่าง Tracking กับ SKU
+        filter_df = None
+        if hasattr(self, 'main_app') and self.main_app:
+            if hasattr(self.main_app, 'filter_data') and self.main_app.filter_data is not None:
+                try:
+                    if not self.main_app.filter_data.empty:
+                        if 'หมายเลขคำสั่งซื้อ' in self.main_app.filter_data.columns:
+                            match_df = self.main_app.filter_data[self.main_app.filter_data['หมายเลขคำสั่งซื้อ'].astype(str).str.strip() == order_str]
+                            if not match_df.empty:
+                                filter_df = match_df
+                        if filter_df is None:
+                            filter_df = self.main_app.filter_data
+                except Exception:
+                    pass
+            if filter_df is None and hasattr(self.main_app, 'data_frame') and self.main_app.data_frame is not None:
+                try:
+                    if not self.main_app.data_frame.empty and 'หมายเลขคำสั่งซื้อ' in self.main_app.data_frame.columns:
+                        match_df = self.main_app.data_frame[self.main_app.data_frame['หมายเลขคำสั่งซื้อ'].astype(str).str.strip() == order_str]
+                        if not match_df.empty:
+                            filter_df = match_df
+                except Exception:
+                    pass
+
+        # หาชื่อ column tracking และ SKU ใน filter_df
+        tracking_col = None
+        sku_col = None
+        track_to_skus = {}
+        order_trackings_from_file = []
+
+        if filter_df is not None:
+            for c in ['*หมายเลขติดตามพัสดุ', 'หมายเลขติดตามพัสดุ', 'Tracking Number', 'Tracking No.', 'Tracking No', 'Tracking']:
+                if c in filter_df.columns:
+                    tracking_col = c
+                    break
+            for c in ['เลขอ้างอิง SKU (SKU Reference No.)', 'เลขอ้างอิง SKU', 'SKU Reference No.', 'Seller SKU', 'SKU']:
+                if c in filter_df.columns:
+                    sku_col = c
+                    break
+
+            if sku_col is not None:
+                for _, r in filter_df.iterrows():
+                    r_sku = str(r[sku_col]).strip().replace(' ', '')
+                    r_track = str(r[tracking_col]).strip() if (tracking_col and pd.notna(r[tracking_col])) else ""
+                    if r_track and r_track.lower() not in ('nan', 'none', ''):
+                        if r_track not in order_trackings_from_file:
+                            order_trackings_from_file.append(r_track)
+                        track_to_skus.setdefault(r_track, []).append(r_sku)
+
+        if not tracking_list and order_trackings_from_file:
+            tracking_list = order_trackings_from_file
+
+        # Deduplicate tracking_list โดยยังคงลำดับเดิมไว้
+        tracking_list = list(dict.fromkeys(tracking_list))
+
+        # 4. สร้างแถว (Rows) เพื่อบันทึกลง Completed_Orders
+        now_ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        new_rows_data = []
+
+        if len(tracking_list) > 1:
+            # กรณีมีหลาย Tracking: แยก 1 Row ต่อ 1 Tracking
+            assigned_sns_mask = [False] * len(parsed_serials)
+
+            for idx, trk in enumerate(tracking_list):
+                matched_sns = []
+                skus_for_this_track = track_to_skus.get(trk, [])
+
+                if skus_for_this_track:
+                    # หา SN ที่ SKU ตรงกับ tracking นี้
+                    for s_idx, p_sn in enumerate(parsed_serials):
+                        if not assigned_sns_mask[s_idx] and p_sn.get('sku') in skus_for_this_track:
+                            matched_sns.append(p_sn['sn'])
+                            assigned_sns_mask[s_idx] = True
+
+                # Fallback: ถ้ายังไม่มี SN และจำนวน tracking ตรงกับจำนวน SN -> map 1-to-1 ตามลำดับ
+                if not matched_sns and idx < len(parsed_serials) and not assigned_sns_mask[idx]:
+                    matched_sns.append(parsed_serials[idx]['sn'])
+                    assigned_sns_mask[idx] = True
+
+                sn_cell_val = ", ".join(matched_sns)
+                new_rows_data.append({
+                    'tracking': str(trk),
+                    'orders': order_str,
+                    'bill_no': str(bill_no),
+                    'price': str(price),
+                    'pricing_detail': str(pricing_detail),
+                    'timestamp': now_ts,
+                    'status': str(status),
+                    'sn': sn_cell_val
+                })
+
+            # เผื่อมี SN หลงเหลือที่ยังไม่ได้ assign ให้ใส่ในแถวแรก
+            unassigned = [p['sn'] for i, p in enumerate(parsed_serials) if not assigned_sns_mask[i]]
+            if unassigned and new_rows_data:
+                existing_sn = new_rows_data[0]['sn']
+                combined_sn = ", ".join([s for s in [existing_sn, ", ".join(unassigned)] if s])
+                new_rows_data[0]['sn'] = combined_sn
+
+        else:
+            # กรณีมี 1 Tracking หรือไม่มีเลย: บันทึก 1 Row ตามปกติ
+            trk_val = tracking_list[0] if tracking_list else ""
+            sn_val = ", ".join([p['sn'] for p in parsed_serials if p.get('sn')])
+            new_rows_data.append({
+                'tracking': str(trk_val),
+                'orders': order_str,
+                'bill_no': str(bill_no),
+                'price': str(price),
+                'pricing_detail': str(pricing_detail),
+                'timestamp': now_ts,
+                'status': str(status),
+                'sn': sn_val
+            })
+
+        print(f"Recording completed order: {order_str} (Status: {status}, Rows: {len(new_rows_data)})")
 
         if not self.accel_file_dir:
             print("No accel file selected, cannot record completed order.")
@@ -1236,8 +1388,8 @@ class AccelMode:
                     f"Accel file {self.accel_file_dir} does not exist, cannot record completed order.")
                 return
 
-            completed_df = pd.DataFrame(
-                columns=['tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'timestamp', 'status', 'sn'])
+            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'timestamp', 'status', 'sn']
+            completed_df = pd.DataFrame(columns=_col_order)
 
             try:
                 completed_df = pd.read_excel(
@@ -1245,33 +1397,25 @@ class AccelMode:
             except Exception:
                 print("Completed_Orders sheet does not exist yet. Creating a new one.")
 
-            # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (ไฟล์เก่าที่เรียงแบบเดิมจะถูก reorder ด้วย)
-            # align ด้วยชื่อ column ไม่ใช้ตำแหน่ง -> ข้อมูลไม่หลุดหาย
-            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'timestamp', 'status', 'sn']
+            # จัดลำดับ column ให้เป็นแบบใหม่เสมอ (align ด้วยชื่อ column)
             for _col in _col_order:
                 if _col not in completed_df.columns:
                     completed_df[_col] = ""
             completed_df = completed_df[_col_order]
 
-            new_row = pd.DataFrame([{
-                'tracking': str(tracking),
-                'orders': order_str,
-                'bill_no': str(bill_no),
-                'sn': sn_str,
-                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                'status': str(status),
-                'price': price,
-                'pricing_detail': str(pricing_detail)
-            }])
-
-            completed_df = completed_df[completed_df['orders'] != order_str]
+            # ลบแถวเก่าของ order นี้ออก (ป้องกันการซ้ำซ้อน) แล้วเพิ่มแถวใหม่
+            completed_df = completed_df[completed_df['orders'].astype(str).str.strip() != order_str]
+            new_rows_df = pd.DataFrame(new_rows_data)
             completed_df = pd.concat(
-                [completed_df, new_row], ignore_index=True)
+                [completed_df, new_rows_df], ignore_index=True)
             completed_df = completed_df[_col_order]
 
             self._save_df_to_excel(completed_df, 'Completed_Orders')
             print(
-                f"Successfully recorded completed order {order_str} (SN: {sn_str}) to Completed_Orders sheet.")
+                f"Successfully recorded {len(new_rows_data)} row(s) for completed order {order_str} to Completed_Orders sheet.")
+            # ล้าง used_serials เมื่อจบการบันทึก order เพื่อไม่ให้ค้างไปปนกับ order ถัดไป
+            self.used_serials = []
+            self.sn_shortage = []
         except PermissionError as e:
             print(f"Permission denied while recording completed order: {e}")
             logger.warning(

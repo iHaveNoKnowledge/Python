@@ -226,7 +226,8 @@ class MarketplaceScraper:
                             except Exception as xl_err:
                                 logger.warning(f"ไม่สามารถ deduct order จาก Sheet1 ได้: {xl_err}")
                         if hasattr(self.app.accel_mode, 'record_completed_order'):
-                            self.app.accel_mode.record_completed_order(order_no, status=f"ข้าม (สถานะ: {shopee_status})")
+                            self.app.accel_mode.record_completed_order(
+                                order_no, status=f"ข้าม (สถานะ: {shopee_status})", serials="")
 
                     result.is_skip = True
                     result.skip_reason = f"ข้าม (สถานะ: {shopee_status})"

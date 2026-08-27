@@ -244,7 +244,7 @@ class POSPaymentHandler:
 
                                 if is_zero_value:
                                     print("Value is 0.00, clicking btnPayment with retries...")
-                                    btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
+                                    btn_payment = self.driver.find_element(By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']")
                                     click_done = False
                                     for click_attempt in range(1, 4):
                                         try:
@@ -285,7 +285,7 @@ class POSPaymentHandler:
         return True
 
     def _dismiss_swal_popup(self):
-        """ปิด Popup ของ SweetAlert2 โดยเน้นใช้ WebDriver Click เป็นหลัก"""
+        """ปิด Popup ของ SweetAlert2 โดยเน้นใช้ WebDriver Click เป็นหลัก และรอให้ overlay หายไปจริง"""
         dismissed = False
         # 1. ตรวจสอบและคลิกปุ่มบน Popup ด้วย WebDriver Click โดยตรง
         dismiss_xpaths = [
@@ -319,20 +319,26 @@ class POSPaymentHandler:
             except Exception:
                 pass
 
+        # รอให้ Popup และ Overlay หายไปจริงก่อนทำขั้นตอนถัดไป
+        try:
+            self.wait50.until(EC.invisibility_of_element_located((By.XPATH, "//div[contains(@class, 'swal2-shown') or contains(@class, 'swal2-container')]")))
+        except Exception:
+            time.sleep(0.8)
         time.sleep(0.5)
 
     def _click_green_button(self) -> bool:
         """กดปุ่มชำระเงิน (ปุ่มเขียว #btnPayment)"""
         try:
-            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
-            if btn_payment.is_displayed():
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
-                time.sleep(0.2)
-                try:
-                    btn_payment.click()
-                except Exception:
-                    self.driver.execute_script("arguments[0].click();", btn_payment)
-                print("✅ กดปุ่มชำระเงิน (ปุ่มเขียว) สำเร็จ")
+            btn_payment = self.driver.find_element(By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']")
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
+            time.sleep(0.2)
+            try:
+                btn_payment.click()
+                print("✅ กดปุ่มชำระเงิน (ปุ่มเขียว) สำเร็จ (Standard Click)")
+                return True
+            except Exception:
+                self.driver.execute_script("arguments[0].click();", btn_payment)
+                print("✅ กดปุ่มชำระเงิน (ปุ่มเขียว) สำเร็จ (JS Click)")
                 return True
         except Exception as e:
             print(f"Cannot click btnPayment: {e}")
@@ -414,7 +420,7 @@ class POSPaymentHandler:
 
                         # Dismiss popup (ปิด Popup แจ้งเตือน)
                         self._dismiss_swal_popup()
-                        time.sleep(0.8)
+                        time.sleep(1.2)
 
                         # กดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำอีกครั้ง
                         self._click_green_button()
@@ -493,6 +499,10 @@ class POSPaymentHandler:
                         print("ไม่เอาใบกำกับ")
                     time.sleep(1)
             else:
+                # Safety Net: ถ้ายังอยู่หน้าชำระเงิน และไม่มี Popup ใดๆ แสดงเกิน 3 วินาที ให้กดปุ่มชำระเงินซ้ำ
+                if loop_counter >= 2 and loop_counter % 3 == 0:
+                    print(f"⚠️ [Safety Net] อยู่หน้าชำระเงินโดยไม่มี Popup (รอบที่ {loop_counter}) กำลังกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
+                    self._click_green_button()
                 continue
 
     def return_to_first_page(self) -> None:

@@ -611,15 +611,28 @@ class POSPricingReconciler:
                 oc_amount = oc_amounts_list[idx]
 
             if oc_amount > 0:
+                sku_variants = [item]
+                try:
+                    sku_variants = self.app.correct_sku_pattern(item)
+                except Exception:
+                    pass
+
+                found_panel = False
                 for idx2, div in enumerate(items_list_element):
                     try:
-                        if div.text.find(item) != -1:
+                        div_text = div.text
+                        if any(variant in div_text for variant in sku_variants):
+                            found_panel = True
                             li_loc = idx2 + 1
                             srp_btn_css = f'.col-sm-12.panel.panel-default.ng-scope:nth-child({li_loc}) div.panel-body:nth-child(1) div.row.col-sm-6:nth-child(2) > div:nth-child(1) div:nth-child(1) div a:nth-child(1)'
                             self.driver.find_element(By.CSS_SELECTOR, srp_btn_css).click()
                             time.sleep(0.5)
 
-                            change_price_input = self.driver.find_element(By.XPATH, "//input[@ng-keyup='onPistive(oms)']")
+                            # รอให้ Modal เปลี่ยนราคาเปิดและช่องกรอกราคาแสดงขึ้นมา
+                            change_price_input = self.wait50.until(
+                                EC.visibility_of_element_located((By.XPATH, "//input[@ng-keyup='onPistive(oms)']"))
+                            )
+                            time.sleep(0.3)
                             based_price = self.driver.execute_script("return angular.element(arguments[0]).val();", change_price_input)
                             new_price = float(str(based_price).replace(",", "")) + float(oc_amount)
 
@@ -630,30 +643,48 @@ class POSPricingReconciler:
                                 "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
                                 change_price_input, new_price)
 
-                            user_id_input = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[2]/input')
+                            # รอช่องกรอก User ID
+                            user_id_input = self.wait50.until(
+                                EC.visibility_of_element_located((By.XPATH, "//div[@id='modalChageProductPrice']//input[@ng-model='oms.currentApprUser'] | //input[@ng-model='oms.currentApprUser' and @title]"))
+                            )
                             self.bot.js_input_value(user_id_input, self.app.user_id.get())
 
-                            user_pw_input = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[2]/div[3]/input')
+                            # รอช่องกรอก Password
+                            user_pw_input = self.wait50.until(
+                                EC.visibility_of_element_located((By.XPATH, "//div[@id='modalChageProductPrice']//input[@ng-model='oms.currentApprPassword' and @type='password']"))
+                            )
                             self.bot.js_input_value(user_pw_input, self.app.user_pw.get())
 
-                            note_textarea = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[5]/div/textarea')
+                            # รอช่องกรอก Note
+                            note_textarea = self.wait50.until(
+                                EC.visibility_of_element_located((By.XPATH, "//div[@id='modalChageProductPrice']//textarea"))
+                            )
                             self.bot.js_input_value(note_textarea, "Online")
 
-                            green_submit_btn = self.driver.find_element(
-                                By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')
+                            # รอและกดปุ่มยืนยัน
+                            green_submit_btn = self.wait50.until(
+                                EC.element_to_be_clickable((By.XPATH, "//a[@class='btn btn-success text-center' and @ng-click='okChagePriceProduct()']"))
+                            )
+                            time.sleep(0.3)
                             self.driver.execute_script("arguments[0].click();", green_submit_btn)
 
                             try:
                                 self.wait50.until(EC.invisibility_of_element_located(
-                                    (By.XPATH, '/html/body/div[2]/div[3]/div[2]/div[2]/div[8]/div/div/div[2]/div[6]/a[1]')))
+                                    (By.XPATH, "//a[@class='btn btn-success text-center' and @ng-click='okChagePriceProduct()']")))
                             except Exception:
                                 time.sleep(1)
                             break
                     except Exception as err:
-                        logger.error(f"Order: {self.bot.cus_order}: smco_set_overcharge error: {err}")
+                        err_msg = f"การปรับราคาขึ้น (Overcharge) สำหรับ SKU: {item} ผิดพลาด: {err}"
+                        logger.error(f"Order: {self.bot.cus_order}: {err_msg}")
+                        self.app.update_log(f"❌ {err_msg}")
+                        raise ValueError(err_msg)
+
+                if not found_panel:
+                    err_msg = f"การปรับราคาขึ้น (Overcharge) ผิดพลาด: ไม่พบสินค้า SKU: {item} บนหน้าเว็บ SMCO"
+                    logger.error(f"Order: {self.bot.cus_order}: {err_msg}")
+                    self.app.update_log(f"❌ {err_msg}")
+                    raise ValueError(err_msg)
 
     def smco_set_discount_product(self, items_user_input: str = None, dc_amounts_input: str = None, qty: Any = ["1"]) -> None:
         """ปรับราคาลด (Discount) สำหรับ SKU ที่ต้องการ"""
@@ -792,8 +823,9 @@ class POSPricingReconciler:
 
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
                     if diff_val > 0:
-                        applied = False
                         if cp_candidates:
+                            # กรณีพบข้อมูลใน cp_data: จะทำ OC ก็ต่อเมื่อคอลัมน์ oc_amount มีค่าระบุไว้เท่านั้น (หากไม่มี oc_amount จะไม่ทำ OC)
+                            applied = False
                             for cand in cp_candidates:
                                 if is_valid_adjustment(cand.get("oc_amount", "")):
                                     oc_amount_str = cand.get("oc_amount", "")
@@ -801,7 +833,14 @@ class POSPricingReconciler:
                                     self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
                                     applied = True
                                     break
-                        if not applied:
+                                elif str(cand.get("cp_name", "")).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]:
+                                    self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cand.get('cp_name')})")
+                                    applied = True
+                                    break
+                            if not applied:
+                                self.app.update_log(f"ℹ️ พบข้อมูลใน CP Data สำหรับ SKU: {sku_key} แต่ไม่มีการระบุ oc_amount -> ไม่ทำการ Overcharge")
+                        else:
+                            # กรณีไม่มีใน cp_data (เทียบครั้งแรกหลังยิง POS): ปรับตาม diff_val ปกติ
                             self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
                             self.smco_set_overcharge_product(sku_key, str(diff_val))
 
@@ -1026,7 +1065,7 @@ class POSPricingReconciler:
         if has_entry:
             excel_str = ", ".join(excel_cp_names) if excel_cp_names else "ระบุแต่ยังไม่มีรหัส CP"
             smco_str = ", ".join(smco_scanned) if smco_scanned else "ไม่พบปุ่ม CP หรือไม่มีคูปองบนหน้า SMCO"
-            extra_note = f" (มี SKU ใน CP_data แล้ว แต่ CP ใน Excel กับหน้า SMCO ไม่ตรงกัน:\n  • ใน cp_data.xlsx ระบุ: {excel_str}\n  • บนหน้า SMCO มี: {smco_str})"
+            extra_note = f"\n(มี SKU ใน CP_data แล้ว แต่ CP ใน Excel กับหน้า SMCO ไม่ตรงกัน:\n  • ใน cp_data.xlsx ระบุ: {excel_str}\n  • บนหน้า SMCO มี: {smco_str})"
         else:
             extra_note = ""
 
@@ -1035,7 +1074,8 @@ class POSPricingReconciler:
             f"{sku_key} {product_name}\n"
             f"ยิงขายขึ้น {actual_formatted} บาท\n"
             f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
-            f"ขอวิธีปรับราคาครับ{extra_note}"
+            f"ขอวิธีปรับราคาครับ"
+            f"{extra_note}"
         )
         self.app.update_log(pattern_msg)
         error_msg = f"Order skipped, CP/DC not set for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})\n{pattern_msg}"
@@ -1104,7 +1144,7 @@ class POSPricingReconciler:
                 if self.app.is_accel_mode.get() and self.app.is_auto_invoice_mode.get():
                     self._check_missing_serial_popups()
             else:
-                self._handle_post_verification_failures(post_verification)
+                self._handle_post_verification_failures(post_verification, initial_verification=verification_result)
 
         except Exception as err:
             err_str = str(err).lower()
@@ -1234,25 +1274,69 @@ class POSPricingReconciler:
         )
         self.app.update_log(summary_msg)
 
-    def _handle_post_verification_failures(self, post_verification: dict) -> None:
-        """รวบรวม Error และแจ้งเตือนเมื่อการตรวจสอบรอบ 2 ยังไม่ผ่าน"""
+    def _handle_post_verification_failures(self, post_verification: dict, initial_verification: dict = None) -> None:
+        """รวบรวม Error และแจ้งเตือนเมื่อการตรวจสอบรอบ 2 ยังไม่ผ่าน โดยจัดรูปแบบราคา mismatch เป็น Pattern ขอวิธีปรับราคา (ราคาก่อนปรับ)"""
         self._log_price_verification_summary(post_verification)
         qty_errors = [
             f"จำนวนไม่พอ: {sku} (expected {info.get('expected')}, actual {info.get('actual')})"
             for sku, info in post_verification.get("qty", {}).items() if not info.get("ok", True)
         ]
-        price_errors = [
-            f"SKU Price mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')}, diff {info.get('diff')})"
-            for sku, info in post_verification.get("price", {}).items() if not info.get("ok", True)
-        ]
+        
+        mismatch_patterns = []
+        marketplace = self.app.marketplace_target.get()
+        purchase_time = self.app.cus_purchase_time.get()
+        purchased_date = purchase_time
+
+        price_errors = []
+        for sku, info in post_verification.get("price", {}).items():
+            if not info.get("ok", True):
+                price_errors.append(
+                    f"SKU Price mismatch: {sku} (expected {info.get('expected')}, actual {info.get('actual')}, diff {info.get('diff')})"
+                )
+                product_name = ""
+                for item in self.app.items:
+                    if item.get('เลเลขsku') == sku or item.get('เลขอ้างอิง SKU (SKU Reference No.)') == sku:
+                        product_name = str(item.get('ชื่อสินค้า', '')).strip()
+                        if product_name.lower() == 'nan':
+                            product_name = ''
+                        break
+
+                expected_price = info.get('expected', 0)
+                # ดึงราคาจริงตั้งต้นก่อนปรับจาก initial_verification (Round 1)
+                init_pinfo = (initial_verification or {}).get("price", {}).get(sku, {})
+                actual_price = init_pinfo.get('actual', info.get('actual', 0))
+
+                try:
+                    actual_formatted = f"{float(actual_price):,.2f}"
+                except Exception:
+                    actual_formatted = str(actual_price)
+                try:
+                    expected_formatted = f"{float(expected_price):,.2f}"
+                except Exception:
+                    expected_formatted = str(expected_price)
+
+                pattern_msg = (
+                    f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
+                    f"{sku} {product_name}\n"
+                    f"ยิงขายขึ้น {actual_formatted} บาท\n"
+                    f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+                    f"ขอวิธีปรับราคาครับ"
+                )
+                self.app.update_log(pattern_msg)
+                mismatch_patterns.append(pattern_msg)
+
         total_res = post_verification.get("total", {})
         total_errors = (
             [f"Total Price mismatch (expected {total_res.get('expected')}, actual {total_res.get('actual')})"]
             if not total_res.get("ok", True) else []
         )
 
-        all_errors = qty_errors + price_errors + total_errors
-        error_msg = f"ราคา/จำนวนไม่ตรงหลังปรับราคา: " + " | ".join(all_errors)
+        if mismatch_patterns:
+            error_msg = f"Order skipped, ราคาหลังปรับไม่ตรงตามเป้าหมายสำหรับ SKU:\n" + "\n".join(mismatch_patterns)
+        else:
+            all_errors = qty_errors + price_errors + total_errors
+            error_msg = f"ราคา/จำนวนไม่ตรงหลังปรับราคา: " + " | ".join(all_errors)
+
         self.app.update_log(f"❌ {error_msg}")
         raise ValueError(error_msg)
 

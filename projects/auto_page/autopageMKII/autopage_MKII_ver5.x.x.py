@@ -373,10 +373,20 @@ class MyApp:
         self.scale_widget(self.root, self.scale_factor)
         #! self.get_dataframe() สร้างไว้ไมวะ
         current_dir = os.path.dirname(os.path.abspath(__file__))
+        logs_dir = os.path.join(current_dir, "logs")
+        os.makedirs(logs_dir, exist_ok=True)
         time_name = datetime.datetime.now()
         log_path = os.path.join(
-            current_dir, f"""logs\\autopageMKII_log_{time_name.strftime('%Y_%m_%d')}.log""")
-        logger.add(log_path, format="{time} {level} {message}", level="INFO")
+            logs_dir, f"autopageMKII_log_{time_name.strftime('%Y_%m_%d')}.log")
+        logger.add(
+            log_path,
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+            level="INFO",
+            rotation="10 MB",       # จำกัดขนาดไฟล์ที่ 10 MB แล้ว rotate เป็นไฟล์ใหม่
+            retention="15 days",    # เก็บ log ย้อนหลัง 15 วัน แล้วลบไฟล์เก่าอัตโนมัติ
+            compression="zip",      # บีบอัดไฟล์ log เก่าเป็น .zip เพื่อประหยัดพื้นที่
+            encoding="utf-8"        # ป้องกันปัญหาภาษาไทยเพี้ยน
+        )
 
         # * 2)Start HTTP API client (shared ระหว่าง MyApp และ Bot_POS) --------------------------------------------------------
         self.smco_api = SmcoApiClient()
@@ -2576,13 +2586,27 @@ class MyApp:
         try:
             self._order_search_internal(order, on_complete, my_gen)
         except Exception as e:
-            logger.error(f"Error in order_search: {e}")
+            err_type = type(e).__name__
+            err_msg = str(e)
+            logger.error(
+                f"Order: {order} - Error in order_search ({err_type}): {err_msg}",
+                exc_info=True
+            )
             traceback.print_exc()
             self.update_log(
-                "🛑 Error: ข้อมูลในไฟล์ Excel ไม่ครบถ้วน (มีคอลัมน์/ข้อมูลไม่มีค่า)")
+                f"🛑 Error [Order: {order}]: ข้อมูลในไฟล์ไม่ถูกต้อง ({err_type}: {err_msg})")
+            
+            # บันทึกลง Accel file (Failed_Orders) หากเปิดโหมด Accel
+            if hasattr(self, 'accel_mode') and hasattr(self, 'is_accel_mode_activated') and self.is_accel_mode_activated.get():
+                try:
+                    self.accel_mode.record_failed_order(
+                        order, f"Error in order_search ({err_type}): {err_msg}")
+                except Exception as xl_err:
+                    logger.error(f"Failed to record failed order to accel file: {xl_err}")
+
             self.root.after(0, lambda: messagebox.showerror(
                 "ข้อมูลไม่ครบถ้วน",
-                "มีค่าใน Import File ไม่ครบ หรือรูปแบบข้อมูลไม่ถูกต้อง"
+                f"มีค่าใน Import File ไม่ครบ หรือรูปแบบข้อมูลไม่ถูกต้อง\n\nOrder: {order}\nสาเหตุ: {err_type} - {err_msg}"
             ))
             if on_complete is not None:
                 on_complete.set()
@@ -2664,6 +2688,9 @@ class MyApp:
         ]
 
         if self.order != "":
+            if hasattr(self, 'accel_mode') and self.accel_mode:
+                self.accel_mode.used_serials = []
+                self.accel_mode.sn_shortage = []
 
             print("self.order err?: ", self.order, type(self.order))
 
@@ -5192,18 +5219,16 @@ class Bot_POS:
     def print_pdf_silence_sumatra(self, pdf_path):
         try:
             sumatra_path = self.find_sumatra_from_registry()
-            # Use subprocess.run() to wait for completion (blocking)
-            result = subprocess.run([sumatra_path, '-print-to-default', pdf_path],
-                                    shell=False,
-                                    capture_output=True,
-                                    timeout=30)  # 30 second timeout
-            if result.returncode == 0:
-                print("SMT Printing silently complete.")
-            else:
-                print(
-                    f"SMT Printing completed with return code: {result.returncode}")
-        except subprocess.TimeoutExpired:
-            print("SMT Printing timed out after 30 seconds")
+            if not sumatra_path:
+                raise ValueError("Sumatra path not found")
+            # Use subprocess.Popen for non-blocking asynchronous printing
+            subprocess.Popen(
+                [sumatra_path, '-print-to-default', '-silent', pdf_path],
+                shell=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print("SMT Printing dispatched silently in background (Popen).")
         except Exception as e:
             print(f"sumatra Silent print failed: {e}")
 
@@ -5218,13 +5243,14 @@ class Bot_POS:
                 sumatra_path = self.find_sumatra_from_registry()
                 if sumatra_path:
                     try:
-                        result = subprocess.run([sumatra_path, '-print-to-default', pdf_path],
-                                                shell=False,
-                                                capture_output=True,
-                                                timeout=30)
-                        if result.returncode == 0:
-                            print(
-                                "SMT Printing silently complete after cache invalidation.")
+                        subprocess.Popen(
+                            [sumatra_path, '-print-to-default', '-silent', pdf_path],
+                            shell=False,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                        print(
+                            "SMT Printing dispatched silently after cache invalidation (Popen).")
                         return
                     except Exception as retry_error:
                         print(f"Retry also failed: {retry_error}")
