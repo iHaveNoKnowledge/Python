@@ -7663,7 +7663,7 @@ class Bot_POS:
                 if loop_counter >= 3 and loop_counter % 3 == 0:
                     try:
                         btn_payment = self.driver.find_element(
-                            By.XPATH, "//a[@id='btnPayment']")
+                            By.XPATH, """//div[contains(@class, "wrimagecard-green")]/a[@id='btnPayment']""")
                         if btn_payment.is_displayed():
                             print(
                                 f"⚠️ [Safety Net] ค้างหน้าชำระเงินโดยไม่มี popup (รอบที่ {loop_counter}) กำลังลองกดปุ่มเขียว (btnPayment) ซ้ำ...")
@@ -7762,7 +7762,7 @@ class Bot_POS:
 
                         # กดปุ่มเขียว (btnPayment) ใหม่อีกครั้ง
                         try:
-                            btn_payment = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
+                            btn_payment = self.driver.find_element(By.XPATH, """//div[contains(@class, "wrimagecard-green")]/a[@id='btnPayment']""")
                             if btn_payment.is_displayed():
                                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
                                 time.sleep(0.2)

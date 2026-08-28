@@ -119,14 +119,15 @@ class TrackingManager:
 
     def apply_tracking_to_final_page(self, order_no: str = "") -> None:
         """
-        นำข้อมูล Order No และ Tracking Numbers ไปใส่ใน Modal หมายเหตุหน้าท้าย:
-        1. เปิด Modal หมายเหตุ (AddRemarkRef)
-        2. ใส่ Order No ลงใน //textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']
-        3. กระจาย Tracking Numbers ลงใน:
+        นำข้อมูล Order No และ Tracking Numbers ไปใส่ในหน้าท้ายและ Modal หมายเหตุ:
+        1. ใส่ Order No ลงในช่อง cnRemark บนหน้าหลัก //div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']
+        2. เปิด Modal หมายเหตุ (AddRemarkRef)
+        3. ใส่ Order No ลงใน //textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']
+        4. กระจาย Tracking Numbers ลงใน:
            - //textarea[@ng-model='posPaymentHead.data.ref2RemarkTemp'] (ความยาวไม่เกิน 255 ตัวอักษร)
            - //textarea[@ng-model='posPaymentHead.data.ref3RemarkTemp'] (ส่วนที่เหลือ ความยาวไม่เกิน 255 ตัวอักษร)
            * โดยต้องใส่ให้ครบ pattern ของแต่ละ tracking หากตัวถัดไปใส่แล้วเกิน 255 จะย้ายไปใส่ใน ref3
-        4. กดปุ่มยืนยัน //button[@ng-click='okAddRemarkRef()']
+        5. กดปุ่มยืนยัน //button[@ng-click='okAddRemarkRef()']
         """
         order_val = order_no if order_no else str(getattr(self.bot, 'cus_order', ''))
 
@@ -134,7 +135,35 @@ class TrackingManager:
         ref2_text, ref3_text = self._split_trackings_into_chunks(self.trackings, max_len=255)
 
         try:
-            # 1. เปิด Modal หมายเหตุ ถ้ายังไม่ได้เปิด
+            # Helper function สำหรับกรอกค่าลง Textarea พร้อม Trigger Full Event Lifecycle
+            def _set_textarea_value(xpath: str, value: str):
+                try:
+                    el = self.driver.find_element(By.XPATH, xpath)
+                    self.driver.execute_script("""
+                        var el = arguments[0];
+                        var val = arguments[1] || '';
+                        el.style.display = 'block';
+                        el.style.visibility = 'visible';
+                        el.style.opacity = '1';
+                        el.focus();
+                        el.dispatchEvent(new Event('focus', { bubbles: true }));
+                        el.setAttribute('title', val);
+                        el.value = val;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        el.blur();
+                        el.dispatchEvent(new Event('blur', { bubbles: true }));
+                    """, el, value)
+                    print(f"Applied {xpath} -> '{value}' (len={len(value)})")
+                except Exception as ex:
+                    print(f"Error setting {xpath}: {ex}")
+
+            # 1. กรอกเลขออเดอร์ (Order No) ลงในช่อง cnRemark บนหน้าหลัก
+            cn_remark_xpath = "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']"
+            _set_textarea_value(cn_remark_xpath, order_val)
+            time.sleep(0.2)
+
+            # 2. เปิด Modal หมายเหตุ ถ้ายังไม่ได้เปิด
             modal_open_selectors = [
                 "//button[@ng-click='addRemarkRef()']",
                 "//a[@ng-click='addRemarkRef()']",
@@ -154,35 +183,17 @@ class TrackingManager:
                 except Exception:
                     pass
 
-            # 2. ฟังก์ชันช่วยกรอกค่าลง Textarea และ Dispatch Event
-            def _set_ref_textarea_value(xpath: str, value: str):
-                try:
-                    el = self.driver.find_element(By.XPATH, xpath)
-                    self.driver.execute_script("""
-                        var el = arguments[0];
-                        var val = arguments[1] || '';
-                        el.style.display = 'block';
-                        el.style.visibility = 'visible';
-                        el.style.opacity = '1';
-                        el.setAttribute('title', val);
-                        el.value = val;
-                        el.dispatchEvent(new Event('input', { bubbles: true }));
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
-                    """, el, value)
-                    print(f"Applied {xpath} -> '{value}' (len={len(value)})")
-                except Exception as ex:
-                    print(f"Error setting {xpath}: {ex}")
-
+            # 3. กรอกค่าลงใน Modal
             # ref1: ใส่เลขออเดอร์ (Order No)
-            _set_ref_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']", order_val)
+            _set_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref1RemarkTemp']", order_val)
 
             # ref2: ใส่เลข Tracking ชุดแรก (สูงสุด 255 ตัวอักษร)
-            _set_ref_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref2RemarkTemp']", ref2_text)
+            _set_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref2RemarkTemp']", ref2_text)
 
             # ref3: ใส่เลข Tracking ชุดที่สอง (ถ้ามี ส่วนที่เหลือ สูงสุด 255 ตัวอักษร)
-            _set_ref_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref3RemarkTemp']", ref3_text)
+            _set_textarea_value("//textarea[@ng-model='posPaymentHead.data.ref3RemarkTemp']", ref3_text)
 
-            # 3. กดปุ่ม OK เพื่อบันทึกและปิด Modal
+            # 4. กดปุ่ม OK เพื่อบันทึกและปิด Modal
             time.sleep(0.3)
             try:
                 ok_button = self.driver.find_element(By.XPATH, "//button[@ng-click='okAddRemarkRef()']")
@@ -191,8 +202,16 @@ class TrackingManager:
             except Exception as ok_err:
                 print(f"Error clicking okAddRemarkRef button: {ok_err}")
 
+            # 5. ตรวจสอบ/เติม cnRemark ซ้ำอีกครั้งหลังปิด Modal เพื่อความชัวร์ 100%
+            try:
+                cn_el = self.driver.find_element(By.XPATH, cn_remark_xpath)
+                if not cn_el.get_attribute("value"):
+                    _set_textarea_value(cn_remark_xpath, order_val)
+            except Exception:
+                pass
+
         except Exception as e:
-            print(f"Error applying order and trackings to remark modal: {e}")
+            print(f"Error applying order and trackings to remark: {e}")
 
     def _split_trackings_into_chunks(self, trackings: list, max_len: int = 255) -> tuple:
         """

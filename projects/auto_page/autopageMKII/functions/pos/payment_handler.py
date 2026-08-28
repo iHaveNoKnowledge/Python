@@ -154,8 +154,7 @@ class POSPaymentHandler:
                                     self.return_to_first_page()
                                     raise track_err
 
-                            # เปิด modal และกรอก Order ไปที่ ref1RemarkTemp, Tracking ไปที่ ref2/ref3RemarkTemp
-                            # (ช่อง cnRemark จะปล่อยโล่ง)
+                            # กรอก Order ไปที่ cnRemark และ modal (ref1RemarkTemp), Tracking ไปที่ ref2/ref3RemarkTemp
                             self.bot.tracking_manager.apply_tracking_to_final_page(order_no=self.cus_order)
 
                             # 3. Select Payment Type and Calculate final_price
@@ -243,6 +242,7 @@ class POSPaymentHandler:
                                     is_zero_value = (value_text in ["0.00", "0.0", "0"])
 
                                 if is_zero_value:
+                                    time.sleep(0.75)
                                     print("Value is 0.00, clicking btnPayment with retries...")
                                     btn_payment = self.driver.find_element(By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']")
                                     click_done = False
@@ -284,75 +284,15 @@ class POSPaymentHandler:
         print("operation_thread is set or autofinal is false, exit final loop")
         return True
 
-    def _dismiss_swal_popup(self):
-        """ปิด Popup ของ SweetAlert2 โดยเน้นใช้ WebDriver Click เป็นหลัก และรอให้ overlay หายไปจริง"""
-        dismissed = False
-        # 1. ตรวจสอบและคลิกปุ่มบน Popup ด้วย WebDriver Click โดยตรง
-        dismiss_xpaths = [
-            "//button[contains(@class, 'swal2-confirm')]",
-            "//button[contains(@class, 'swal2-cancel')]",
-            "//button[contains(@class, 'swal2-close')]",
-            "//div[contains(@class, 'swal2-container')]",
-            "//div[contains(@class, 'swal2-overlay')]"
-        ]
 
-        for xpath in dismiss_xpaths:
-            try:
-                elements = self.driver.find_elements(By.XPATH, xpath)
-                for el in elements:
-                    if el.is_displayed():
-                        try:
-                            el.click()
-                            dismissed = True
-                            print(f"Dismissed popup via WebDriver click on: {xpath}")
-                            break
-                        except Exception as click_err:
-                            # Fallback เฉพาะกรณีที่ WebDriver ติด ElementClickIntercepted
-                            try:
-                                self.driver.execute_script("arguments[0].click();", el)
-                                dismissed = True
-                                break
-                            except Exception:
-                                pass
-                if dismissed:
-                    break
-            except Exception:
-                pass
-
-        # รอให้ Popup และ Overlay หายไปจริงก่อนทำขั้นตอนถัดไป
-        try:
-            self.wait50.until(EC.invisibility_of_element_located((By.XPATH, "//div[contains(@class, 'swal2-shown') or contains(@class, 'swal2-container')]")))
-        except Exception:
-            time.sleep(0.8)
-        time.sleep(0.5)
-
-    def _click_green_button(self) -> bool:
-        """กดปุ่มชำระเงิน (ปุ่มเขียว #btnPayment)"""
-        try:
-            btn_payment = self.driver.find_element(By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']")
-            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
-            time.sleep(0.2)
-            try:
-                btn_payment.click()
-                print("✅ กดปุ่มชำระเงิน (ปุ่มเขียว) สำเร็จ (Standard Click)")
-                return True
-            except Exception:
-                self.driver.execute_script("arguments[0].click();", btn_payment)
-                print("✅ กดปุ่มชำระเงิน (ปุ่มเขียว) สำเร็จ (JS Click)")
-                return True
-        except Exception as e:
-            print(f"Cannot click btnPayment: {e}")
-        return False
 
     def final_popup_handler(self, is_etax: bool = False, operation_obj: Any = None) -> bool:
         """
         Monitors for the SweetAlert2 popup after clicking the green payment button.
-        Verifies success icon, handles retries continuously until success, prints receipt, and updates Excel records.
+        Extracts receipt number, prints receipt, and updates Excel records.
         """
         self.app.is_bot_browser_busy.set(False)
-        auto_radio_times = 0
         loop_counter = 0
-        submit_retry_count = 0
 
         while not self.bot.operation_thread.is_set():
             time.sleep(1)
@@ -372,10 +312,6 @@ class POSPaymentHandler:
                 is_final_page = self.driver.find_element(
                     By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]')
             except Exception as loop_err:
-                # Safety net: If stuck on payment page without popup for >=2s, retry clicking btnPayment
-                if loop_counter >= 2 and loop_counter % 2 == 0:
-                    print(f"⚠️ [Safety Net] รอ Popup (รอบที่ {loop_counter}) กำลังกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
-                    self._click_green_button()
                 continue
 
             if final_popup.is_displayed():
@@ -384,21 +320,7 @@ class POSPaymentHandler:
                 try:
                     time.sleep(0.5)
 
-                    # 1. Check for success icon class 'swal2-icon swal2-success animate'
-                    success_icons = self.driver.find_elements(
-                        By.XPATH, "//div[contains(@class, 'swal2-icon') and contains(@class, 'swal2-success')]")
-                    is_success_popup = False
-                    for icon in success_icons:
-                        try:
-                            class_attr = icon.get_attribute("class") or ""
-                            style_attr = icon.get_attribute("style") or ""
-                            if "swal2-success" in class_attr and ("animate" in class_attr or icon.is_displayed() or "display: block" in style_attr or "display:block" in style_attr):
-                                is_success_popup = True
-                                break
-                        except Exception:
-                            pass
-
-                    # 2. Extract alert text from swal2-content
+                    # Extract alert text from swal2-content
                     alert_text = ""
                     try:
                         alert_text = self.driver.find_element(By.XPATH, """//div[@class = 'swal2-content']""").text
@@ -406,65 +328,76 @@ class POSPaymentHandler:
                         pass
 
                     match = re.search(r'(?:ABB-)?B\d+-\w.*\d+-\d+', alert_text)
-                    print(f"is_success_popup: {is_success_popup}, match: {match}, alert_text: '{alert_text}'")
+                    print(f"match: {match}, alert_text: '{alert_text}'")
 
-                    # 3. If popup is NOT success or missing invoice number regex match
-                    if not (is_success_popup and match):
-                        submit_retry_count += 1
-                        error_content = alert_text.strip() if alert_text.strip() else "ไม่พบข้อความแจ้งเตือน"
-                        print(f"Popup ไม่ใช่บิลสำเร็จ (รอบที่ {submit_retry_count}): '{error_content}'")
+                    if match:
+                        inv_number = match.group()
+                        print("inv_number: ", inv_number)
+                        self.app.update_log(f'เลขบิล: {inv_number}')
+                        self.bot.current_checkpoint = f"สร้างใบเสร็จสำเร็จ (เลขบิล: {inv_number})"
 
-                        self.app.update_log(
-                            f"⚠️ ตรวจพบ Popup: '{error_content}' -> กำลังปิด Popup และกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ (ครั้งที่ {submit_retry_count})..."
-                        )
+                        # E-tax flow if required
+                        if is_etax and inv_number != "":
+                            print("has etax")
+                            try:
+                                self.bot.etax_reprint(inv_number)
+                            except Exception as e:
+                                print(f"etax_reprint error: {e}")
+                                logger.error(f"etax_reprint error: {e}")
+                            self.bot._update_accel_on_complete(inv_number, is_etax=True)
+                            time.sleep(0.75)
+                            return True
 
-                        # Dismiss popup (ปิด Popup แจ้งเตือน)
-                        self._dismiss_swal_popup()
-                        time.sleep(1.2)
+                        # Update Excel record
+                        self.bot._update_accel_on_complete(inv_number, is_etax=False)
 
-                        # กดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำอีกครั้ง
-                        self._click_green_button()
-                        continue
+                        # Close popup overlay (คลิกพื้นหลังสีดำ)
+                        print("click container!")
+                        self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
 
-                    # 4. If success popup with receipt number
-                    inv_number = match.group()
-                    print("inv_number: ", inv_number)
-                    self.app.update_log(f'เลขบิล: {inv_number}')
-                    self.bot.current_checkpoint = f"สร้างใบเสร็จสำเร็จ (เลขบิล: {inv_number})"
+                        # Wait for canvas/PDF embed to load & trigger print
+                        self.wait50.until(EC.visibility_of_element_located(
+                            (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
+                        ))
+                        time.sleep(1)
 
-                    # E-tax flow if required
-                    if is_etax and inv_number != "":
-                        print("has etax")
                         try:
-                            self.bot.etax_reprint(inv_number)
+                            self.bot.get_pdf_src_and_print(inv_number)
+                            self.bot.current_checkpoint = "พิมพ์เอกสารใบเสร็จสำเร็จ"
                         except Exception as e:
-                            print(f"etax_reprint error: {e}")
-                            logger.error(f"etax_reprint error: {e}")
-                        self.bot._update_accel_on_complete(inv_number, is_etax=True)
-                        time.sleep(0.75)
+                            print(f"get_pdf_src_and_print error: {e}")
+                            logger.error(f"get_pdf_src_and_print error: {e}")
+
                         return True
+                    else:
+                        print("Popup displayed but no invoice number pattern matched yet, dismissing and re-clicking green button...")
+                        try:
+                            # 1. คลิกปุ่ม OK/ตกลง เพื่อปิด Popup แจ้งเตือน
+                            confirm_btn = self.driver.find_element(
+                                By.XPATH, "//button[@class='swal2-confirm styled' or contains(@class, 'swal2-confirm')]")
+                            try:
+                                confirm_btn.click()
+                            except Exception:
+                                self.driver.execute_script("arguments[0].click();", confirm_btn)
+                            print("Clicked swal2-confirm button successfully")
+                            time.sleep(0.75)
 
-                    # Update Excel record
-                    self.bot._update_accel_on_complete(inv_number, is_etax=False)
-
-                    # Close popup overlay (คลิกพื้นหลังสีดำ)
-                    print("click container!")
-                    self.driver.execute_script("document.querySelector('.swal2-overlay').click();")
-
-                    # Wait for canvas/PDF embed to load & trigger print
-                    self.wait50.until(EC.visibility_of_element_located(
-                        (By.XPATH, '/html/body/div[2]/div[3]/div[10]/div/div[2]/div[2]/div/embed')
-                    ))
-                    time.sleep(1)
-
-                    try:
-                        self.bot.get_pdf_src_and_print(inv_number)
-                        self.bot.current_checkpoint = "พิมพ์เอกสารใบเสร็จสำเร็จ"
-                    except Exception as e:
-                        print(f"get_pdf_src_and_print error: {e}")
-                        logger.error(f"get_pdf_src_and_print error: {e}")
-
-                    return True
+                            # 2. กดปุ่มเขียว (#btnPayment) อีกครั้งเพื่อจบ Order
+                            btn_payment = self.driver.find_element(
+                                By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']")
+                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_payment)
+                            time.sleep(0.2)
+                            try:
+                                btn_payment.click()
+                                print("Re-clicked btnPayment successfully (Standard click)")
+                            except Exception:
+                                self.driver.execute_script("arguments[0].click();", btn_payment)
+                                print("Re-clicked btnPayment successfully (JS click)")
+                            time.sleep(0.5)
+                        except Exception as pop_err:
+                            print(f"Error handling non-invoice popup or re-clicking green button: {pop_err}")
+                            time.sleep(0.5)
+                        continue
 
                 except Exception as err:
                     print("เกิดข้อผิดพลาดระหว่างจัดการ Popup หน้าท้าย:", err)
@@ -499,10 +432,6 @@ class POSPaymentHandler:
                         print("ไม่เอาใบกำกับ")
                     time.sleep(1)
             else:
-                # Safety Net: ถ้ายังอยู่หน้าชำระเงิน และไม่มี Popup ใดๆ แสดงเกิน 3 วินาที ให้กดปุ่มชำระเงินซ้ำ
-                if loop_counter >= 2 and loop_counter % 3 == 0:
-                    print(f"⚠️ [Safety Net] อยู่หน้าชำระเงินโดยไม่มี Popup (รอบที่ {loop_counter}) กำลังกดปุ่มชำระเงิน (ปุ่มเขียว) ซ้ำ...")
-                    self._click_green_button()
                 continue
 
     def return_to_first_page(self) -> None:

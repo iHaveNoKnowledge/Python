@@ -320,6 +320,12 @@ class AccelMode:
                         sheet.cell(row=row, column=col, value=serial)
                     existing_skus[sku] = col
 
+            # Re-apply AutoFilter and Freeze Panes (Row 1) on all worksheets
+            for ws in book.worksheets:
+                if ws.max_row > 0 and ws.max_column > 0:
+                    ws.auto_filter.ref = ws.dimensions
+                    ws.freeze_panes = "A2"
+
             book.save(output_excel)
             print(f"ข้อมูลถูกเพิ่ม/อัปเดตลงใน {output_excel} เรียบร้อยแล้ว")
 
@@ -1117,10 +1123,26 @@ class AccelMode:
             print("No items, return!!")
             return
 
+    def _apply_excel_formatting(self, file_path):
+        """กำหนด AutoFilter และ Freeze Row 1 (A2) ให้กับทุก sheet ในไฟล์ Excel"""
+        if not file_path or not os.path.exists(file_path):
+            return
+        try:
+            wb = load_workbook(file_path)
+            for ws in wb.worksheets:
+                if ws.max_row > 0 and ws.max_column > 0:
+                    ws.auto_filter.ref = ws.dimensions
+                    ws.freeze_panes = "A2"
+            wb.save(file_path)
+            wb.close()
+        except Exception as e:
+            print(f"Error applying excel formatting (auto_filter/freeze_panes): {e}")
+
     def _save_df_to_excel(self, target_df, sheet_name):
         if not os.path.exists(self.accel_file_dir):
             target_df.to_excel(self.accel_file_dir,
                                sheet_name=sheet_name, index=False)
+            self._apply_excel_formatting(self.accel_file_dir)
             return
 
         try:
@@ -1131,7 +1153,7 @@ class AccelMode:
                 book = load_workbook(self.accel_file_dir)
                 if sheet_name in book.sheetnames:
                     del book[sheet_name]
-                    book.save(self.accel_file_dir)
+                book.save(self.accel_file_dir)
                 book.close()
                 with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a') as writer:
                     target_df.to_excel(
@@ -1140,6 +1162,8 @@ class AccelMode:
                 print(f"Append failed, overwriting entire excel file: {ex}")
                 target_df.to_excel(self.accel_file_dir,
                                    sheet_name=sheet_name, index=False)
+        finally:
+            self._apply_excel_formatting(self.accel_file_dir)
 
     def record_failed_order(self, order, reason):
         """Record failed order
