@@ -39,9 +39,26 @@ from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
 from functions.utils.helpers import resource_path
+from functions.utils.report_manager import TestReportManager
 from googletrans import Translator
 from loguru import logger
 from openpyxl import load_workbook
+try:
+    from pythainlp.tokenize import word_tokenize
+    PYTHAINLP_AVAILABLE = True
+except ImportError:
+    PYTHAINLP_AVAILABLE = False
+
+try:
+    from rapidfuzz import fuzz, process
+    RAPIDFUZZ_AVAILABLE = True
+except ImportError:
+    try:
+        from thefuzz import fuzz, process
+        RAPIDFUZZ_AVAILABLE = True
+    except ImportError:
+        RAPIDFUZZ_AVAILABLE = False
+
 try:
     from functions.order_display_manager import OrderDisplayManager
 except ImportError:
@@ -302,6 +319,7 @@ class MyApp:
         self.is_testing = False
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
+        self.report_manager = TestReportManager()
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
@@ -2332,7 +2350,6 @@ class MyApp:
                         abbr_word3, full_word)
         else:
             cleaned_address = address
-        print("After_Clean_dup: ", cleaned_address)
         return cleaned_address
 
     def deduplicate_address_halves(self, addr_str):
@@ -2355,41 +2372,63 @@ class MyApp:
         return addr_str
 
     def clean_address(self, address):
+        if not address:
+            return ""
+
+        address = str(address)
+
+        # ลบ zero-width space, non-breaking space, และแปลง newline เป็นเว้นวรรค
+        address = address.replace('\u200b', '').replace('\xa0', ' ').replace('\n', ' ')
+
+        # จัดการสัญลักษณ์แบ่งส่วน เช่น จุดกึ่งกลาง (·, •) จาก Lazada/Shopee
+        if '\u00B7' in address or '•' in address:
+            address = address.replace('\u00B7', ' ').replace('•', ' ')
+
         # ลบความซ้ำซ้อนระดับประโยคที่ซ้ำกัน (เช่น ก๊อปปี้แปะที่อยู่ซ้ำกันสองรอบ)
         address = self.deduplicate_address_halves(address)
 
-        keywords = ["เขต", "แขวง", "ต.", "ตำบล",
-                    "อ.", "อำเภอ", "จ.", "จังหวัด"]
-
         # ตรวจสอบว่าสตริงมีคำ "จังหวัด" และ ("เขต" หรือ "แขวง") หรือไม่
         if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
-            # ลบคำ "จังหวัด" ออกจากสตริง
             address = address.replace("จังหวัด", "")
 
-        if "\n" in address:
-            address = address.replace('\n', " ")
+        # ทำ Tokenization โดยใช้ PyThaiNLP หากมี หรือ Fallback เป็น split ปกติ
+        if PYTHAINLP_AVAILABLE:
+            try:
+                tokens = word_tokenize(address, engine='newmm')
+            except Exception as e:
+                print(f"PyThaiNLP tokenize error: {e}")
+                tokens = address.split()
+        else:
+            tokens = address.split()
 
-        # เริ่มต้นโดยการแยกคำด้วยช่องว่าง
-        parts = address.split()
+        # กรองคำที่ไม่ใช่คำย่อส่วนเกิน (ต., อ., จ., ตำบล, อำเภอ, จังหวัด)
+        cleaned_tokens = []
+        skip_keywords = {"ต.", "อ.", "จ.", "ตำบล", "อำเภอ", "จังหวัด"}
 
-        # สร้าง list เพื่อเก็บคำที่ไม่ใช่คำย่อ
-        cleaned_parts = []
+        for token in tokens:
+            token_str = token.strip()
+            if not token_str:
+                cleaned_tokens.append(' ')
+                continue
 
-        for part in parts:
-            # ตรวจสอบว่าคำนี้เป็นคำย่อหรือไม่
-            is_abbreviation = any(part.startswith(keyword)
-                                  for keyword in ["ต.", "อ.", "จ."])
-            if not is_abbreviation:
-                cleaned_parts.append(part)
+            if token_str in skip_keywords:
+                continue
 
-        # นำคำที่ไม่ใช่คำย่อมาเชื่อมกลับเป็นสตริงใหม่
-        cleaned_address = ' '.join(cleaned_parts)
+            # กรณีที่ token ติดกับคำย่อ เช่น 'ต.สระตะเคียน' ให้ตัดเฉพาะคำย่อนำหน้า
+            for kw in ["ต.", "อ.", "จ."]:
+                if token_str.startswith(kw) and len(token_str) > len(kw):
+                    token_str = token_str[len(kw):].strip()
+                    break
 
-        # ลบคำที่มีส่วนที่เหมือนกันออก
+            if token_str:
+                cleaned_tokens.append(token_str)
+
+        # นำคำมาเชื่อมกลับเป็นสตริง
+        cleaned_address = ''.join(cleaned_tokens)
         cleaned_address = self.clean_duplicate_parts(cleaned_address)
 
         # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
-        cleaned_address = cleaned_address.replace("  ", " ")
+        cleaned_address = re.sub(r'\s+', ' ', cleaned_address).strip()
 
         return cleaned_address
 
@@ -3461,6 +3500,14 @@ class MyApp:
         self.stop_operation()
         self.update_log("🛑 หยุดการทำงาน Accel Mode ทั้งหมดเรียบร้อยแล้ว")
 
+        # * Auto-export Test Report หากมีบันทึก Order อยู่ในรอบนี้
+        if hasattr(self, 'report_manager') and self.report_manager.records:
+            excel_path = self.report_manager.export_to_excel()
+            summary_text = self.report_manager.get_summary_text()
+            logger.info(f"\n{summary_text}")
+            if excel_path:
+                self.update_log(f"📊 สรุปและบันทึกรายงานผลไว้ที่: {excel_path}")
+
     # * ส่งไปแปะไว้ที่ order_display_manager.py
     def auto_add_product_threaded(self, skus, qty, **kwargs):
         """
@@ -4176,8 +4223,15 @@ class Bot_POS:
                     # * เริ่มการทำงาน Operation Start
                     if self.app.order != "" and not self.operation_thread.is_set():
                         logger.info(f"Order: {self.app.order} Start!!")
+                        self.app.report_manager.start_order(
+                            self.app.order,
+                            marketplace=self.app.marketplace_target.get(),
+                            customer_name=self.app.cus_name.get(),
+                            tax_id=self.app.tax_num.get()
+                        )
                         self.current_checkpoint = "เริ่มรัน"
                         self.operation_start()
+                        self.app.report_manager.finish_order(self.app.order, overall_status="SUCCESS")
                         break  # รันสำเร็จ ออกจากลูปเพื่อไปทำออเดอร์ถัดไป
                     else:
                         self.app.update_log("กรุณากรอก Order ก่อน")
@@ -4228,6 +4282,7 @@ class Bot_POS:
                         logger.info(
                             f"Order: {self.app.order} operation_task_thread_outer_Exception_Error!! {err}")
                         self.record_failed_with_checkpoint(str(err))
+                        self.app.report_manager.finish_order(self.app.order, overall_status="FAILED", note=str(err))
                         break  # ออกจากลูปเพื่อข้ามไปทำออเดอร์ถัดไป
         else:
             print("Operation thread is already set, skipping operation task")
@@ -4494,6 +4549,9 @@ class Bot_POS:
         except RefreshRequiredException:
             raise
         except Exception as err:
+            self.app.report_manager.record_customer_result(
+                self.cus_order, "FAILED", error=str(err)
+            )
             if self.app.is_auto_invoice_mode.get():
                 logger.error(
                     f"Order: {self.cus_order} - Auto Invoice Mode is ON, but failed to add customer. Error: {err}")
@@ -4506,9 +4564,15 @@ class Bot_POS:
         if self.click_popup_confirm_button():
             print(
                 "add_new_customer() end, swal confirm button is clicked after add customer")
+            self.app.report_manager.record_customer_result(
+                self.cus_order, "SUCCESS", customer_code=getattr(self, 'cus_code', '')
+            )
         else:
             print(
                 "add_new_customer() end, but No swal confirm button to click after add customer")
+            self.app.report_manager.record_customer_result(
+                self.cus_order, "SUCCESS", customer_code=getattr(self, 'cus_code', '')
+            )
 
     def ensure_li_shown_cus_name(self):
         """
@@ -4719,6 +4783,9 @@ class Bot_POS:
                         try:
                             print("เลือกชื่อลูกค้าธรรมดา|ใบกำกับสนงใหญ่",
                                   cus_name_list[i])
+                            self.app.report_manager.record_customer_result(
+                                self.cus_order, "EXISTING", customer_code=cus_name_list[i]
+                            )
                             # * ต้อง +1 เพราะว่า xpath รับค่าเป็นจำนวนเต็ม+ ไม่ใช่ index
                             self.driver.find_element(
                                 By.XPATH, f"/html/body/span/span/span[2]/ul/li[{i+1}]").click()
@@ -6958,9 +7025,31 @@ class Bot_POS:
             # logger.info(self.desired_full_address.replace(' ', ''))
             print("Customer Address is not correct")
 
-            self._fill_address_revision_form()
+            try:
+                self._fill_address_revision_form()
+                self.app.report_manager.record_address_result(
+                    self.cus_order,
+                    "CORRECTED",
+                    current_address=self.current_address,
+                    desired_address=self.desired_full_address
+                )
+            except Exception as e:
+                self.app.report_manager.record_address_result(
+                    self.cus_order,
+                    "FAILED",
+                    current_address=self.current_address,
+                    desired_address=self.desired_full_address,
+                    error=str(e)
+                )
+                raise
         else:
             print("Customer address has already corrected")
+            self.app.report_manager.record_address_result(
+                self.cus_order,
+                "ALREADY_CORRECT",
+                current_address=self.current_address,
+                desired_address=self.desired_full_address
+            )
 
         print("tax_address_corrector done!")
 

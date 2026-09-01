@@ -49,6 +49,11 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [5.2.5 / ver5.x.x] - 2026-09-01
+#### Added & Improved
+- [x] **[Address Tokenization]** นำ `PyThaiNLP` (`word_tokenize`) และ `RapidFuzz` เข้ามาช่วยตัดคำและทำความสะอาดที่อยู่ (`clean_address`) รองรับที่อยู่ที่พิมพ์ติดกันเป็นพรืดและคำย่อการปกครองซ้ำซ้อน
+- [x] **[Test / Batch Report System]** เพิ่มโมดูล `TestReportManager` (`functions/utils/report_manager.py`) บันทึกและสรุปสถานะการสร้างลูกค้า (`customer_status`) และการแก้ไขที่อยู่ (`address_status`) พร้อมระบบ Export รายงานออกมาเป็นไฟล์ Excel อัตโนมัติในโฟลเดอร์ `reports/`
+
 ### [5.2.4LITE / 5.2.5] - 2026-08-27
 #### Fixed & Improved
 - [x] **[Print]** ปรับ `print_pdf_silence_sumatra` ในทั้ง `ver5.x.x.py` และ `ver5.2.4LITE.py` เป็นแบบ Non-blocking (`subprocess.Popen`) แก้ปัญหา Tkinter Not Responding
