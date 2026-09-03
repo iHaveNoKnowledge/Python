@@ -1511,6 +1511,16 @@ class MyApp:
         self.result = ""
         # เก็บ self.table_location ไว้ (ไม่ล้าง) เพื่อให้ปุ่ม open ยังเปิดไฟล์ที่โหลดไว้ได้
         self.cus_order.set("")
+        
+        # ⚠️ [CRITICAL REGRESSION GUARD] ห้ามลบเด็ดขาด!
+        # ป้องกันบั๊ก SKU และรายการสินค้าจากออเดอร์ก่อนหน้าค้างในหน่วยความจำ (Case: Order 2609032XS86R91)
+        self.items = []
+        self.nondistortedData = {}
+        self.tracking_from_data = []
+        self.tracking_from_data_complete = False
+        if hasattr(self, 'financials') and self.financials is not None:
+            self.financials.items = []
+            self.financials.recalculate()
         self.is_tax_required.set(False)
         self.tax_num.set("")
         self.cus_email.set("")
@@ -2643,10 +2653,11 @@ class MyApp:
                 except Exception as xl_err:
                     logger.error(f"Failed to record failed order to accel file: {xl_err}")
 
-            self.root.after(0, lambda: messagebox.showerror(
-                "ข้อมูลไม่ครบถ้วน",
-                f"มีค่าใน Import File ไม่ครบ หรือรูปแบบข้อมูลไม่ถูกต้อง\n\nOrder: {order}\nสาเหตุ: {err_type} - {err_msg}"
-            ))
+            if not (hasattr(self, 'is_accel_mode_activated') and self.is_accel_mode_activated.get()):
+                self.root.after(0, lambda: messagebox.showerror(
+                    "ข้อมูลไม่ครบถ้วน",
+                    f"มีค่าใน Import File ไม่ครบ หรือรูปแบบข้อมูลไม่ถูกต้อง\n\nOrder: {order}\nสาเหตุ: {err_type} - {err_msg}"
+                ))
             if on_complete is not None:
                 on_complete.set()
             # * หยุด operation เฉพาะเมื่อ cycle นี้ยังเป็น cycle ปัจจุบัน (กัน thread เก่าฆ่า thread ใหม่)
@@ -2738,6 +2749,9 @@ class MyApp:
                     "Error: data_frame is missing or empty. Please load an Excel file.")
                 self.update_log(
                     "Error: ไม่พบข้อมูลตาราง กรุณาเลือกไฟล์ Excel และรอโหลดข้อมูลก่อนค้นหาออเดอร์")
+                if my_gen == getattr(self, '_cycle_generation', 0) and hasattr(self, 'operation_thread') and self.operation_thread is not None:
+                    self.operation_thread.set()
+                raise ValueError("ไม่พบข้อมูลตาราง กรุณาเลือกไฟล์ Excel และรอโหลดข้อมูลก่อนค้นหาออเดอร์")
 
             if not self.data_frame[(self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)].empty:
                 # ? self.filter_data จะเป็นการทำComparisionให้เรียบร้อยแล้วคืน DataFrame ที่กรองแล้วทันที --------------------ไวกว่า
@@ -3171,24 +3185,25 @@ class MyApp:
                     self.update_log(f"สินค้ารวมค่าส่ง หักseller: {self.f(self.financials.sum_price + self.financials.shipping_cost - self.financials.seller_voucher)}")
 
             else:
-                print(
-                    f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
-                print(
-                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือไม่ก็ ไฟล์เก่าเกินไป")
+                # ⚠️ [CRITICAL REGRESSION GUARD] ห้ามลบเด็ดขาด!
+                # เมื่อหาออเดอร์ใน Export File ไม่เจอ ต้อง:
+                # 1. เคลียร์ self.items = [] ทันทีเพื่อไม่ให้สินค้าของออเดอร์ก่อนหน้าตกค้าง
+                # 2. หยุด operation_thread ทันทีเพื่อไม่ให้บอทหลุดไปยิงเปิดบิลบนหน้าเว็บ
+                # 3. โยน ValueError เพื่อตัดจ็อบและบันทึกลง Failed_Orders
+                self.items = []
+                self.reset_all_display()
+                if my_gen == getattr(self, '_cycle_generation', 0) and hasattr(self, 'operation_thread') and self.operation_thread is not None:
+                    self.operation_thread.set()
+
+                err_msg = f"Order ที่ยิงมา {self.order} ไม่สามารถหาใน Export File ได้ (อาจเกิดจากเลข Order ผิด หรือไฟล์ไม่อัปเดต)"
+                print(err_msg)
                 print("ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
                 print("https://seller.shopee.co.th/portal/sale/shipment?type=toship")
 
-                self.update_log(
-                    f"Order ที่ยิงมา {self.cus_order.get()} ไม่สามารถหาใน Export File ได้")
-                self.update_log(
-                    "อาจเกิดจาก เลข Order ที่กรอกเข้ามาผิดพลาด หรือถ้า Order ไม่ผิด ก็แปลว่าไฟล์ไม่มีข้อมูล")
-                self.update_log(
-                    "ถ้าไฟล์เก่าแนะนำให้ไป Export File มาใหม่ จาก Link ที่ให้ด้านล่าง")
-                self.update_log(
-                    "https://seller.shopee.co.th/portal/sale/shipment?type=toship")
-                # self.reset_all_display()
-                logger.info(
-                    f"Order: {self.search_query} Not found in the shopee's Export File")
+                self.update_log(f"❌ {err_msg}")
+                self.update_log("แนะนำให้ Export File มาใหม่จากระบบ Shopee/Lazada")
+                logger.error(f"Order: {self.order} Not found in Export File")
+                raise ValueError(f"ไม่พบออเดอร์ {self.order} ในไฟล์นำเข้า (Export File)")
 
         else:
             self.reset_all_display()
@@ -4222,6 +4237,14 @@ class Bot_POS:
                 try:
                     # * เริ่มการทำงาน Operation Start
                     if self.app.order != "" and not self.operation_thread.is_set():
+                        # ⚠️ [CRITICAL REGRESSION GUARD] ประตูป้องกันชั้นสุดท้าย
+                        # ห้ามเริ่มทำงานเปิดบิลเด็ดขาดหาก self.app.items ว่างเปล่า
+                        if not getattr(self.app, 'items', None):
+                            logger.error(f"Order: {self.app.order} - self.app.items ว่างเปล่า ไม่สามารถเริ่ม operation ได้")
+                            self.app.update_log(f"❌ ไม่พบรายการสินค้าสำหรับ Order: {self.app.order}")
+                            self.record_failed_with_checkpoint("ไม่พบรายการสินค้าในคำสั่งซื้อ (items is empty)")
+                            self.app.report_manager.finish_order(self.app.order, overall_status="FAILED", note="items is empty")
+                            break
                         logger.info(f"Order: {self.app.order} Start!!")
                         self.app.report_manager.start_order(
                             self.app.order,
@@ -5409,6 +5432,22 @@ class Bot_POS:
                 self.get_tabs()
                 self.driver.switch_to.window(
                     self.merged_dict['SMCO :: เปิดการขาย'])
+
+            # ⚠️ [CART SANITATION GUARD] ตรวจสอบและล้างสินค้าตกค้างบนตะกร้า POS ก่อนเริ่มรอบใหม่
+            try:
+                if hasattr(self, 'ProductManager') and hasattr(self.ProductManager, 'XPATH_SKU_TEXTS'):
+                    leftover_items = self.driver.find_elements(By.XPATH, self.ProductManager.XPATH_SKU_TEXTS)
+                    if len(leftover_items) > 0:
+                        leftover_skus = [el.text.strip() for el in leftover_items if el.text.strip()]
+                        if leftover_skus:
+                            logger.warning(
+                                f"Order: {self.cus_order} - ตรวจพบสินค้าตกค้างบนตะกร้า POS ก่อนเริ่มงาน: {leftover_skus} "
+                                f"-> รีโหลดหน้า POS เพื่อล้างตะกร้าให้เป็นศูนย์...")
+                            self.app.update_log(f"🧼 ตรวจพบสินค้าตกค้างบน POS ({leftover_skus}) -> รีโหลดล้างตะกร้าเพื่อความปลอดภัย...")
+                            self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
+                            time.sleep(1.5)
+            except Exception as cart_err:
+                print(f"Cart sanitation check skipped: {cart_err}")
 
             # self.smco_handler.insert_emp()
             # self.smco_handler.select_sale_type()

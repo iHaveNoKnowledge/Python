@@ -138,18 +138,42 @@ class ProductManager:
 
         # * 2) เปรียบเทียบกับ input data
         result: dict[str, dict] = {}
+
+        # ⚠️ [SELF-VERIFICATION GUARD 1] ตรวจสอบความถูกต้องกับตาราง Marketplace โดยตรง
+        current_order = str(getattr(self.app, 'order', '')).strip()
+        if hasattr(self.app, 'data_frame') and self.app.data_frame is not None and not self.app.data_frame.empty:
+            if current_order and 'หมายเลขคำสั่งซื้อ' in self.app.data_frame.columns:
+                match_df = self.app.data_frame[self.app.data_frame['หมายเลขคำสั่งซื้อ'].astype(str).str.strip() == current_order]
+                if match_df.empty:
+                    err_msg = f"[Self-Verification] Fatal: Order {current_order} ไม่พบในตาราง Marketplace DataFrame!"
+                    print(f"❌ {err_msg}")
+                    result[f"UNKNOWN_ORDER_{current_order}"] = {
+                        "expected": "FOUND_IN_MARKETPLACE",
+                        "actual": "NOT_FOUND",
+                        "ok": False
+                    }
+                    return result
+
         # * รวมค่าขนส่งที่อาจจะมีอยู่ใน input data ด้วย (ถ้ามี) เพราะในหน้าย pos มันยิงค่าขนส่งลงไปด้วยต้องเทียบหมดอยู่ละ
+        ship_cost_val = 0.0
+        try:
+            if hasattr(self.app, 'cus_ship_cost'):
+                raw_ship = self.app.cus_ship_cost.get()
+                ship_cost_val = float(raw_ship) if raw_ship else 0.0
+        except Exception:
+            ship_cost_val = 0.0
+
         self.shipping_dict = {
             self.COL_SKU: 'SV0-000101',
             self.COL_QTY: 1,
-            self.COL_PRICE: self.app.cus_ship_cost.get(),
-        } if self.app.cus_ship_cost.get() else {}
+            self.COL_PRICE: ship_cost_val,
+        } if ship_cost_val > 0 else {}
         # * คำนวณราคาขายสุทธิ (subtotal) สำหรับค่าขนส่งด้วย (ถ้ามี) เพื่อใช้ใน verify_total_price ต่อไป
         self.shipping_dict[self.COL_SUBTOTAL] = self.shipping_dict[self.COL_PRICE] * \
             self.shipping_dict[self.COL_QTY] if self.shipping_dict else 0
 
         print("self.shipping_dict: ", self.shipping_dict)
-        all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
+        all_items = self.app.items + [self.shipping_dict] if ship_cost_val > 0 else self.app.items
         
         # Aggregate expected quantities by SKU code
         expected_qtys = {}
@@ -168,6 +192,19 @@ class ProductManager:
                 f"[ProductManager.verify_item_qty] {status_icon} "
                 f"SKU={sku}  expected={expected}  actual={actual}"
             )
+
+        # ⚠️ [SELF-VERIFICATION GUARD 2] ตรวจจับสินค้าส่วนเกิน/ตกค้างบน POS (Bidirectional Check)
+        for pos_sku, actual_qty in pos_data.items():
+            if pos_sku not in expected_qtys:
+                print(
+                    f"❌ [Self-Verification] ตรวจพบสินค้าแปลกปลอม/ตกค้างบน POS: {pos_sku} "
+                    f"(จำนวน: {actual_qty}) ซึ่งไม่อยู่ในรายการคำสั่งซื้อของ Order {self.app.order}!"
+                )
+                result[pos_sku] = {
+                    "expected": 0,
+                    "actual": actual_qty,
+                    "ok": False
+                }
 
         return result
 

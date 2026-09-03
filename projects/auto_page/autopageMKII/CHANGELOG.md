@@ -40,10 +40,15 @@
    - ต้องใช้ `subprocess.Popen` (Non-blocking) ห้ามใช้ `subprocess.run` แบบ Synchronous เพื่อป้องกัน Tkinter GUI ค้าง (Not Responding)
    - ใช้ Flag `-silent` เพื่อป้องกันหน้าต่าง Popup แจ้งเตือนของ SumatraPDF
 
-### 💰 สรุปข้อกำหนดจากทีมบัญชี / AR
-1. **ยอดชำระเงิน**: หากบิลขายนั้นค่าขนส่งฟรี ให้หยิบยอดที่ไม่รวมค่าขนส่งมาระบุใน Smart Core
-2. **Input Validation**: หลังระบุยอดเงินในช่อง Input ให้ Trigger Event `blur` เพื่อให้ Smart Core ทำการ Validate ยอดถูกต้อง
-3. **Safety Delay**: ชะลอการกดปุ่มชำระเงินสุดท้ายเล็กน้อย (ประมาณ 1 วินาที) เพื่อให้ระบบ Validate ข้อมูลและบันทึกครบถ้วน
+### 🛡️ ความปลอดภัยของ State ข้อมูลคำสั่งซื้อ (Order State Isolation & Leak Prevention)
+1. **การรีเซ็ต State เมื่อเริ่มค้นหาออเดอร์ใหม่**:
+   - ฟังก์ชัน `reset_all_display()` ต้องเคลียร์ `self.items = []`, `self.nondistortedData = {}`, `self.tracking_from_data = []` และ `self.financials.items = []` เสมอ ห้ามให้มีข้อมูลของออเดอร์ก่อนหน้าหลงเหลือ
+2. **กรณีค้นหาออเดอร์ไม่พบในไฟล์นำเข้า (Export File Not Found)**:
+   - ต้องล้าง `self.items = []`, หยุดการทำงานของ `operation_thread` ทันที และโยน `ValueError` เพื่อบันทึกลง `Failed_Orders` **ห้ามปล่อยให้ Thread หลุดไปเข้าขั้นตอนเปิดบิลเด็ดขาด**
+3. **Safeguard หน้าประตูก่อนเปิดบิล (`operation_task_thread`)**:
+   - ก่อนสั่ง `operation_start()` ต้องตรวจสอบเสมอว่า `self.app.items` ต้องไม่เป็นค่าว่างเปล่า หากว่างเปล่าต้องยกเลิกออเดอร์ทันที ห้ามแตะต้องหน้า POS
+4. **การทดสอบความปลอดภัย (Regression Testing)**:
+   - รัน `pytest tests/test_order_leak_guard.py` ทุกครั้งหลังมีการ Refactor โค้ดที่เกี่ยวข้องกับ Order Search หรือ State
 
 ---
 
@@ -67,6 +72,8 @@
 - [x] **[Completed_Orders Multi-Tracking]** ปรับ `record_completed_order` ใน Accel mode ให้แยกบันทึก 1 Row ต่อ 1 Tracking Number พร้อมจับคู่ SKU และ SN ของแต่ละ Tracking อัตโนมัติ
 - [x] **[Cancelled Order SN Guard]** ป้องกันค่า SN ตกค้างใน Order ที่ถูกยกเลิก/ข้าม โดยล้าง `used_serials` ก่อนเริ่มรอบค้นหาและหลังบันทึกทุกครั้ง พร้อมบล็อกไม่ให้เขียน SN ลงแถวที่ถูกยกเลิก
 - [x] **[In-Memory SN Recovery]** แก้ปัญหา SN หายจาก Memory เมื่อรอบก่อนหน้า Abort/Fail กลางคัน (เช่น ติดปรับราคา) โดยสั่งซิงค์ `obj_data_from_accel_file` จาก `accel_df_state` ก่อนเริ่มยิง SN ทุกครั้ง ทำให้สามารถยิง SN ได้ตามปกติเมื่อวนกลับมารันใหม่
+- [x] **[Order State Leak Guard]** ป้องกันการนำข้อมูลสินค้าของออเดอร์ก่อนหน้ามาออกบิลซ้ำ เมื่อค้นหาออเดอร์ใหม่ไม่พบในไฟล์นำเข้า โดยรีเซ็ต `self.items = []`, สั่งตัดการทำงานของ `operation_thread` ทันที, บันทึกลง `Failed_Orders`, และเพิ่ม Safeguard บล็อกไม่ให้เริ่มรันถ้า `self.items` ว่างเปล่า
+- [x] **[Real-time Self-Verification & Cart Sanitation]** เพิ่มระบบตรวจสอบตัวเองแบบ Real-Time (1) เช็คความถูกต้องกับตาราง Marketplace โดยตรงใน `verify_item_qty` (2) ตรวจสอบแบบสองทิศทาง (Bidirectional Check) ดักจับสินค้าแปลกปลอม/สินค้าตกค้างบน POS ทันที (3) ระบบ Cart Sanitation รีโหลดหน้า POS อัตโนมัติหากพบสินค้าตกค้างบนตะกร้าก่อนเริ่มออเดอร์ใหม่ พร้อมชุด Automated Test 7 ข้อ
 
 ### [5.2.0LITE - 5.2.3LITE]
 #### Added & Fixed

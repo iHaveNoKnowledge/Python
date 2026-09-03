@@ -1098,15 +1098,30 @@ class POSPricingReconciler:
             print("verification_result (Round 1): ", verification_result)
             self.bot.current_checkpoint = "ตรวจสอบราคาและจำนวนสำเร็จ"
 
-            # เช็คจำนวนสินค้า (ขาด SN หรือ ยิงไม่ติด) -> fail order ทันที
+            # เช็คจำนวนสินค้า (ขาด SN, ยิงไม่ติด, หรือมีสินค้าตกค้าง) -> fail order ทันที
             qty_shortage_lines = []
             for sku, info in verification_result.get("qty", {}).items():
                 if not info.get("ok", True):
-                    qty_shortage_lines.append(
-                        f"  • {sku}: ลูกค้าสั่ง {info.get('expected')} แต่ลง POS ได้ {info.get('actual')}"
-                    )
+                    exp = info.get('expected')
+                    act = info.get('actual')
+                    if exp == 0:
+                        qty_shortage_lines.append(
+                            f"  • {sku}: ตรวจพบสินค้าแปลกปลอม/ตกค้างบน POS (ในคำสั่งซื้อนี้ไม่มีสินค้านี้ แต่พบบน POS {act} ชิ้น)"
+                        )
+                    elif exp == "FOUND_IN_MARKETPLACE":
+                        qty_shortage_lines.append(
+                            f"  • {sku}: ไม่พบคำสั่งซื้อนี้ในไฟล์นำเข้า Marketplace (Fatal Mismatch)"
+                        )
+                    elif act == "NOT_FOUND":
+                        qty_shortage_lines.append(
+                            f"  • {sku}: ไม่พบสินค้านี้บน POS (ลูกค้าสั่ง {exp} ชิ้น)"
+                        )
+                    else:
+                        qty_shortage_lines.append(
+                            f"  • {sku}: ลูกค้าสั่ง {exp} แต่ลง POS ได้ {act}"
+                        )
             if qty_shortage_lines:
-                err_msg = "จำนวนไม่พอ (ลง POS ได้น้อยกว่าที่ลูกค้าสั่ง):\n" + "\n".join(qty_shortage_lines)
+                err_msg = "รายการหรือจำนวนสินค้าบน POS ไม่ตรงกับคำสั่งซื้อ:\n" + "\n".join(qty_shortage_lines)
                 self.app.update_log(f"❌ {err_msg}")
                 raise ValueError(err_msg)
 
