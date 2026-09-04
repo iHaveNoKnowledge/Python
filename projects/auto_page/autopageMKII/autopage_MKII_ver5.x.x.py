@@ -4704,6 +4704,7 @@ class Bot_POS:
             By.XPATH, self.app.cusNameInput).send_keys(cus_search)
 
     def add_new_customer(self, cb=None):
+        self.current_checkpoint = "สร้างลูกค้าใหม่ (add_new_customer)"
         # * ขอใบกำกับป่าว
         if self.app.is_tax_required.get():
             print("Tax_needed")
@@ -4726,6 +4727,7 @@ class Bot_POS:
                 # * กรณี add แล้ว มี popup-duplicate customer
                 print("Check Duplicated customer!!")
                 if self.app.is_tax_required.get():
+                    self.current_checkpoint = "ปรับแต่งข้อมูลลูกค้า (ชื่อซ้ำ/เปลี่ยนเป็นขอใบกำกับภาษีเต็มรูปแบบ)"
                     self.duplicated_cus_name_resolver(cus_code_element)
             else:
                 raise ValueError("Popup not found after adding customer.")
@@ -5775,6 +5777,7 @@ class Bot_POS:
                     # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
 
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
+                self.current_checkpoint = "ค้นหาชื่อลูกค้า"
                 if not self.cus_search_input in self.driver.find_element(
                         By.CSS_SELECTOR, "#select2-memberSearch-container").get_attribute("title"):
                     self.get_customer_name_ready(self.cus_search_input)
@@ -7274,6 +7277,7 @@ class Bot_POS:
         print("tax_address_corrector done!")
 
     def edit_cus_info(self, incoming_cus_code: int = None):
+        self.current_checkpoint = "ปรับแต่งข้อมูลลูกค้า (แก้ไขข้อมูลลูกค้าเดิมที่ชื่อซ้ำใน SMCO)"
         while not self.operation_thread.is_set():
             try:
                 if self.driver.find_element(
@@ -7292,18 +7296,83 @@ class Bot_POS:
             except:
                 time.sleep(1)
                 continue
-        # WebDriverWait(driver, 12).until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched")))
-        # self.driver.find_element(By.CSS_SELECTOR, f"div.col-xs-3 div.col-sm-7 input.form-control.input-height.ng-valid.ng-valid-maxlength.ng-touched").send_keys(self.app.tax_num.get())
-        WebDriverWait(
+
+        # * ตรวจสอบและเลือก Customer Class (หมวดลูกค้า) ที่เป็น must have
+        class_container_xpath = "//span[@id='select2-customerClass-container']"
+        try:
+            class_container = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, class_container_xpath))
+            )
+            time.sleep(0.5)
+            current_title = class_container.get_attribute("title")
+            print(f"edit_cus_info: current customerClass title = '{current_title}'")
+
+            # ดูว่ามี attr 'title' ไหม ถ้าไม่มีแปลว่าต้อง click เพื่อกาง dropdown
+            if not current_title or current_title.strip() == "" or "CM1" not in current_title:
+                print("edit_cus_info: customerClass title is missing or empty, clicking to open dropdown...")
+                time.sleep(0.4)
+                try:
+                    class_container.click()
+                except Exception:
+                    self.driver.execute_script("arguments[0].click();", class_container)
+
+                # กางมาจะได้ li โดย li แต่ละตัว ใช้ xpath แบบนี้ //li[@role='treeitem']
+                time.sleep(0.6)
+                target_selected = False
+                start_find = time.time()
+                while time.time() - start_find < 10 and not target_selected:
+                    treeitems = self.driver.find_elements(By.XPATH, "//li[@role='treeitem']")
+                    for item in treeitems:
+                        try:
+                            item_text = item.text.strip()
+                            # ให้ดูว่า ค่า text ของมัน มีค่าไหม ถ้ามีค่าเป็น "CM1 - Domestic Customer" ให้เลือกอันนี้
+                            if item_text and ("CM1 - Domestic Customer" in item_text or "CM1-Domestic Customer" in item_text or ("CM1" in item_text and "Domestic Customer" in item_text)):
+                                print(f"edit_cus_info: found target customerClass choice '{item_text}', selecting...")
+                                time.sleep(0.4)
+                                try:
+                                    item.click()
+                                except Exception:
+                                    self.driver.execute_script("arguments[0].click();", item)
+                                target_selected = True
+                                time.sleep(0.5)
+                                break
+                        except Exception:
+                            continue
+                    if not target_selected:
+                        time.sleep(0.4)
+
+                # หลังจากเลือกแล้วให้ make sure ว่า //span[@id='select2-customerClass-container'] มีค่าเป็นค่าที่เพิ่งเลือกเมื่อสักครู่แสดงใน attr 'title'
+                start_verify = time.time()
+                while time.time() - start_verify < 6:
+                    time.sleep(0.4)
+                    try:
+                        updated_container = self.driver.find_element(By.XPATH, class_container_xpath)
+                        updated_title = updated_container.get_attribute("title")
+                        if updated_title and ("CM1" in updated_title or "Domestic Customer" in updated_title):
+                            print(f"edit_cus_info: customerClass verified in title: '{updated_title}'")
+                            break
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"edit_cus_info: customerClass check/selection notice: {e}")
+            logger.warning(f"edit_cus_info: customerClass check/selection notice: {e}")
+
+        # * เคลียร์และกรอกเลขประจำตัวผู้เสียภาษี
+        tax_input = WebDriverWait(
             self.driver, 12).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input")))
-        self.driver.find_element(
-            By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").clear()
-        self.driver.find_element(
-            By.XPATH, f"/html/body/div[2]/div[2]/div/div[3]/div[1]/div[1]/div[1]/form/div[8]/div[2]/div/input").send_keys(self.app.tax_num.get())
+        time.sleep(0.4)
+        try:
+            self.js_input_value(tax_input, self.app.tax_num.get())
+        except Exception:
+            tax_input.clear()
+            time.sleep(0.2)
+            tax_input.send_keys(self.app.tax_num.get())
+        time.sleep(0.4)
 
     def duplicated_cus_name_resolver(self, popup_dup_element):
+        self.current_checkpoint = "ปรับแต่งข้อมูลลูกค้า (ชื่อซ้ำ/เปลี่ยนเป็นขอใบกำกับภาษีเต็มรูปแบบ)"
         # * ระบุตัวตนของ pop-up
         self.cus_code_element = popup_dup_element
         self.dup_popup_content = self.cus_code_element.text
@@ -7347,8 +7416,19 @@ class Bot_POS:
         self.edit_cus_info(self.cus_code)
 
         # * press the upper right conor save btn
-        self.driver.find_element(
-            By.XPATH, '/html/body/div[2]/div[2]/div/div[1]/div[2]/div[2]/a').click()
+        self.current_checkpoint = "ปรับแต่งข้อมูลลูกค้า (บันทึกข้อมูลลูกค้าที่แก้ไขแล้ว)"
+        time.sleep(0.5)
+        save_btn_xpath = '/html/body/div[2]/div[2]/div/div[1]/div[2]/div[2]/a'
+        save_btn = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, save_btn_xpath))
+        )
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", save_btn)
+            time.sleep(0.3)
+            save_btn.click()
+        except Exception as click_err:
+            print(f"Standard click on save button intercepted/failed ({click_err}), using JS click...")
+            self.driver.execute_script("arguments[0].click();", save_btn)
 
         # * press to close complete popup
 
