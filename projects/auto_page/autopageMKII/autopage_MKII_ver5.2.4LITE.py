@@ -801,27 +801,81 @@ class MyApp:
         print(f"[Mode] Switched to {mode_name} mode")
 
     def test_add_customer_modal(self):
-        """Shortcut method สำหรับกดทดสอบ Add Customer Modal ทันที"""
+        """Shortcut method สำหรับกดทดสอบ Add Customer Modal ทันทีจาก Order ในช่อง Input"""
+        # 1. รับค่าเลข order จากช่อง input (self.entered_order หรือ self.inp1_order_input หรือ self.cus_order)
+        target_order = ""
+        if hasattr(self, 'entered_order') and self.entered_order.get():
+            target_order = str(self.entered_order.get()).strip()
+        elif hasattr(self, 'inp1_order_input') and self.inp1_order_input.get():
+            target_order = str(self.inp1_order_input.get()).strip()
+        elif hasattr(self, 'cus_order') and self.cus_order.get():
+            target_order = str(self.cus_order.get()).strip()
+
+        if not target_order:
+            self.update_log("⚠️ กรุณากรอกเลข Order ในช่อง Order ก่อนกดทดสอบ Add Customer")
+            return
+
         if not hasattr(self, 'bot') or self.bot is None:
             self.update_log("⚠️ บอทยังไม่พร้อมทำงาน (กรุณาเริ่มระบบบอทก่อน)")
             return
 
         def _run_test_worker():
             try:
-                self.update_log("🔬 กำลังเริ่มรันการทดสอบ Add Customer Modal...")
+                # 2. ถ้า order ที่จะเทสยังไม่ได้โหลดเข้าแอป หรือไม่ตรงกับออเดอร์ปัจจุบัน ให้ค้นหาและโหลดจาก Excel ก่อน
+                curr_order = str(self.cus_order.get()).strip() if hasattr(self, 'cus_order') else ""
+                has_details = bool(getattr(self, 'nondistortedData', None) or (hasattr(self, 'cus_name') and self.cus_name.get().strip()))
+
+                if curr_order != target_order or not has_details:
+                    if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
+                        self.update_log(f"⚠️ กรุณานำเข้าไฟล์ Excel ก่อน เพื่อดึงข้อมูลลูกค้าสำหรับ Order: {target_order}")
+                        return
+
+                    order_col = "หมายเลขคำสั่งซื้อ"
+                    if order_col not in self.data_frame.columns:
+                        self.update_log(f"⚠️ ไม่พบคอลัมน์ '{order_col}' ในไฟล์ Excel นำเข้า")
+                        return
+
+                    matched = self.data_frame[self.data_frame[order_col].astype(str).str.strip() == target_order]
+                    if matched.empty:
+                        self.update_log(f"❌ ไม่พบเลข Order '{target_order}' ในไฟล์ Excel นำเข้า")
+                        return
+
+                    self.update_log(f"🔍 กำลังโหลดข้อมูล Order: {target_order} จากไฟล์ Excel...")
+                    evt = threading.Event()
+                    self.order_search(target_order, evt)
+                    evt.wait(timeout=5.0)
+
+                # อัปเดตเลขออเดอร์ให้ bot และ self ให้ตรงกัน
+                if hasattr(self, 'cus_order'):
+                    self.cus_order.set(target_order)
+                if hasattr(self, 'bot') and self.bot is not None:
+                    self.bot.cus_order = target_order
+
+                self.update_log(f"🔬 กำลังเริ่มรันการทดสอบ Add Customer Modal สำหรับ Order: {target_order}...")
+
+                customer_data = None
+                if hasattr(self.bot, 'customer_test_handler') and self.bot.customer_test_handler:
+                    customer_data = self.bot.customer_test_handler._gather_customer_data_from_app()
+                elif hasattr(CustomerModalTestHandler, '_gather_customer_data_from_app'):
+                    temp_handler = CustomerModalTestHandler(self.bot)
+                    customer_data = temp_handler._gather_customer_data_from_app()
+
+                if customer_data:
+                    customer_data["order_id"] = target_order
+
                 if hasattr(self.bot, 'run_add_customer_test'):
-                    res = self.bot.run_add_customer_test()
+                    res = self.bot.run_add_customer_test(customer_data=customer_data)
                 elif hasattr(self.bot, 'customer_test_handler'):
-                    res = self.bot.customer_test_handler.run_test()
+                    res = self.bot.customer_test_handler.run_test(customer_data=customer_data)
                 else:
                     handler = CustomerModalTestHandler(self.bot)
-                    res = handler.run_test()
+                    res = handler.run_test(customer_data=customer_data)
 
                 if res.get("passed"):
-                    msg = "✅ ทดสอบ Add Customer Modal สำเร็จสมบูรณ์ (PASS): ข้อมูลตรงทุกฟิลด์ และ disabled หายไป"
+                    msg = f"✅ ทดสอบ Add Customer Modal สำหรับ Order {target_order} สำเร็จสมบูรณ์ (PASS): ข้อมูลตรงทุกฟิลด์ และ disabled หายไป"
                 else:
                     reasons = "; ".join(res.get("fail_reasons", []))
-                    msg = f"❌ ผลทดสอบ Add Customer Modal ไม่ผ่าน (FAIL): {reasons}"
+                    msg = f"❌ ผลทดสอบ Add Customer Modal สำหรับ Order {target_order} ไม่ผ่าน (FAIL): {reasons}"
 
                 self.update_log(msg)
                 report_p = res.get("report_path")
@@ -829,7 +883,7 @@ class MyApp:
                     self.update_log(f"📊 บันทึกรายงานแล้วที่: {report_p}")
 
             except Exception as e:
-                err = f"❌ เกิดข้อผิดพลาดใน Test Add Customer: {e}"
+                err = f"❌ เกิดข้อผิดพลาดใน Test Add Customer [Order: {target_order}]: {e}"
                 logger.error(err)
                 self.update_log(err)
 

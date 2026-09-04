@@ -177,7 +177,16 @@ class CustomerModalTestHandler:
 
         Returns: Dict สรุปผลการทดสอบ
         """
-        order_id = getattr(self.bot, 'cus_order', "") or self.app.cus_order.get() or "TEST_ORDER_MODAL"
+        # 1. ดึงข้อมูลลูกค้าหากไม่ได้ส่งเข้ามาตรงๆ
+        if not customer_data:
+            customer_data = self._gather_customer_data_from_app()
+
+        order_id = (
+            (customer_data.get("order_id") if customer_data else None)
+            or getattr(self.bot, 'cus_order', "")
+            or (self.app.cus_order.get() if hasattr(self.app, 'cus_order') else "")
+            or "TEST_ORDER_MODAL"
+        )
         logger.info(f"[CustomerModalTestHandler] เริ่มต้นการทดสอบ Add Customer Modal สำหรับ Order: {order_id}")
 
         test_result = {
@@ -197,10 +206,6 @@ class CustomerModalTestHandler:
             "fail_reasons": [],
             "details": {}
         }
-
-        # 1. ดึงข้อมูลลูกค้าหากไม่ได้ส่งเข้ามาตรงๆ
-        if not customer_data:
-            customer_data = self._gather_customer_data_from_app()
 
         name = customer_data.get("name", "").strip()
         tax_id = customer_data.get("tax_id", "").strip()
@@ -481,6 +486,7 @@ class CustomerModalTestHandler:
 
     def _gather_customer_data_from_app(self) -> Dict[str, Any]:
         """รวบรวมข้อมูลลูกค้าจากสถานะปัจจุบันของแอปพลิเคชัน"""
+        order_id = ""
         name = ""
         tax_id = ""
         address = ""
@@ -490,6 +496,11 @@ class CustomerModalTestHandler:
         postcode = ""
 
         try:
+            if hasattr(self.app, 'cus_order'):
+                order_id = str(self.app.cus_order.get()).strip()
+            if not order_id and hasattr(self.app, 'entered_order'):
+                order_id = str(self.app.entered_order.get()).strip()
+
             if hasattr(self.app, 'cus_name'):
                 name = self.app.cus_name.get()
             if hasattr(self.app, 'tax_num'):
@@ -516,26 +527,55 @@ class CustomerModalTestHandler:
             if hasattr(self.app, 'cus_postcode'):
                 postcode = self.app.cus_postcode.get()
 
+            # Fallback to nondistortedData if province/district/subdistrict/address was not set in StringVar
+            if hasattr(self.app, 'nondistortedData') and isinstance(self.app.nondistortedData, dict):
+                nd = self.app.nondistortedData
+                if not province:
+                    province = str(nd.get('จังหวัด.1') or nd.get('จังหวัด') or "").strip()
+                if not district:
+                    district = str(nd.get('เขต/อำเภอ.1') or nd.get('เขต/อำเภอ') or "").strip()
+                if not sub_district:
+                    sub_district = str(nd.get('แขวง/ตำบล') or "").strip()
+                if not postcode:
+                    postcode = str(nd.get('รหัสไปรษณีย์.1') or nd.get('รหัสไปรษณีย์') or "").strip()
+                if not address:
+                    address = str(nd.get('รายละเอียดที่อยู่') or nd.get('ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป') or "").strip()
+
+            # Sanitize 'nan' strings from pandas
+            if province.lower() == 'nan':
+                province = ""
+            if district.lower() == 'nan':
+                district = ""
+            if sub_district.lower() == 'nan':
+                sub_district = ""
+            if postcode.lower() == 'nan':
+                postcode = ""
+            if address.lower() == 'nan':
+                address = ""
+
         except Exception as e:
             logger.warning(f"[CustomerModalTestHandler] รวบรวมข้อมูลจากแอปพบข้อผิดพลาด: {e}")
 
         # Fallback values สำหรับกรณีที่แอปยังไม่ได้โหลดออเดอร์ใดๆ เพื่อให้ทดสอบได้
-        if not name:
-            name = "บริษัท ทดสอบระบบ จำกัด (สำนักงานใหญ่)"
-        if not tax_id:
-            tax_id = "0105555000000"
-        if not address:
-            address = "99/99 อาคารทดสอบ ชั้น 9"
-        if not province:
-            province = "กรุงเทพมหานคร"
-        if not district:
-            district = "วัฒนา"
-        if not sub_district:
-            sub_district = "คลองเตยเหนือ"
-        if not postcode:
-            postcode = "10110"
+        is_order_loaded = bool(name or address or province)
+        if not is_order_loaded:
+            if not name:
+                name = "บริษัท ทดสอบระบบ จำกัด (สำนักงานใหญ่)"
+            if not tax_id:
+                tax_id = "0105555000000"
+            if not address:
+                address = "99/99 อาคารทดสอบ ชั้น 9"
+            if not province:
+                province = "กรุงเทพมหานคร"
+            if not district:
+                district = "วัฒนา"
+            if not sub_district:
+                sub_district = "คลองเตยเหนือ"
+            if not postcode:
+                postcode = "10110"
 
         return {
+            "order_id": order_id,
             "name": name,
             "tax_id": tax_id,
             "address": address,

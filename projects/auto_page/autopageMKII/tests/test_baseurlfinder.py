@@ -5,9 +5,12 @@ from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 from requests.exceptions import ConnectionError, Timeout, RequestException
 
-ROOT_DIR = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(ROOT_DIR))
-from projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
+APP_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(APP_DIR))
+try:
+    from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
+except ImportError:
+    from projects.auto_page.autopageMKII.functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 
 
 @pytest.fixture
@@ -55,7 +58,7 @@ class TestBaseUrlFinder:
             assert "Failed to decode JSON" in captured.out
 
     # ===== Test check_available_ip =====
-    @patch("projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder.requests.get")
+    @patch("functions.BaseUrlFinder.BaseUrlFinder.requests.get")
     def test_check_available_ip_first_success(self, mock_get, sample_ips):
         """Test when first IP returns 200"""
         finder = BaseUrlFinder()
@@ -69,7 +72,7 @@ class TestBaseUrlFinder:
         assert result == "http://115.31.167.28:8080"
         mock_get.assert_called_once_with("http://115.31.167.28:8080", timeout=2)
 
-    @patch("projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder.requests.get")
+    @patch("functions.BaseUrlFinder.BaseUrlFinder.requests.get")
     def test_check_available_ip_second_success(self, mock_get, sample_ips):
         """Test when first IP fails, second succeeds"""
         finder = BaseUrlFinder()
@@ -87,7 +90,7 @@ class TestBaseUrlFinder:
         assert result == "http://192.168.0.11:8080"
         assert mock_get.call_count == 2
 
-    @patch("projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder.requests.get")
+    @patch("functions.BaseUrlFinder.BaseUrlFinder.requests.get")
     def test_check_available_ip_non_200_status(self, mock_get, sample_ips):
         """Test when IP returns non-200 status code"""
         finder = BaseUrlFinder()
@@ -100,7 +103,7 @@ class TestBaseUrlFinder:
         result = finder.check_available_ip()
         assert result is None
 
-    @patch("projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder.requests.get")
+    @patch("functions.BaseUrlFinder.BaseUrlFinder.requests.get")
     def test_check_available_ip_connection_error(self, mock_get, sample_ips):
         """Test when ConnectionError is raised"""
         finder = BaseUrlFinder()
@@ -110,7 +113,7 @@ class TestBaseUrlFinder:
         result = finder.check_available_ip()
         assert result is None
 
-    @patch("projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder.requests.get")
+    @patch("functions.BaseUrlFinder.BaseUrlFinder.requests.get")
     def test_check_available_ip_timeout(self, mock_get, sample_ips):
         """Test when Timeout is raised"""
         finder = BaseUrlFinder()
@@ -120,7 +123,7 @@ class TestBaseUrlFinder:
         result = finder.check_available_ip()
         assert result is None
 
-    @patch("projects.auto_page.autopageMKII.modules.BaseUrlFinder.BaseUrlFinder.requests.get")
+    @patch("functions.BaseUrlFinder.BaseUrlFinder.requests.get")
     def test_check_available_ip_request_exception(self, mock_get, sample_ips):
         """Test when general RequestException is raised"""
         finder = BaseUrlFinder()

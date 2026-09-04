@@ -259,6 +259,107 @@ class TestCustomerModalTestHandler(unittest.TestCase):
         self.assertFalse(result["province_match"])
         self.assertTrue(any("จังหวัด" in r for r in result["fail_reasons"]))
 
+    def test_run_test_uses_order_id_from_customer_data(self):
+        """ตรวจสอบว่า run_test นำ order_id จาก customer_data ไปใช้ในผลลัพธ์และรายงาน"""
+        save_btn_initial = self._create_mock_element(disabled="disabled", is_enabled=False)
+        save_btn_final = self._create_mock_element(disabled=None, is_enabled=True)
+        name_el = self._create_mock_element(value="ลูกค้าทดสอบ")
+        addr_el = self._create_mock_element(value="123 ถ.สุขุมวิท")
+        prov_el = self._create_mock_element(title="กรุงเทพมหานคร")
+        dist_el = self._create_mock_element(title="วัฒนา")
+        subdist_el = self._create_mock_element(title="คลองเตยเหนือ")
+        zip_el = self._create_mock_element(title="10110")
+
+        save_call_count = [0]
+        def mock_save_find():
+            save_call_count[0] += 1
+            return save_btn_initial if save_call_count[0] == 1 else save_btn_final
+
+        def mock_find_element(by, xpath):
+            if "saveNewMember" in xpath:
+                return mock_save_find()
+            elif "memNameTh" in xpath or "memNameEn" in xpath:
+                return name_el
+            elif "addressCustomer" in xpath:
+                return addr_el
+            elif "select2-province-container" in xpath:
+                return prov_el
+            elif "select2-district-container" in xpath:
+                return dist_el
+            elif "select2-subDistrict-container" in xpath:
+                return subdist_el
+            elif "select2-zipCodeSel-container" in xpath:
+                return zip_el
+            return self._create_mock_element()
+
+        self.mock_driver.find_element.side_effect = mock_find_element
+
+        custom_order = "240904SPECIFIC999"
+        cust_data = {
+            "order_id": custom_order,
+            "name": "ลูกค้าทดสอบ",
+            "tax_id": "",
+            "address": "123 ถ.สุขุมวิท",
+            "province": "กรุงเทพมหานคร",
+            "district": "วัฒนา",
+            "sub_district": "คลองเตยเหนือ",
+            "postcode": "10110",
+        }
+
+        result = self.handler.run_test(customer_data=cust_data, close_modal_after_test=True)
+        self.assertEqual(result["order_id"], custom_order)
+        self.assertTrue(result["passed"])
+
+        # ตรวจสอบว่า record ใน TestReportManager ถูกบันทึกด้วย order_id ที่ระบุ
+        rec = self.report_mgr.records.get(custom_order)
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["customer_status"], "SUCCESS")
+
+    def test_gather_customer_data_from_app_with_entered_order(self):
+        """ตรวจสอบว่า _gather_customer_data_from_app อ่าน order_id จาก entered_order ได้หาก cus_order ว่าง"""
+        self.mock_app.cus_order.get.return_value = ""
+        self.mock_app.entered_order = MagicMock()
+        self.mock_app.entered_order.get.return_value = "ORDER_FROM_ENTRY_BOX"
+        self.mock_app.cus_name.get.return_value = "คุณลูกค้า สบายดี"
+        self.mock_app.tax_num.get.return_value = ""
+        self.mock_app.address = "12/34 ม.5"
+        self.mock_app.cus_province.get.return_value = "เชียงใหม่"
+        self.mock_app.cus_district.get.return_value = "เมืองเชียงใหม่"
+        self.mock_app.cus_sub_district.get.return_value = "สุเทพ"
+        self.mock_app.cus_postcode.get.return_value = "50200"
+
+        data = self.handler._gather_customer_data_from_app()
+        self.assertEqual(data["order_id"], "ORDER_FROM_ENTRY_BOX")
+        self.assertEqual(data["name"], "คุณลูกค้า สบายดี")
+        self.assertEqual(data["province"], "เชียงใหม่")
+        self.assertEqual(data["tax_id"], "")
+
+    def test_gather_customer_data_from_app_with_nondistortedData_fallback(self):
+        """ตรวจสอบ fallback ไปยัง nondistortedData เมื่อค่าใน StringVar ว่าง (เช่น ออเดอร์ไม่ขอใบกำกับ)"""
+        self.mock_app.cus_order.get.return_value = "240904FALLBACK01"
+        self.mock_app.cus_name.get.return_value = "ลูกค้า ทั่วไป"
+        self.mock_app.tax_num.get.return_value = ""
+        self.mock_app.address = ""
+        self.mock_app.cus_province.get.return_value = ""
+        self.mock_app.cus_district.get.return_value = ""
+        self.mock_app.cus_sub_district.get.return_value = ""
+        self.mock_app.cus_postcode.get.return_value = ""
+        self.mock_app.nondistortedData = {
+            'จังหวัด.1': 'ชลบุรี',
+            'เขต/อำเภอ.1': 'บางละมุง',
+            'แขวง/ตำบล': 'หนองปรือ',
+            'รหัสไปรษณีย์.1': '20150',
+            'รายละเอียดที่อยู่': '55/66 พัทยากลาง'
+        }
+
+        data = self.handler._gather_customer_data_from_app()
+        self.assertEqual(data["order_id"], "240904FALLBACK01")
+        self.assertEqual(data["province"], "ชลบุรี")
+        self.assertEqual(data["district"], "บางละมุง")
+        self.assertEqual(data["sub_district"], "หนองปรือ")
+        self.assertEqual(data["postcode"], "20150")
+        self.assertEqual(data["address"], "55/66 พัทยากลาง")
+
 
 if __name__ == "__main__":
     unittest.main()
