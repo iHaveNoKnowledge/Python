@@ -59,6 +59,7 @@
 - [x] **[Address Tokenization]** นำ `PyThaiNLP` (`word_tokenize`) และ `RapidFuzz` เข้ามาช่วยตัดคำและทำความสะอาดที่อยู่ (`clean_address`) รองรับที่อยู่ที่พิมพ์ติดกันเป็นพรืดและคำย่อการปกครองซ้ำซ้อน
 - [x] **[Test / Batch Report System]** เพิ่มโมดูล `TestReportManager` (`functions/utils/report_manager.py`) บันทึกและสรุปสถานะการสร้างลูกค้า (`customer_status`) และการแก้ไขที่อยู่ (`address_status`) พร้อมระบบ Export รายงานออกมาเป็นไฟล์ Excel อัตโนมัติในโฟลเดอร์ `reports/`
 - [x] **[Final Page Element Verification Guard]** เพิ่มฟังก์ชัน `verify_final_page_elements()` และระบบ Auto-recovery ใน `functions/pos/payment_handler.py` ตรวจสอบความครบถ้วนของ PO No. (`#textbox81037000102`), Customer Name (`#textbox81037000101`), ยอดเงิน Cash (`#ripCash00`), หมายเหตุ (`cnRemark`) และยอดคงเหลือ (`wrimagecard-lightGray == 0.00`) ก่อนกดปุ่มเขียว (`#btnPayment`) พร้อมชุดทดสอบอัตโนมัติ 6 ข้อใน `tests/test_final_page_validator.py`
+- [x] **[Test Mode Segmented Checkpoints]** เพิ่มระบบเลือกจุดหยุดใน Test Mode (`test_mode_frame`) ด้วย `CTkOptionMenu` แบบไดนามิก (แสดงเฉพาะเมื่อกด `Ctrl+Alt+T`) รองรับ 5 ระดับจุดหยุด: [1] หลังเลือกลูกค้า [2] หลังตรวจที่อยู่ [3] หลังยิงสินค้า/คูปองหน้าแรก [4] หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว) [5] ไม่หยุด-รันจนจบวงรอบ พร้อมระบบส่งมอบหน้าจอ (`Your Turn`) และชุดทดสอบใน `tests/test_test_mode_checkpoints.py`
 
 ### [5.2.4LITE / 5.2.5] - 2026-08-27
 #### Fixed & Improved

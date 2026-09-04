@@ -221,7 +221,22 @@ class POSPaymentHandler:
                         except Exception as e:
                             print("auto_final_price broken:", e)
 
-                        # 8. Check all final page elements & Click green submit button (when Finish button pressed)
+                        # 8. Test Mode Guard: Checkpoint 4 (หยุดหลังกรอกหน้าท้าย - ก่อนกดปุ่มเขียว)
+                        if hasattr(self.bot, 'should_stop_at_test_checkpoint') and self.bot.should_stop_at_test_checkpoint("4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"):
+                            verification = self.verify_final_page_elements(
+                                expected_po=self.cus_order,
+                                expected_cus_name=cus_name_val,
+                                expected_price=final_price,
+                            )
+                            status_text = "✅ ครบถ้วน (All OK)" if verification.get("all_ok") else "❌ ไม่ครบถ้วน"
+                            print(f"🔬 [Test Mode Checkpoint 4] Final page verification: {status_text} -> {verification}")
+                            self.app.update_log(
+                                f"🔬 [Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text} (หยุดการทำงานตาม Checkpoint 4)"
+                            )
+                            self.bot.autofinal = False
+                            return True
+
+                        # 8.2 Check all final page elements & Click green submit button (when Finish button pressed)
                         if self.app.is_finish_order_triggered.get():
                             try:
                                 # First verification attempt
