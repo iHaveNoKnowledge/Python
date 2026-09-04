@@ -32,6 +32,7 @@ from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.browser_manager import BrowserManager
 from functions.marketplace_scraper import MarketplaceScraper
+from functions.pos.customer_test_handler import CustomerModalTestHandler
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
 from functions.pos.payment_handler import POSPaymentHandler
 from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler)
@@ -776,6 +777,7 @@ class MyApp:
         state 0x20000 = Mod1/Alt บน Windows (fallback)
         """
         _KEYCODE_T = 84
+        _KEYCODE_C = 67
         _CTRL = 0x4
         _ALT = 0x20000   # Alt (Mod1) บน Windows — 0x8 คือ NumLock ไม่ใช่ Alt!
 
@@ -784,6 +786,9 @@ class MyApp:
             alt = bool(event.state & _ALT)
             if event.keycode == _KEYCODE_T and ctrl and alt:
                 self.toggle_test_mode()
+            elif event.keycode == _KEYCODE_C and ctrl and alt:
+                if hasattr(self, 'test_add_customer_modal'):
+                    self.test_add_customer_modal()
 
         # add="+" จำเป็น: <KeyPress> กับ <Key> เป็น binding ช่องเดียวกันใน Tk
         # ไม่งั้นจะทับ _onKeyRelease (Ctrl+C/V/X/A รองรับคีย์บอร์ดภาษาไทย) ที่ผูก <Key> ไว้
@@ -821,6 +826,41 @@ class MyApp:
 
         mode_name = "TEST" if self.is_testing else "REAL"
         print(f"[Mode] Switched to {mode_name} mode")
+
+    def test_add_customer_modal(self):
+        """Shortcut method สำหรับกดทดสอบ Add Customer Modal ทันที"""
+        if not hasattr(self, 'bot') or self.bot is None:
+            self.update_log("⚠️ บอทยังไม่พร้อมทำงาน (กรุณาเริ่มระบบบอทก่อน)")
+            return
+
+        def _run_test_worker():
+            try:
+                self.update_log("🔬 กำลังเริ่มรันการทดสอบ Add Customer Modal...")
+                if hasattr(self.bot, 'run_add_customer_test'):
+                    res = self.bot.run_add_customer_test()
+                elif hasattr(self.bot, 'customer_test_handler'):
+                    res = self.bot.customer_test_handler.run_test()
+                else:
+                    handler = CustomerModalTestHandler(self.bot)
+                    res = handler.run_test()
+
+                if res.get("passed"):
+                    msg = "✅ ทดสอบ Add Customer Modal สำเร็จสมบูรณ์ (PASS): ข้อมูลตรงทุกฟิลด์ และ disabled หายไป"
+                else:
+                    reasons = "; ".join(res.get("fail_reasons", []))
+                    msg = f"❌ ผลทดสอบ Add Customer Modal ไม่ผ่าน (FAIL): {reasons}"
+
+                self.update_log(msg)
+                report_p = res.get("report_path")
+                if report_p:
+                    self.update_log(f"📊 บันทึกรายงานแล้วที่: {report_p}")
+
+            except Exception as e:
+                err = f"❌ เกิดข้อผิดพลาดใน Test Add Customer: {e}"
+                logger.error(err)
+                self.update_log(err)
+
+        threading.Thread(target=_run_test_worker, daemon=True).start()
 
     def on_frame_configure(self, event=None):
         """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
@@ -1276,6 +1316,20 @@ class MyApp:
             font=CTkFont(family="tahoma", size=11),
         )
         self.test_mode_menu.pack(side="left", padx=(0, 8), pady=3)
+
+        # * Test Add Customer Shortcut Button
+        self.test_add_customer_btn = CTkButton(
+            self.test_mode_frame,
+            text="🧪 Test Add Customer",
+            command=self.test_add_customer_modal,
+            width=150,
+            height=26,
+            fg_color="#8e44ad",
+            hover_color="#732d91",
+            text_color="#ffffff",
+            font=CTkFont(family="tahoma", size=11, weight="bold"),
+        )
+        self.test_add_customer_btn.pack(side="left", padx=(0, 8), pady=3)
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Export File and Bot status location display component
@@ -4021,6 +4075,7 @@ class Bot_POS:
         self.payment_handler = POSPaymentHandler(self)
         self.pricing_reconciler = POSPricingReconciler(self)
         self.smco_handler = SMCOFormHandler(self, logger)
+        self.customer_test_handler = CustomerModalTestHandler(self)
         self.AutoAddProduct = AutoAddProduct(
             self.driver, self.wait50, self.app, self)
         self.ProductManager = ProductManager(
@@ -6259,6 +6314,17 @@ class Bot_POS:
                     break
 
         print(f"add {customer_type} Customer end")
+
+    def run_add_customer_test(self, customer_data=None, close_modal_after_test=True):
+        """
+        ฟังก์ชันลัดสำหรับรันทดสอบ Add Customer Modal พร้อมตรวจสอบ disabled attribute และ Dropdowns
+        """
+        if not hasattr(self, 'customer_test_handler') or self.customer_test_handler is None:
+            self.customer_test_handler = CustomerModalTestHandler(self)
+        return self.customer_test_handler.run_test(
+            customer_data=customer_data,
+            close_modal_after_test=close_modal_after_test
+        )
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")

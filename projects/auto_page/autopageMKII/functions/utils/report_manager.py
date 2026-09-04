@@ -74,6 +74,38 @@ class TestReportManager:
         else:
             logger.info(f"[Report] Order {order_id} - สถานะลูกค้า: {status} ({customer_code})")
 
+    def record_customer_modal_test(
+        self,
+        order_id: str,
+        passed: bool,
+        details: Dict[str, Any],
+        error: str = ""
+    ):
+        """
+        บันทึกผลการทดสอบ Add Customer Modal Verification
+        details ประกอบด้วยข้อมูลการตรวจ name_th, name_en, identity, address, dropdowns, disabled_removed
+        """
+        order_id = str(order_id).strip()
+        if order_id not in self.records:
+            self.start_order(order_id)
+
+        record = self.records[order_id]
+        record["customer_status"] = "SUCCESS" if passed else "FAILED"
+        record["customer_error"] = str(error) if error else ""
+        record["overall_status"] = "SUCCESS" if passed else "FAILED"
+
+        # Format details into readable note
+        detail_lines = []
+        for k, v in details.items():
+            detail_lines.append(f"{k}: {v}")
+        record["note"] = " | ".join(detail_lines)
+
+        status_str = "ผ่าน (PASS)" if passed else "ไม่ผ่าน (FAIL)"
+        if passed:
+            logger.info(f"[Report] Order {order_id} - ทดสอบสร้างลูกค้าใน Modal: {status_str}")
+        else:
+            logger.error(f"[Report] Order {order_id} - ทดสอบสร้างลูกค้าใน Modal: {status_str} - {error}")
+
     def record_address_result(
         self,
         order_id: str,
