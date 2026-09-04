@@ -32,7 +32,6 @@ from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.browser_manager import BrowserManager
 from functions.marketplace_scraper import MarketplaceScraper
-from functions.pos.customer_test_handler import CustomerModalTestHandler
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
 from functions.pos.payment_handler import POSPaymentHandler
 from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler)
@@ -40,7 +39,6 @@ from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
 from functions.utils.helpers import resource_path
-from functions.utils.report_manager import TestReportManager
 from googletrans import Translator
 from loguru import logger
 from openpyxl import load_workbook
@@ -302,14 +300,6 @@ class MyApp:
     def __init__(self, root):
         # * For testing purposes only
         self.is_testing = False
-        self.TEST_CHECKPOINT_OPTIONS = [
-            "1. หลังเลือกลูกค้า",
-            "2. หลังตรวจ/แก้ที่อยู่",
-            "3. หลังยิงสินค้า/คูปองหน้าแรก",
-            "4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)",
-            "5. ไม่หยุด - รันจนจบวงรอบ",
-        ]
-        self.test_checkpoint = StringVar(value="4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)")
         # * instance of utility classes
         self.account_manager = AccountManager("AutoSamaticMKII")
         # * general Variables (mostly for gui)------------------------------------------------------------------------------------
@@ -651,14 +641,6 @@ class MyApp:
         )
         self.checkbox_frame.pack(side='top', anchor=W, pady=5, padx=5)
 
-        # > Frame: Test Mode Control Frame (Dynamic - Shown only when Test Mode is active)
-        self.test_mode_frame = CTkFrame(
-            self.main_frame,
-            fg_color="#2b4570",
-            corner_radius=6,
-        )
-        # Note: self.test_mode_frame will be packed/unpacked dynamically via toggle_test_mode()
-
         # > Frame3 ImportFile Status and Bot Status
         self.import_file_frame = CTkFrame(
             self.main_frame,
@@ -750,7 +732,6 @@ class MyApp:
         state 0x20000 = Mod1/Alt บน Windows (fallback)
         """
         _KEYCODE_T = 84
-        _KEYCODE_C = 67
         _CTRL = 0x4
         _ALT = 0x20000   # Alt (Mod1) บน Windows — 0x8 คือ NumLock ไม่ใช่ Alt!
 
@@ -759,16 +740,13 @@ class MyApp:
             alt = bool(event.state & _ALT)
             if event.keycode == _KEYCODE_T and ctrl and alt:
                 self.toggle_test_mode()
-            elif event.keycode == _KEYCODE_C and ctrl and alt:
-                if hasattr(self, 'test_add_customer_modal'):
-                    self.test_add_customer_modal()
 
         # add="+" จำเป็น: <KeyPress> กับ <Key> เป็น binding ช่องเดียวกันใน Tk
         # ไม่งั้นจะทับ _onKeyRelease (Ctrl+C/V/X/A รองรับคีย์บอร์ดภาษาไทย) ที่ผูก <Key> ไว้
         self.root.bind("<KeyPress>", _on_keypress, add="+")
 
     def toggle_test_mode(self):
-        """สลับระหว่าง test mode และ real mode แล้วอัปเดตสี UI ทั้งหมด พร้อมสลับการแสดงผล test_mode_frame"""
+        """สลับระหว่าง test mode และ real mode แล้วอัปเดตสี UI ทั้งหมด"""
         self.is_testing = not self.is_testing
         mode_key = "test" if self.is_testing else "real"
         colors = self._MODE_COLORS[mode_key]
@@ -785,109 +763,8 @@ class MyApp:
         self.demonic_frame.configure(fg_color=bg)
         self.log_frame.configure(fg_color=bg)
 
-        # * แสดงหรือซ่อน Test Mode Control Frame
-        if hasattr(self, 'test_mode_frame'):
-            if self.is_testing:
-                try:
-                    self.test_mode_frame.pack(
-                        side='top', anchor=W, pady=3, padx=5, after=self.checkbox_frame
-                    )
-                except Exception:
-                    self.test_mode_frame.pack(side='top', anchor=W, pady=3, padx=5)
-            else:
-                self.test_mode_frame.pack_forget()
-
         mode_name = "TEST" if self.is_testing else "REAL"
         print(f"[Mode] Switched to {mode_name} mode")
-
-    def test_add_customer_modal(self):
-        """Shortcut method สำหรับกดทดสอบ Add Customer Modal ทันทีจาก Order ในช่อง Input"""
-        # 1. รับค่าเลข order จากช่อง input (self.entered_order หรือ self.inp1_order_input หรือ self.cus_order)
-        target_order = ""
-        if hasattr(self, 'entered_order') and self.entered_order.get():
-            target_order = str(self.entered_order.get()).strip()
-        elif hasattr(self, 'inp1_order_input') and self.inp1_order_input.get():
-            target_order = str(self.inp1_order_input.get()).strip()
-        elif hasattr(self, 'cus_order') and self.cus_order.get():
-            target_order = str(self.cus_order.get()).strip()
-
-        if not target_order:
-            self.update_log("⚠️ กรุณากรอกเลข Order ในช่อง Order ก่อนกดทดสอบ Add Customer")
-            return
-
-        if not hasattr(self, 'bot') or self.bot is None:
-            self.update_log("⚠️ บอทยังไม่พร้อมทำงาน (กรุณาเริ่มระบบบอทก่อน)")
-            return
-
-        def _run_test_worker():
-            try:
-                # 2. ถ้า order ที่จะเทสยังไม่ได้โหลดเข้าแอป หรือไม่ตรงกับออเดอร์ปัจจุบัน ให้ค้นหาและโหลดจาก Excel ก่อน
-                curr_order = str(self.cus_order.get()).strip() if hasattr(self, 'cus_order') else ""
-                has_details = bool(getattr(self, 'nondistortedData', None) or (hasattr(self, 'cus_name') and self.cus_name.get().strip()))
-
-                if curr_order != target_order or not has_details:
-                    if getattr(self, 'data_frame', None) is None or self.data_frame.empty:
-                        self.update_log(f"⚠️ กรุณานำเข้าไฟล์ Excel ก่อน เพื่อดึงข้อมูลลูกค้าสำหรับ Order: {target_order}")
-                        return
-
-                    order_col = "หมายเลขคำสั่งซื้อ"
-                    if order_col not in self.data_frame.columns:
-                        self.update_log(f"⚠️ ไม่พบคอลัมน์ '{order_col}' ในไฟล์ Excel นำเข้า")
-                        return
-
-                    matched = self.data_frame[self.data_frame[order_col].astype(str).str.strip() == target_order]
-                    if matched.empty:
-                        self.update_log(f"❌ ไม่พบเลข Order '{target_order}' ในไฟล์ Excel นำเข้า")
-                        return
-
-                    self.update_log(f"🔍 กำลังโหลดข้อมูล Order: {target_order} จากไฟล์ Excel...")
-                    evt = threading.Event()
-                    self.order_search(target_order, evt)
-                    evt.wait(timeout=5.0)
-
-                # อัปเดตเลขออเดอร์ให้ bot และ self ให้ตรงกัน
-                if hasattr(self, 'cus_order'):
-                    self.cus_order.set(target_order)
-                if hasattr(self, 'bot') and self.bot is not None:
-                    self.bot.cus_order = target_order
-
-                self.update_log(f"🔬 กำลังเริ่มรันการทดสอบ Add Customer Modal สำหรับ Order: {target_order}...")
-
-                customer_data = None
-                if hasattr(self.bot, 'customer_test_handler') and self.bot.customer_test_handler:
-                    customer_data = self.bot.customer_test_handler._gather_customer_data_from_app()
-                elif hasattr(CustomerModalTestHandler, '_gather_customer_data_from_app'):
-                    temp_handler = CustomerModalTestHandler(self.bot)
-                    customer_data = temp_handler._gather_customer_data_from_app()
-
-                if customer_data:
-                    customer_data["order_id"] = target_order
-
-                if hasattr(self.bot, 'run_add_customer_test'):
-                    res = self.bot.run_add_customer_test(customer_data=customer_data)
-                elif hasattr(self.bot, 'customer_test_handler'):
-                    res = self.bot.customer_test_handler.run_test(customer_data=customer_data)
-                else:
-                    handler = CustomerModalTestHandler(self.bot)
-                    res = handler.run_test(customer_data=customer_data)
-
-                if res.get("passed"):
-                    msg = f"✅ ทดสอบ Add Customer Modal สำหรับ Order {target_order} สำเร็จสมบูรณ์ (PASS): ข้อมูลตรงทุกฟิลด์ และ disabled หายไป"
-                else:
-                    reasons = "; ".join(res.get("fail_reasons", []))
-                    msg = f"❌ ผลทดสอบ Add Customer Modal สำหรับ Order {target_order} ไม่ผ่าน (FAIL): {reasons}"
-
-                self.update_log(msg)
-                report_p = res.get("report_path")
-                if report_p:
-                    self.update_log(f"📊 บันทึกรายงานแล้วที่: {report_p}")
-
-            except Exception as e:
-                err = f"❌ เกิดข้อผิดพลาดใน Test Add Customer [Order: {target_order}]: {e}"
-                logger.error(err)
-                self.update_log(err)
-
-        threading.Thread(target=_run_test_worker, daemon=True).start()
 
     def on_frame_configure(self, event=None):
         """อัพเดท scroll region เมื่อ frame มีการเปลี่ยนแปลงขนาด"""
@@ -1319,44 +1196,6 @@ class MyApp:
             fg="#FFF"
         )
         self.seller_voucher_popup_checkbox.grid(row=0, column=2, padx=5)
-
-        # * Test Mode Checkpoint Dropdown (CTkOptionMenu inside test_mode_frame)
-        self.test_mode_label = CTkLabel(
-            self.test_mode_frame,
-            text="🔬 Test Stop Point:",
-            font=CTkFont(family="fixedsys", size=10, weight="bold"),
-            text_color="#ffec1f",
-        )
-        self.test_mode_label.pack(side="left", padx=(8, 4), pady=3)
-
-        self.test_mode_menu = CTkOptionMenu(
-            self.test_mode_frame,
-            values=self.TEST_CHECKPOINT_OPTIONS,
-            variable=self.test_checkpoint,
-            width=260,
-            height=26,
-            fg_color="#1f2f4d",
-            button_color="#3b5998",
-            button_hover_color="#4c70ba",
-            dropdown_fg_color="#1f2f4d",
-            dropdown_text_color="#ffffff",
-            font=CTkFont(family="tahoma", size=11),
-        )
-        self.test_mode_menu.pack(side="left", padx=(0, 8), pady=3)
-
-        # * Test Add Customer Shortcut Button
-        self.test_add_customer_btn = CTkButton(
-            self.test_mode_frame,
-            text="🧪 Test Add Customer",
-            command=self.test_add_customer_modal,
-            width=150,
-            height=26,
-            fg_color="#8e44ad",
-            hover_color="#732d91",
-            text_color="#ffffff",
-            font=CTkFont(family="tahoma", size=11, weight="bold"),
-        )
-        self.test_add_customer_btn.pack(side="left", padx=(0, 8), pady=3)
 
         # * import_file_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Export File and Bot status location display component
@@ -4041,7 +3880,6 @@ class Bot_POS:
         self.payment_handler = POSPaymentHandler(self)
         self.pricing_reconciler = POSPricingReconciler(self)
         self.smco_handler = SMCOFormHandler(self, logger)
-        self.customer_test_handler = CustomerModalTestHandler(self)
         self.AutoAddProduct = AutoAddProduct(
             self.driver, self.wait50, self.app, self)
         self.ProductManager = ProductManager(
@@ -5649,10 +5487,6 @@ class Bot_POS:
                     self.get_customer_name_ready(self.cus_search_input)
                 self.current_checkpoint = "ใส่ชื่อลูกค้าสำเร็จ"
 
-                # Test Mode Guard: Checkpoint 1 (หลังเลือกลูกค้า)
-                if self.should_stop_at_test_checkpoint("1. หลังเลือกลูกค้า"):
-                    return
-
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.is_tax_required.get():
                     print("tax required, start address check and correct")
@@ -5667,10 +5501,6 @@ class Bot_POS:
                 else:
                     print("no tax required, skip address check")
                     self.current_checkpoint = "ข้ามการตรวจที่อยู่ (ไม่ต้องใช้ภาษี)"
-
-                # Test Mode Guard: Checkpoint 2 (หลังตรวจ/แก้ที่อยู่)
-                if self.should_stop_at_test_checkpoint("2. หลังตรวจ/แก้ที่อยู่"):
-                    return
 
             # เคลียร์ข้อมูลสินค้าเดิมที่อาจค้างอยู่ในหน้ารถเข็น POS ก่อนแอดของและค่าขนส่งใหม่
             if self.app.is_auto_invoice_mode.get():
@@ -5733,46 +5563,45 @@ class Bot_POS:
                     text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
 
             # todo for testing
-            # * Checkpoint 3 Guard / Update Accel file if stopping at front page
+            # * Update Accel file //////////////////////
             if self.app.is_testing:
-                if self.should_stop_at_test_checkpoint("3. หลังยิงสินค้า/คูปองหน้าแรก"):
+                logger.info(
+                    f"Order: {self.cus_order} Testing mode is ON. Attempting to update Accel file with order data.")
+                try:
+                    tracking_no = (
+                        ", ".join(self.tracking_manager.trackings)
+                        if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings
+                        else ""
+                    )
+                    if self.app.marketplace_target.get() == 'SHOPEE':
+                        calc_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                    else:
+                        calc_price = self.app.sum_price - self.app.cus_seller_voucher.get()
+                    self.app.final_price = calc_price
+                    price_val = str(round(calc_price, 2))
+
+                    test_status = getattr(self.app, 'last_pricing_status', "TEST_SUCCESS (ปรับราคาผ่าน/All OK)")
+                    pricing_detail = getattr(self.app, 'last_pricing_detail', "")
+                    used_sns = getattr(self.app.accel_mode, "used_serials", [])
+
+                    self.app.accel_mode.deduct_accel_file_data(
+                        self.app.cus_order, used_sns)
+                    self.app.accel_mode.record_completed_order(
+                        self.app.cus_order,
+                        tracking=tracking_no,
+                        bill_no="TEST_MODE",
+                        status=test_status,
+                        price=price_val,
+                        serials=used_sns,
+                        pricing_detail=pricing_detail
+                    )
+
+                except Exception as err:
                     logger.info(
-                        f"Order: {self.cus_order} Testing mode stopped at Checkpoint 3 (Front page). Attempting to update Accel file with order data.")
-                    try:
-                        tracking_no = (
-                            ", ".join(self.tracking_manager.trackings)
-                            if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings
-                            else ""
-                        )
-                        if self.app.marketplace_target.get() == 'SHOPEE':
-                            calc_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
-                        else:
-                            calc_price = self.app.sum_price - self.app.cus_seller_voucher.get()
-                        self.app.final_price = calc_price
-                        price_val = str(round(calc_price, 2))
+                        f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
 
-                        test_status = getattr(self.app, 'last_pricing_status', "TEST_SUCCESS (ปรับราคาผ่าน/All OK)")
-                        pricing_detail = getattr(self.app, 'last_pricing_detail', "")
-                        used_sns = getattr(self.app.accel_mode, "used_serials", [])
-
-                        self.app.accel_mode.deduct_accel_file_data(
-                            self.app.cus_order, used_sns)
-                        self.app.accel_mode.record_completed_order(
-                            self.app.cus_order,
-                            tracking=tracking_no,
-                            bill_no="TEST_MODE",
-                            status=test_status,
-                            price=price_val,
-                            serials=used_sns,
-                            pricing_detail=pricing_detail
-                        )
-
-                    except Exception as err:
-                        logger.info(
-                            f"test: cannot excute: self.app.accel_mode.deduct_accel_file_data(): {err}")
-
-                    logger.info(f"""Order: {self.cus_order} Testing Checkpoint 3 End!!""")
-                    return
+                logger.info(f"""Order: {self.cus_order} Testing End!!""")
+                return
 
             self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
 
@@ -6237,17 +6066,6 @@ class Bot_POS:
                     break
 
         print(f"add {customer_type} Customer end")
-
-    def run_add_customer_test(self, customer_data=None, close_modal_after_test=True):
-        """
-        ฟังก์ชันลัดสำหรับรันทดสอบ Add Customer Modal พร้อมตรวจสอบ disabled attribute และ Dropdowns
-        """
-        if not hasattr(self, 'customer_test_handler') or self.customer_test_handler is None:
-            self.customer_test_handler = CustomerModalTestHandler(self)
-        return self.customer_test_handler.run_test(
-            customer_data=customer_data,
-            close_modal_after_test=close_modal_after_test
-        )
 
     def addressExtractor(self, cusAddress):
         self.splited = cusAddress.split(",")
@@ -7786,41 +7604,6 @@ class Bot_POS:
 
     def return_to_first_page(self):
         return self.payment_handler.return_to_first_page()
-
-    def verify_final_page_elements(self, **kwargs):
-        """ตรวจสอบความครบถ้วนของ Elements หน้าท้ายก่อนกดปุ่มเขียว"""
-        if hasattr(self, 'payment_handler') and self.payment_handler:
-            return self.payment_handler.verify_final_page_elements(**kwargs)
-        return {"all_ok": False, "error": "payment_handler not initialized"}
-
-    def should_stop_at_test_checkpoint(self, current_checkpoint_name: str) -> bool:
-        """
-        ตรวจสอบว่าบอททำงานอยู่ใน Test Mode และถึงจุด Checkpoint ที่ผู้ใช้เลือกให้หยุดหรือไม่
-        หากถึงจุดหยุด จะทำการแจ้ง Log, ปรับสถานะ Bot Status และคืนค่า True เพื่อให้ฟังก์ชันหลักหยุดการทำงาน
-        """
-        if not getattr(self.app, 'is_testing', False):
-            return False
-
-        selected_cp = getattr(self.app, 'test_checkpoint', None)
-        selected_cp_value = selected_cp.get() if selected_cp else ""
-
-        prefix = current_checkpoint_name[:2]
-        if current_checkpoint_name in selected_cp_value or (prefix and selected_cp_value.startswith(prefix)):
-            msg = f"🔬 [Test Mode] ถึงจุดหยุดที่เลือก: '{selected_cp_value}' (ส่งมอบหน้าจอให้ User)"
-            print(msg)
-            self.app.update_log(f"⚠️ {msg}")
-            logger.info(f"Order: {self.cus_order} - {msg}")
-            self.current_checkpoint = f"Test Mode: หยุดที่ {selected_cp_value}"
-
-            _op_thread = getattr(self.app, 'operation_thread', None)
-            if _op_thread is None or not _op_thread.is_set():
-                self.app.display_bot_status_label.configure(
-                    text=f"Bot Status: Your Turn ({prefix})",
-                    fg_color="#ffec1f",
-                    text_color="#000",
-                )
-            return True
-        return False
 
     def _legacy_final_popup_after_green_btn_handler(self, is_etax, operation_obj):
         self.app.is_bot_browser_busy.set(False)
