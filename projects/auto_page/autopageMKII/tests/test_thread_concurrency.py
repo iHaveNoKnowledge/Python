@@ -157,6 +157,58 @@ class TestThreadConcurrency(unittest.TestCase):
         # callback รอบที่ 1 ต้องไม่ถูกเรียก
         self.assertFalse(callback_called)
 
+    def test_search_order_double_click_start_behavior(self):
+        """ทดสอบการกด Start ซ้ำกัน:
+        - ครั้งแรก: มี Order -> ระบบเริ่มรอบ gen=1
+        - ครั้งที่สอง (กดซ้ำทันทีขณะ order ว่างเปล่า): ระบบเตือนว่าไม่ได้กรอก order และไม่สร้าง thread ทับรอบ 1
+        - ครั้งที่สาม (กรอก order ใหม่แล้วกด Start): ระบบยกเลิกรอบ gen=1 และเริ่มรอบ gen=2 โดยรอบเก่าจะถูกสั่งหยุดทันที
+        """
+        MyApp = mod.MyApp
+        app = MyApp.__new__(MyApp)
+        app.is_accel_mode = MagicMock()
+        app.is_accel_mode.get.return_value = False
+        app.is_bot_running = MagicMock()
+        app.entered_order = MagicMock()
+        app.update_log = MagicMock()
+        app.display_bot_status_label = MagicMock()
+        app.report_log = MagicMock()
+        app.mp_products_list_frame = MagicMock()
+        app.mp_products_list_frame.winfo_children.return_value = []
+        app.mimic_column_headers = []
+        app.check_threads = MagicMock()
+        app.order_search = MagicMock()
+
+        mock_bot = MagicMock()
+        mock_bot._gen_lock = threading.Lock()
+        mock_bot._active_generation = 0
+        app.bot = mock_bot
+        app._cycle_generation = 0
+
+        # คลิก 1: ใส่ order "ORDER_001" แล้วกด Start
+        app.entered_order.get.return_value = "ORDER_001"
+        with patch("autopage_v5_thread_test.threading.Thread") as mock_thread:
+            app.search_order()
+            self.assertEqual(app._cycle_generation, 1)
+            self.assertEqual(mock_bot._active_generation, 1)
+
+        # คลิก 2: กด Start ซ้ำทันทีโดยไม่ได้กรอก order (เพราะ order ถูกเคลียร์ไปแล้วตั้งแต่รอบแรก)
+        app.entered_order.get.return_value = ""
+        with patch("autopage_v5_thread_test.threading.Thread") as mock_thread:
+            app.search_order()
+            # ต้องไม่เพิ่ม generation และไม่ spawn thread ใหม่
+            self.assertEqual(app._cycle_generation, 1)
+            self.assertEqual(mock_bot._active_generation, 1)
+            mock_thread.assert_not_called()
+            app.update_log.assert_called_with("⚠️ ไม่ได้กรอกเลข Order")
+
+        # คลิก 3: กรอก order ใหม่ "ORDER_002" แล้วกด Start ซ้ำอีกรอบ
+        app.entered_order.get.return_value = "ORDER_002"
+        with patch("autopage_v5_thread_test.threading.Thread") as mock_thread:
+            app.search_order()
+            # generation ต้องขยับเป็น 2 และ thread เก่าถูกสั่งหยุด (active_generation = 2)
+            self.assertEqual(app._cycle_generation, 2)
+            self.assertEqual(mock_bot._active_generation, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
