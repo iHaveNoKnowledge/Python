@@ -2988,9 +2988,7 @@ class MyApp:
                         f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like an orange theme app ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                with self.bot.driver_lock:
-                    self.order_display_manager.create_data_rows(self.items)
-                    pass
+                self.root.after(0, lambda items=self.items: self.order_display_manager.create_data_rows(items))
 
                 # * ชื่อที่ต้องออกใบกำกับ
                 try:
@@ -3631,7 +3629,7 @@ class MyApp:
         self.order_Search_thread = threading.Event()
         # print("self.operation_thread.set()2157: ")
         # self.operation_thread.set()
-        self.order_Search_thread.set()
+        self.order_Search_thread.clear()
         self.operation_thread.clear()
 
         # * สร้าง Thread
