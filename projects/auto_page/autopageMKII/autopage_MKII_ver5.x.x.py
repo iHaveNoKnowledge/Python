@@ -7759,6 +7759,12 @@ class Bot_POS:
     def return_to_first_page(self):
         return self.payment_handler.return_to_first_page()
 
+    def verify_final_page_elements(self, **kwargs):
+        """ตรวจสอบความครบถ้วนของ Elements หน้าท้ายก่อนกดปุ่มเขียว"""
+        if hasattr(self, 'payment_handler') and self.payment_handler:
+            return self.payment_handler.verify_final_page_elements(**kwargs)
+        return {"all_ok": False, "error": "payment_handler not initialized"}
+
     def _legacy_final_popup_after_green_btn_handler(self, is_etax, operation_obj):
         self.app.is_bot_browser_busy.set(False)
         auto_radio_times = 0

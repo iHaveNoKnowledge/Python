@@ -221,49 +221,89 @@ class POSPaymentHandler:
                         except Exception as e:
                             print("auto_final_price broken:", e)
 
-                        # 8. Check wrimagecard value & Click green submit button (when Finish button pressed)
+                        # 8. Check all final page elements & Click green submit button (when Finish button pressed)
                         if self.app.is_finish_order_triggered.get():
                             try:
-                                value_element = None
-                                try:
-                                    value_element = self.driver.find_element(
-                                        By.XPATH, "//div[contains(@class, 'wrimagecard-lightGray')]")
-                                except Exception:
-                                    value_element = self.driver.find_element(
-                                        By.XPATH, "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']")
+                                # First verification attempt
+                                verification = self.verify_final_page_elements(
+                                    expected_po=self.cus_order,
+                                    expected_cus_name=cus_name_val,
+                                    expected_price=final_price,
+                                )
 
-                                value_text = value_element.text.strip().replace(',', '')
-                                print(f"wrimagecard value: '{value_text}'")
+                                # If not all ok, attempt auto-recovery (re-fill missing elements once)
+                                if not verification.get("all_ok", False):
+                                    print(
+                                        f"⚠️ [Payment Verification] Initial check failed: {verification}. Attempting auto-recovery..."
+                                    )
+                                    self.app.update_log(
+                                        "⚠️ ข้อมูลหน้าท้ายยังไม่ครบ กำลังพยายามเติมค่าซ้ำอัตโนมัติ..."
+                                    )
+                                    self._recover_missing_elements(
+                                        verification, final_price, cus_name_val
+                                    )
+                                    time.sleep(0.5)
+                                    # Re-verify after recovery attempt
+                                    verification = self.verify_final_page_elements(
+                                        expected_po=self.cus_order,
+                                        expected_cus_name=cus_name_val,
+                                        expected_price=final_price,
+                                    )
 
-                                is_zero_value = False
-                                try:
-                                    is_zero_value = (float(value_text) == 0.0)
-                                except Exception:
-                                    is_zero_value = (value_text in ["0.00", "0.0", "0"])
-
-                                if is_zero_value:
+                                if verification.get("all_ok", False):
                                     time.sleep(0.75)
-                                    print("Value is 0.00, clicking btnPayment with retries...")
-                                    btn_payment = self.driver.find_element(By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']")
+                                    print(
+                                        "✅ All final page elements verified! Clicking btnPayment with retries..."
+                                    )
+                                    self.app.update_log(
+                                        "✅ ตรวจสอบข้อมูลหน้าท้ายครบถ้วน กำลังกดปุ่มชำระเงิน (ปุ่มเขียว)..."
+                                    )
+                                    btn_payment = self.driver.find_element(
+                                        By.XPATH,
+                                        "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']",
+                                    )
                                     click_done = False
                                     for click_attempt in range(1, 4):
                                         try:
                                             self.driver.execute_script(
-                                                "arguments[0].scrollIntoView({block: 'center'});", btn_payment)
+                                                "arguments[0].scrollIntoView({block: 'center'});",
+                                                btn_payment,
+                                            )
                                             time.sleep(0.2)
                                             btn_payment.click()
-                                            print(f"Clicked btnPayment successfully (attempt {click_attempt})")
+                                            print(
+                                                f"Clicked btnPayment successfully (attempt {click_attempt})"
+                                            )
                                             click_done = True
                                             break
                                         except Exception as c_err:
-                                            print(f"btnPayment click attempt {click_attempt} failed: {c_err}")
+                                            print(
+                                                f"btnPayment click attempt {click_attempt} failed: {c_err}"
+                                            )
                                             time.sleep(0.5)
 
                                     if not click_done:
-                                        print("Standard click failed, falling back to JS click on btnPayment")
-                                        self.driver.execute_script("arguments[0].click();", btn_payment)
+                                        print(
+                                            "Standard click failed, falling back to JS click on btnPayment"
+                                        )
+                                        self.driver.execute_script(
+                                            "arguments[0].click();", btn_payment
+                                        )
+                                else:
+                                    failed_fields = [
+                                        k
+                                        for k, v in verification.items()
+                                        if k != "all_ok" and not v.get("ok", False)
+                                    ]
+                                    err_msg = (
+                                        f"ไม่สามารถกดปุ่มเขียวได้ เนื่องจากข้อมูลหน้าท้ายไม่ครบถ้วน: {failed_fields}"
+                                    )
+                                    print(f"❌ {err_msg}")
+                                    self.app.update_log(f"❌ {err_msg}")
+                                    logger.error(f"Order: {self.cus_order} - {err_msg}")
                             except Exception as e:
-                                print(f"wrimagecard check failed: {e}")
+                                print(f"Verification and payment submission failed: {e}")
+                                logger.error(f"Verification and payment error: {e}")
                             finally:
                                 self.app.is_finish_order_triggered.set(False)
 
@@ -284,6 +324,190 @@ class POSPaymentHandler:
         print("operation_thread is set or autofinal is false, exit final loop")
         return True
 
+    def verify_final_page_elements(
+        self,
+        expected_po: Optional[str] = None,
+        expected_cus_name: Optional[str] = None,
+        expected_price: Optional[float] = None,
+    ) -> dict:
+        """
+        ตรวจสอบว่าข้อมูลใน Element ต่างๆ บนหน้าท้าย (Payment Page) มีค่าครบถ้วนและถูกต้องก่อนกดปุ่มเขียว
+        - PO No. (textbox81037000102)
+        - Customer Name (textbox81037000101)
+        - Final Price (ripCash00)
+        - CN Remark (posPaymentHead.data.cnRemark)
+        - Remaining Balance (wrimagecard-lightGray) ต้องเป็น 0.00
+        - Payment Button (#btnPayment) ต้องแสดงผลและพร้อมคลิก
+        """
+        target_po = expected_po if expected_po is not None else self.cus_order
+        target_name = (
+            expected_cus_name
+            if expected_cus_name is not None
+            else (
+                self.app.cus_name.get()
+                if hasattr(self.app, 'cus_name') and self.app.cus_name.get()
+                else self.cus_order
+            )
+        )
+        target_price = (
+            expected_price
+            if expected_price is not None
+            else getattr(self.app, 'final_price', 0.0)
+        )
+
+        results: dict = {
+            "po_no": {"ok": False, "value": "", "expected": target_po},
+            "cus_name": {"ok": False, "value": "", "expected": target_name},
+            "cash_price": {"ok": False, "value": None, "expected": target_price},
+            "cn_remark": {"ok": False, "value": "", "expected": target_po},
+            "balance": {"ok": False, "value": None, "expected": 0.0},
+            "btn_payment": {"ok": False},
+            "all_ok": False,
+        }
+
+        # 1. Check PO No.
+        try:
+            po_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+            actual_po = (po_el.get_attribute("value") or "").strip()
+            results["po_no"]["value"] = actual_po
+            results["po_no"]["ok"] = bool(actual_po) and (
+                not target_po or target_po in actual_po or actual_po == target_po
+            )
+        except Exception as e:
+            results["po_no"]["error"] = str(e)
+
+        # 2. Check Customer Name
+        try:
+            name_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+            actual_name = (name_el.get_attribute("value") or "").strip()
+            results["cus_name"]["value"] = actual_name
+            results["cus_name"]["ok"] = bool(actual_name)
+        except Exception as e:
+            results["cus_name"]["error"] = str(e)
+
+        # 3. Check Cash Input (ripCash00)
+        try:
+            cash_el = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
+            actual_cash_str = (
+                (cash_el.get_attribute("value") or "").replace(",", "").strip()
+            )
+            if actual_cash_str != "":
+                actual_cash = float(actual_cash_str)
+                results["cash_price"]["value"] = actual_cash
+                if target_price is not None:
+                    results["cash_price"]["ok"] = abs(actual_cash - float(target_price)) < 0.01
+                else:
+                    results["cash_price"]["ok"] = True
+            else:
+                results["cash_price"]["value"] = None
+                results["cash_price"]["ok"] = False
+        except Exception as e:
+            results["cash_price"]["error"] = str(e)
+
+        # 4. Check CN Remark
+        try:
+            remark_el = None
+            try:
+                remark_el = self.driver.find_element(
+                    By.XPATH, "//textarea[@ng-model='posPaymentHead.data.cnRemark']"
+                )
+            except Exception:
+                remark_el = self.driver.find_element(
+                    By.XPATH, "//div[@class='col-sm-4 nopadding']/textarea"
+                )
+            actual_remark = (remark_el.get_attribute("value") or "").strip()
+            results["cn_remark"]["value"] = actual_remark
+            results["cn_remark"]["ok"] = bool(actual_remark) and (
+                not target_po or target_po in actual_remark
+            )
+        except Exception as e:
+            results["cn_remark"]["error"] = str(e)
+
+        # 5. Check Remaining Balance (wrimagecard-lightGray)
+        try:
+            balance_el = None
+            try:
+                balance_el = self.driver.find_element(
+                    By.XPATH, "//div[contains(@class, 'wrimagecard-lightGray')]"
+                )
+            except Exception:
+                balance_el = self.driver.find_element(
+                    By.XPATH,
+                    "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']",
+                )
+            balance_text = balance_el.text.strip().replace(",", "")
+            balance_val = float(balance_text)
+            results["balance"]["value"] = balance_val
+            results["balance"]["ok"] = abs(balance_val) < 0.01
+        except Exception as e:
+            results["balance"]["error"] = str(e)
+
+        # 6. Check Payment Button (#btnPayment)
+        try:
+            btn_el = self.driver.find_element(
+                By.XPATH, "//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']"
+            )
+            results["btn_payment"]["ok"] = btn_el.is_displayed()
+        except Exception as e:
+            try:
+                btn_el = self.driver.find_element(By.XPATH, "//a[@id='btnPayment']")
+                results["btn_payment"]["ok"] = btn_el.is_displayed()
+            except Exception as e2:
+                results["btn_payment"]["error"] = str(e2)
+
+        results["all_ok"] = all(
+            v.get("ok", False) for k, v in results.items() if k != "all_ok"
+        )
+
+        status_icon = "✅" if results["all_ok"] else "❌"
+        print(f"[POSPaymentHandler.verify_final_page_elements] {status_icon} Verification: {results}")
+        return results
+
+    def _recover_missing_elements(
+        self,
+        verification: dict,
+        final_price: float,
+        cus_name_val: str,
+    ) -> None:
+        """
+        พยายามกรอกข้อมูลในช่องที่ตรวจสอบแล้วพบว่ายังไม่ผ่าน/หลุดหาย
+        """
+        # เติม PO No.
+        if not verification.get("po_no", {}).get("ok", False):
+            try:
+                print("⚠️ Auto-recovery: Re-filling PO No...")
+                po_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                self.bot.js_input_value(po_el, self.cus_order)
+            except Exception as e:
+                print(f"Failed to recover PO No: {e}")
+
+        # เติม Customer Name
+        if not verification.get("cus_name", {}).get("ok", False):
+            try:
+                print("⚠️ Auto-recovery: Re-filling Customer Name...")
+                name_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+                self.bot.js_input_value(name_el, cus_name_val)
+            except Exception as e:
+                print(f"Failed to recover Customer Name: {e}")
+
+        # เติม Final Price
+        if not verification.get("cash_price", {}).get("ok", False):
+            try:
+                print("⚠️ Auto-recovery: Re-filling Cash Price...")
+                price_el = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
+                self.bot.js_input_value(price_el, final_price)
+            except Exception as e:
+                print(f"Failed to recover Cash Price: {e}")
+
+        # เติม CN Remark
+        if not verification.get("cn_remark", {}).get("ok", False):
+            try:
+                print("⚠️ Auto-recovery: Re-filling CN Remark...")
+                remark_xpath = "//div[@class='col-sm-4 nopadding']/textarea[@ng-model='posPaymentHead.data.cnRemark']"
+                el = self.driver.find_element(By.XPATH, remark_xpath)
+                self.bot.js_input_value(el, self.cus_order)
+            except Exception as e:
+                print(f"Failed to recover CN Remark: {e}")
 
 
     def final_popup_handler(self, is_etax: bool = False, operation_obj: Any = None) -> bool:
