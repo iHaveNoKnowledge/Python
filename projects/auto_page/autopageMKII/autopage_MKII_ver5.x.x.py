@@ -66,7 +66,8 @@ except ImportError:
     from order_display_manager import OrderDisplayManager
 from PIL import Image, ImageTk
 from selenium import webdriver
-from selenium.common.exceptions import (InvalidSessionIdException,
+from selenium.common.exceptions import (ElementClickInterceptedException,
+                                        InvalidSessionIdException,
                                         NoSuchElementException,
                                         StaleElementReferenceException,
                                         TimeoutException, WebDriverException)
@@ -4083,16 +4084,42 @@ class StopEvent:
         self._generation = generation  # gen ของ thread นี้
 
     def is_set(self):
-        return self._event.is_set() or self._bot._active_generation != self._generation
+        if self._event is not None and self._event.is_set():
+            return True
+        return getattr(self._bot, '_active_generation', 0) != self._generation
 
     def set(self):
-        self._event.set()
+        if self._event is not None:
+            self._event.set()
 
     def clear(self):
-        self._event.clear()
+        if self._event is not None:
+            self._event.clear()
 
 
 class Bot_POS:
+    @property
+    def operation_thread(self):
+        # Return thread-local StopEvent if available, else fallback to latest assigned event
+        if not hasattr(self, '_local'):
+            self._local = threading.local()
+        local_val = getattr(self._local, 'operation_thread', None)
+        if local_val is not None:
+            return local_val
+        latest = getattr(self, '_latest_operation_thread', None)
+        if latest is not None:
+            return latest
+        default_event = threading.Event()
+        self._latest_operation_thread = default_event
+        return default_event
+
+    @operation_thread.setter
+    def operation_thread(self, val):
+        if not hasattr(self, '_local'):
+            self._local = threading.local()
+        self._local.operation_thread = val
+        self._latest_operation_thread = val
+
     def __init__(self, parent, app):
         # super().__init__(parent)
         self.parent = parent
@@ -4101,6 +4128,8 @@ class Bot_POS:
         self.driver_lock = threading.Lock()
         # / ล็อกสำหรับ assign bot.operation_thread (StopEvent) กัน thread เก่า assign ทับ thread ใหม่
         self._gen_lock = threading.Lock()
+        self._local = threading.local()
+        self._latest_operation_thread = threading.Event()
         # / Flag สำหรับควบคุมการหยุด auto_add_product แยกจาก operation_thread
         self.auto_add_product_stop_flag = threading.Event()
         self.browser = BrowserManager(app=self.app, bot_instance=self, logger_instance=logger)
@@ -4406,17 +4435,21 @@ class Bot_POS:
                             self.record_failed_with_checkpoint("ไม่พบรายการสินค้าในคำสั่งซื้อ (items is empty)")
                             self.app.report_manager.finish_order(self.app.order, overall_status="FAILED", note="items is empty")
                             break
-                        logger.info(f"Order: {self.app.order} Start!!")
-                        self.app.report_manager.start_order(
-                            self.app.order,
-                            marketplace=self.app.marketplace_target.get(),
-                            customer_name=self.app.cus_name.get(),
-                            tax_id=self.app.tax_num.get()
-                        )
-                        self.current_checkpoint = "เริ่มรัน"
-                        self.operation_start()
-                        self.app.report_manager.finish_order(self.app.order, overall_status="SUCCESS")
-                        break  # รันสำเร็จ ออกจากลูปเพื่อไปทำออเดอร์ถัดไป
+                        with self.driver_lock:
+                            if self.operation_thread.is_set() or my_generation != getattr(self, '_active_generation', 0):
+                                logger.info(f"Order: {self.app.order} (gen {my_generation}) aborted before operation_start.")
+                                break
+                            logger.info(f"Order: {self.app.order} Start!!")
+                            self.app.report_manager.start_order(
+                                self.app.order,
+                                marketplace=self.app.marketplace_target.get(),
+                                customer_name=self.app.cus_name.get(),
+                                tax_id=self.app.tax_num.get()
+                            )
+                            self.current_checkpoint = "เริ่มรัน"
+                            self.operation_start()
+                            self.app.report_manager.finish_order(self.app.order, overall_status="SUCCESS")
+                            break  # รันสำเร็จ ออกจากลูปเพื่อไปทำออเดอร์ถัดไป
                     else:
                         self.app.update_log("กรุณากรอก Order ก่อน")
                         break
@@ -4684,9 +4717,29 @@ class Bot_POS:
         # * ย้ายไปหน้าหลัก
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
-        # * clear ชื่อ เก่า
-        self.driver.find_element(
-            By.XPATH, self.cus_name_dropdown_elmt_loc).click()
+        # ตรวจสอบก่อนว่าช่อง input หรือ dropdown เปิดอยู่แล้วหรือไม่
+        input_already_open = False
+        try:
+            inputs = self.driver.find_elements(By.XPATH, self.app.cusNameInput)
+            if inputs and inputs[0].is_displayed():
+                input_already_open = True
+        except Exception:
+            input_already_open = False
+
+        if not input_already_open:
+            # * clear ชื่อ เก่า โดยคลิกที่ container dropdown
+            try:
+                self.driver.find_element(
+                    By.XPATH, self.cus_name_dropdown_elmt_loc).click()
+            except ElementClickInterceptedException:
+                try:
+                    el = self.driver.find_element(
+                        By.XPATH, self.cus_name_dropdown_elmt_loc)
+                    self.driver.execute_script("arguments[0].click();", el)
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"enter_cus_name click container exception: {e}")
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
         self.is_ul_open = True if self.driver.find_elements(
@@ -4694,14 +4747,32 @@ class Bot_POS:
 
         # * กรณีไม่ได้เปิดไว้ จะเปิดให้
         if not self.is_ul_open:
-            self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-            self.wait50.until(EC.visibility_of_element_located(
-                (By.XPATH, self.app.cusNameInput)))
+            try:
+                self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
+            except Exception:
+                try:
+                    btn = self.driver.find_element(By.XPATH, self.app.cus_arrow_btn)
+                    self.driver.execute_script("arguments[0].click();", btn)
+                except Exception:
+                    pass
+            try:
+                self.wait50.until(EC.visibility_of_element_located(
+                    (By.XPATH, self.app.cusNameInput)))
+            except Exception:
+                pass
 
         # * เคลียและกรอกชื่อลูกค้า
-        self.driver.find_element(By.XPATH, self.app.cusNameInput).clear()
-        self.driver.find_element(
-            By.XPATH, self.app.cusNameInput).send_keys(cus_search)
+        try:
+            cus_input = self.wait50.until(EC.element_to_be_clickable(
+                (By.XPATH, self.app.cusNameInput)))
+            cus_input.clear()
+            cus_input.send_keys(cus_search)
+        except Exception:
+            try:
+                cus_input = self.driver.find_element(By.XPATH, self.app.cusNameInput)
+                self.js_input_value(cus_input, cus_search)
+            except Exception as err:
+                print(f"enter_cus_name send_keys fallback error: {err}")
 
     def add_new_customer(self, cb=None):
         self.current_checkpoint = "สร้างลูกค้าใหม่ (add_new_customer)"
@@ -4778,8 +4849,12 @@ class Bot_POS:
             if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul):
                 time.sleep(0.7)
                 # * li[1] เป็นตัวที่แสดงผลแบบ dynamic เราจะตรวจจับ พฤติกรรมของ element นี้
-                self.searching_condition = self.driver.find_element(
-                    By.XPATH, self.app.cusNameLi1)
+                try:
+                    self.searching_condition = self.driver.find_element(
+                        By.XPATH, self.app.cusNameLi1)
+                except (NoSuchElementException, StaleElementReferenceException):
+                    time.sleep(0.5)
+                    continue
 
                 # * ช่วงรอ ผลลัพของ Searching...
                 try:
@@ -4792,10 +4867,14 @@ class Bot_POS:
                     pass
 
                 # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑
-                self.wait50.until(EC.visibility_of_element_located(
-                    (By.XPATH, self.app.cusNameLi1)))
-                self.searching_condition = self.driver.find_element(
-                    By.XPATH, self.app.cusNameLi1)
+                try:
+                    self.wait50.until(EC.visibility_of_element_located(
+                        (By.XPATH, self.app.cusNameLi1)))
+                    self.searching_condition = self.driver.find_element(
+                        By.XPATH, self.app.cusNameLi1)
+                except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
+                    time.sleep(0.5)
+                    continue
 
                 # * กรณี ไม่เจอผลลัพธ์ ทำการ Add ใหม่
                 if self.searching_condition.text == "No results found" and self.customer_added_times == 0:
@@ -6054,6 +6133,8 @@ class Bot_POS:
             customer_type: "normal", "tax", or "tax_laz"
             cusname_fixed: For normal customers, the fixed customer name
         """
+        if self.operation_thread.is_set():
+            return
         is_functionworking = True
 
         # * Check if the SMCO :: เปิดการขาย1 tab is still open, if not, reopen it
@@ -6092,6 +6173,8 @@ class Bot_POS:
         except:
             print(f"{self.cus_order}: there is 'NO' previous pop-up from the previous round in SMCO :: เปิดการขาย1")
 
+        if self.operation_thread.is_set():
+            return
         self.open_customer_form(is_functionworking)
 
         # Prepare customer data based on type
@@ -6206,6 +6289,8 @@ class Bot_POS:
                 self.js_input_value(phone_element, phone)
 
                 # * Address dropdowns (only for tax customers)
+                if self.operation_thread.is_set():
+                    return
                 if use_dropdown_address:
                     # * Country dropdown
                     self.driver.find_element(
@@ -6297,10 +6382,14 @@ class Bot_POS:
                                 raise ValueError(
                                     f"Postal code {postcode} cannot be found in dropdown, auto invoice mode requires postal code selection, stopping the process. Error details: {err}")
 
+                if self.operation_thread.is_set():
+                    return
                 print(
                     f"customer_class_selector() initializing: is_functionworking {is_functionworking}")
                 self.customer_class_selector(is_functionworking)
 
+                if self.operation_thread.is_set():
+                    return
                 # * CLick Save Button (commented out but kept for completeness)
                 if customer_type == "normal" or self.app.is_auto_invoice_mode.get():
                     save_btn = self.driver.find_element(

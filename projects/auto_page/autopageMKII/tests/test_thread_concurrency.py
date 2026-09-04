@@ -209,6 +209,95 @@ class TestThreadConcurrency(unittest.TestCase):
             self.assertEqual(app._cycle_generation, 2)
             self.assertEqual(mock_bot._active_generation, 2)
 
+    def test_thread_local_operation_thread_isolation(self):
+        """ทดสอบว่า Bot_POS.operation_thread แยก context ต่อ Thread (Thread-Local Isolation):
+        เมื่อ Thread 2 ทำงานและเซ็ต operation_thread ของตัวเอง จะไม่ไป overwrite ของ Thread 1
+        และ Thread 1 จะมองเห็นว่าตัวเองกลายเป็น stale (is_set() == True) ทันที"""
+        bot = Bot_POS.__new__(Bot_POS)
+        bot._local = threading.local()
+        bot._latest_operation_thread = threading.Event()
+        bot._gen_lock = threading.Lock()
+        bot._active_generation = 1
+
+        t1_seen_before = None
+        t1_seen_after = None
+        t1_step1_done = threading.Event()
+        t2_step_done = threading.Event()
+
+        def thread1_worker():
+            nonlocal t1_seen_before, t1_seen_after
+            event1 = threading.Event()
+            bot.operation_thread = StopEvent(event1, bot, generation=1)
+            t1_seen_before = bot.operation_thread.is_set()
+            t1_step1_done.set()
+
+            # รอให้ thread 2 รันและเซ็ต operation_thread ของรอบที่ 2
+            t2_step_done.wait(timeout=2.0)
+            t1_seen_after = bot.operation_thread.is_set()
+
+        def thread2_worker():
+            # เริ่มรอบ 2
+            bot._active_generation = 2
+            event2 = threading.Event()
+            bot.operation_thread = StopEvent(event2, bot, generation=2)
+            # ใน Thread 2 ต้องไม่ถูก set (กำลังเริ่มรอบใหม่)
+            self.assertFalse(bot.operation_thread.is_set())
+            t2_step_done.set()
+
+        t1 = threading.Thread(target=thread1_worker)
+        t1.start()
+
+        self.assertTrue(t1_step1_done.wait(timeout=2.0))
+        self.assertFalse(t1_seen_before)
+
+        t2 = threading.Thread(target=thread2_worker)
+        t2.start()
+        t2.join(timeout=2.0)
+        t1.join(timeout=2.0)
+
+        # Thread 1 ต้องมองเห็น StopEvent ของตัวเองกลายเป็น stale (True)
+        # ไม่โดน StopEvent ของ Thread 2 ทับ
+        self.assertTrue(t1_seen_after)
+
+    def test_enter_cus_name_element_click_intercepted_fallback(self):
+        """ทดสอบว่า enter_cus_name() เมื่อเจอ ElementClickInterceptedException จะ fallback ไปใช้ execute_script"""
+        bot = Bot_POS.__new__(Bot_POS)
+        bot._local = threading.local()
+        bot._latest_operation_thread = threading.Event()
+        bot.cus_name_dropdown_elmt_loc = "//span[@id='select2-memberSearch-container']"
+        bot.browser = MagicMock()
+        bot.browser.merged_dict = {'SMCO :: เปิดการขาย': 'mock_handle'}
+
+        mock_driver = MagicMock()
+        mock_input = MagicMock()
+        mock_input.is_displayed.return_value = False
+        mock_dropdown_container = MagicMock()
+        # จำลองการกดคลิกแล้วติด ElementClickInterceptedException
+        mock_dropdown_container.click.side_effect = mod.ElementClickInterceptedException("intercepted")
+
+        mock_driver.find_elements.side_effect = lambda by, loc: []
+        mock_driver.find_element.side_effect = lambda by, loc: (
+            mock_dropdown_container if loc == bot.cus_name_dropdown_elmt_loc else mock_input
+        )
+
+        bot.browser.driver = mock_driver
+        bot.browser.wait50 = MagicMock()
+        bot.browser.wait50.until.return_value = mock_input
+        bot.app = MagicMock()
+        bot.app.cusNameInput = "//input[@class='select2-search__field']"
+        bot.app.cus_name_dropdown_ul = "//ul[@id='select2-memberSearch-results']"
+        bot.app.cus_arrow_btn = "//span[@class='select2-selection__arrow']"
+
+        # รันฟังก์ชัน
+        bot.enter_cus_name("ลูกค้าทดสอบ")
+
+        # ตรวจสอบว่ามีการเรียก fallback JavaScript click
+        mock_driver.execute_script.assert_any_call("arguments[0].click();", mock_dropdown_container)
+        # ตรวจสอบว่ามีการเคลียร์และส่งคีย์เข้าช่อง input
+        mock_input.clear.assert_called_once()
+        mock_input.send_keys.assert_called_once_with("ลูกค้าทดสอบ")
+
 
 if __name__ == "__main__":
     unittest.main()
+
