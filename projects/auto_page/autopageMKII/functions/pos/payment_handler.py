@@ -41,12 +41,17 @@ class POSPaymentHandler:
         """
         self.bot.autofinal = True
         while self.bot.autofinal and not self.bot.operation_thread.is_set():
+            if hasattr(self.bot, 'check_abort'):
+                self.bot.check_abort()
             self.app.is_bot_browser_busy.set(False)
             print("Enter final loop")
             print("Waiting for element to appear")
 
             while self.bot.parent.winfo_exists() and not self.bot.operation_thread.is_set():
-                time.sleep(0.55)
+                if hasattr(self.bot, 'interruptible_sleep'):
+                    self.bot.interruptible_sleep(0.55)
+                else:
+                    time.sleep(0.55)
                 saler_name_input_element = None
                 title_attribute = ""
                 is_final_page_displayed = False

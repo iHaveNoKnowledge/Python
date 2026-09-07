@@ -3524,45 +3524,41 @@ class MyApp:
         is_current = (longer_thread_cycle == self.longer_thread_cycle and shorter_thread_cycle ==
                       self.shorter_thread_cycle)
 
-        if is_current:
-            # print(
-            #     f"check_threads: is_current={is_current}, shorter={shorter_thread_cycle.is_alive()}, longer={longer_thread_cycle.is_alive()}")
-            pass
+        # * ถ้าไม่ใช่ cycle ปัจจุบันแล้ว (มี order ใหม่มาแทนที่) ให้ตัดจบการเฝ้าดูทันที ไม่วน loop after และไม่ block join
+        if not is_current:
+            print("check_threads: Not current cycle, dropping watcher immediately.")
+            return
 
-        # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 100 millisec
+        # * เป็นการเช็ค thread ไปเรื่อยๆจนกว่า thread ทั้งคู่จะดับไป หาก Thread ใด Thread หนึ่ง ทำงานอยู่ ให้เช็คตัวเองอีกรอบ ภายในเวลา 150 millisec
         if (shorter_thread_cycle.is_alive() or longer_thread_cycle.is_alive()):
-            # * after(เวลาmillisec, callbackfunction)
-            self.root.after(750, lambda: self.check_threads(
+            # * after(เวลาmillisec, callbackfunction) - เช็คถี่ขึ้น (150ms จากเดิม 750ms) เพื่อให้รับรู้การจบงานได้ทันที
+            self.root.after(150, lambda: self.check_threads(
                 longer_thread_cycle, shorter_thread_cycle, callback))
 
             # * เอาไว้แสดงสถานะของ bot gui ว่าทำงานอยู่หรือไม่
-            if is_current:
-                # * กด Stop แล้ว (operation_thread ถูก set) → ขึ้นสถานะหยุด/จบเลย ไม่ต้องรอ thread ตาย
-                if self.operation_thread.is_set():
-                    self.display_bot_status_label.configure(
-                        text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
-                elif self.is_bot_browser_busy.get() == True:
-                    self.display_bot_status_label.configure(
-                        text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
-                elif self.is_bot_browser_busy.get() == False:
-                    self.display_bot_status_label.configure(
-                        text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
-        else:
-            # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก แล้วเรียกใช้ callback ถ้าหากมี callback มาด้วยน่ะนะ callbackนี้จะรับ operation_startเข้ามาให้ทำงานอีกรอบ
-            print("check_threads: Threads dead. Joining...")
-            shorter_thread_cycle.join()
-            longer_thread_cycle.join()
-            print("check_threads: Joined.")
-
-            if is_current:
-                print("check_threads: Updating GUI to Done")
+            if self.operation_thread.is_set():
                 self.display_bot_status_label.configure(
                     text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
-                print("Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ตัวล่าง)")
-            else:
-                # * รอบเก่า (stale cycle) ห้ามแตะ status เพราะมีรอบใหม่ทำงานอยู่
-                # * (ก่อนหน้านี้ไปตั้ง "จบการทำงาน" ทับ ทำให้ user ดูผิดว่า bot จบแล้วทั้งที่กำลังเริ่มใหม่)
-                print("check_threads: Not current, skipping GUI update")
+            elif self.is_bot_browser_busy.get() == True:
+                self.display_bot_status_label.configure(
+                    text=f"Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน", fg_color="#cf1313", text_color="#ffffff")
+            elif self.is_bot_browser_busy.get() == False:
+                self.display_bot_status_label.configure(
+                    text=f"Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+        else:
+            # * เมื่อ Thread ทั้งสองไม่ alive จะทำการรวม thread ย่อย เข้ากับ thread หลัก
+            print("check_threads: Threads dead. Joining (non-blocking)...")
+            try:
+                shorter_thread_cycle.join(timeout=0.1)
+                longer_thread_cycle.join(timeout=0.1)
+            except Exception as j_err:
+                print(f"check_threads join error: {j_err}")
+            print("check_threads: Joined.")
+
+            print("check_threads: Updating GUI to Done")
+            self.display_bot_status_label.configure(
+                text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
+            print("Bot Status: จบการทำงาน (ตัวล่าง)")
 
             if callback:
                 callback()
@@ -3663,6 +3659,10 @@ class MyApp:
         print("self.operation_thread.set()2182: ")
         if hasattr(self, 'operation_thread') and self.operation_thread is not None:
             self.operation_thread.set()
+        # * bump generation ของ bot ทันที เพื่อให้ StopEvent ในทุก thread หยุดทำงานทันที!
+        if hasattr(self, 'bot') and hasattr(self.bot, '_gen_lock'):
+            with self.bot._gen_lock:
+                self.bot._active_generation = getattr(self.bot, '_active_generation', 0) + 1
         # * ตั้งสถานะหยุด/จบการทำงานทันทีที่กด Stop (กันถูก "Your Turn" จาก operation_start เขียนทับ)
         self.display_bot_status_label.configure(
             text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
@@ -4071,6 +4071,11 @@ class UserAccount:
             self.pass_input.configure(show="*")  # ซ่อนรหัสผ่าน
 
 
+class OperationCancelledException(Exception):
+    """Exception raised when an operation is cancelled by a newer order or stop button"""
+    pass
+
+
 class StopEvent:
     """Wrapper ที่ proxy threading.Event แต่เพิ่ม generation check
     เมื่อ thread ใหม่เริ่ม (generation เปลี่ยน), is_set() จะ return True อัตโนมัติ
@@ -4118,12 +4123,28 @@ class Bot_POS:
         self._local.operation_thread = val
         self._latest_operation_thread = val
 
+    def check_abort(self):
+        """ตรวจเช็คว่างานนี้ถูกสั่งยกเลิก/มีออเดอร์ใหม่เข้ามาหรือไม่ ถ้าใช่ให้โยน Exception ทันที เพื่อปล่อย driver_lock ในเสี้ยววินาที"""
+        if self.operation_thread.is_set():
+            raise OperationCancelledException("Operation aborted by newer order or user stop")
+
+    def interruptible_sleep(self, duration: float, step: float = 0.05) -> bool:
+        """Sleep แบบตื่นทันทีเมื่อมีออเดอร์ใหม่ หรือถูกกดหยุด (ไม่ดองเวลา sleep ให้เสียเปล่า)"""
+        elapsed = 0.0
+        while elapsed < duration:
+            if self.operation_thread.is_set():
+                raise OperationCancelledException("Sleep interrupted by newer order or user stop")
+            sleep_time = min(step, duration - elapsed)
+            time.sleep(sleep_time)
+            elapsed += sleep_time
+        return True
+
     def __init__(self, parent, app):
         # super().__init__(parent)
         self.parent = parent
         self.app = app
         self.wsh = comclt.Dispatch("WScript.Shell")
-        self.driver_lock = threading.Lock()
+        self.driver_lock = threading.RLock()
         # / ล็อกสำหรับ assign bot.operation_thread (StopEvent) กัน thread เก่า assign ทับ thread ใหม่
         self._gen_lock = threading.Lock()
         self._local = threading.local()
@@ -4416,9 +4437,7 @@ class Bot_POS:
             self.operation_thread = StopEvent(event, self, my_generation)
 
         while not self.operation_thread.is_set() and not self.app.order_Search_thread.is_set():
-            print(
-                "Waiting for order search thread to finish before starting operation task...")
-            time.sleep(0.5)
+            time.sleep(0.05)
 
         if not self.operation_thread.is_set():
             while not self.operation_thread.is_set():
@@ -4446,11 +4465,21 @@ class Bot_POS:
                             )
                             self.current_checkpoint = "เริ่มรัน"
                             self.operation_start()
+                        # ปล่อย driver_lock หลังจบหน้าแรก เพื่อให้ auto_add_product สามารถทำงานได้ระหว่างรอหน้าท้าย
+                        if self.app.order != "" and not self.operation_thread.is_set():
+                            self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
+                            if hasattr(self, 'payment_handler') and self.payment_handler:
+                                self.payment_handler.process_final_payment()
                             self.app.report_manager.finish_order(self.app.order, overall_status="SUCCESS")
                             break  # รันสำเร็จ ออกจากลูปเพื่อไปทำออเดอร์ถัดไป
                     else:
                         self.app.update_log("กรุณากรอก Order ก่อน")
                         break
+
+                except OperationCancelledException as cancel_err:
+                    print(f"operation_task_thread, Operation cancelled: {cancel_err}")
+                    logger.info(f"Order: {self.app.order} (gen {my_generation}) cancelled cleanly by newer order/stop: {cancel_err}")
+                    break
 
                 except RefreshRequiredException as err:
                     print(f"operation_task_thread, Refresh Required: {err}")
@@ -5613,6 +5642,7 @@ class Bot_POS:
         inv_number = ""
         self.operation_states = {"purchased_channel": None}
         if self.app.order != "" and not self.operation_thread.is_set():
+            self.check_abort()
             ### * MARKETPLACES Part ########################################################################################
             self.autofinal = False
             self.is_forbid = False
@@ -5621,6 +5651,8 @@ class Bot_POS:
             marketplace_result = self.marketplace_scraper.scrape_order(
                 self.cus_order, self.app.marketplace_target.get()
             )
+
+            self.check_abort()
 
             # Store channel for later use (e.g. payment channel mapping)
             if marketplace_result.purchased_channel:
@@ -5647,6 +5679,8 @@ class Bot_POS:
                 self.app.display_bot_status_label.configure(
                     text=f"Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน", fg_color="#d9f2ff", text_color="#000")
                 return
+
+            self.check_abort()
 
             ### * SMCO PART ############################################################################
             # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า
@@ -5685,9 +5719,13 @@ class Bot_POS:
                                 f"-> รีโหลดหน้า POS เพื่อล้างตะกร้าให้เป็นศูนย์...")
                             self.app.update_log(f"🧼 ตรวจพบสินค้าตกค้างบน POS ({leftover_skus}) -> รีโหลดล้างตะกร้าเพื่อความปลอดภัย...")
                             self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
-                            time.sleep(1.5)
+                            self.interruptible_sleep(1.5)
+            except OperationCancelledException:
+                raise
             except Exception as cart_err:
                 print(f"Cart sanitation check skipped: {cart_err}")
+
+            self.check_abort()
 
             # self.smco_handler.insert_emp()
             # self.smco_handler.select_sale_type()
@@ -5702,6 +5740,8 @@ class Bot_POS:
                     "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]").click()
             except:
                 print("no sale type pop-up")
+
+            self.check_abort()
 
             # * ใส่ รหัสพนักงาน ===============================================================================
             self.insert_emp()
@@ -5724,8 +5764,10 @@ class Bot_POS:
                     break
                 except:
                     print("finding element cus_name_span_elmt")
-                    time.sleep(0.5)
+                    self.interruptible_sleep(0.5)
                     continue
+
+            self.check_abort()
 
             # * เพราะวิธีออกใบกำกับมันยังไม่แน่นอนมีทั้งแบบเก่าและแบบใหม่ แบบเก่ามันจะทำโดยขั้นตอนด้านล่างนี่ แต่ถ้าเป็นแบบใหม่มันจะย้ายไปทำหน้าท้าย ซึ่งไม่รู้จะย้ายไปไม
             self.is_old_tax_form = False
@@ -5780,7 +5822,7 @@ class Bot_POS:
                                     print("Click OK(try)")
                             except:
                                 print("wait for pop-up(except)")
-                                time.sleep(1)
+                                self.interruptible_sleep(1)
                                 # * ระบุปุ่ม ok
                                 if self.driver.find_element(
                                         By.XPATH,
@@ -5801,13 +5843,15 @@ class Bot_POS:
                         print("หน้าใหม่พร้อมแล้ว")
                     elif self.is_reset == False:
                         print("ไม่ต้องรี")
+                except OperationCancelledException:
+                    raise
                 except Exception as err:
                     # * กดปุ่ม Reset มุมขวาบนเพื่อ Reset หน้าเว็บใหม่
                     print("Error From SMCO phase1 Resetting", err)
                     logger.info("Error From SMCO phase1 Resetting", err)
                     while not self.operation_thread.is_set():
                         print("รอ")
-                        time.sleep(1)
+                        self.interruptible_sleep(1)
                         if self.driver.find_element(
                                 By.XPATH, '//div[@class="btn-outline pull-right"]//button[@id="create"]'):
                             print("เจอแล้ว")
@@ -5823,7 +5867,9 @@ class Bot_POS:
                 self.wait50.until(EC.element_to_be_clickable(
                     (By.XPATH, "//div[contains(@ng-show, 'abbCustomerFlag')]//div[contains(@class, 'input-group-prepend')]/button")))
 
-                time.sleep(1)
+                self.interruptible_sleep(1)
+
+                self.check_abort()
 
                 # * จากปัญหาข้อที่ 39 // รอให้ตัวเลือกภายใน click ได้ก่อน แล้วค่อย เลือก วิธีการ searchs
                 self.set_cus_name_search_type()
@@ -5853,6 +5899,8 @@ class Bot_POS:
                     ) else self.app.cus_name_cleaner(self.app.cus_name.get(), self.app.cus_account_name.get())
                     # self.cus_search_input = self.app.tax_num.get() if self.app.is_tax_required.get() else "CWI99"
 
+                self.check_abort()
+
                 # * เริ่มกระบวนการหาชื่อลูกค้าสำหรับออกบิล invoice
                 self.current_checkpoint = "ค้นหาชื่อลูกค้า"
                 if not self.cus_search_input in self.driver.find_element(
@@ -5863,6 +5911,8 @@ class Bot_POS:
                 # Test Mode Guard: Checkpoint 1 (หลังเลือกลูกค้า)
                 if self.should_stop_at_test_checkpoint("1. หลังเลือกลูกค้า"):
                     return
+
+                self.check_abort()
 
                 # * ใส่ตัวเช็คที่อยู่ลูกค้า
                 if self.app.is_tax_required.get():
@@ -5883,6 +5933,8 @@ class Bot_POS:
                 if self.should_stop_at_test_checkpoint("2. หลังตรวจ/แก้ที่อยู่"):
                     return
 
+            self.check_abort()
+
             # เคลียร์ข้อมูลสินค้าเดิมที่อาจค้างอยู่ในหน้ารถเข็น POS ก่อนแอดของและค่าขนส่งใหม่
             if self.app.is_auto_invoice_mode.get():
                 try:
@@ -5898,16 +5950,22 @@ class Bot_POS:
                         self.driver.execute_script(
                             "arguments[0].click();", delete_buttons[0])
                         # รอให้รายการนั้นหายไปและ DOM โหลดเสร็จ
-                        time.sleep(0.8)
+                        self.interruptible_sleep(0.8)
                     self.current_checkpoint = "เคลียร์สินค้าค้างตะกร้าสำเร็จ"
+                except OperationCancelledException:
+                    raise
                 except Exception as e:
                     print(f"Error during cart clearing: {e}")
+
+            self.check_abort()
 
             # / ใส่ค่าขนส่ง ================================================================================
             # / ค่าขนส่งเราจะใส่ให้ SHOPEE เท่านั้น
             if self.app.marketplace_target.get() == "SHOPEE":
                 self.add_shipping_cost()
                 self.current_checkpoint = "ใส่ค่าขนส่งสำเร็จ"
+
+            self.check_abort()
 
             ### PHASE2 After Add Product###############################################################################################################
             # # #เช็คของเติม CP อัตโนมัติ กำลังทำ ถ้าเอาไปใส่ใน while loop ข้างล่างมันจะบัค ไม่สามารถแปลงเป็น float ได้
@@ -5932,8 +5990,12 @@ class Bot_POS:
                 self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
                 self.current_checkpoint = "เริ่มกระบวนการเติม SKU จากไฟล์ Accel mode เข้าสู่ POS, สำเร็จ"
 
+            self.check_abort()
+
             if self.app.is_auto_invoice_mode.get():
                 self.pricing_reconciler.reconcile_and_verify()
+
+            self.check_abort()
 
             self.app.update_log(
                 "Autoหน้าแรก มันจบแค่นี้ ยิงของ, ใส่คูปอง, กดไปหน้าถัดไปได้เลย")
@@ -5985,12 +6047,9 @@ class Bot_POS:
                     logger.info(f"""Order: {self.cus_order} Testing Checkpoint 3 End!!""")
                     return
 
-            self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
+            self.check_abort()
 
-            # with self.driver_lock:
-            #! use decorator get_tabs() ก่อนแล้วค่อยให้ thread ทำงาน
-            # / หน้าท้าย ================================================================================
-            self.payment_handler.process_final_payment()
+            self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
 
         else:
             print("ไม่มีOrder ไม่รู้จะทำอะไร")
