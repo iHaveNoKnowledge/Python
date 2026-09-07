@@ -1,0 +1,344 @@
+Mock SMCO server listening on http://127.0.0.1:8765
+[LAUNCHER] ✅ Mock SMCO server ready at http://127.0.0.1:8765
+[LAUNCHER] ✅ Chrome started (pid=66628), waiting for debug port 8990...
+[MOCK] "GET /smartcore/smartpos/pointofsales/posmainv3.htm HTTP/1.1" 304 -
+[MOCK] code 404, message File not found
+[MOCK] "GET /favicon.ico HTTP/1.1" 404 -
+[LAUNCHER] ✅ chromedriver attach OK (attempt 1), title = SMCO :: เปิดการขาย
+current_directory: C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII
+file located: C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\assets\tables
+[LAUNCHER] กำลังสร้าง MyApp (Bot_POS + BrowserManager จะ attach ไปที่ Chrome :8990)...
+Connecting to existing Chrome at localhost:8989...
+Driver connected successfully!
+Loaded Sumatra PDF path from cache: C:\Users\Satawad_Ta\AppData\Local\SumatraPDF\SumatraPDF.exe
+Loaded address data from: C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\assets\tables\Addresscleaner_TambonData.xlsx
+Total rows: 7436
+[LAUNCHER] ✅ stubbed: scrape_order, get_vatinfo_data, BrowserManager.setup_chrome -> :8990
+C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\tests\mock_smco\gui_hang_launcher.py:288: FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
+You are setting values through chained assignment. Currently this works in certain cases, but when using Copy-on-Write (which will become the default behaviour in pandas 3.0) this will never work to update the original DataFrame or Series, because the intermediate object on which we are setting values will behave as a copy.
+A typical example is when you are setting values in a column of a DataFrame, like:
+
+df["col"][row_indexer] = value
+
+Use `df.loc[row_indexer, "col"] = values` instead, to perform the assignment in a single step and ensure this keeps updating the original `df`.
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+  df["จำนวน"] = df["จำนวน"].astype(int)
+C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\tests\mock_smco\gui_hang_launcher.py:289: FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
+You are setting values through chained assignment. Currently this works in certain cases, but when using Copy-on-Write (which will become the default behaviour in pandas 3.0) this will never work to update the original DataFrame or Series, because the intermediate object on which we are setting values will behave as a copy.
+A typical example is when you are setting values in a column of a DataFrame, like:
+
+df["col"][row_indexer] = value
+
+Use `df.loc[row_indexer, "col"] = values` instead, to perform the assignment in a single step and ensure this keeps updating the original `df`.
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+  df["ค่าจัดส่งที่ชำระโดยผู้ซื้อ"] = df["ค่าจัดส่งที่ชำระโดยผู้ซื้อ"].astype(float)
+C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\tests\mock_smco\gui_hang_launcher.py:290: FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
+You are setting values through chained assignment. Currently this works in certain cases, but when using Copy-on-Write (which will become the default behaviour in pandas 3.0) this will never work to update the original DataFrame or Series, because the intermediate object on which we are setting values will behave as a copy.
+A typical example is when you are setting values in a column of a DataFrame, like:
+
+df["col"][row_indexer] = value
+
+Use `df.loc[row_indexer, "col"] = values` instead, to perform the assignment in a single step and ensure this keeps updating the original `df`.
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+  df["โค้ดส่วนลดชำระโดยผู้ขาย"] = df["โค้ดส่วนลดชำระโดยผู้ขาย"].astype(float)
+C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\tests\mock_smco\gui_hang_launcher.py:291: FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
+You are setting values through chained assignment. Currently this works in certain cases, but when using Copy-on-Write (which will become the default behaviour in pandas 3.0) this will never work to update the original DataFrame or Series, because the intermediate object on which we are setting values will behave as a copy.
+A typical example is when you are setting values in a column of a DataFrame, like:
+
+df["col"][row_indexer] = value
+
+Use `df.loc[row_indexer, "col"] = values` instead, to perform the assignment in a single step and ensure this keeps updating the original `df`.
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+  df["หมายเลขประจำตัวผู้เสียภาษี"] = df["หมายเลขประจำตัวผู้เสียภาษี"].astype(str)
+[LAUNCHER] ✅ fixture excel -> C:\Users\Satawad_Ta\Documents\GitHub\Python\projects\auto_page\autopageMKII\tests\mock_smco\mock_smco\fixtures\mock_orders.xlsx
+Loading Shopee data...
+มี Data Frame (Type: <class 'pandas.core.frame.DataFrame'>)
+[scan_and_sync_missing_cp_data] Invalid cp_table_location. Skipping.
+[LAUNCHER] ✅ data_frame loaded: rows=2
+[LAUNCHER] ✅ Test Mode ON (checkpoint 3: หยุดหลังยิงสินค้าหน้าแรก)
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ไม่มีการทำงาน (⸝⸝ᴗ﹏ᴗ⸝⸝) ᶻ 𝗓 𐰁
+[LAUNCHER] 🚀 เริ่ม mainloop - เฝ้าดู GUI และ thread ได้ที่หน้าจอตอนนี้
+search() ทำงานและได้ผลลัพธ์:  2609032XS86R91
+รายงานจำนวนtabs
+driver is still running
+self.driver.title:  SMCO :: เปิดการขาย
+self.driver.title:  Seller Centre
+self.driver.title:  SMCO :: เปิดการขาย
+self.driver.title:  SMCO :: ประวัติการขาย
+self.driver.title:  SMART QUERY
+self.driver.title:  ยอดขาย SHP 2025-2026 - Google Sheets
+counter[item] คือไร:  2
+มี tabs ไรบ้าง {'SMCO :: เปิดการขาย': 'E399E009D85F168D4ADF8FEECA1416BE', 'Seller Centre': 'ED05DE614BB840BC96D39111DD57053A', 'SMCO :: เปิดการขาย1': '08536FEEC47522A29198D49921322E74', 'SMCO :: ประวัติการขาย': '557C5CA58394B248CCE1C875CD31929F', 'SMART QUERY': '796138CDEC179853EE7499880F77B323', 'ยอดขาย SHP 2025-2026 - Google Sheets': '7CFF120BCFB238B87243FD072791576E'}
+Thread Name:  Thread-6 (<lambda>)
+order: 2609032XS86R91 - order_search  ทำงาน, is_order_search_set: False
+[LAUNCHER] [PRESS] Start '2609032XS86R91' invoke() กลับมาใน 0.57s
+self.order err?:  2609032XS86R91 <class 'str'>
+self.nondistortedData {'หมายเลขคำสั่งซื้อ': '2609032XS86R91', 'สถานะการสั่งซื้อ': 'READY_TO_SHIP', 'โค้ดส่วนลดชำระโดยผู้ขาย': 0.0, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': 20.0, 'ประเภทใบกำกับภาษี': nan, 'ชื่อ': 'สมชาย ใจดี', 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป': nan, 'แขวง/ตำบล': 'คลองเตย', 'เขต/อำเภอ.1': 'คลองเตย', 'จังหวัด.1': 'กรุงเทพมหานคร', 'รหัสไปรษณีย์.1': '10110', 'หมายเลขประจำตัวผู้เสียภาษี': nan, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': nan, 'อีเมลสำหรับรับใบกำกับภาษี': nan, 'ชื่อผู้ใช้ (ผู้ซื้อ)': 'somchai_jaidee', 'จำนวนเงินทั้งหมด': 100, 'วันที่ทำการสั่งซื้อ': '2026-09-07 10:00', 'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)': nan, 'รายละเอียดที่อยู่': '1/1 ถนนสุขุมวิท', 'ประเภทสาขา': 'สำนักงานใหญ่', 'รหัสประจำสาขา': nan, 'หมายเหตุจากผู้ซื้อ': nan, 'บันทึก': nan, 'ชื่อผู้รับ': 'สมชาย ใจดี', 'หมายเลขโทรศัพท์': 812345678}
+ตัวเลือก nan
+self.branch_type:  สำนักงานใหญ่ <class 'str'> 12
+รหัสประจำสาขา=  nan
+self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ 0    NaN
+Name: หมายเลขประจำตัวผู้เสียภาษี, dtype: object
+self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง
+True
+True
+0    True
+Name: หมายเลขประจำตัวผู้เสียภาษี, dtype: bool
+raw data from DF:  nan
+type checking:  <class 'float'>
+ตรวจหมายเหตุ:  nan
+ตรวจบันทึก:  nan type:  <class 'str'>
+no note to be extracted, note_extractor was not used
+มีไอเทมไรบ้าง [{'เลขอ้างอิง SKU (SKU Reference No.)': 'ABC-000001', 'ชื่อสินค้า': 'Mock Product A', 'ราคาขาย': 100, 'จำนวน': 1, 'ราคาขายสุทธิ': 100, 'ส่วนลดจาก Shopee': 0, 'ชื่อตัวเลือก': nan}]
+จำนวน 1 <class 'int'>
+สูตรสร้าง input [{'sku': 'ABC-000001', 'qty': 1}]
+รายการที่  1 ABC-000001
+สร้างinputอันที่  1
+self.cus_account_name:  somchai_jaidee
+แขวง/ตำบล ไม่เท่ากับ nan:  คลองเตย
+update gui address else
+self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']:  nan
+self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?:  True
+ไม่มีเบอร์โทร
+[LAUNCHER] [MONITOR] workers=2 Bot Status: Your Turn
+[32m2026-09-07 14:35:13.865[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_task_thread[0m:[36m4460[0m - [1mOrder: 2609032XS86R91 Start!![0m
+จำนวนเงิน 100
+สินค้ารวมค่าส่ง:  120
+ก่อน seller voucher popup
+order: 2609032XS86R91 - order_search  ทำงาน, is_order_search_set: True
+order_search ทำงานจบ
+[LAUNCHER] [STUB] scrape_order('2609032XS86R91', 'SHOPEE') -> READY
+[32m2026-09-07 14:35:14.052[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_start[0m:[36m5699[0m - [1m2609032XS86R91: SMCO :: เปิดการขาย ไม่หาย ไปต่อ[0m
+[32m2026-09-07 14:35:14.097[0m | [33m[1mWARNING [0m | [36mautopage_v5_gui[0m:[36moperation_start[0m:[36m5722[0m - [33m[1mOrder: 2609032XS86R91 - ตรวจพบสินค้าตกค้างบนตะกร้า POS ก่อนเริ่มงาน: ['SV0-000101'] -> รีโหลดหน้า POS เพื่อล้างตะกร้าให้เป็นศูนย์...[0m
+SMCO :: เปิดการขาย ไม่หาย ไปต่อ
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+search() ทำงานและได้ผลลัพธ์:  2609032XS86R91
+Stopping previous threads (non-blocking)...
+รายงานจำนวนtabs
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[32m2026-09-07 14:35:24.843[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_task_thread[0m:[36m4486[0m - [1mOrder: 2609032XS86R91 (gen 1) cancelled cleanly by newer order/stop: Sleep interrupted by newer order or user stop[0m
+operation_task_thread, Operation cancelled: Sleep interrupted by newer order or user stop
+driver is still running
+self.driver.title:  SMCO :: เปิดการขาย
+self.driver.title:  Seller Centre
+self.driver.title:  SMCO :: เปิดการขาย
+self.driver.title:  SMCO :: ประวัติการขาย
+self.driver.title:  SMART QUERY
+self.driver.title:  ยอดขาย SHP 2025-2026 - Google Sheets
+counter[item] คือไร:  2
+มี tabs ไรบ้าง {'SMCO :: เปิดการขาย': 'E399E009D85F168D4ADF8FEECA1416BE', 'Seller Centre': 'ED05DE614BB840BC96D39111DD57053A', 'SMCO :: เปิดการขาย1': '08536FEEC47522A29198D49921322E74', 'SMCO :: ประวัติการขาย': '557C5CA58394B248CCE1C875CD31929F', 'SMART QUERY': '796138CDEC179853EE7499880F77B323', 'ยอดขาย SHP 2025-2026 - Google Sheets': '7CFF120BCFB238B87243FD072791576E'}
+Thread Name:  Thread-8 (<lambda>)
+order: 2609032XS86R91 - order_search  ทำงาน, is_order_search_set: False
+[LAUNCHER] [PRESS] Start '2609032XS86R91' invoke() กลับมาใน 11.21s  ⚠️ GUI freeze!
+check_threads: Not current cycle, dropping watcher immediately.
+search() ทำงานและได้ผลลัพธ์:  2609032XS86R92
+Stopping previous threads (non-blocking)...
+รายงานจำนวนtabs
+driver is still running
+Operation thread is already set, skipping operation task
+self.driver.title:  SMCO :: เปิดการขาย
+self.driver.title:  Seller Centre
+self.driver.title:  SMCO :: เปิดการขาย
+self.driver.title:  SMCO :: ประวัติการขาย
+self.driver.title:  SMART QUERY
+self.driver.title:  ยอดขาย SHP 2025-2026 - Google Sheets
+[LAUNCHER] [MONITOR] workers=2 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+counter[item] คือไร:  2
+มี tabs ไรบ้าง {'SMCO :: เปิดการขาย': 'E399E009D85F168D4ADF8FEECA1416BE', 'Seller Centre': 'ED05DE614BB840BC96D39111DD57053A', 'SMCO :: เปิดการขาย1': '08536FEEC47522A29198D49921322E74', 'SMCO :: ประวัติการขาย': '557C5CA58394B248CCE1C875CD31929F', 'SMART QUERY': '796138CDEC179853EE7499880F77B323', 'ยอดขาย SHP 2025-2026 - Google Sheets': '7CFF120BCFB238B87243FD072791576E'}
+Thread Name:  Thread-10 (<lambda>)
+order: 2609032XS86R92 - order_search  ทำงาน, is_order_search_set: False
+[LAUNCHER] [PRESS] Start '2609032XS86R92' invoke() กลับมาใน 0.75s
+check_threads: Not current cycle, dropping watcher immediately.
+self.order err?:  2609032XS86R91 <class 'str'>
+self.nondistortedData {'หมายเลขคำสั่งซื้อ': '2609032XS86R91', 'สถานะการสั่งซื้อ': 'READY_TO_SHIP', 'โค้ดส่วนลดชำระโดยผู้ขาย': 0.0, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': 20.0, 'ประเภทใบกำกับภาษี': nan, 'ชื่อ': 'สมชาย ใจดี', 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป': nan, 'แขวง/ตำบล': 'คลองเตย', 'เขต/อำเภอ.1': 'คลองเตย', 'จังหวัด.1': 'กรุงเทพมหานคร', 'รหัสไปรษณีย์.1': '10110', 'หมายเลขประจำตัวผู้เสียภาษี': nan, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': nan, 'อีเมลสำหรับรับใบกำกับภาษี': nan, 'ชื่อผู้ใช้ (ผู้ซื้อ)': 'somchai_jaidee', 'จำนวนเงินทั้งหมด': 100, 'วันที่ทำการสั่งซื้อ': '2026-09-07 10:00', 'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)': nan, 'รายละเอียดที่อยู่': '1/1 ถนนสุขุมวิท', 'ประเภทสาขา': 'สำนักงานใหญ่', 'รหัสประจำสาขา': nan, 'หมายเหตุจากผู้ซื้อ': nan, 'บันทึก': nan, 'ชื่อผู้รับ': 'สมชาย ใจดี', 'หมายเลขโทรศัพท์': 812345678}
+self.order err?:  2609032XS86R91 <class 'str'>
+self.nondistortedData {'หมายเลขคำสั่งซื้อ': '2609032XS86R91', 'สถานะการสั่งซื้อ': 'READY_TO_SHIP', 'โค้ดส่วนลดชำระโดยผู้ขาย': 0.0, 'ค่าจัดส่งที่ชำระโดยผู้ซื้อ': 20.0, 'ประเภทใบกำกับภาษี': nan, 'ชื่อ': 'สมชาย ใจดี', 'ที่อยู่สำหรับออกใบกำกับภาษีแบบเต็มรูป': nan, 'แขวง/ตำบล': 'คลองเตย', 'เขต/อำเภอ.1': 'คลองเตย', 'จังหวัด.1': 'กรุงเทพมหานคร', 'รหัสไปรษณีย์.1': '10110', 'หมายเลขประจำตัวผู้เสียภาษี': nan, 'หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี': nan, 'อีเมลสำหรับรับใบกำกับภาษี': nan, 'ชื่อผู้ใช้ (ผู้ซื้อ)': 'somchai_jaidee', 'จำนวนเงินทั้งหมด': 100, 'วันที่ทำการสั่งซื้อ': '2026-09-07 10:00', 'โค้ดส่วนลดชำระโดย Shopee (เช่น โค้ดจากโปรแกรม ร้านโค้ดคุ้ม, โค้ดส่วนลด Shopee, โค้ดส่วนลด Shopee Mall)': nan, 'รายละเอียดที่อยู่': '1/1 ถนนสุขุมวิท', 'ประเภทสาขา': 'สำนักงานใหญ่', 'รหัสประจำสาขา': nan, 'หมายเหตุจากผู้ซื้อ': nan, 'บันทึก': nan, 'ชื่อผู้รับ': 'สมชาย ใจดี', 'หมายเลขโทรศัพท์': 812345678}
+ตัวเลือก nan
+ตัวเลือก nan
+self.branch_type:  สำนักงานใหญ่ <class 'str'> 12
+รหัสประจำสาขา=  nan
+self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ 0    NaN
+Name: หมายเลขประจำตัวผู้เสียภาษี, dtype: object
+self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง
+True
+True
+0    True
+Name: หมายเลขประจำตัวผู้เสียภาษี, dtype: bool
+raw data from DF:  nan
+type checking:  <class 'float'>
+self.branch_type:  สำนักงานใหญ่ <class 'str'> 12
+รหัสประจำสาขา=  nan
+self.data_frame[self.target_row]['หมายเลขประจำตัวผู้เสียภาษี'] กลายเป็น boolจริงเหรอ 0    NaN
+Name: หมายเลขประจำตัวผู้เสียภาษี, dtype: object
+self.nondistortedData['หมายเลขประจำตัวผู้เสียภาษี'] พัง
+True
+True
+0    True
+Name: หมายเลขประจำตัวผู้เสียภาษี, dtype: bool
+raw data from DF:  nan
+type checking:  <class 'float'>
+ตรวจหมายเหตุ:  nan
+ตรวจบันทึก:  nan type:  <class 'str'>
+no note to be extracted, note_extractor was not used
+ตรวจหมายเหตุ:  nan
+ตรวจบันทึก:  nan type:  <class 'str'>
+no note to be extracted, note_extractor was not used
+มีไอเทมไรบ้าง [{'เลขอ้างอิง SKU (SKU Reference No.)': 'ABC-000001', 'ชื่อสินค้า': 'Mock Product A', 'ราคาขาย': 100, 'จำนวน': 1, 'ราคาขายสุทธิ': 100, 'ส่วนลดจาก Shopee': 0, 'ชื่อตัวเลือก': nan}]
+จำนวน 1 <class 'int'>
+สูตรสร้าง input [{'sku': 'ABC-000001', 'qty': 1}]
+รายการที่  1 ABC-000001
+สร้างinputอันที่  1
+มีไอเทมไรบ้าง [{'เลขอ้างอิง SKU (SKU Reference No.)': 'ABC-000001', 'ชื่อสินค้า': 'Mock Product A', 'ราคาขาย': 100, 'จำนวน': 1, 'ราคาขายสุทธิ': 100, 'ส่วนลดจาก Shopee': 0, 'ชื่อตัวเลือก': nan}]
+จำนวน 1 <class 'int'>
+สูตรสร้าง input [{'sku': 'ABC-000001', 'qty': 1}]
+รายการที่  1 ABC-000001
+สร้างinputอันที่  1
+self.cus_account_name:  somchai_jaidee
+แขวง/ตำบล ไม่เท่ากับ nan:  คลองเตย
+update gui address else
+self.cus_account_name:  somchai_jaidee
+แขวง/ตำบล ไม่เท่ากับ nan:  คลองเตย
+update gui address else
+self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']:  nan
+self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?:  True
+ไม่มีเบอร์โทร
+self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี']:  nan
+self.nondistortedData['หมายเลขโทรศัพท์สำหรับออกใบกำกับภาษี'] bool?:  True
+ไม่มีเบอร์โทร
+จำนวนเงิน 100
+สินค้ารวมค่าส่ง:  120
+ก่อน seller voucher popup
+order: 2609032XS86R91 - order_search  ทำงาน, is_order_search_set: False
+order_search ทำงานจบ
+จำนวนเงิน 100
+สินค้ารวมค่าส่ง:  120
+[LAUNCHER] [MONITOR] workers=2 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[32m2026-09-07 14:35:28.875[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_task_thread[0m:[36m4460[0m - [1mOrder: 2609032XS86R91 Start!![0m
+ก่อน seller voucher popup
+order: 2609032XS86R92 - order_search  ทำงาน, is_order_search_set: True
+order_search ทำงานจบ
+[LAUNCHER] [STUB] scrape_order('2609032XS86R91', 'SHOPEE') -> READY
+[32m2026-09-07 14:35:28.996[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_start[0m:[36m5699[0m - [1m2609032XS86R91: SMCO :: เปิดการขาย ไม่หาย ไปต่อ[0m
+SMCO :: เปิดการขาย ไม่หาย ไปต่อ
+dropdown_handler starts
+เจอ saletype li
+no sale type pop-up
+Found emp and select
+found element cus_name_span_elmt 
+element cus_name_span_elmt is displayed
+เช็คว่าต้องรีไหม False
+ไม่ต้องรี
+ผ่านเคลียชื่อลูกค้า, รอ element โผล่
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+Tax Required: False, Marketplace: SHOPEE
+Selecting search type (st='N')
+name: สมชาย ใจดี
+Order: 2609032XS86R91 : get_customer_name_ready starts
+Tax Required: False, Marketplace: SHOPEE
+Selecting search type (st='N')
+กรอกชื่อเสร็จ
+มันทำไม Searching...
+order: 2609032XS86R91: ensure_li_shown_cus_name starts
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[32m2026-09-07 14:35:38.091[0m | [1mINFO    [0m | [36mfunctions.utils.report_manager[0m:[36mrecord_customer_result[0m:[36m75[0m - [1m[Report] Order 2609032XS86R91 - สถานะลูกค้า: EXISTING (C2304210131-นาย สมชาย ใจดี)[0m
+text element not display Searching...
+Found a customer name: C2304210131-นาย สมชาย ใจดี
+Cusname lis are shown and ready to select
+order: 2609032XS86R91 : select_cus_name_from_lis starts 
+tax_num:  
+incoming cus_desire_name:  สมชาย ใจดี
+[select_cus_name_from_lis]cus_desire_name: สมชายใจดี /// current_cus_name: Please select
+if  สมชายใจดี  In  นายสมชายใจดี
+จริงทั้งคู่ไหม:  False และ  False
+is_branched: False 
+                  tax_branch_num in name: สำนักงานใหญ่ in นายสมชายใจดี False 
+                  has_branch_code_in_df: False
+ชื่อที่ไม่มีสาขา อยู่ใน li
+เลือกชื่อลูกค้าธรรมดา|ใบกำกับสนงใหญ่ C2304210131-นาย สมชาย ใจดี
+click แล้ว
+Skip, Alert Element is Not appear
+Order: 2609032XS86R91 : search หายไปแล้ว: get_customer_name_ready() ends
+no tax required, skip address check
+มี item ใน listไหม
+ไม่เคยมี item ใน list มาก่อน
+กรอก Code ขนส่งสำเร็จ
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+item li found
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[LAUNCHER] [MONITOR] workers=1 Bot Status: ᕦʕ •ᴥ•ʔᕤ กำลังทำงาน
+[32m2026-09-07 14:35:45.359[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36mshould_stop_at_test_checkpoint[0m:[36m8198[0m - [1mOrder: 2609032XS86R91 - 🔬 [Test Mode] ถึงจุดหยุดที่เลือก: '3. หลังยิงสินค้า/คูปองหน้าแรก' (ส่งมอบหน้าจอให้ User)[0m
+[32m2026-09-07 14:35:45.425[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_start[0m:[36m6017[0m - [1mOrder: 2609032XS86R91 Testing mode stopped at Checkpoint 3 (Front page). Attempting to update Accel file with order data.[0m
+[32m2026-09-07 14:35:45.427[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_start[0m:[36m6049[0m - [1mtest: cannot excute: self.app.accel_mode.deduct_accel_file_data(): 'dict' object has no attribute 'columns'[0m
+[32m2026-09-07 14:35:45.427[0m | [1mINFO    [0m | [36mautopage_v5_gui[0m:[36moperation_start[0m:[36m6052[0m - [1mOrder: 2609032XS86R91 Testing Checkpoint 3 End!![0m
+กด Enter ที่ช่อง SKU Input สำเร็จ
+🔬 [Test Mode] ถึงจุดหยุดที่เลือก: '3. หลังยิงสินค้า/คูปองหน้าแรก' (ส่งมอบหน้าจอให้ User)
+deduct_accel_file_data df มีมาก่อนเหรอ:  {}
+deduct_accel_file_data order:  2609032XS86R91
+check_threads: Threads dead. Joining (non-blocking)...
+check_threads: Joined.
+check_threads: Updating GUI to Done
+Bot Status: จบการทำงาน (ตัวล่าง)
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] [MONITOR] workers=0 Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] ============================================================
+[LAUNCHER] PRESS LOG:
+[LAUNCHER]   Start '2609032XS86R91': 0.57s
+[LAUNCHER]   Start '2609032XS86R91': 11.21s  ⚠️ FREEZE
+[LAUNCHER]   Start '2609032XS86R92': 0.75s
+[LAUNCHER] THREAD SAMPLES (last 10):
+[LAUNCHER]   t=  70.2s workers=0 []
+[LAUNCHER]   t=  72.2s workers=0 []
+[LAUNCHER]   t=  74.2s workers=0 []
+[LAUNCHER]   t=  76.2s workers=0 []
+[LAUNCHER]   t=  78.2s workers=0 []
+[LAUNCHER]   t=  80.2s workers=0 []
+[LAUNCHER]   t=  82.3s workers=0 []
+[LAUNCHER]   t=  84.3s workers=0 []
+[LAUNCHER]   t=  86.3s workers=0 []
+[LAUNCHER]   t=  88.3s workers=0 []
+[LAUNCHER] THREAD JOIN: OK ทุก thread ตายหมด
+[LAUNCHER] FINAL STATUS: Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน
+[LAUNCHER] worker count: min=0 max=2 (สุดท้าย 0)
+[LAUNCHER] ------------------------------------------------------------
+[LAUNCHER] ❌ VERDICT: พบปัญหา -  GUI freeze
+[LAUNCHER] EXIT CODE: 3

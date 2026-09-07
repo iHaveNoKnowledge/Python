@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "my-mcp-tool": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/your/mcp-server/build/index.js"
+      ],
+      "env": {}
+    },
+    "selenium": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@gaforov/selenium-mcp"
+      ]
+    }
+  }
+}

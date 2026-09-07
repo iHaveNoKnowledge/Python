@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>SMCO :: เปิดการขาย</title>
+<style>
+  body { font-family: Tahoma, sans-serif; margin: 0; }
+  #contentZen { padding: 10px; }
+  .ng-scope { margin: 4px 0; }
+  .panel { border: 1px solid #ccc; margin: 6px; padding: 8px; }
+  .panel-body { padding: 6px; }
+  .col-sm-3 { width: 30%; display: inline-block; vertical-align: top; }
+  .col-sm-12 { display: block; }
+  .nopadding { padding: 0; }
+  .select2-selection__arrow { display: inline-block; padding: 2px 8px; border: 1px solid #888; cursor: pointer; }
+  .select2-dropdown { position: absolute; background: #fff; border: 1px solid #888; display: none; z-index: 9999; }
+  .select2-dropdown.open { display: block; }
+  ul.select2-results__options { list-style: none; margin: 0; padding: 0; }
+  ul.select2-results__options li { padding: 4px 10px; cursor: pointer; }
+  ul.select2-results__options li:hover { background: #eee; }
+  #select2-memberSearch-container { display: inline-block; padding: 4px 10px; border: 1px solid #888; cursor: pointer; min-width: 120px; }
+  .swal2-container { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
+  .swal2-container.show { display: flex; }
+  .swal2-content { background: #fff; padding: 20px; border-radius: 6px; text-align: center; }
+  .swal2-confirm.styled { padding: 6px 24px; margin-top: 10px; cursor: pointer; }
+  .btn.btn-danger.btn-sm.ng-scope { padding: 2px 8px; cursor: pointer; }
+  #memberForm { position: relative; }
+</style>
+</head>
+<body>
+<div id="contentZen">
+  <div class="ng-scope"></div>
+
+  <!-- ===== Sale type panel (select_sale_type) ===== -->
+  <div class="ng-scope">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="col-sm-3">
+          <div class="col-sm-12 nopadding">
+            <div class="panel-body">
+              <div><div>
+                <div>
+                  <span id="divSaletype2-container" class="select2-selection__rendered">กรุณาเลือก</span>
+                  <span class="select2-selection__arrow" id="saletypeArrow" onclick="toggleDropdown('divSaletype2Dropdown')">▼</span>
+                </div>
+                <div id="divSaletype2Dropdown" class="select2-dropdown">
+                  <ul id="select2-divSaletype2-results" class="select2-results__options">
+                    <li onclick="selectSaletype('AR Online')">AR Online</li>
+                    <li onclick="selectSaletype('Online Sale')">Online Sale</li>
+                    <li onclick="selectSaletype('Deposite - A')">Deposite - A</li>
+                  </ul>
+                </div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Employee panel (insert_emp) ===== -->
+  <div class="ng-scope">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="col-sm-12">
+          <span id="empSpan" class="select2-selection__rendered" onclick="toggleEmp()">62078-TESTEMP</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Customer panel (get_customer_name_ready) ===== -->
+  <div class="ng-scope" id="customerPanel">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="col-sm-12" ng-show="abbCustomerFlag">
+          <div class="input-group-prepend"><button type="button" onclick="setSearchType()">ประเภทการค้นหา: N</button></div>
+          <!-- is_old_tax_form branch expects 'Please select' before any customer is chosen -->
+          <span id="select2-memberSearch-container" title="กรุณาเลือก" onclick="openCustomerDropdown()">กรุณาเลือก</span>
+          <span class="select2-selection__arrow" onclick="openCustomerDropdown()">▼</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Cart panel (add_shipping_cost / ProductManager) ===== -->
+  <div class="ng-scope">
+    <div class="panel" id="cartPanel">
+      <div class="panel-body" id="cartBody">
+        <div class="col-sm-12 panel panel-default ng-scope">
+          <u class="ng-binding" id="cartSku">SKU-WAITING</u>
+          <span class="font-color-base ng-binding" id="cartPrice">0.00</span>
+          <button class="btn btn-danger btn-sm ng-scope" onclick="this.parentElement.remove()">ลบ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demonic_frame ng-scope">
+    <span id="posTotal">0.00</span>
+  </div>
+</div>
+
+<!-- ===== Global customer dropdown (appended to body, like real select2) ===== -->
+<span id="customerDropdownHost">
+  <span>
+    <span>
+      <input id="memberSearchInput" class="select2-search__field">
+      <ul id="select2-memberSearch-results" class="select2-results__options"></ul>
+    </span>
+  </span>
+</span>
+
+<!-- ===== swal popup ===== -->
+<div class="swal2-container" id="swalPopup">
+  <div class="swal2-content">
+    <div id="swalText">ข้อมูล</div>
+    <button class="swal2-confirm styled" onclick="hidePopup()">OK</button>
+  </div>
+</div>
+
+<script>
+  // ---------- helpers the bot depends on ----------
+  function toggleDropdown(id) { document.getElementById(id).classList.toggle('open'); }
+  function selectSaletype(name) {
+    document.getElementById('divSaletype2-container').textContent = name;
+    document.getElementById('divSaletype2Dropdown').classList.remove('open');
+    showPopup('เลือกประเภทการขาย: ' + name);
+  }
+  function toggleEmp() { showPopup('รหัสพนักงาน: ' + document.getElementById('empSpan').textContent); }
+
+  var searchType = 'N';
+  function setSearchType() {
+    searchType = (searchType === 'N') ? 'T' : 'N';
+    showPopup('ตั้งประเภทการค้นหา: ' + searchType);
+  }
+
+  function openCustomerDropdown() {
+    var ul = document.getElementById('select2-memberSearch-results');
+    ul.style.display = 'block';
+    renderResults(document.getElementById('memberSearchInput').value || '');
+  }
+
+  // Mock customer database on the page
+  var CUSTOMERS = [
+    "62078-สมชาย ใจดี สำนักงานใหญ่",
+    "62078-สมหญิง รักไทย (00000)"
+  ];
+
+  function renderResults(query) {
+    var ul = document.getElementById('select2-memberSearch-results');
+    ul.innerHTML = '';
+    var li0 = document.createElement('li');
+    li0.className = 'select2-results__option select2-results__message';
+    li0.textContent = 'Searching...';
+    ul.appendChild(li0);
+    setTimeout(function () {
+      ul.innerHTML = '';
+      var found = CUSTOMERS.filter(function (c) {
+        var bare = c.replace(/^[0-9]+-/, '');
+        var q = query.trim();
+        return !q || bare.indexOf(q.split(' ')[0]) !== -1;
+      });
+      if (found.length === 0) {
+        // fallback: ให้ search เจอเสมอ (จำลอง SMCO ที่มีลูกค้าทุกชื่อ) เพื่อไม่ให้บอทเข้าลูป add-customer
+        var liF = document.createElement('li');
+        liF.className = 'select2-results__option';
+        liF.textContent = '62078-' + (query || 'ลูกค้าทดสอบ') + ' สำนักงานใหญ่';
+        liF.onclick = function () { selectCustomer(liF.textContent); };
+        ul.appendChild(liF);
+      } else {
+        found.forEach(function (c) {
+          var li = document.createElement('li');
+          li.className = 'select2-results__option';
+          li.textContent = c;
+          li.onclick = function () { selectCustomer(c); };
+          ul.appendChild(li);
+        });
+      }
+    }, 600); // simulate server latency: "Searching..." for 0.6s
+  }
+
+  function selectCustomer(name) {
+    var span = document.getElementById('select2-memberSearch-container');
+    span.textContent = name;
+    span.title = name;
+    // ปิด dropdown + ซ่อน input เหมือน select2 จริง
+    // (บอทรอ EC.invisibility_of_element_located ของ #memberSearchInput หลังเลือกชื่อ)
+    document.getElementById('select2-memberSearch-results').style.display = 'none';
+    var inp = document.getElementById('memberSearchInput');
+    if (inp && inp.parentElement) inp.parentElement.style.display = 'none';
+    showPopup('เลือกลูกค้า: ' + name);
+  }
+
+  function showPopup(text) {
+    document.getElementById('swalText').textContent = text;
+    document.getElementById('swalPopup').classList.add('show');
+  }
+  function hidePopup() { document.getElementById('swalPopup').classList.remove('show'); }
+</script>
+</body>
+</html>
