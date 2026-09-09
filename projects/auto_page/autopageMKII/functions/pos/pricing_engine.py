@@ -60,32 +60,52 @@ class OrderFinancials:
             raw_discount = str(item.get('ส่วนลดจาก Shopee', 0)).replace(',', '')
             shopee_discount = float(raw_discount) if raw_discount else 0.0
 
+            # ตรวจสอบส่วนลดร้านค้าในระดับแถวสินค้า (ถ้ามี)
+            raw_seller_v = str(item.get('โค้ดส่วนลดชำระโดยผู้ขาย', item.get('ส่วนลดจากร้านค้า', 0))).replace(',', '')
+            row_seller_voucher = abs(float(raw_seller_v)) if raw_seller_v and raw_seller_v.lower() != 'nan' else 0.0
+
             if sku_key not in self.aggregated_items:
                 self.aggregated_items[sku_key] = {
                     "total_qty": qty_val,
                     "total_price": price_val,
-                    "total_discount": shopee_discount
+                    "total_discount": shopee_discount,
+                    "total_seller_voucher": row_seller_voucher
                 }
             else:
                 self.aggregated_items[sku_key]["total_qty"] += qty_val
                 self.aggregated_items[sku_key]["total_price"] += price_val
                 self.aggregated_items[sku_key]["total_discount"] += shopee_discount
+                self.aggregated_items[sku_key]["total_seller_voucher"] += row_seller_voucher
 
             total_net_sum += price_val + shopee_discount
 
+        # หากในระดับแถวสินค้าไม่มี seller voucher ระบุไว้ แต่ระดับออเดอร์มี seller_voucher > 0
+        total_item_level_voucher = sum(d.get("total_seller_voucher", 0.0) for d in self.aggregated_items.values())
+        if total_item_level_voucher == 0.0 and self.seller_voucher > 0 and self.aggregated_items:
+            # กรณีออเดอร์ทั่วไป (1 SKU หรือระบุรวม) ให้นำ seller_voucher ไปหักกับ SKU ที่มีมูลค่าสูงสุด
+            target_sku = max(self.aggregated_items.keys(), key=lambda k: self.aggregated_items[k]["total_price"])
+            self.aggregated_items[target_sku]["total_seller_voucher"] = float(self.seller_voucher)
+
         for sku_key, data in self.aggregated_items.items():
             t_qty = data["total_qty"] if data["total_qty"] > 0 else 1.0
-            unit_expected = (data["total_price"] + data["total_discount"]) / t_qty
-            self.item_expected_prices[sku_key] = round(unit_expected, 2)
+            # ราคาเป้าหมายต่อหน่วยหลังหัก Seller Voucher (เพื่อให้จับคู่ CP ใน cp_data.xlsx และตรวจบน POS ถูกต้อง)
+            v_amt = data.get("total_seller_voucher", 0.0)
+            unit_expected = (data["total_price"] + data["total_discount"] - v_amt) / t_qty
+            self.item_expected_prices[sku_key] = round(max(0.0, unit_expected), 2)
 
         self.sum_price = round(total_net_sum, 2)
 
-        # คำนวณราคายอดรวมตะกร้า (Shopee คิดค่าส่งร่วมด้วย)
+        # คำนวณราคายอดรวมตะกร้าบน POS หลังหัก CP/Seller Voucher
+        total_cart_items = sum(
+            self.item_expected_prices[k] * self.aggregated_items[k]["total_qty"]
+            for k in self.item_expected_prices
+        )
+
         if self.marketplace.upper() == "SHOPEE":
-            self.total_cart_price = round(self.sum_price + self.shipping_cost, 2)
-            self.final_billing_price = max(0.0, round(self.total_cart_price - self.seller_voucher, 2))
+            self.total_cart_price = round(total_cart_items + self.shipping_cost, 2)
+            self.final_billing_price = max(0.0, round(self.sum_price + self.shipping_cost - self.seller_voucher, 2))
         else:  # LAZADA
-            self.total_cart_price = self.sum_price
+            self.total_cart_price = round(total_cart_items, 2)
             self.final_billing_price = max(0.0, round(self.sum_price - self.seller_voucher, 2))
 
 

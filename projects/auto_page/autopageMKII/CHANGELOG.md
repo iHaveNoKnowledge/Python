@@ -49,16 +49,26 @@
    - ก่อนสั่ง `operation_start()` ต้องตรวจสอบเสมอว่า `self.app.items` ต้องไม่เป็นค่าว่างเปล่า หากว่างเปล่าต้องยกเลิกออเดอร์ทันที ห้ามแตะต้องหน้า POS
 4. **การทดสอบความปลอดภัย (Regression Testing & Logic Integrity)**:
    - ทุกครั้งที่มีการแก้ไข/ปรับปรุงฟังก์ชันใดๆ (เช่น Pricing Engine, Payment, Customer, Order Guard) จะต้องรัน Test Suites ที่เกี่ยวข้องใน `tests/` เสมอ เช่น:
+     - `python -m unittest tests/test_seller_voucher_pricing.py` (ตรวจสอบการหัก Seller Voucher และค้นหา CP ที่ตรงกับราคาลด)
      - `python -m unittest tests/test_sonic_blow_cp_selector.py` (ตรวจสอบความถูกต้องของ Sonic Blow CP Selector และ XPath)
      - `pytest tests/test_order_leak_guard.py` (ตรวจสอบความปลอดภัยของ Order State Isolation)
      - `python -m unittest tests/test_final_page_validator.py` (ตรวจสอบความถูกต้องของหน้าชำระเงินสุดท้าย)
    - เพื่อป้องกันไม่ให้ logic เดิมหลุด ถดถอย หรือกระทบ flow อื่นเด็ดขาด
+5. **การจัดการ Seller Voucher กับ Campaign Coupon (CP) & Final Payment**:
+   - ปัจจุบันส่วนลดจากผู้ขาย (`โค้ดส่วนลดชำระโดยผู้ขาย` / `ส่วนลดจากร้านค้า`) ถูกนำมาผูกเป็น Campaign Coupon (CP) บน SMCO POS
+   - ใน `OrderFinancials.recalculate()` จะคำนวณ `item_expected_prices` โดยหัก Seller Voucher ออกจากราคา SKU เป้าหมาย ทำให้กระบวนการจับคู่ CP ใน `cp_data.xlsx` และตรวจเช็คราคาบน POS ตะกร้าสินค้าตรงกับราคาที่ได้รับส่วนลดจริง
+   - ยอดเงินหน้าสุดท้าย (`#ripCash00` ใน `POSPaymentHandler`) คิดจาก `final_price = sum_price - seller_voucher` ซึ่งตัดยอดพอดีกับยอดรวมตะกร้าบน POS (Grand Total) ทำให้ยอดคงเหลือ (`wrimagecard-lightGray`) เท่ากับ `0.00` บาทอย่างสมบูรณ์
 
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
 ### [5.2.5 / ver5.x.x] - 2026-09-09
+- [x] **[Seller Voucher CP Integration & SSOT Pricing Guard]** ปรับปรุงระบบคำนวณราคาเพื่อรองรับการเปลี่ยนผ่านของ Seller Voucher ไปเป็น Campaign Coupon (CP) บน SMCO POS:
+  - ปรับปรุง `OrderFinancials.recalculate()` ใน `functions/pos/pricing_engine.py` ให้อ่านค่า `โค้ดส่วนลดชำระโดยผู้ขาย` / `ส่วนลดจากร้านค้า` ทั้งในระดับแถวสินค้าและระดับออเดอร์ นำไปหักออกจากราคาคาดหวัง (`item_expected_prices`) ของ SKU เป้าหมาย เพื่อให้บอทค้นหาและเลือก CP ใน `cp_data.xlsx` ที่มีมูลค่าส่วนลดตรงกับ Seller Voucher
+  - ปรับปรุง `ProductManager.verify_item_price()` และ `verify_total_price()` ใน `functions/product_manager.py` ให้ใช้ `OrderFinancials` เป็น Single Source of Truth (SSOT) ในการเปรียบเทียบราคาต่อชิ้นและยอดรวมตะกร้าสินค้าบน POS แทนการคำนวณราคาแบบเดิม
+  - ป้องกันข้อผิดพลาด `KeyError: 'เลขอ้างอิง SKU'` ใน `verify_item_price()` เมื่อมีค่าจัดส่งหรือไม่มีคอลัมน์ SKU ในแถวเสริม
+  - เพิ่มชุดทดสอบอัตโนมัติ `tests/test_seller_voucher_pricing.py` ครอบคลุมการคำนวณของ OrderFinancials, การจับคู่ CP ของ PricingReconciler และการตรวจราคาของ ProductManager ผ่านฉลุย 100%
 - [x] **[Accel Mode Queue Skipping & Shifting Fix]** แก้ไขปัญหา Accel Mode ข้ามออเดอร์เว้นออเดอร์ (1 -> 3 -> 5) ที่เกิดจากการลบแถวออเดอร์ที่สำเร็จออกจาก Excel แล้ว Index ของแถวที่เหลือถอยร่นขึ้นมา 1 ตำแหน่งแต่ตัวนับวนลูปส่งค่า `count + 1` โดยเปลี่ยนสถาปัตยกรรมลูปเป็น **Processed Queue Tracker** ตรวจจับและหยิบออเดอร์แรกในรายการที่ยังไม่ถูกเริ่มรันในรอบนั้นเสมอ (`processed_orders`) พร้อมรองรับกรณีออเดอร์ Failed หรือถูกข้าม (ไม่ลบแถวออกจาก Sheet1 แต่ไม่วนซ้ำออเดอร์เดิม) และเพิ่มชุดทดสอบอัตโนมัติ 3 เคสใน `tests/test_accel_mode_queue.py`
 - [x] **[CP Sonic Blow Multi-Item Modal Fix]** แก้ไขปัญหา `Demonic CP Bot inner Exception Error: Message: element not interactable` ใน `functions/pos/pricing_engine.py` (`cp_sonic_blow_process` และ `scan_matching_cp_candidates_on_smco`) ซึ่งทำให้บอทเลือกคูปองได้ไม่ครบทุก SKU เมื่อมีหลายรายการ:
   - เพิ่มระบบตรวจเช็คและรอให้ modal backdrop (`.modal-backdrop`, `.modal.in`) ปิดสนิทก่อนคลิกปุ่มคูปองของ SKU ถัดไป

@@ -252,7 +252,9 @@ class ProductManager:
         # Group items by the raw SKU pattern to calculate aggregated expected prices
         aggregated_items = {}
         for item in all_items:
-            sku_key = item[self.COL_SKU]
+            sku_key = item.get(self.COL_SKU)
+            if not sku_key:
+                continue
             price_val = float(str(item.get(self.COL_PRICE, 0)).replace(",", ""))
             qty_val = float(str(item.get(self.COL_QTY, 1)).replace(",", ""))
             shopee_discount = float(str(item.get("ส่วนลดจาก Shopee", 0)).replace(",", ""))
@@ -272,7 +274,12 @@ class ProductManager:
             total_qty = data["total_qty"]
             if total_qty == 0:
                 total_qty = 1.0
-            expected = (data["total_price"] + data["total_discount"]) / total_qty
+
+            # อิงราคาเป้าหมายจาก Single Source of Truth (OrderFinancials) ที่รวม Seller Voucher แล้ว
+            if hasattr(self.app, 'financials') and self.app.financials and sku_key in self.app.financials.item_expected_prices:
+                expected = self.app.financials.item_expected_prices[sku_key]
+            else:
+                expected = (data["total_price"] + data["total_discount"]) / total_qty
             
             skus = self.app.correct_sku_pattern(sku_key)
             actual = 0.0
@@ -307,17 +314,20 @@ class ProductManager:
 
         TODO: ปรับ XPATH_TOTAL_PRICE ให้ตรงกับหน้า POS จริง และปรับ COL_SUBTOTAL / COL_PRICE ให้ถูกต้อง
         """
-        # คำนวณ expected จาก input data
-        expected_total = 0.0
-        all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
-        print("all_items: ", all_items)
-        for item in all_items:
-            try:
-                subtotal = float(str(item.get(self.COL_SUBTOTAL, 0)).replace(",", ""))
-                shopee_discount = float(str(item.get("ส่วนลดจาก Shopee", 0)).replace(",", ""))
-                expected_total += (subtotal + shopee_discount)
-            except Exception as e:
-                print(f"[ProductManager.verify_total_price] calc error: {e}")
+        # คำนวณ expected จาก input data (อิง Single Source of Truth จาก self.app.financials ที่คำนวณยอดตะกร้าหลังหัก CP)
+        if hasattr(self.app, 'financials') and self.app.financials and getattr(self.app.financials, 'total_cart_price', 0) > 0:
+            expected_total = float(self.app.financials.total_cart_price)
+        else:
+            expected_total = 0.0
+            all_items = self.app.items + [self.shipping_dict] if self.app.cus_ship_cost.get() else self.app.items
+            print("all_items: ", all_items)
+            for item in all_items:
+                try:
+                    subtotal = float(str(item.get(self.COL_SUBTOTAL, 0)).replace(",", ""))
+                    shopee_discount = float(str(item.get("ส่วนลดจาก Shopee", 0)).replace(",", ""))
+                    expected_total += (subtotal + shopee_discount)
+                except Exception as e:
+                    print(f"[ProductManager.verify_total_price] calc error: {e}")
 
         # ดึง grand total จากหน้า POS
         actual_total: float | str = "NOT_FOUND"
