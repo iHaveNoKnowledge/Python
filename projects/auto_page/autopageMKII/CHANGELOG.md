@@ -47,8 +47,12 @@
    - ต้องล้าง `self.items = []`, หยุดการทำงานของ `operation_thread` ทันที และโยน `ValueError` เพื่อบันทึกลง `Failed_Orders` **ห้ามปล่อยให้ Thread หลุดไปเข้าขั้นตอนเปิดบิลเด็ดขาด**
 3. **Safeguard หน้าประตูก่อนเปิดบิล (`operation_task_thread`)**:
    - ก่อนสั่ง `operation_start()` ต้องตรวจสอบเสมอว่า `self.app.items` ต้องไม่เป็นค่าว่างเปล่า หากว่างเปล่าต้องยกเลิกออเดอร์ทันที ห้ามแตะต้องหน้า POS
-4. **การทดสอบความปลอดภัย (Regression Testing)**:
-   - รัน `pytest tests/test_order_leak_guard.py` ทุกครั้งหลังมีการ Refactor โค้ดที่เกี่ยวข้องกับ Order Search หรือ State
+4. **การทดสอบความปลอดภัย (Regression Testing & Logic Integrity)**:
+   - ทุกครั้งที่มีการแก้ไข/ปรับปรุงฟังก์ชันใดๆ (เช่น Pricing Engine, Payment, Customer, Order Guard) จะต้องรัน Test Suites ที่เกี่ยวข้องใน `tests/` เสมอ เช่น:
+     - `python -m unittest tests/test_sonic_blow_cp_selector.py` (ตรวจสอบความถูกต้องของ Sonic Blow CP Selector และ XPath)
+     - `pytest tests/test_order_leak_guard.py` (ตรวจสอบความปลอดภัยของ Order State Isolation)
+     - `python -m unittest tests/test_final_page_validator.py` (ตรวจสอบความถูกต้องของหน้าชำระเงินสุดท้าย)
+   - เพื่อป้องกันไม่ให้ logic เดิมหลุด ถดถอย หรือกระทบ flow อื่นเด็ดขาด
 
 ---
 
