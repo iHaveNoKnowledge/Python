@@ -399,26 +399,49 @@ class AccelMode:
             self.main_app.is_accel_mode_activated.set(False)
             return
 
-        def start_next_cycle(count):
+        # ชุดเก็บ Order ที่ถูกเริ่มดำเนินการไปแล้วในรอบนี้ เพื่อป้องกันการวนซ้ำออเดอร์เดิมเมื่อเกิด Error / ข้าม
+        # และช่วยแก้ปัญหา Index shifting เมื่อออเดอร์ที่ทำเสร็จถูกลบออกจาก Excel
+        processed_orders = set()
+
+        def get_next_unprocessed_order():
+            self.reload_accel_file_if_modified()
+            for o in self.accel_orders_list:
+                o_str = str(o).strip()
+                if o_str and o_str not in processed_orders:
+                    return o_str
+            return None
+
+        def start_next_cycle():
             # * ถ้ารอบนี้ไม่ใช่รอบปัจจุบันอีกต่อไป (user กด Stop แล้วเริ่มใหม่ / กด Stop) ให้หยุดทันที
             if not (self.main_app.is_accel_mode_activated.get() and
                     getattr(self, '_accel_run_id', None) == my_run_id):
                 logger.info("Accel mode cycle is stale or stopped, not continuing.")
                 return
-            # ตรวจสอบและโหลดข้อมูลจาก Excel ใหม่เฉพาะเมื่อไฟล์มีการแก้ไข/บันทึกใหม่จริง (mtime เปลี่ยน)
-            self.reload_accel_file_if_modified()
-            if count < self.accel_orders_count:
+
+            next_order = get_next_unprocessed_order()
+            if next_order is not None:
                 if (self.main_app.is_accel_mode_activated.get() and
                         getattr(self, '_accel_run_id', None) == my_run_id):
-                    self.main_app.search_order(
-                        self.accel_orders_list[count], lambda: start_next_cycle(count+1))
+                    processed_orders.add(next_order)
+                    logger.info(f"Accel Mode กำลังเริ่มออเดอร์ถัดไป: {next_order}")
+                    self.main_app.search_order(next_order, lambda: start_next_cycle())
                 else:
                     logger.info("Accel mode has been stopped by user.")
             else:
-                pass
+                logger.info("ดำเนินการออเดอร์ใน Accel Mode ครบทั้งหมดแล้ว")
+                self.main_app.is_accel_mode_activated.set(False)
+                if hasattr(self.main_app, 'display_bot_status_label'):
+                    self.main_app.display_bot_status_label.configure(
+                        text="Bot Status: ˶ᵔ ᵕ ᵔ˶ จบการทำงาน (ครบทุกออเดอร์)", fg_color="#d9f2ff", text_color="#000")
 
-        self.main_app.search_order(
-            self.accel_orders_list[0], lambda: start_next_cycle(1))
+        first_order = get_next_unprocessed_order()
+        if first_order is not None:
+            processed_orders.add(first_order)
+            logger.info(f"Accel Mode เริ่มต้นออเดอร์แรก: {first_order}")
+            self.main_app.search_order(first_order, lambda: start_next_cycle())
+        else:
+            logger.warning("ไม่มีออเดอร์ในไฟล์ Excel ให้ดำเนินการ")
+            self.main_app.is_accel_mode_activated.set(False)
 
     # * ดึงรายการ SN ที่พร้อมใช้งานในสต็อกของ SMCO ทั้งหมดสำหรับ SKU นี้
     def get_available_sns_from_smco(self, driver, sku):

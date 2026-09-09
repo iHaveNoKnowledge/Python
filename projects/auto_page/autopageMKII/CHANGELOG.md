@@ -59,6 +59,7 @@
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
 ### [5.2.5 / ver5.x.x] - 2026-09-09
+- [x] **[Accel Mode Queue Skipping & Shifting Fix]** แก้ไขปัญหา Accel Mode ข้ามออเดอร์เว้นออเดอร์ (1 -> 3 -> 5) ที่เกิดจากการลบแถวออเดอร์ที่สำเร็จออกจาก Excel แล้ว Index ของแถวที่เหลือถอยร่นขึ้นมา 1 ตำแหน่งแต่ตัวนับวนลูปส่งค่า `count + 1` โดยเปลี่ยนสถาปัตยกรรมลูปเป็น **Processed Queue Tracker** ตรวจจับและหยิบออเดอร์แรกในรายการที่ยังไม่ถูกเริ่มรันในรอบนั้นเสมอ (`processed_orders`) พร้อมรองรับกรณีออเดอร์ Failed หรือถูกข้าม (ไม่ลบแถวออกจาก Sheet1 แต่ไม่วนซ้ำออเดอร์เดิม) และเพิ่มชุดทดสอบอัตโนมัติ 3 เคสใน `tests/test_accel_mode_queue.py`
 - [x] **[CP Sonic Blow Multi-Item Modal Fix]** แก้ไขปัญหา `Demonic CP Bot inner Exception Error: Message: element not interactable` ใน `functions/pos/pricing_engine.py` (`cp_sonic_blow_process` และ `scan_matching_cp_candidates_on_smco`) ซึ่งทำให้บอทเลือกคูปองได้ไม่ครบทุก SKU เมื่อมีหลายรายการ:
   - เพิ่มระบบตรวจเช็คและรอให้ modal backdrop (`.modal-backdrop`, `.modal.in`) ปิดสนิทก่อนคลิกปุ่มคูปองของ SKU ถัดไป
   - เพิ่ม `scrollIntoView` เลื่อนปุ่มคูปองให้อยู่กึ่งกลางหน้าจอก่อนคลิก
