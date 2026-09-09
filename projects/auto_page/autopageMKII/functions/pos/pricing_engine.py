@@ -532,7 +532,7 @@ class POSPricingReconciler:
                     if not any(b.is_displayed() for b in backdrops):
                         break
                     time.sleep(0.1)
-                time.sleep(0.2)
+                time.sleep(0.35)  # ให้เวลา AngularJS digest cycle และ DOM เรนเดอร์ยอดคำนวณใหม่ให้เสร็จสิ้น
 
             except Exception as err:
                 print("Demonic CP Bot inner Exception Error:", err)
