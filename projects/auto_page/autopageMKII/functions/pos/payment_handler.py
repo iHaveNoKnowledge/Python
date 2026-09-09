@@ -58,16 +58,32 @@ class POSPaymentHandler:
 
                 while not self.bot.operation_thread.is_set():
                     try:
-                        saler_name_input_element = self.driver.find_element(
+                        # 1. ตรวจสอบว่าหน้าสุดท้าย (Payment / ชำระเงิน) โผล่มาหรือยัง
+                        some_last_page_text_element_xpath = "//*[contains(text(),' Payment: ') or contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]"
+                        final_page_elements = self.driver.find_elements(
+                            By.XPATH, some_last_page_text_element_xpath
+                        )
+                        is_final_page_displayed = any(el.is_displayed() for el in final_page_elements)
+
+                        # ถ้าตรวจพบหน้าสุดท้ายแล้ว ให้หลุดลูปเพื่อไปทำขั้นตอนชำระเงิน
+                        if is_final_page_displayed:
+                            break
+
+                        # 2. ถ้ายังไม่พบหน้าสุดท้าย แสดงว่ายังอยู่หน้า 1 หรือกำลังเปลี่ยนหน้า
+                        saler_elements = self.driver.find_elements(
                             By.CSS_SELECTOR, '#select2-salePersonSearch-container'
                         )
-                        title_attribute = saler_name_input_element.get_attribute("title") or ""
+                        if saler_elements:
+                            saler_name_input_element = saler_elements[0]
+                            title_attribute = saler_name_input_element.get_attribute("title") or ""
+                        else:
+                            saler_name_input_element = None
+                            title_attribute = ""
 
-                        # Check if final page is displayed
-                        some_last_page_text_element_xpath = "//*[contains(text(),' Payment: ') or contains(text(), 'ชำระเงิน:') or contains(text(), 'CN Reason')]"
-                        is_final_page_displayed = self.driver.find_element(
-                            By.XPATH, some_last_page_text_element_xpath).is_displayed()
-                        break
+                        # ยังอยู่หน้าแรก รอให้ผู้ใช้กดไปหน้าสอง (Payment)
+                        time.sleep(1)
+                        continue
+
                     except InvalidSessionIdException:
                         print("Invalid session ID. Attempting to relaunch driver.")
                         self.app.update_log("❌ Browser session lost. Attempting to relaunch the browser...")
@@ -87,7 +103,7 @@ class POSPaymentHandler:
                             self.bot.autofinal = False
                             break
                         else:
-                            print(f"Cannot see elements from final page, waiting... Error details: {type(err).__name__}")
+                            print(f"Waiting for final page... ({type(err).__name__})")
                             time.sleep(1)
                             continue
 
@@ -98,160 +114,188 @@ class POSPaymentHandler:
                 matched_obj = re.search(r"^[A-Z0-9?]+", title_attribute)
                 emp_name_from_element = matched_obj.group() if matched_obj else ""
 
-                if emp_name_from_element == "" and not is_final_page_displayed:
-                    print("Emp name disappeared")
-                    break
-                elif saler_name_input_element and (
-                    "Select " not in title_attribute or "กรุณาเลือก" not in title_attribute
-                ) and not is_final_page_displayed:
-                    continue
-                elif saler_name_input_element and is_final_page_displayed:
-                    self.app.is_bot_browser_busy.set(True)
-                    time.sleep(0.55)
-                    print("Page Payment")
-
-                    # Check or reload last_page element
-                    reload = False
-                    if not hasattr(self, "last_page") or not isinstance(self.last_page, WebElement):
-                        reload = True
+                if not is_final_page_displayed:
+                    if emp_name_from_element == "":
+                        print("Emp name disappeared")
+                        break
                     else:
-                        try:
-                            _ = self.last_page.text
-                        except Exception as err:
-                            print("Old last_page element stale, reloading:", err)
-                            reload = True
+                        continue
 
-                    if reload:
-                        print("Reloading last_page element...")
-                        while not self.bot.operation_thread.is_set():
+                # ตอนนี้ยืนยันว่าเข้าหน้า Payment แล้ว
+                self.app.is_bot_browser_busy.set(True)
+                time.sleep(0.55)
+                print("Page Payment")
+
+                # Check or reload last_page element
+                reload = False
+                if not hasattr(self, "last_page") or not isinstance(self.last_page, WebElement):
+                    reload = True
+                else:
+                    try:
+                        _ = self.last_page.text
+                    except Exception as err:
+                        print("Old last_page element stale, reloading:", err)
+                        reload = True
+
+                if reload:
+                    print("Reloading last_page element...")
+                    while not self.bot.operation_thread.is_set():
+                        try:
+                            self.last_page = self.driver.find_element(
+                                By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
+                            )
+                            print("Reloaded last_page successfully")
+                            break
+                        except Exception as e:
                             try:
                                 self.last_page = self.driver.find_element(
-                                    By.XPATH, '/html/body/div[2]/div[3]/div[6]/div[1]/span[1]'
+                                    By.XPATH, "//*[contains(normalize-space(), 'Payment:') or contains(normalize-space(), 'ชำระเงิน:')]"
                                 )
-                                print("Reloaded last_page successfully")
+                                print("Reloaded last_page via text fallback successfully")
                                 break
-                            except Exception as e:
-                                print("Cannot reload last_page element:", e)
-                                time.sleep(0.5)
-
-                    if self.last_page and self.last_page.text in ["Payment:", "ชำระเงิน:"]:
-                        try:
-                            # 1. Collect and apply Tracking Number & Order No to Remark Modal
-                            time.sleep(0.75)
-                            remark_text = self.cus_order
-                            if getattr(self.app, 'tracking_from_data_complete', False):
-                                print(f"Tracking จาก data ครบ: {self.app.tracking_from_data} ข้าม collect_tracking")
-                                self.app.update_log(
-                                    f"✅ เลข tracking มีใน data ครบ ({len(self.app.tracking_from_data)} รายการ) ไม่ต้องย้อนไป shopee"
-                                )
-                                self.bot.tracking_manager.trackings = list(self.app.tracking_from_data)
-                            else:
-                                expected_tracking_count = (
-                                    len(self.app.filter_data)
-                                    if hasattr(self.app, 'filter_data') and self.app.filter_data is not None and not getattr(self.app.filter_data, 'empty', True)
-                                    else None
-                                )
-                                try:
-                                    self.bot.tracking_manager.collect_tracking(remark_text, expected_count=expected_tracking_count)
-                                except Exception as track_err:
-                                    print(f"Tracking collection failed: {track_err}, returning SMCO to first page...")
-                                    self.app.update_log(f"⚠️ {track_err} -> กำลังกดย้อนกลับไปหน้าแรกของ SMCO...")
-                                    self.return_to_first_page()
-                                    raise track_err
-
-                            # กรอก Order ไปที่ cnRemark และ modal (ref1RemarkTemp), Tracking ไปที่ ref2/ref3RemarkTemp
-                            self.bot.tracking_manager.apply_tracking_to_final_page(order_no=self.cus_order)
-
-                            # 3. Select Payment Type and Calculate final_price
-                            time.sleep(0.75)
-                            final_price = 0
-                            if self.app.marketplace_target.get() == 'SHOPEE':
-                                final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
-                                try:
-                                    channel_key = f"{self.bot.operation_states.get('purchased_channel')}"
-                                    channel = self.bot.channel_options.get(channel_key, "SHOPEE")
-                                    print("Payment channel:", channel)
-                                    payment_type_btn_element = self.driver.find_element(
-                                        By.XPATH, f"//a//label[text()='{channel}']")
-                                    self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
-                                except Exception:
-                                    payment_type_btn_element = self.driver.find_element(
-                                        By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
-                                    self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
-
-                            elif self.app.marketplace_target.get() == 'LAZADA':
-                                final_price = self.app.sum_price - self.app.cus_seller_voucher.get()
-                                payment_type_btn_element = self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]")
-                                self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
-
-                            self.app.final_price = final_price
-
-                            # 4. Fill PO No.
-                            try:
-                                po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
-                                self.bot.js_input_value(po_no_input_element, self.cus_order)
-                            except Exception as e:
-                                print("Cannot fill PO No:", e)
-
-                            # 5. Toggle CN Ref Flag if dev user or finish order triggered
-                            if self.app.user_id.get() == "62078" or self.app.is_finish_order_triggered.get():
-                                try:
-                                    cn_flag_element = self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag')
-                                    self.driver.execute_script("arguments[0].click();", cn_flag_element)
-                                except Exception as cn_err:
-                                    print("Cannot toggle cnRefFlag:", cn_err)
-
-                            try:
-                                self.driver.find_element(
-                                    By.XPATH,
-                                    '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]'
-                                ).click()
                             except Exception:
                                 pass
+                            print("Cannot reload last_page element:", e)
+                            time.sleep(0.5)
 
-                            # 6. Fill Customer Name into textbox81037000101
-                            cus_name_val = self.app.cus_name.get() if self.app.cus_name.get() else self.cus_order
-                            final_cus_name_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
-                            self.bot.js_input_value(final_cus_name_input_element, cus_name_val)
-
-                        except Exception as err:
-                            print("Final page form filling failed, skip to waiting for price:", err)
-                            break
-
-                        # 7. Enter final price into ripCash00
-                        try:
-                            print("Auto enter price:", final_price)
-                            final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
-                            self.bot.js_input_value(final_price_element, final_price)
-                        except Exception as e:
-                            print("auto_final_price broken:", e)
-
-                        # 8. Test Mode Guard: Checkpoint 4 (หยุดหลังกรอกหน้าท้าย - ก่อนกดปุ่มเขียว)
-                        if hasattr(self.bot, 'should_stop_at_test_checkpoint') and self.bot.should_stop_at_test_checkpoint("4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"):
-                            verification = self.verify_final_page_elements(
-                                expected_po=self.cus_order,
-                                expected_cus_name=cus_name_val,
-                                expected_price=final_price,
-                            )
-                            status_text = "✅ ครบถ้วน (All OK)" if verification.get("all_ok") else "❌ ไม่ครบถ้วน"
-                            print(f"🔬 [Test Mode Checkpoint 4] Final page verification: {status_text} -> {verification}")
+                if self.last_page and any(kw in (self.last_page.text or '') for kw in ["Payment", "ชำระเงิน"]):
+                    try:
+                        # 1. Collect and apply Tracking Number & Order No to Remark Modal
+                        time.sleep(0.75)
+                        remark_text = self.cus_order
+                        if getattr(self.app, 'tracking_from_data_complete', False):
+                            print(f"Tracking จาก data ครบ: {self.app.tracking_from_data} ข้าม collect_tracking")
                             self.app.update_log(
-                                f"🔬 [Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text} (หยุดการทำงานตาม Checkpoint 4)"
+                                f"✅ เลข tracking มีใน data ครบ ({len(self.app.tracking_from_data)} รายการ) ไม่ต้องย้อนไป shopee"
                             )
-                            self.bot.autofinal = False
-                            return True
+                            self.bot.tracking_manager.trackings = list(self.app.tracking_from_data)
+                        else:
+                            expected_tracking_count = (
+                                len(self.app.filter_data)
+                                if hasattr(self.app, 'filter_data') and self.app.filter_data is not None and not getattr(self.app.filter_data, 'empty', True)
+                                else None
+                            )
+                            try:
+                                self.bot.tracking_manager.collect_tracking(remark_text, expected_count=expected_tracking_count)
+                            except Exception as track_err:
+                                print(f"Tracking collection failed: {track_err}, returning SMCO to first page...")
+                                self.app.update_log(f"⚠️ {track_err} -> กำลังกดย้อนกลับไปหน้าแรกของ SMCO...")
+                                self.return_to_first_page()
+                                raise track_err
 
-                        # 8.2 Check all final page elements & Click green submit button (when Finish button pressed)
+                        # กรอก Order ไปที่ cnRemark และ modal (ref1RemarkTemp), Tracking ไปที่ ref2/ref3RemarkTemp
+                        self.bot.tracking_manager.apply_tracking_to_final_page(order_no=self.cus_order)
+
+                        # 3. Select Payment Type and Calculate final_price
+                        time.sleep(0.75)
+                        final_price = 0
+                        if self.app.marketplace_target.get() == 'SHOPEE':
+                            final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                            try:
+                                channel_key = f"{self.bot.operation_states.get('purchased_channel')}"
+                                channel = self.bot.channel_options.get(channel_key, "SHOPEE")
+                                print("Payment channel:", channel)
+                                payment_type_btn_element = self.driver.find_element(
+                                    By.XPATH, f"//a//label[text()='{channel}']")
+                                self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
+                            except Exception:
+                                payment_type_btn_element = self.driver.find_element(
+                                    By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
+                                self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
+
+                        elif self.app.marketplace_target.get() == 'LAZADA':
+                            final_price = self.app.sum_price - self.app.cus_seller_voucher.get()
+                            payment_type_btn_element = self.driver.find_element(By.XPATH, "//a[contains(., 'LAZ')]")
+                            self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
+
+                        self.app.final_price = final_price
+
+                        # 4. Fill PO No.
+                        try:
+                            po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                            self.bot.js_input_value(po_no_input_element, self.cus_order)
+                        except Exception as e:
+                            print("Cannot fill PO No:", e)
+
+                        # 5. Toggle CN Ref Flag if dev user or finish order triggered
+                        if self.app.user_id.get() == "62078" or self.app.is_finish_order_triggered.get():
+                            try:
+                                cn_flag_element = self.driver.find_element(By.CSS_SELECTOR, '#cnRefFlag')
+                                self.driver.execute_script("arguments[0].click();", cn_flag_element)
+                            except Exception as cn_err:
+                                print("Cannot toggle cnRefFlag:", cn_err)
+
+                        try:
+                            self.driver.find_element(
+                                By.XPATH,
+                                '/html/body/div[1]/div[2]/div[6]/form/div[2]/div/div[5]/div[3]/div[1]/div[1]/div/div/div/div/div[2]/center/button[2]'
+                            ).click()
+                        except Exception:
+                            pass
+
+                        # 6. Fill Customer Name into textbox81037000101
+                        cus_name_val = self.app.cus_name.get() if self.app.cus_name.get() else self.cus_order
+                        final_cus_name_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+                        self.bot.js_input_value(final_cus_name_input_element, cus_name_val)
+
+                    except Exception as err:
+                        print("Final page form filling failed, skip to waiting for price:", err)
+                        break
+
+                    # 7. Enter final price into ripCash00
+                    try:
+                        print("Auto enter price:", final_price)
+                        final_price_element = self.driver.find_element(By.XPATH, "//input[@id='ripCash00']")
+                        self.bot.js_input_value(final_price_element, final_price)
+                    except Exception as e:
+                        print("auto_final_price broken:", e)
+
+                    self.app.is_bot_browser_busy.set(False)
+                    print("กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มเขียว หรือกดย้อนกลับไปหน้าที่ 1")
+                    self.app.update_log("✅ กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มชำระเงิน (ปุ่มเขียว) หรือกดย้อนกลับไปหน้า 1")
+
+                    # 8. Test Mode Guard: Checkpoint 4 (หยุดหลังกรอกหน้าท้าย - ก่อนกดปุ่มเขียว)
+                    if hasattr(self.bot, 'should_stop_at_test_checkpoint') and self.bot.should_stop_at_test_checkpoint("4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"):
+                        verification = self.verify_final_page_elements(
+                            expected_po=self.cus_order,
+                            expected_cus_name=cus_name_val,
+                            expected_price=final_price,
+                        )
+                        status_text = "✅ ครบถ้วน (All OK)" if verification.get("all_ok") else "❌ ไม่ครบถ้วน"
+                        print(f"🔬 [Test Mode Checkpoint 4] Final page verification: {status_text} -> {verification}")
+                        self.app.update_log(
+                            f"🔬 [Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text} (หยุดการทำงานตาม Checkpoint 4)"
+                        )
+                        self.bot.autofinal = False
+                        return True
+
+                    # 9. Loop รอผู้ใช้กดปุ่มเขียว หรือกดย้อนกลับไปหน้าที่ 1
+                    while not self.bot.operation_thread.is_set() and self.bot.autofinal:
+                        time.sleep(0.5)
+
+                        # กรณีที่ 1: ตรวจสอบว่าผู้ใช้กดย้อนกลับไปหน้าแรก (Page 1) หรือไม่
+                        try:
+                            final_page_elements = self.driver.find_elements(
+                                By.XPATH, some_last_page_text_element_xpath
+                            )
+                            is_still_final_page = any(el.is_displayed() for el in final_page_elements)
+                        except Exception:
+                            is_still_final_page = False
+
+                        if not is_still_final_page:
+                            print("ตรวจพบว่าออกจากหน้า Payment แล้ว (กดย้อนกลับไปหน้าแรก)")
+                            self.app.update_log("🔙 ตรวจพบการย้อนกลับไปหน้าแรก รอให้ผู้ใช้เข้าหน้า Payment อีกครั้ง...")
+                            self.last_page = None
+                            break  # ออกจากลูปนี้ เพื่อกลับไปลูปหลักด้านบนที่รอเข้าหน้า Payment ใหม่
+
+                        # กรณีที่ 2: ตรวจสอบว่าผู้ใช้กดปุ่ม Finish Order ในโปรแกรม (CTk GUI) หรือไม่
                         if self.app.is_finish_order_triggered.get():
                             try:
-                                # First verification attempt
                                 verification = self.verify_final_page_elements(
                                     expected_po=self.cus_order,
                                     expected_cus_name=cus_name_val,
                                     expected_price=final_price,
                                 )
-
-                                # If not all ok, attempt auto-recovery (re-fill missing elements once)
                                 if not verification.get("all_ok", False):
                                     print(
                                         f"⚠️ [Payment Verification] Initial check failed: {verification}. Attempting auto-recovery..."
@@ -263,7 +307,6 @@ class POSPaymentHandler:
                                         verification, final_price, cus_name_val
                                     )
                                     time.sleep(0.5)
-                                    # Re-verify after recovery attempt
                                     verification = self.verify_final_page_elements(
                                         expected_po=self.cus_order,
                                         expected_cus_name=cus_name_val,
@@ -271,7 +314,7 @@ class POSPaymentHandler:
                                     )
 
                                 if verification.get("all_ok", False):
-                                    time.sleep(0.75)
+                                    time.sleep(0.5)
                                     print(
                                         "✅ All final page elements verified! Clicking btnPayment with retries..."
                                     )
@@ -327,19 +370,28 @@ class POSPaymentHandler:
                             finally:
                                 self.app.is_finish_order_triggered.set(False)
 
-                        # 9. Handle final popup after clicking green button
-                        popup_success = self.final_popup_handler(is_etax=False, operation_obj=self.bot)
-                        self.bot.autofinal = False
-                        return popup_success
+                        # กรณีที่ 3: ตรวจสอบว่า Popup สรุปการชำระเงิน (swal2-content) โผล่มาหรือยัง
+                        # (เกิดขึ้นเมื่อผู้ใช้กดปุ่มเขียวบนหน้าเว็บเอง หรือ บอทกดให้สำเร็จ)
+                        try:
+                            final_popups = self.driver.find_elements(By.XPATH, "//div[@class = 'swal2-content']")
+                            if any(fp.is_displayed() for fp in final_popups):
+                                print("🎉 ตรวจพบ Popup สรุปการชำระเงิน (swal2-content)")
+                                self.app.update_log("🎉 ตรวจพบหน้าต่างสรุปบิล กำลังดำเนินการบันทึกและพิมพ์...")
+                                popup_success = self.final_popup_handler(is_etax=False, operation_obj=self.bot)
+                                self.bot.autofinal = False
+                                return popup_success
+                        except Exception as pop_check_err:
+                            pass
 
-                    else:
-                        print("จบสูตร")
-                    self.bot.autofinal = False
-                    break
+                    # ถ้าหลุดลูปด้านบนโดยที่ยังไม่ได้ return popup_success (เช่น ผู้ใช้กดย้อนกลับ)
+                    # ให้วนกลับไปรอบใหม่ของ while self.bot.parent.winfo_exists()
+                    continue
 
-                print("While หลัก ถ้ามาถึงนี่แปลว่าต้องเริ่มใหม่")
-                break
-            break
+                else:
+                    actual_txt = self.last_page.text if self.last_page else 'None'
+                    print(f"last_page text was '{actual_txt}', expected 'Payment' or 'ชำระเงิน'")
+                    time.sleep(1)
+                    continue
 
         print("operation_thread is set or autofinal is false, exit final loop")
         return True

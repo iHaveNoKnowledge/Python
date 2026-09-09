@@ -345,6 +345,7 @@ class MyApp:
         self.is_auto_invoice_mode = BooleanVar(value=False)
         self.table_location = ""
         self.cp_table_location = ""
+        self.lazada_output_path = ""
         self.cp_df = None
         self._cp_last_mtime = 0
 
@@ -373,6 +374,7 @@ class MyApp:
         self.cus_postcode = StringVar(value="")
         self.cus_cur_status = StringVar(value="")
         self.cus_tax_name_lazada = StringVar(value="")
+        self.is_address_manually_edited = False
         self.is_forbid = False
         self.cus_ship_cost = DoubleVar(value=0)
         self.cus_seller_voucher = DoubleVar(value=0)
@@ -429,7 +431,9 @@ class MyApp:
 
     def load_subdistrict_cache(self):
         self.subdistrict_cache = {}
-        cache_path = "output_test.xlsx"
+        cache_path = getattr(self, 'lazada_output_path', '')
+        if not cache_path or not os.path.exists(cache_path):
+            cache_path = "output_test.xlsx"
         if os.path.exists(cache_path):
             try:
                 # Read only 'หมายเลขคำสั่งซื้อ' and 'แขวง/ตำบล' columns to be fast
@@ -443,7 +447,7 @@ class MyApp:
                     if order_num and subdist and subdist.lower() != 'nan':
                         self.subdistrict_cache[order_num] = subdist
                 print(
-                    f"Loaded {len(self.subdistrict_cache)} subdistrict entries from cache (output_test.xlsx).")
+                    f"Loaded {len(self.subdistrict_cache)} subdistrict entries from cache ({os.path.basename(cache_path)}).")
             except Exception as cache_err:
                 print(
                     f"Warning: Could not load subdistrict cache: {cache_err}")
@@ -1401,7 +1405,7 @@ class MyApp:
         self.display_location_result_btn.grid(row=0, column=2, padx=(0, 2))
 
         self.open_import_file_btn = CTkButton(
-            self.import_file_frame, text="open", command=lambda: self.open_file_by_default(self.table_location),
+            self.import_file_frame, text="open", command=self.open_selected_table_file,
             fg_color="#2b5b84", hover_color="#1e3f5c", width=45, height=28)
         self.open_import_file_btn.grid(row=0, column=3, padx=(0, 5))
 
@@ -1499,6 +1503,17 @@ class MyApp:
         )
         # self.display_lazada_tax_name.grid(row=1, column=5, padx=(1, 0), sticky='ew')
 
+        # * > Customer Tel display component (Row 1, Column 6-7)
+        # >> Labels
+        self.label_cus_tel = CTkLabel(
+            self.order_details_frame, text="Tel.", fg_color="#FFF", corner_radius=4)
+        self.label_cus_tel.grid(row=1, column=6, padx=(5, 0), pady=(2, 2), sticky='ew')
+        # >> Value display
+        self.display_cus_tel = CTkEntry(
+            self.order_details_frame, height=25, border_width=0, width=180, textvariable=self.cus_tel,
+            state="readonly", corner_radius=4)
+        self.display_cus_tel.grid(row=1, column=7, padx=(1, 4), pady=(2, 2), sticky='ew')
+
         # * > Customer Name display component
         # * >> Labels
         self.label_cus_name = CTkLabel(
@@ -1556,9 +1571,9 @@ class MyApp:
 
         # * > Customer Address display component ส่วนแสดงผลที่อยู่ลูกค้า
         # * >>Address
-        # >>> Labels
-        self.label_cus_address = CTkLabel(
-            self.invoice_details_frame, text="ที่อยู่: ", fg_color="#FFF")
+        # >>> Button สำหรับแก้ไขที่อยู่
+        self.label_cus_address = CTkButton(
+            self.invoice_details_frame, text="ที่อยู่: ", width=50, command=self.open_edit_address_popup)
         self.label_cus_address.grid(
             row=3, column=0, padx=(5, 0), pady=(2, 2), sticky="nsew")
         # >>> Value display
@@ -1695,10 +1710,100 @@ class MyApp:
         self.cus_district.set("")
         self.cus_sub_district.set("")
         self.cus_tel.set("")
+        self.cus_postcode.set("")
+        self.is_address_manually_edited = False
         self.cus_cur_status.set("")
         self.cus_account_name.set("")
         self.display_is_tax.configure(font=("Chiller", 10, "normal"))
         self.cus_tax_name_lazada.set("")
+
+    def open_edit_address_popup(self):
+        popup = CTkToplevel(self)
+        popup.title("แก้ไขข้อมูลลูกค้า / ที่อยู่")
+        popup.geometry("520x430")
+        popup.attributes('-topmost', True)
+        popup.grab_set()
+        popup.resizable(False, False)
+
+        # Title Label
+        title_lbl = CTkLabel(popup, text="แก้ไขข้อมูลที่อยู่ลูกค้า", font=("Kanit", 16, "bold"))
+        title_lbl.pack(pady=(12, 6))
+
+        # Fields frame
+        frame = CTkFrame(popup, corner_radius=6)
+        frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+
+        fields = [
+            ("รายละเอียดที่อยู่:", "addr"),
+            ("แขวง/ตำบล:", "sub_district"),
+            ("เขต/อำเภอ:", "district"),
+            ("จังหวัด:", "province"),
+            ("รหัสไปรษณีย์:", "postcode"),
+            ("เบอร์โทรศัพท์ (Tel.):", "tel")
+        ]
+
+        entries = {}
+        for idx, (label_text, key) in enumerate(fields):
+            lbl = CTkLabel(frame, text=label_text, anchor="w", width=140)
+            lbl.grid(row=idx, column=0, padx=(15, 5), pady=6, sticky="w")
+
+            entry = CTkEntry(frame, width=310)
+            entry.grid(row=idx, column=1, padx=(5, 15), pady=6, sticky="ew")
+
+            # Pre-fill current values
+            if key == "addr":
+                val = self.cus_address or getattr(self, 'address', '') or ''
+            elif key == "sub_district":
+                val = self.cus_sub_district.get()
+            elif key == "district":
+                val = self.cus_district.get()
+            elif key == "province":
+                val = self.cus_province.get()
+            elif key == "postcode":
+                val = self.cus_postcode.get()
+            elif key == "tel":
+                val = self.cus_tel.get()
+            else:
+                val = ""
+
+            entry.insert(0, str(val) if str(val).lower() != "nan" else "")
+            entries[key] = entry
+
+        def on_save():
+            new_addr = entries["addr"].get().strip()
+            new_sub_district = entries["sub_district"].get().strip()
+            new_district = entries["district"].get().strip()
+            new_province = entries["province"].get().strip()
+            new_postcode = entries["postcode"].get().strip()
+            new_tel = entries["tel"].get().strip()
+
+            self.cus_address = new_addr
+            self.address = new_addr
+            self.cus_sub_district.set(new_sub_district)
+            self.cus_district.set(new_district)
+            self.cus_province.set(new_province)
+            self.cus_postcode.set(new_postcode)
+            self.cus_tel.set(new_tel)
+            self.is_address_manually_edited = True
+
+            # Update display on main GUI
+            full_addr_parts = [p for p in [new_addr, new_sub_district, new_district, new_province, new_postcode] if p]
+            full_addr_str = " ".join(full_addr_parts)
+            self.update_gui(full_addr_str, self.display_cus_address)
+            print(f"[EDIT ADDRESS] Saved: {full_addr_str} | Tel: {new_tel}")
+            popup.destroy()
+
+        def on_cancel():
+            popup.destroy()
+
+        btn_frame = CTkFrame(frame, fg_color="transparent")
+        btn_frame.grid(row=len(fields), column=0, columnspan=2, pady=(15, 10))
+
+        save_btn = CTkButton(btn_frame, text="บันทึก", command=on_save, width=110, fg_color="#28a745", hover_color="#218838")
+        save_btn.pack(side="left", padx=10)
+
+        cancel_btn = CTkButton(btn_frame, text="ยกเลิก", command=on_cancel, width=110, fg_color="#6c757d", hover_color="#5a6268")
+        cancel_btn.pack(side="left", padx=10)
 
     def update_log(self, update_txt):
         self.update_txt = update_txt
@@ -2003,6 +2108,13 @@ class MyApp:
 
 
 
+    def open_selected_table_file(self):
+        """เปิดไฟล์ตารางข้อมูล โดยหากเป็น Lazada และมีไฟล์ที่แปลงแล้ว จะเปิดไฟล์แปลงใหม่"""
+        if self.marketplace_target.get() == "LAZADA" and getattr(self, 'lazada_output_path', '') and os.path.exists(self.lazada_output_path):
+            self.open_file_by_default(self.lazada_output_path)
+        else:
+            self.open_file_by_default(self.table_location)
+
     def open_file_by_default(self, file_path: str):
         """เปิดไฟล์ด้วยโปรแกรมเริ่มต้นของระบบปฏิบัติการ (Default Application)"""
         if not file_path or not os.path.exists(file_path):
@@ -2165,6 +2277,21 @@ class MyApp:
         # * เปลี่ยน Dtype ของ Column ['createTime'] (วันที่ทำการสั่งซื้อ) จาก Series ให้เป็นobjวันที่ เนื่องจากอันเดิมมันเอาไป Sort ไม่ได้ เวลาออกเป็นตาราง
         result_df['createTime'] = pd.to_datetime(
             result_df['createTime'], format='mixed', dayfirst=True)
+
+        # * สร้างชื่อไฟล์ผลลัพธ์ตามช่วงวันที่สั่งซื้อ Laz.order.toship.YYYYmmdd_YYYYmmdd.xlsx
+        valid_dates = result_df['createTime'].dropna()
+        if not valid_dates.empty:
+            min_date_str = valid_dates.min().strftime('%Y%m%d')
+            max_date_str = valid_dates.max().strftime('%Y%m%d')
+            date_range_str = f"{min_date_str}_{max_date_str}"
+        else:
+            date_range_str = pd.Timestamp.now().strftime('%Y%m%d_%Y%m%d')
+
+        output_filename = f"Laz.order.toship.{date_range_str}.xlsx"
+        output_dir = os.path.dirname(os.path.abspath(file_input)) if file_input else os.getcwd()
+        excel_file_path = os.path.join(output_dir, output_filename)
+        self.lazada_output_path = excel_file_path
+
         # * >  แปลง objวันที่ ให้กลายเป็น number ใน excel เพื่อให้แสดงผลใน cel เหมือนกับ exported file ของ shopee
         result_df.loc[:, 'createTime'] = result_df['createTime'].dt.strftime(
             '%Y-%m-%d %H:%M')
@@ -2205,9 +2332,9 @@ class MyApp:
 
         print("ตารางใหม่")
         print(result_df)
-        excel_file_path = "output_test.xlsx"
         result_df.to_excel(excel_file_path, index=False,
                            na_rep="", engine="openpyxl")
+        print(f"บันทึกไฟล์ผลลัพธ์ Lazada เรียบร้อยที่: {excel_file_path}")
         return result_df
 
     @staticmethod
@@ -3171,9 +3298,9 @@ class MyApp:
                                 self.data_frame.loc[self.target_row,
                                                     'แขวง/ตำบล'] = filled_subdist
                                 self.subdistrict_cache[order_num_str] = filled_subdist
-                                # บันทึกความเปลี่ยนแปลงลงในไฟล์ cache (output_test.xlsx)
+                                # บันทึกความเปลี่ยนแปลงลงในไฟล์ cache
                                 try:
-                                    excel_file_path = "output_test.xlsx"
+                                    excel_file_path = getattr(self, 'lazada_output_path', '') or "output_test.xlsx"
                                     self.data_frame.to_excel(
                                         excel_file_path, index=False, na_rep="", engine="openpyxl")
                                     print(
@@ -6235,12 +6362,16 @@ class Bot_POS:
         self.open_customer_form(is_functionworking)
 
         # Prepare customer data based on type
+        # Resolve customer phone: if cus_tel is present and valid, use it; fallback to "1"
+        raw_phone = str(self.app.cus_tel.get()).strip() if self.app.cus_tel.get() else ""
+        valid_phone = raw_phone if (raw_phone and raw_phone.lower() not in ["", "nan", "none"]) else "1"
+
         if customer_type == "normal":
             name = cusname_fixed
             tax_num = None
             address = self.app.cus_address
             email = ""
-            phone = "1"
+            phone = valid_phone
             use_dropdown_address = False
 
         elif customer_type == "tax":
@@ -6257,10 +6388,13 @@ class Bot_POS:
                 name = f"{name} (สาขา{self.app.tax_branch_num.get()})"
 
             tax_num = self.app.tax_num.get()
-            address = self.app.get_pure_address(self.app.clean_address(
-                self.app.address)) if self.app.is_tax_required.get() else self.app.address
+            if getattr(self.app, 'is_address_manually_edited', False):
+                address = self.app.address
+            else:
+                address = self.app.get_pure_address(self.app.clean_address(
+                    self.app.address)) if self.app.is_tax_required.get() else self.app.address
             email = self.app.cus_email.get()
-            phone = self.app.cus_tel.get()
+            phone = valid_phone
             use_dropdown_address = True
             province = self.app.cus_province.get().replace("จังหวัด", "")
             district = self.app.cus_district.get().replace(
@@ -6295,16 +6429,26 @@ class Bot_POS:
                 name = f"{name} (สาขา{self.app.tax_branch_num.get()})"
 
             tax_num = tax_info['tax_num']
-            address = tax_info['address_shortened']
             email = self.app.cus_email.get()
-            phone = self.app.cus_tel.get()
+            phone = valid_phone
             use_dropdown_address = True
-            province = tax_info['province'].replace("จังหวัด", "")
-            district = tax_info['district'].replace(
-                "อำเภอ", "").replace("เขต", "").replace("ต.", "")
-            sub_district = tax_info['sub_district'].replace(
-                "ตำบล", "").replace("แขวง", "").replace("ต.", "")
-            postcode = tax_info['postal_code']
+
+            if getattr(self.app, 'is_address_manually_edited', False):
+                address = self.app.address
+                province = self.app.cus_province.get().replace("จังหวัด", "")
+                district = self.app.cus_district.get().replace(
+                    "อำเภอ", "").replace("เขต", "").replace("อ.", "").replace("ต.", "")
+                sub_district = self.app.cus_sub_district.get().replace(
+                    "ตำบล", "").replace("แขวง", "").replace("ต.", "")
+                postcode = self.app.cus_postcode.get()
+            else:
+                address = tax_info['address_shortened']
+                province = tax_info['province'].replace("จังหวัด", "")
+                district = tax_info['district'].replace(
+                    "อำเภอ", "").replace("เขต", "").replace("ต.", "")
+                sub_district = tax_info['sub_district'].replace(
+                    "ตำบล", "").replace("แขวง", "").replace("ต.", "")
+                postcode = tax_info['postal_code']
 
         # Fill customer form
         while is_functionworking and not self.operation_thread.is_set():
@@ -7190,9 +7334,9 @@ class Bot_POS:
                 address_revise_input.send_keys(self.desired_address)
 
                 # * Telephone
+                tel_to_send = self.app.cus_tel.get().strip() if (self.app.cus_tel.get() and self.app.cus_tel.get().strip().lower() not in ["", "nan", "none"]) else "1"
                 self.driver.find_element(By.XPATH, tel_xpath).clear()
-                self.driver.find_element(By.XPATH, tel_xpath).send_keys(
-                    self.app.cus_tel.get())
+                self.driver.find_element(By.XPATH, tel_xpath).send_keys(tel_to_send)
 
                 # * Country → Thailand
                 self.driver.find_element(
