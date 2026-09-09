@@ -87,6 +87,7 @@
 - [x] **[In-Memory SN Recovery]** แก้ปัญหา SN หายจาก Memory เมื่อรอบก่อนหน้า Abort/Fail กลางคัน (เช่น ติดปรับราคา) โดยสั่งซิงค์ `obj_data_from_accel_file` จาก `accel_df_state` ก่อนเริ่มยิง SN ทุกครั้ง ทำให้สามารถยิง SN ได้ตามปกติเมื่อวนกลับมารันใหม่
 - [x] **[Order State Leak Guard]** ป้องกันการนำข้อมูลสินค้าของออเดอร์ก่อนหน้ามาออกบิลซ้ำ เมื่อค้นหาออเดอร์ใหม่ไม่พบในไฟล์นำเข้า โดยรีเซ็ต `self.items = []`, สั่งตัดการทำงานของ `operation_thread` ทันที, บันทึกลง `Failed_Orders`, และเพิ่ม Safeguard บล็อกไม่ให้เริ่มรันถ้า `self.items` ว่างเปล่า
 - [x] **[Real-time Self-Verification & Cart Sanitation]** เพิ่มระบบตรวจสอบตัวเองแบบ Real-Time (1) เช็คความถูกต้องกับตาราง Marketplace โดยตรงใน `verify_item_qty` (2) ตรวจสอบแบบสองทิศทาง (Bidirectional Check) ดักจับสินค้าแปลกปลอม/สินค้าตกค้างบน POS ทันที (3) ระบบ Cart Sanitation รีโหลดหน้า POS อัตโนมัติหากพบสินค้าตกค้างบนตะกร้าก่อนเริ่มออเดอร์ใหม่ พร้อมชุด Automated Test 7 ข้อ
+- [x] **[Sonic Blow CP Selector Optimization]** ปรับปรุง Locator ปุ่ม Coupon บน SMCO POS เป็น XPath `//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]` ทั้งใน `sonic_blow_cp_selector` และ `scan_matching_cp_candidates_on_smco` แก้ปัญหาตรวจพบ element แฝง (8 elements แทนที่จะเป็น 4) ซึ่งทำให้เกิดข้อผิดพลาด `element not interactable` สลับเว้นตัว พร้อมทั้งตัด Delays ที่หน่วงเวลาออก คืนความเร็วในการทำงานสูงสุดโดยยังคง Retry และ Backdrop Clearance Logic ไว้อย่างสมบูรณ์
 
 ### [5.2.0LITE - 5.2.3LITE]
 #### Added & Fixed
