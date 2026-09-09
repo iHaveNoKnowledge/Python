@@ -5847,16 +5847,16 @@ class Bot_POS:
                             self.app.update_log(f"🧼 ตรวจพบสินค้าตกค้างบน POS ({leftover_skus}) -> กำลังล้างตะกร้า...")
 
                             fast_cleared = False
-                            # วิธีที่ 1 (Fast Clear): คลิกเคลียร์ invAddressSelect เพื่อล้างตะกร้าพร้อมกดยืนยัน Pop-up
+                            # วิธีที่ 1 (Fast Clear): คลิกเคลียร์ memberSearch เพื่อล้างตะกร้าพร้อมกดยืนยัน Pop-up
                             try:
                                 clear_xpath = (
-                                    "//span[@id='select2-invAddressSelect-container']//span[@class='select2-selection__clear']"
-                                    " | //span[contains(@id, 'select2-invAddressSelect')]//span[contains(@class, 'select2-selection__clear')]"
+                                    "//span[@id='select2-memberSearch-container']//span[@class='select2-selection__clear']"
+                                    " | //span[contains(@id, 'select2-memberSearch')]//span[contains(@class, 'select2-selection__clear')]"
                                 )
                                 clear_btns = self.driver.find_elements(By.XPATH, clear_xpath)
                                 target_btns = [b for b in clear_btns if b.is_displayed()] or clear_btns
                                 for btn in target_btns:
-                                    print("คลิกปุ่มเคลียร์ invAddressSelect เพื่อล้างตะกร้า...")
+                                    print("คลิกปุ่มเคลียร์ memberSearch เพื่อล้างตะกร้า...")
                                     try:
                                         btn.click()
                                     except Exception:
