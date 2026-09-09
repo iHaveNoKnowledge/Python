@@ -418,10 +418,7 @@ class POSPricingReconciler:
                 except Exception:
                     pass
 
-                try:
-                    cp_btn_xpath.click()
-                except Exception:
-                    self.driver.execute_script("arguments[0].click();", cp_btn_xpath)
+                cp_btn_xpath.click()
 
                 # รอให้หน้า coupon list โหลด / modal แสดงขึ้นมา
                 for _ in range(15):
@@ -481,10 +478,7 @@ class POSPricingReconciler:
                             self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", target_btn)
                         except Exception:
                             pass
-                        try:
-                            target_btn.click()
-                        except Exception:
-                            self.driver.execute_script("arguments[0].click();", target_btn)
+                        target_btn.click()
                         time.sleep(0.2)  # * รอให้ UI อัพเดท
 
                         # ดึงชื่อคูปองล่าสุดอีกรอบในกรณีที่มีการ update เพื่อความปลอดภัย
@@ -509,18 +503,10 @@ class POSPricingReconciler:
                 print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {raw_tokens}")
                 try:
                     agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
-                    disp_agree = [b for b in agree_btns if b.is_displayed()]
-                    if disp_agree:
-                        try:
-                            disp_agree[0].click()
-                        except Exception:
-                            self.driver.execute_script("arguments[0].click();", disp_agree[0])
+                    if agree_btns and agree_btns[0].is_displayed():
+                        agree_btns[0].click()
                     else:
-                        btn = self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath)
-                        try:
-                            btn.click()
-                        except Exception:
-                            self.driver.execute_script("arguments[0].click();", btn)
+                        self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
                 except Exception:
                     pass
 
@@ -538,12 +524,8 @@ class POSPricingReconciler:
                 print("Demonic CP Bot inner Exception Error:", err)
                 try:
                     agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
-                    disp_agree = [b for b in agree_btns if b.is_displayed()]
-                    if disp_agree:
-                        try:
-                            disp_agree[0].click()
-                        except Exception:
-                            self.driver.execute_script("arguments[0].click();", disp_agree[0])
+                    if agree_btns and agree_btns[0].is_displayed():
+                        agree_btns[0].click()
                 except Exception:
                     pass
                 for _ in range(15):
@@ -600,10 +582,7 @@ class POSPricingReconciler:
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", scan_btn)
             except Exception:
                 pass
-            try:
-                scan_btn.click()
-            except Exception:
-                self.driver.execute_script("arguments[0].click();", scan_btn)
+            scan_btn.click()
 
             for _ in range(15):
                 cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
@@ -619,12 +598,8 @@ class POSPricingReconciler:
             # ปิด Modal ชั่วคราว (ยังไม่เลือก)
             try:
                 agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
-                disp_agree = [b for b in agree_btns if b.is_displayed()]
-                if disp_agree:
-                    try:
-                        disp_agree[0].click()
-                    except Exception:
-                        self.driver.execute_script("arguments[0].click();", disp_agree[0])
+                if agree_btns and agree_btns[0].is_displayed():
+                    agree_btns[0].click()
             except Exception:
                 pass
 
