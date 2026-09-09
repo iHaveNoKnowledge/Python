@@ -55,7 +55,10 @@
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
 ### [5.2.5 / ver5.x.x] - 2026-09-09
-#### Added & Improved
+- [x] **[CP Sonic Blow Multi-Item Modal Fix]** แก้ไขปัญหา `Demonic CP Bot inner Exception Error: Message: element not interactable` ใน `functions/pos/pricing_engine.py` (`cp_sonic_blow_process` และ `scan_matching_cp_candidates_on_smco`) ซึ่งทำให้บอทเลือกคูปองได้ไม่ครบทุก SKU เมื่อมีหลายรายการ:
+  - เพิ่มระบบตรวจเช็คและรอให้ modal backdrop (`.modal-backdrop`, `.modal.in`) ปิดสนิทก่อนคลิกปุ่มคูปองของ SKU ถัดไป
+  - เพิ่ม `scrollIntoView` เลื่อนปุ่มคูปองให้อยู่กึ่งกลางหน้าจอก่อนคลิก
+  - เพิ่ม JavaScript click fallback (`arguments[0].click()`) สำหรับปุ่มเปิดคูปอง, ปุ่มเลือกคูปอง และปุ่มยืนยัน `okCoupon()` เพื่อป้องกันการถูกบล็อกโดย backdrop animation
 - [x] **[POS Fast Cart Clear Optimization]** ปรับปรุงระบบล้างสินค้าตกค้างบนตะกร้า POS (`Cart Sanitation Guard`) ก่อนเริ่มออเดอร์ใหม่ ให้ใช้ Fast Clear โดยคลิกปุ่มเคลียร์ `//span[@id='select2-memberSearch-container']//span[@class='select2-selection__clear']` พร้อมตรวจจับและกดยืนยัน Pop-up SweetAlert2 (`OK`/`ตกลง`) อัตโนมัติ แทนการรีโหลดหน้า `posmainv3.htm` แบบเดิม ช่วยลดเวลาการทำงานได้อย่างมาก พร้อมคง Fallback รีโหลดหน้าเว็บหากไม่พบปุ่มเคลียร์
 - [x] **[Final Page Payment Loop]** ปรับปรุงลูป `process_final_payment()` ใน `functions/pos/payment_handler.py` ไม่ให้ข้ามหรือหลุดการทำงานก่อนเวลา โดยสั่งกรอกข้อมูลหน้าท้าย (PO No, Customer Name, Cash, CN Remark) ให้ครบถ้วน แล้วรอในลูปจนกว่าบอทจะชำระเงินสำเร็จ (ตรวจพบหน้าต่างปิดลง) หรือผู้ใช้กดย้อนกลับไปหน้าที่ 1
 - [x] **[Accel Mode Excel Integrity & Sheet Isolation]** แก้ไขปัญหาไฟล์ Accel Excel เสียหายและชีตหาย รวมถึงบัค `ValueError: ไม่พบออเดอร์ ... ในไฟล์นำเข้า` ใน `functions/accel_mode.py`:

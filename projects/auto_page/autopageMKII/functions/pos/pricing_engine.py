@@ -394,6 +394,15 @@ class POSPricingReconciler:
             print(f"เจอสินค้า {item} ที่ตำแหน่ง Index: {target_idx}")
 
             try:
+                # ตรวจสอบและรอให้ modal/backdrop ของรอบก่อนหน้าปิดสนิทก่อนเริ่มรอบของสินค้าถัดไป
+                for _ in range(15):
+                    backdrops = self.driver.find_elements(
+                        By.CSS_SELECTOR, 'body > div.modal-backdrop, .modal-backdrop, div.modal.in, div.modal.show'
+                    )
+                    if not any(b.is_displayed() for b in backdrops):
+                        break
+                    time.sleep(0.1)
+
                 # ดึงรายการปุ่ม Coupon ล่าสุดสดๆ เสมอเพื่อเลี่ยง Stale Element
                 item_list_cp_btn_elements = self.driver.find_elements(
                     By.CSS_SELECTOR, 'div.col-sm-4.nopadding button.btn-coupon.btn.btn-sm'
@@ -404,8 +413,23 @@ class POSPricingReconciler:
 
                 # * คลิกปุ่ม coupon เพื่อเปิดหน้ารายการ coupon (เปิดครั้งเดียว)
                 cp_btn_xpath = item_list_cp_btn_elements[target_idx]
-                cp_btn_xpath.click()
-                time.sleep(0.3)  # * รอให้หน้า coupon list โหลด
+                try:
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", cp_btn_xpath)
+                except Exception:
+                    pass
+
+                try:
+                    cp_btn_xpath.click()
+                except Exception:
+                    self.driver.execute_script("arguments[0].click();", cp_btn_xpath)
+
+                # รอให้หน้า coupon list โหลด / modal แสดงขึ้นมา
+                for _ in range(15):
+                    c_btns = self.driver.find_elements(By.XPATH, selected_cp_btn_loc)
+                    if c_btns and any(b.is_displayed() for b in c_btns):
+                        break
+                    time.sleep(0.1)
+                time.sleep(0.15)
 
                 # * Loop ผ่านแต่ละ coupon token ที่ต้องการเลือก
                 for cp_idx, token in enumerate(raw_tokens):
@@ -452,7 +476,15 @@ class POSPricingReconciler:
 
                     # คลิกเลือกคูปองที่ต้องการ
                     if 0 <= target_btn_idx < len(cp_btn_elements):
-                        cp_btn_elements[target_btn_idx].click()
+                        target_btn = cp_btn_elements[target_btn_idx]
+                        try:
+                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", target_btn)
+                        except Exception:
+                            pass
+                        try:
+                            target_btn.click()
+                        except Exception:
+                            self.driver.execute_script("arguments[0].click();", target_btn)
                         time.sleep(0.2)  # * รอให้ UI อัพเดท
 
                         # ดึงชื่อคูปองล่าสุดอีกรอบในกรณีที่มีการ update เพื่อความปลอดภัย
@@ -477,22 +509,48 @@ class POSPricingReconciler:
                 print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {raw_tokens}")
                 try:
                     agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
-                    if agree_btns and agree_btns[0].is_displayed():
-                        agree_btns[0].click()
+                    disp_agree = [b for b in agree_btns if b.is_displayed()]
+                    if disp_agree:
+                        try:
+                            disp_agree[0].click()
+                        except Exception:
+                            self.driver.execute_script("arguments[0].click();", disp_agree[0])
                     else:
-                        self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath).click()
+                        btn = self.driver.find_element(By.CSS_SELECTOR, green_agree_btn_xpath)
+                        try:
+                            btn.click()
+                        except Exception:
+                            self.driver.execute_script("arguments[0].click();", btn)
                 except Exception:
                     pass
+
+                # รอให้ modal และ backdrop ปิดสนิท (ไม่หลงเหลือ backdrop ที่บังคลิกรายการถัดไป)
+                for _ in range(20):
+                    backdrops = self.driver.find_elements(
+                        By.CSS_SELECTOR, 'body > div.modal-backdrop, .modal-backdrop, div.modal.in, div.modal.show'
+                    )
+                    if not any(b.is_displayed() for b in backdrops):
+                        break
+                    time.sleep(0.1)
                 time.sleep(0.2)
 
             except Exception as err:
                 print("Demonic CP Bot inner Exception Error:", err)
                 try:
                     agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
-                    if agree_btns and agree_btns[0].is_displayed():
-                        agree_btns[0].click()
+                    disp_agree = [b for b in agree_btns if b.is_displayed()]
+                    if disp_agree:
+                        try:
+                            disp_agree[0].click()
+                        except Exception:
+                            self.driver.execute_script("arguments[0].click();", disp_agree[0])
                 except Exception:
                     pass
+                for _ in range(15):
+                    backdrops = self.driver.find_elements(By.CSS_SELECTOR, 'body > div.modal-backdrop, .modal-backdrop')
+                    if not any(b.is_displayed() for b in backdrops):
+                        break
+                    time.sleep(0.1)
 
         print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
         return any_success
@@ -537,8 +595,22 @@ class POSPricingReconciler:
                 return []
 
             # เปิด Modal ดูรายการคูปองที่มีบนหน้าเว็บ
-            item_list_cp_btn_elements[target_idx].click()
-            time.sleep(0.3)
+            scan_btn = item_list_cp_btn_elements[target_idx]
+            try:
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", scan_btn)
+            except Exception:
+                pass
+            try:
+                scan_btn.click()
+            except Exception:
+                self.driver.execute_script("arguments[0].click();", scan_btn)
+
+            for _ in range(15):
+                cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                if cp_name_elements and any(b.is_displayed() for b in cp_name_elements):
+                    break
+                time.sleep(0.1)
+            time.sleep(0.15)
 
             cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
             smco_coupon_names = [el.text.replace(" ", "").upper() for el in cp_name_elements if el.text.strip()]
@@ -547,10 +619,21 @@ class POSPricingReconciler:
             # ปิด Modal ชั่วคราว (ยังไม่เลือก)
             try:
                 agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
-                if agree_btns and agree_btns[0].is_displayed():
-                    agree_btns[0].click()
+                disp_agree = [b for b in agree_btns if b.is_displayed()]
+                if disp_agree:
+                    try:
+                        disp_agree[0].click()
+                    except Exception:
+                        self.driver.execute_script("arguments[0].click();", disp_agree[0])
             except Exception:
                 pass
+
+            for _ in range(15):
+                backdrops = self.driver.find_elements(By.CSS_SELECTOR, 'body > div.modal-backdrop, .modal-backdrop')
+                if not any(b.is_displayed() for b in backdrops):
+                    break
+                time.sleep(0.1)
+            time.sleep(0.15)
 
             # ตรวจสอบ Candidate แต่ละชุดว่ามีคูปองอยู่บนหน้าเว็บ SMCO จริงไหม
             matched_candidates = []
