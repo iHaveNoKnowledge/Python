@@ -49,15 +49,40 @@ class AccelMode:
         df.loc[:, 'orders'] = orders.astype(str).str.strip()
         df.loc[missing, 'orders'] = pd.NA
 
+    def _get_main_sheet_name(self, excel_path=None):
+        """ระบุชื่อชีตหลักสำหรับข้อมูล orders/SKU โดยไม่ไปอ่านชีต Failed_Orders หรือ Completed_Orders"""
+        path = excel_path or self.accel_file_dir
+        if not path or not os.path.exists(path):
+            return 0
+        try:
+            wb = load_workbook(path, read_only=True)
+            sheet_names = wb.sheetnames
+            wb.close()
+            valid_sheets = [s for s in sheet_names if s not in ['Failed_Orders', 'Completed_Orders']]
+            if valid_sheets:
+                for s in valid_sheets:
+                    if s.lower() == 'sheet1':
+                        return s
+                return valid_sheets[0]
+            return sheet_names[0]
+        except Exception:
+            return 0
+
     def _read_accel_file_to_state(self, accel_file_dir):
         self.accel_file_dir = accel_file_dir
-        self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        self.main_sheet_name = self._get_main_sheet_name(self.accel_file_dir)
+        self.accel_df_state = pd.read_excel(self.accel_file_dir, sheet_name=self.main_sheet_name, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
             self._normalize_orders_col(self.accel_df_state)
+        elif 'order' in self.accel_df_state.columns:
+            self.accel_df_state.rename(columns={'order': 'orders'}, inplace=True)
+            self._normalize_orders_col(self.accel_df_state)
+
         print("before self.accel_df_state: ", self.accel_df_state)
-        self.accel_df_state.loc[self.accel_df_state.duplicated(
-            subset=['orders']), 'orders'] = pd.NA
+        if 'orders' in self.accel_df_state.columns:
+            self.accel_df_state.loc[self.accel_df_state.duplicated(
+                subset=['orders']), 'orders'] = pd.NA
         print("after self.accel_df_state: ", self.accel_df_state)
 
         self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
@@ -66,9 +91,8 @@ class AccelMode:
             ).tolist() if str(x).strip() != 'nan']
             for col in self.accel_file_columns}
 
-        self.accel_orders_list = self.accel_df_state['orders'].dropna(
-            ).tolist()
-        self.CP_list = self.accel_df_state['cp'].dropna().tolist()
+        self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist() if 'orders' in self.accel_df_state.columns else []
+        self.CP_list = self.accel_df_state['cp'].dropna().tolist() if 'cp' in self.accel_df_state.columns else []
         if os.path.exists(self.accel_file_dir):
             try:
                 self._accel_last_mtime = os.path.getmtime(self.accel_file_dir)
@@ -91,9 +115,13 @@ class AccelMode:
             if current_mtime > getattr(self, '_accel_last_mtime', 0):
                 logger.info(
                     f"ตรวจพบการแก้ไขไฟล์ Accel Excel ({os.path.basename(self.accel_file_dir)}) -> กำลังโหลดข้อมูลใหม่...")
-                df = pd.read_excel(self.accel_file_dir, dtype=str)
+                self.main_sheet_name = getattr(self, 'main_sheet_name', None) or self._get_main_sheet_name(self.accel_file_dir)
+                df = pd.read_excel(self.accel_file_dir, sheet_name=self.main_sheet_name, dtype=str)
                 df.columns = df.columns.astype(str).str.strip()
                 if 'orders' in df.columns:
+                    self._normalize_orders_col(df)
+                elif 'order' in df.columns:
+                    df.rename(columns={'order': 'orders'}, inplace=True)
                     self._normalize_orders_col(df)
                 self.accel_df_state = df
                 self.accel_file_columns = self.accel_df_state.columns.dropna().tolist()
@@ -101,6 +129,8 @@ class AccelMode:
                     col: [str(x).strip() for x in self.accel_df_state[col].dropna(
                     ).tolist() if str(x).strip() != 'nan']
                     for col in self.accel_file_columns}
+                self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist() if 'orders' in self.accel_df_state.columns else []
+                self.CP_list = self.accel_df_state['cp'].dropna().tolist() if 'cp' in self.accel_df_state.columns else []
                 self._accel_last_mtime = current_mtime
         except PermissionError as e:
             logger.warning(f"ไฟล์ Accel Excel ถูกเปิดอยู่ในโปรแกรมอื่น: {e}")
@@ -150,7 +180,9 @@ class AccelMode:
             f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
 
         try:
-            self._save_df_to_excel(df, 'Sheet1')
+            main_sheet = getattr(self, 'main_sheet_name', None) or self._get_main_sheet_name(self.accel_file_dir)
+            self.main_sheet_name = main_sheet
+            self._save_df_to_excel(df, main_sheet)
             print(f"Successfully updated {self.accel_file_dir}")
             self.excel_save_failed = False
             if os.path.exists(self.accel_file_dir):
@@ -162,10 +194,15 @@ class AccelMode:
             if update_memory:
                 # อ่าน dataframe ใหม่หลังจากอัปเดต Excel file
                 self.accel_df_state = pd.read_excel(
-                    self.accel_file_dir, dtype=str)
+                    self.accel_file_dir, sheet_name=main_sheet, dtype=str)
                 self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
                 if 'orders' in self.accel_df_state.columns:
                     self._normalize_orders_col(self.accel_df_state)
+                elif 'order' in self.accel_df_state.columns:
+                    self.accel_df_state.rename(columns={'order': 'orders'}, inplace=True)
+                    self._normalize_orders_col(self.accel_df_state)
+                self.accel_orders_list = self.accel_df_state['orders'].dropna().tolist() if 'orders' in self.accel_df_state.columns else []
+                self.CP_list = self.accel_df_state['cp'].dropna().tolist() if 'cp' in self.accel_df_state.columns else []
                 self.obj_data_from_accel_file = {
                     col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist()
                           if str(x).strip() != 'nan'] for col in self.accel_file_columns}
@@ -201,9 +238,13 @@ class AccelMode:
                 self.sn_extractor(accel_file_dir, target_dir)
         else:
             print("You have not selected any transfer file, Extraction ends!!")
-        self.accel_df_state = pd.read_excel(self.accel_file_dir, dtype=str)
+        main_sheet = getattr(self, 'main_sheet_name', None) or self._get_main_sheet_name(self.accel_file_dir)
+        self.accel_df_state = pd.read_excel(self.accel_file_dir, sheet_name=main_sheet, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
         if 'orders' in self.accel_df_state.columns:
+            self._normalize_orders_col(self.accel_df_state)
+        elif 'order' in self.accel_df_state.columns:
+            self.accel_df_state.rename(columns={'order': 'orders'}, inplace=True)
             self._normalize_orders_col(self.accel_df_state)
 
         self._read_accel_file_to_state(self.accel_file_dir)
@@ -1139,30 +1180,41 @@ class AccelMode:
             print(f"Error applying excel formatting (auto_filter/freeze_panes): {e}")
 
     def _save_df_to_excel(self, target_df, sheet_name):
+        """บันทึก DataFrame ลงในชีตที่กำหนด โดยไม่เขียนทับชีตอื่นๆ ในไฟล์เด็ดขาด"""
+        if not self.accel_file_dir:
+            return
+
         if not os.path.exists(self.accel_file_dir):
             target_df.to_excel(self.accel_file_dir,
                                sheet_name=sheet_name, index=False)
             self._apply_excel_formatting(self.accel_file_dir)
             return
 
+        saved_successfully = False
         try:
             with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
                 target_df.to_excel(writer, sheet_name=sheet_name, index=False)
-        except (TypeError, ValueError):
+            saved_successfully = True
+        except Exception as e:
             try:
+                # Fallback: ใช้ openpyxl แก้ไขเฉพาะชีตที่ต้องการ โดยไม่ลบชีตอื่นทิ้งเด็ดขาด
                 book = load_workbook(self.accel_file_dir)
                 if sheet_name in book.sheetnames:
                     del book[sheet_name]
+                ws = book.create_sheet(title=sheet_name)
+                # เขียน Header
+                ws.append(target_df.columns.tolist())
+                # เขียนข้อมูลแถว
+                for row in target_df.itertuples(index=False):
+                    ws.append([None if pd.isna(val) else str(val) for val in row])
                 book.save(self.accel_file_dir)
                 book.close()
-                with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a') as writer:
-                    target_df.to_excel(
-                        writer, sheet_name=sheet_name, index=False)
+                saved_successfully = True
             except Exception as ex:
-                print(f"Append failed, overwriting entire excel file: {ex}")
-                target_df.to_excel(self.accel_file_dir,
-                                   sheet_name=sheet_name, index=False)
-        finally:
+                print(f"Error updating sheet '{sheet_name}' in Excel file: {ex}")
+                logger.error(f"Error updating sheet '{sheet_name}' in Excel file: {ex}")
+
+        if saved_successfully:
             self._apply_excel_formatting(self.accel_file_dir)
 
     def record_failed_order(self, order, reason):
