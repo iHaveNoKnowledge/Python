@@ -54,8 +54,15 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
-### [5.2.5 / ver5.x.x] - 2026-09-01
+### [5.2.5 / ver5.x.x] - 2026-09-09
 #### Added & Improved
+- [x] **[POS Fast Cart Clear Optimization]** ปรับปรุงระบบล้างสินค้าตกค้างบนตะกร้า POS (`Cart Sanitation Guard`) ก่อนเริ่มออเดอร์ใหม่ ให้ใช้ Fast Clear โดยคลิกปุ่มเคลียร์ `//span[@id='select2-memberSearch-container']//span[@class='select2-selection__clear']` พร้อมตรวจจับและกดยืนยัน Pop-up SweetAlert2 (`OK`/`ตกลง`) อัตโนมัติ แทนการรีโหลดหน้า `posmainv3.htm` แบบเดิม ช่วยลดเวลาการทำงานได้อย่างมาก พร้อมคง Fallback รีโหลดหน้าเว็บหากไม่พบปุ่มเคลียร์
+- [x] **[Final Page Payment Loop]** ปรับปรุงลูป `process_final_payment()` ใน `functions/pos/payment_handler.py` ไม่ให้ข้ามหรือหลุดการทำงานก่อนเวลา โดยสั่งกรอกข้อมูลหน้าท้าย (PO No, Customer Name, Cash, CN Remark) ให้ครบถ้วน แล้วรอในลูปจนกว่าบอทจะชำระเงินสำเร็จ (ตรวจพบหน้าต่างปิดลง) หรือผู้ใช้กดย้อนกลับไปหน้าที่ 1
+- [x] **[Accel Mode Excel Integrity & Sheet Isolation]** แก้ไขปัญหาไฟล์ Accel Excel เสียหายและชีตหาย รวมถึงบัค `ValueError: ไม่พบออเดอร์ ... ในไฟล์นำเข้า` ใน `functions/accel_mode.py`:
+  - เพิ่ม `_get_main_sheet_name()` ตรวจหาชีตข้อมูลหลักอัตโนมัติ (ไม่หยิบชีต `Completed_Orders` หรือ `Failed_Orders`)
+  - บังคับระบุ `sheet_name` ในการอ่าน `pd.read_excel()` ให้ตรงกับชีตหลักทุกจุด
+  - ปรับปรุง `_save_df_to_excel()` ให้บันทึกข้อมูลแบบแยกชีตด้วย `openpyxl` โดยไม่ลบชีตอื่นทิ้ง
+  - ป้องกัน `KeyError: 'cp'` กรณีไฟล์ Excel นำเข้าไม่มีคอลัมน์ `cp`
 - [x] **[Address Tokenization]** นำ `PyThaiNLP` (`word_tokenize`) และ `RapidFuzz` เข้ามาช่วยตัดคำและทำความสะอาดที่อยู่ (`clean_address`) รองรับที่อยู่ที่พิมพ์ติดกันเป็นพรืดและคำย่อการปกครองซ้ำซ้อน
 - [x] **[Test / Batch Report System]** เพิ่มโมดูล `TestReportManager` (`functions/utils/report_manager.py`) บันทึกและสรุปสถานะการสร้างลูกค้า (`customer_status`) และการแก้ไขที่อยู่ (`address_status`) พร้อมระบบ Export รายงานออกมาเป็นไฟล์ Excel อัตโนมัติในโฟลเดอร์ `reports/`
 - [x] **[Final Page Element Verification Guard]** เพิ่มฟังก์ชัน `verify_final_page_elements()` และระบบ Auto-recovery ใน `functions/pos/payment_handler.py` ตรวจสอบความครบถ้วนของ PO No. (`#textbox81037000102`), Customer Name (`#textbox81037000101`), ยอดเงิน Cash (`#ripCash00`), หมายเหตุ (`cnRemark`) และยอดคงเหลือ (`wrimagecard-lightGray == 0.00`) ก่อนกดปุ่มเขียว (`#btnPayment`) พร้อมชุดทดสอบอัตโนมัติ 6 ข้อใน `tests/test_final_page_validator.py`
