@@ -5843,10 +5843,71 @@ class Bot_POS:
                         if leftover_skus:
                             logger.warning(
                                 f"Order: {self.cus_order} - ตรวจพบสินค้าตกค้างบนตะกร้า POS ก่อนเริ่มงาน: {leftover_skus} "
-                                f"-> รีโหลดหน้า POS เพื่อล้างตะกร้าให้เป็นศูนย์...")
-                            self.app.update_log(f"🧼 ตรวจพบสินค้าตกค้างบน POS ({leftover_skus}) -> รีโหลดล้างตะกร้าเพื่อความปลอดภัย...")
-                            self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
-                            self.interruptible_sleep(1.5)
+                                f"-> กำลังล้างตะกร้า...")
+                            self.app.update_log(f"🧼 ตรวจพบสินค้าตกค้างบน POS ({leftover_skus}) -> กำลังล้างตะกร้า...")
+
+                            fast_cleared = False
+                            # วิธีที่ 1 (Fast Clear): คลิกเคลียร์ invAddressSelect เพื่อล้างตะกร้าพร้อมกดยืนยัน Pop-up
+                            try:
+                                clear_xpath = (
+                                    "//span[@id='select2-invAddressSelect-container']//span[@class='select2-selection__clear']"
+                                    " | //span[contains(@id, 'select2-invAddressSelect')]//span[contains(@class, 'select2-selection__clear')]"
+                                )
+                                clear_btns = self.driver.find_elements(By.XPATH, clear_xpath)
+                                target_btns = [b for b in clear_btns if b.is_displayed()] or clear_btns
+                                for btn in target_btns:
+                                    print("คลิกปุ่มเคลียร์ invAddressSelect เพื่อล้างตะกร้า...")
+                                    try:
+                                        btn.click()
+                                    except Exception:
+                                        self.driver.execute_script("arguments[0].click();", btn)
+
+                                    # รอปุ่มยืนยัน Pop-up (swal2-confirm) โผล่มา
+                                    confirm_btn = None
+                                    for _ in range(12):  # รอสูงสุดประมาณ 1.5 วินาที
+                                        c_btns = self.driver.find_elements(
+                                            By.XPATH,
+                                            "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"
+                                        )
+                                        disp = [b for b in c_btns if b.is_displayed()]
+                                        if disp:
+                                            confirm_btn = disp[0]
+                                            break
+                                        time.sleep(0.12)
+
+                                    if confirm_btn:
+                                        try:
+                                            confirm_btn.click()
+                                        except Exception:
+                                            self.driver.execute_script("arguments[0].click();", confirm_btn)
+                                        print("กดยืนยัน Pop-up ล้างตะกร้า (OK/ตกลง) เรียบร้อย")
+
+                                    # รอและตรวจสอบว่าสินค้าในตะกร้าถูกล้างหมดแล้วหรือไม่ (รอสูงสุด 1.5 วินาที)
+                                    remaining_skus = []
+                                    for _ in range(15):
+                                        remaining_items = self.driver.find_elements(By.XPATH, self.ProductManager.XPATH_SKU_TEXTS)
+                                        remaining_skus = [el.text.strip() for el in remaining_items if el.text.strip()]
+                                        if not remaining_skus:
+                                            fast_cleared = True
+                                            break
+                                        time.sleep(0.1)
+
+                                    if fast_cleared:
+                                        print("✨ ล้างตะกร้าแบบเร็วสำเร็จ (Fast Cart Clear Successful)")
+                                        self.app.update_log("✨ ล้างตะกร้าแบบเร็วสำเร็จเรียบร้อย")
+                                        break
+                                    else:
+                                        print(f"สินค้ายังตกค้างอยู่ ({remaining_skus}) จะสลับไปรีโหลดหน้าเว็บแทน")
+                            except Exception as fc_err:
+                                print(f"Fast cart clear failed: {fc_err}")
+                                fast_cleared = False
+
+                            # วิธีที่ 2 (Fallback): หากล้างแบบเร็วไม่สำเร็จ ให้รีโหลดหน้า POS เพื่อความปลอดภัย
+                            if not fast_cleared:
+                                print("รีโหลดหน้า POS เพื่อล้างตะกร้า...")
+                                self.app.update_log("🔄 สลับไปรีโหลดหน้า POS เพื่อล้างตะกร้าให้เป็นศูนย์...")
+                                self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
+                                self.interruptible_sleep(1.5)
             except OperationCancelledException:
                 raise
             except Exception as cart_err:
