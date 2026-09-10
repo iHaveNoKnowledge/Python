@@ -201,11 +201,11 @@ class TestReportManager:
         """สร้างข้อความสรุปรายงานสรุปผล"""
         s = self.get_summary()
         if s["total_orders"] == 0:
-            return "ไม่มีข้อมูลการทดสอบในรอบนี้"
+            return "ไม่มีข้อมูลออเดอร์ในรอบนี้"
 
         lines = [
             "========================================",
-            "📊 สรุปผลรายงานการประมวลผล (Test Report)",
+            "📊 สรุปผลรายงานการประมวลผล (Accel Report)",
             "========================================",
             f"📦 จำนวนออเดอร์ทั้งหมด: {s['total_orders']} รายการ",
             f"✅ สำเร็จสมบูรณ์: {s['overall_success']} รายการ",
@@ -241,7 +241,7 @@ class TestReportManager:
 
         if not filepath:
             timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"test_summary_report_{timestamp_str}.xlsx"
+            filename = f"accel_summary_report_{timestamp_str}.xlsx"
             filepath = os.path.join(target_dir, filename)
 
         try:
@@ -278,10 +278,10 @@ class TestReportManager:
                 df_summary = pd.DataFrame(summary_data)
                 df_summary.to_excel(writer, sheet_name='Summary_Stats', index=False)
 
-            logger.info(f"Test summary report saved to {filepath}")
+            logger.info(f"Accel summary report saved to {filepath}")
             return filepath
         except Exception as e:
-            logger.error(f"Failed to export test report to Excel: {e}")
+            logger.error(f"Failed to export accel report to Excel: {e}")
             return None
 
     def clear(self):

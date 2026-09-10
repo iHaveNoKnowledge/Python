@@ -35,7 +35,7 @@ from functions.marketplace_scraper import MarketplaceScraper
 from functions.pos.customer_test_handler import CustomerModalTestHandler
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
 from functions.pos.payment_handler import POSPaymentHandler
-from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler)
+from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler, parse_smart_date)
 from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
@@ -1882,11 +1882,9 @@ class MyApp:
             if getattr(self, 'cp_df', None) is None or current_mtime > getattr(self, '_cp_last_mtime', 0):
                 df = pd.read_excel(excel_path)
                 if 'usage_start_date' in df.columns:
-                    df['usage_start_date'] = pd.to_datetime(
-                        df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
+                    df['usage_start_date'] = df['usage_start_date'].apply(parse_smart_date)
                 if 'usage_end_date' in df.columns:
-                    df['usage_end_date'] = pd.to_datetime(
-                        df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
+                    df['usage_end_date'] = df['usage_end_date'].apply(parse_smart_date)
                 self.cp_df = df
                 self._cp_last_mtime = current_mtime
                 print(f"[CP Cache] ตรวจพบการแก้ไขไฟล์ CP Data -> โหลดข้อมูลใหม่สำเร็จ ({len(self.cp_df)} รายการ)")
@@ -2125,24 +2123,25 @@ class MyApp:
             # เตรียมไฟล์ Excel ให้ Auto Filter ครอบทุกคอลัมน์ และ Freeze แถวแรกที่เป็นหัวตาราง
             # - สั่ง save เฉพาะเมื่อมี sheet ที่ยังไม่ได้ตั้งค่า (ลดความเสี่ยงทำไฟล์พัง/ช้า)
             # - keep_vba=True เพื่อรักษา macro ใน .xlsm ไม่ให้หายไป
-            if file_path.lower().endswith(('.xlsx', '.xlsm')):
-                try:
-                    wb = load_workbook(
-                        file_path, keep_vba=file_path.lower().endswith('.xlsm'))
-                    need_save = False
-                    for ws in wb.worksheets:
-                        if ws.max_row > 0 and ws.max_column > 0:
-                            if ws.auto_filter.ref != ws.dimensions:
-                                ws.auto_filter.ref = ws.dimensions
-                                need_save = True
-                            if ws.freeze_panes != "A2":
-                                ws.freeze_panes = "A2"
-                                need_save = True
-                    if need_save:
-                        wb.save(file_path)
-                    wb.close()
-                except Exception as e:
-                    self.update_log(f"เตรียมรูปแบบไฟล์ Excel ไม่สำเร็จ: {e}")
+            # NOTE: Comment เก็บไว้ก่อนตามที่ผู้ใช้แจ้ง (เนื่องจากต้องเปิดไฟล์ดูผ่าน software จัดการ xlsx ตลอด ทำให้ไฟล์โดน lock หากทำ UI CRUD ข้อมูลตารางแล้วค่อยนำกลับมาใช้)
+            # if file_path.lower().endswith(('.xlsx', '.xlsm')):
+            #     try:
+            #         wb = load_workbook(
+            #             file_path, keep_vba=file_path.lower().endswith('.xlsm'))
+            #         need_save = False
+            #         for ws in wb.worksheets:
+            #             if ws.max_row > 0 and ws.max_column > 0:
+            #                 if ws.auto_filter.ref != ws.dimensions:
+            #                     ws.auto_filter.ref = ws.dimensions
+            #                     need_save = True
+            #                 if ws.freeze_panes != "A2":
+            #                     ws.freeze_panes = "A2"
+            #                     need_save = True
+            #         if need_save:
+            #             wb.save(file_path)
+            #         wb.close()
+            #     except Exception as e:
+            #         self.update_log(f"เตรียมรูปแบบไฟล์ Excel ไม่สำเร็จ: {e}")
             os.startfile(file_path)
             self.update_log(f"เปิดไฟล์: {os.path.basename(file_path)}")
         except Exception as e:
@@ -2689,6 +2688,7 @@ class MyApp:
         if "จังหวัด" in address and any(keyword in address for keyword in ["เขต", "แขวง"]):
             address = address.replace("จังหวัด", "")
 
+        used_split = False
         # ทำ Tokenization โดยใช้ PyThaiNLP หากมี หรือ Fallback เป็น split ปกติ
         if PYTHAINLP_AVAILABLE:
             try:
@@ -2696,8 +2696,10 @@ class MyApp:
             except Exception as e:
                 print(f"PyThaiNLP tokenize error: {e}")
                 tokens = address.split()
+                used_split = True
         else:
             tokens = address.split()
+            used_split = True
 
         # กรองคำที่ไม่ใช่คำย่อส่วนเกิน (ต., อ., จ., ตำบล, อำเภอ, จังหวัด)
         cleaned_tokens = []
@@ -2721,8 +2723,11 @@ class MyApp:
             if token_str:
                 cleaned_tokens.append(token_str)
 
-        # นำคำมาเชื่อมกลับเป็นสตริง
-        cleaned_address = ''.join(cleaned_tokens)
+        # นำคำมาเชื่อมกลับเป็นสตริง (หากใช้ split ปกติให้คั่นด้วย space เพื่อไม่ให้คำและเลขติดกัน)
+        if used_split:
+            cleaned_address = ' '.join(cleaned_tokens)
+        else:
+            cleaned_address = ''.join(cleaned_tokens)
         cleaned_address = self.clean_duplicate_parts(cleaned_address)
 
         # แก้ไขเครื่องหมายช่องว่างที่เหลือหลังการลบคำ
@@ -2905,9 +2910,9 @@ class MyApp:
             self.cus_name.set(self.translator(
                 re.sub(r'\s{2,}', " ", name.strip().replace('\u200b', ''))))
 
-            # *  ตัดพวก non-ASCII values // ref https://stackoverflow.com/questions/20889996/how-do-i-remove-all-non-ascii-characters-with-regex-and-notepad
+            # *  ตัดพวก non-ASCII values (คงอักขระ ASCII ทั้งหมดรวม \x26 '&' ไว้)
             self.cus_name.set(
-                re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
+                re.sub(r'[^\x00-\x7F\wA-Zก-๙|/]+', '', self.cus_name.get().strip()))
 
             # * ปรับคำบอกประเภทการจดทะเบียนของใบกำกับ
             # print("name.get()ก่อนทำการ format", self.cus_name.get())
@@ -3361,7 +3366,7 @@ class MyApp:
                     for item_idx in range(item['qty']):
                         print("สร้างinputอันที่ ", item_idx+1)
 
-                self.cus_account_name.set(re.sub(r'[^\x00-\x25\x27-\x7F\wA-Zก-๙|/]+',
+                self.cus_account_name.set(re.sub(r'[^\x00-\x7F\wA-Zก-๙|/]+',
                                           '', self.nondistortedData['ชื่อผู้ใช้ (ผู้ซื้อ)']))
                 self.cus_account_name.set(self.cus_account_name.get().strip())
                 print("self.cus_account_name: ", self.cus_account_name.get())
@@ -3758,9 +3763,12 @@ class MyApp:
         # * สร้าง Thread
         self.bot.get_tabs()
         self.longer_thread_cycle = threading.Thread(
-            target=lambda: self.bot.operation_task_thread(self.operation_thread, bot_gen))
-        self.shorter_thread_cycle = threading.Thread(target=lambda: self.order_search(
-            self.search_query, self.order_Search_thread))
+            target=lambda: self.bot.operation_task_thread(self.operation_thread, bot_gen),
+            daemon=True)
+        self.shorter_thread_cycle = threading.Thread(
+            target=lambda: self.order_search(
+                self.search_query, self.order_Search_thread),
+            daemon=True)
         print("Thread Name: ", self.longer_thread_cycle.name)
 
         # * สั่ง Thread ให้เริ่มทำงาน
@@ -4501,8 +4509,8 @@ class Bot_POS:
     def process_price_mismatches(self, verification_result: dict) -> None:
         return self.pricing_reconciler.process_price_mismatches(verification_result)
 
-    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float):
-        return self.pricing_reconciler.add_missing_cp_to_excel(sku_key, expected_price)
+    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float, suggested_cp: str = ""):
+        return self.pricing_reconciler.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp)
 
     def smco_pos_item_list_srp_bringer(self, sku: str):
         return 0
@@ -4628,6 +4636,11 @@ class Bot_POS:
                             f"operation_task_thread, Connection Error: {err}")
                         logger.error(
                             f"Order: {self.app.order} - WebDriver connection lost: {err}")
+
+                        # หากถูกสั่งหยุด/ปิดโปรแกรมแล้ว ไม่ต้องพยายาม Reconnect ให้หยุดทันที
+                        if self.operation_thread.is_set():
+                            break
+
                         self.app.update_log(
                             "⚠️ การเชื่อมต่อเบราว์เซอร์หลุด กำลังพยายาม Reconnect...")
 
@@ -4638,11 +4651,18 @@ class Bot_POS:
                             time.sleep(1)
                             continue  # วนกลับไปรันออเดอร์เดิมใหม่
                         else:
+                            if self.operation_thread.is_set():
+                                break
                             self.app.update_log(
                                 "❌ ไม่สามารถ Reconnect ได้ จะลองใหม่อีกครั้งใน 5 วินาที...")
-                            self.app.display_bot_status_label.configure(
-                                text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                            try:
+                                self.app.display_bot_status_label.configure(
+                                    text="Bot Status: ❌ Connection Lost", fg_color="#ff2b2b", text_color="#FFF")
+                            except Exception:
+                                pass
                             time.sleep(5)
+                            if self.operation_thread.is_set():
+                                break
                             continue  # วนกลับไปพยายาม reconnect และรันใหม่เรื่อยๆ จนกว่าจะได้ หรือกดหยุด
                     else:
                         # Error จริงจากการทำออเดอร์ (เช่น ValueError หรือข้อมูลผิดพลาด) -> ข้ามออเดอร์
@@ -8805,3 +8825,4 @@ if __name__ == "__main__":
         pyi_splash.close()
     root.mainloop()
     print("Program closed")
+    os._exit(0)

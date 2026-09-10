@@ -180,6 +180,117 @@ class TestSonicBlowCPSelector(unittest.TestCase):
         self.assertTrue(len(xpath_calls) >= 1, "scan_matching_cp_candidates_on_smco ต้องใช้ XPath ใหม่")
         self.assertEqual(len(matched), 2, "ควร match ทั้งคูปองที่มีอยู่จริงและ NONE")
 
+    def test_scan_matching_cp_candidates_ignores_empty_placeholder(self):
+        """
+        ทดสอบว่า scan_matching_cp_candidates_on_smco กรอง candidate ว่างเปล่า (ไม่มี CP, OC, DC) ออก
+        เพื่อป้องกันปัญหา False Ambiguity Alert
+        """
+        self._setup_dom_mock(num_items=4)
+
+        cp_candidates = [
+            {"cp_name": "CP2608310031", "oc_amount": "", "dc_amount": ""},
+            {"cp_name": "", "oc_amount": "", "dc_amount": ""},  # แถวเปล่า
+        ]
+
+        matched = self.reconciler.scan_matching_cp_candidates_on_smco(item_no=1, cp_candidates=cp_candidates)
+        self.assertEqual(len(matched), 1, "ต้องคัดเลือกเฉพาะชุดที่มีคูปองจริง และตัดชุดว่างเปล่าออก")
+        self.assertEqual(matched[0]["cp_name"], "CP2608310031")
+
+    def test_find_suggested_cp_for_discount(self):
+        """
+        ทดสอบการคำนวณหาคูปองแนะนำ (ทั้งแบบเดี่ยวและแบบคู่) จากรายการส่วนลดบน SMCO
+        """
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {"code": "DC2608280030", "discount": 40.0, "raw_discount": "40.00"},
+            {"code": "CP2609070044", "discount": 91.0, "raw_discount": "91.00"},
+            {"code": "CP2609080021", "discount": 51.0, "raw_discount": "51.00"},
+        ]
+
+        # 1. ทดสอบแบบเดี่ยว (ลด 91 บาท ตรงกับ CP2609070044)
+        single_res = self.reconciler.find_suggested_cp_for_discount(91.0)
+        self.assertIsNotNone(single_res)
+        self.assertEqual(single_res["suggested_code"], "CP2609070044")
+        self.assertEqual(single_res["type"], "single")
+
+        # 2. ทดสอบแบบคู่ (ลด 40 + 51 = 91 บาท)
+        combo_res = self.reconciler.find_suggested_cp_for_discount(91.0)
+        # แบบเดี่ยวมีความสำคัญลำดับแรก
+        self.assertEqual(combo_res["suggested_code"], "CP2609070044")
+
+        # ทดสอบยอดรวมที่ไม่มีตัวเดี่ยว (เช่น 40 + 51 = 91 แต่ตัดตัว 91 ออก)
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {"code": "DC2608280030", "discount": 40.0, "raw_discount": "40.00"},
+            {"code": "CP2609080021", "discount": 51.0, "raw_discount": "51.00"},
+        ]
+        combo_res2 = self.reconciler.find_suggested_cp_for_discount(91.0)
+        self.assertIsNotNone(combo_res2)
+        self.assertEqual(combo_res2["suggested_code"], "DC2608280030 CP2609080021")
+        self.assertEqual(combo_res2["type"], "combo")
+
+    def test_add_missing_cp_to_excel_writes_suggested_cp(self):
+        """
+        ทดสอบว่า add_missing_cp_to_excel เขียนข้อมูลลงคอลัมน์ suggested_cp โดยไม่ทับ cp_name
+        """
+        import tempfile
+        import pandas as pd
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # สร้างตารางเริ่มต้น
+            initial_df = pd.DataFrame([
+                {"sku": "OLD-001", "sale_price": 1000.0, "cp_name": "CP1"}
+            ])
+            initial_df.to_excel(tmp_path, index=False)
+
+            self.mock_app.cp_table_location = tmp_path
+            self.mock_app.cp_df = initial_df.copy()
+
+            # บันทึก SKU ใหม่พร้อม suggested_cp
+            self.reconciler.add_missing_cp_to_excel("NEW-002", 3653.0, suggested_cp="CP2609070044")
+
+            result_df = pd.read_excel(tmp_path)
+            self.assertIn("suggested_cp", result_df.columns)
+            new_row = result_df[result_df["sku"] == "NEW-002"].iloc[0]
+            self.assertEqual(new_row["suggested_cp"], "CP2609070044")
+            self.assertTrue(pd.isna(new_row["cp_name"]) or str(new_row["cp_name"]).strip() == "")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_process_price_mismatches_auto_overcharges_when_smco_lower(self):
+        """
+        ทดสอบว่ากรณีราคาบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0)
+        แม้ใน cp_data จะไม่ได้ระบุ oc_amount ระบบจะปรับราคาขึ้นตามส่วนต่าง diff_val ให้อัตโนมัติ
+        """
+        self.mock_app.items = [
+            {'เลขอ้างอิง SKU (SKU Reference No.)': 'MNL-002265', 'ชื่อสินค้า': 'ACER Monitor'}
+        ]
+        self.mock_app.cus_purchase_time.get.return_value = '2026-09-09 13:26'
+
+        # Mock find_all_cp_candidates_from_excel ให้จำลองแถว 382 (มีชื่อว่า 'ไม่มี cp dc จริง' แต่ไม่มี oc_amount)
+        self.reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
+            {"cp_name": "ไม่มี cp dc จริง", "oc_amount": "", "dc_amount": ""}
+        ])
+        self.reconciler.smco_set_overcharge_product = MagicMock()
+
+        verification_result = {
+            "price": {
+                "MNL-002265": {
+                    "ok": False,
+                    "actual": 3475.0,
+                    "expected": 3532.0,
+                    "diff": 57.0
+                }
+            }
+        }
+
+        self.reconciler.process_price_mismatches(verification_result)
+
+        # ต้องมีการเรียก smco_set_overcharge_product ด้วยยอดส่วนต่าง 57.0
+        self.reconciler.smco_set_overcharge_product.assert_called_once_with('MNL-002265', '57.0')
+
 
 if __name__ == "__main__":
     unittest.main()

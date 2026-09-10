@@ -111,11 +111,13 @@ class TrackingManager:
         if shopee_incomplete_err:
             raise ValueError(shopee_incomplete_err)
 
-        if expected_count is not None and expected_count > 0:
+        if self.marketplace != 'SHOPEE' and expected_count is not None and expected_count > 0:
             if len(self.trackings) < expected_count:
                 raise ValueError(
                     f"เลข Tracking บน {self.marketplace} ไม่ครบ: พบ {len(self.trackings)} จากที่ต้องมี {expected_count} รายการ (อาจยังเป็นสถานะนัดรับ หรือยังไม่ออกเลข)"
                 )
+        elif not self.trackings:
+            raise ValueError(f"ไม่พบเลข Tracking บน {self.marketplace}")
 
     def apply_tracking_to_final_page(self, order_no: str = "") -> None:
         """
@@ -300,27 +302,22 @@ class TrackingManager:
                 else:
                     missing_skus.append(f"[{item_desc_text}]")
 
-            # ตรวจสอบความครบถ้วน
+            # ตรวจสอบความครบถ้วน:
+            # เช็คว่าจำนวน Package Card ที่พบบน Shopee ทุกใบ มีเลข Tracking ครบเท่ากับจำนวน Card หรือไม่
+            # โดยไม่ต้องเทียบกับ expected_count (รายการใน Order Data) เพราะกรณี Tracking ในไฟล์ว่างจะมีแค่ 1 แถว
             is_complete = True
             error_message = None
 
-            if expected_count is not None and expected_count > 0:
-                if len(package_cards) != expected_count:
-                    is_complete = False
-                    error_message = (
-                        f"จำนวน Package บน Shopee ({len(package_cards)}) ไม่ตรงกับรายการใน Order ({expected_count}) "
-                        f"Tracking ที่พบ: {len(collected_trackings)}"
-                    )
-                elif missing_skus or len(collected_trackings) < expected_count:
-                    is_complete = False
-                    missing_str = ", ".join(missing_skus) if missing_skus else "บางรายการไม่มี tracking"
-                    error_message = (
-                        f"เลข Tracking บน Shopee ไม่ครบ: ได้ {len(collected_trackings)}/{expected_count} รายการ "
-                        f"(รายการที่ขาดเลข Tracking หรือติดนัดรับ: {missing_str})"
-                    )
-            elif missing_skus:
+            if missing_skus or len(collected_trackings) < len(package_cards):
                 is_complete = False
-                error_message = f"พบ Package บน Shopee ที่ยังไม่มีเลข Tracking: {', '.join(missing_skus)}"
+                missing_str = ", ".join(missing_skus) if missing_skus else "บางรายการไม่มี tracking"
+                error_message = (
+                    f"เลข Tracking บน Shopee ไม่ครบตามจำนวน Package: พบ {len(collected_trackings)}/{len(package_cards)} Cards "
+                    f"(รายการที่ขาดเลข Tracking หรือติดนัดรับ: {missing_str})"
+                )
+            elif not collected_trackings:
+                is_complete = False
+                error_message = f"พบ Package Card บน Shopee ({len(package_cards)} Cards) แต่ไม่พบเลข Tracking"
 
             return {
                 "is_complete": is_complete,
@@ -336,11 +333,9 @@ class TrackingManager:
             
             is_complete = True
             error_message = None
-            if expected_count is not None and expected_count > 0 and len(collected_trackings) < expected_count:
+            if not collected_trackings:
                 is_complete = False
-                error_message = (
-                    f"เลข Tracking บน Shopee ไม่ครบ: ได้ {len(collected_trackings)}/{expected_count} รายการ (โหมด fallback)"
-                )
+                error_message = "ไม่พบเลข Tracking บนหน้า Shopee (โหมด fallback)"
 
             return {
                 "is_complete": is_complete,

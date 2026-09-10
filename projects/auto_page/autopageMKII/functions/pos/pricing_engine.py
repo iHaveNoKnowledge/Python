@@ -8,15 +8,67 @@ Contains:
 
 from __future__ import annotations
 
+import datetime
 import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
+from dateutil import parser
 from loguru import logger
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+
+
+def parse_smart_date(val: Any) -> Optional[datetime.date]:
+    """
+    แปลงค่าวันที่หลากหลายรูปแบบให้กลายเป็น datetime.date มาตรฐานเดียวกัน
+    รองรับ:
+    - datetime.date, datetime.datetime, pd.Timestamp
+    - รูปแบบ ISO (ปี 4 หลักขึ้นหน้า): '2026-09-01', '2026/09/01', '2026-09-01 0:00:00'
+    - รูปแบบไทย/สากล (ปี 4 หลักลงท้าย): '7/9/2026', '07/09/2026', '7-9-2026', '30/09/2026'
+    - ปี พ.ศ. (พุทธศักราช): '7/9/2569', '2569-09-07' -> แปลงเป็น ค.ศ. (ลบ 543)
+    - ค่าว่าง / NaN / NaT -> คืนค่า None
+    """
+    if val is None or pd.isna(val):
+        return None
+    if isinstance(val, (datetime.date, datetime.datetime, pd.Timestamp)):
+        return val.date() if hasattr(val, 'date') else val
+    s = str(val).strip()
+    if not s or s.lower() in ['nan', 'nat', 'none', '-']:
+        return None
+    try:
+        match_be = re.search(r'\b(25\d{2})\b', s)
+        if match_be:
+            be_year = int(match_be.group(1))
+            ce_year = be_year - 543
+            s = s[:match_be.start(1)] + str(ce_year) + s[match_be.end(1):]
+        if re.match(r'^\d{4}[-/.]', s):
+            dt = parser.parse(s, yearfirst=True, dayfirst=False)
+            return dt.date()
+        dt = parser.parse(s, dayfirst=True)
+        return dt.date()
+    except Exception:
+        try:
+            p_dt = pd.to_datetime(s, format='mixed', dayfirst=True, errors='coerce')
+            if pd.notna(p_dt):
+                return p_dt.date()
+        except Exception:
+            pass
+        return None
+
+
+def is_valid_adjustment(amount_str: Any) -> bool:
+    """ตรวจสอบว่าค่าการปรับราคา (OC/DC) มีตัวเลขที่ถูกต้องและมากกว่า 0 หรือไม่"""
+    if not amount_str or str(amount_str).strip() == "" or str(amount_str).strip().upper() == "NONE":
+        return False
+    tokens = str(amount_str).split()
+    for token in tokens:
+        clean = token.replace('-', '').replace('+', '').split('.')[0].strip()
+        if clean.isdigit() and int(clean) > 0:
+            return True
+    return False
 
 
 @dataclass
@@ -199,13 +251,10 @@ class POSPricingReconciler:
             print("[CP Lookup] No CP data loaded")
             return []
 
-        # 1. Parse purchased date
-        try:
-            purchased_dt = pd.to_datetime(purchased_date_str, format='mixed', dayfirst=True)
-            if pd.isna(purchased_dt):
-                return []
-        except Exception as e:
-            print(f"[CP Lookup] Date parsing error for '{purchased_date_str}': {e}")
+        # 1. Parse purchased date ด้วย Smart Date Parser
+        purchased_date = parse_smart_date(purchased_date_str)
+        if not purchased_date:
+            print(f"[CP Lookup] Date parsing error for '{purchased_date_str}'")
             return []
 
         # 2. Filter by SKU
@@ -223,30 +272,30 @@ class POSPricingReconciler:
             print(f"[CP Lookup] No matching SKU found in CP Data for: {sku}")
             return []
 
-        # 3. Filter by Date Range
+        # 3. Filter by Date Range (เปรียบเทียบ datetime.date มาตรฐานเดียวกันทุกรูปแบบ)
         valid_rows = []
         date_rejected_reasons = []
         for idx, row in df_filtered.iterrows():
             try:
-                start_date = pd.to_datetime(row.get('usage_start_date'), format='mixed', dayfirst=True)
-                end_date = pd.to_datetime(row.get('usage_end_date'), format='mixed', dayfirst=True)
+                start_date = parse_smart_date(row.get('usage_start_date'))
+                end_date = parse_smart_date(row.get('usage_end_date'))
 
                 in_range = True
-                if pd.notna(start_date) and pd.notna(end_date):
-                    if not (start_date.date() <= purchased_dt.date() <= end_date.date()):
+                if start_date and end_date:
+                    if not (start_date <= purchased_date <= end_date):
                         in_range = False
-                elif pd.notna(start_date):
-                    if not (start_date.date() <= purchased_dt.date()):
+                elif start_date:
+                    if not (start_date <= purchased_date):
                         in_range = False
-                elif pd.notna(end_date):
-                    if not (purchased_dt.date() <= end_date.date()):
+                elif end_date:
+                    if not (purchased_date <= end_date):
                         in_range = False
 
                 if in_range:
                     valid_rows.append(row)
                 else:
-                    s_str = start_date.strftime('%d/%m/%Y') if pd.notna(start_date) else 'N/A'
-                    e_str = end_date.strftime('%d/%m/%Y') if pd.notna(end_date) else 'N/A'
+                    s_str = start_date.strftime('%d/%m/%Y') if start_date else 'N/A'
+                    e_str = end_date.strftime('%d/%m/%Y') if end_date else 'N/A'
                     cp_code = row.get('cp_name', '')
                     price_val = row.get('sale_price', '')
                     date_rejected_reasons.append(f"CP: '{cp_code}' (ราคา {price_val}, ช่วงวัน: {s_str} - {e_str})")
@@ -255,7 +304,7 @@ class POSPricingReconciler:
 
         if not valid_rows:
             reasons_str = "; ".join(date_rejected_reasons) if date_rejected_reasons else "ไม่มีช่วงวันระบุ"
-            print(f"[CP Lookup] SKU {sku} found, but date {purchased_dt.date()} is not within any CP usage range. (รายละเอียดช่วงวัน: {reasons_str})")
+            print(f"[CP Lookup] SKU {sku} found, but date {purchased_date} is not within any CP usage range. (รายละเอียดช่วงวัน: {reasons_str})")
             return []
 
         df_valid = pd.DataFrame(valid_rows)
@@ -271,9 +320,7 @@ class POSPricingReconciler:
         # 5. เรียงลำดับตาม usage_start_date ล่าสุด
         if len(df_price_matched) > 1:
             df_price_matched = df_price_matched.copy()
-            df_price_matched['temp_start_date'] = pd.to_datetime(
-                df_price_matched.get('usage_start_date'), format='mixed', dayfirst=True, errors='coerce'
-            )
+            df_price_matched['temp_start_date'] = df_price_matched['usage_start_date'].apply(parse_smart_date)
             df_price_matched = df_price_matched.sort_values(
                 by='temp_start_date', ascending=False, na_position='last'
             )
@@ -289,6 +336,15 @@ class POSPricingReconciler:
                 "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else ""
             })
 
+        # หากมีชุด candidate ที่ระบุ CP หรือ OC/DC หรือ Bypass ชัดเจนอยู่แล้ว ให้ตัดแถวเปล่าที่ไม่มีข้อมูลใดๆ ทิ้งทันที (ป้องกัน False Ambiguity)
+        active_candidates = [
+            c for c in candidates
+            if c.get("cp_name") or is_valid_adjustment(c.get("oc_amount")) or is_valid_adjustment(c.get("dc_amount"))
+            or str(c.get("cp_name")).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
+        ]
+        if active_candidates:
+            candidates = active_candidates
+
         return candidates
 
     def find_cp_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> Optional[dict]:
@@ -298,8 +354,8 @@ class POSPricingReconciler:
         candidates = self.find_all_cp_candidates_from_excel(sku, platform_price, purchased_date_str)
         return candidates[0] if candidates else None
 
-    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float) -> None:
-        """บันทึก SKU และราคาที่ยังไม่มี CP ลงไฟล์ Excel เพื่อให้กรอกข้อมูลต่อได้"""
+    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float, suggested_cp: str = "") -> None:
+        """บันทึก SKU และราคาที่ยังไม่มี CP ลงไฟล์ Excel เพื่อให้กรอกข้อมูลต่อได้ พร้อมระบุคูปองแนะนำ (suggested_cp) ถ้ามี"""
         try:
             excel_path = getattr(self.app, 'cp_table_location', '')
             if not excel_path or str(excel_path).strip() == "":
@@ -315,15 +371,29 @@ class POSPricingReconciler:
                 print(f"[add_missing_cp_to_excel] Error reading excel: {read_err}")
                 return
 
-            new_row = {'sku': sku_key, 'sale_price': expected_price}
-            new_df = pd.DataFrame([new_row])
+            col_name = 'suggested_cp'
+            if col_name not in df.columns:
+                df[col_name] = ""
 
-            for col in df.columns:
-                if col not in new_df.columns:
-                    new_df[col] = ""
-            new_df = new_df[df.columns]
+            sku_clean = str(sku_key).strip().upper()
+            mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - expected_price).abs() <= 0.05)
 
-            df_combined = pd.concat([df, new_df], ignore_index=True)
+            if mask.any():
+                # มีแถวเดิมอยู่แล้ว: อัปเดตคอลัมน์ suggested_cp ถ้ามีการระบุค่าแนะนำ
+                if suggested_cp:
+                    df.loc[mask, col_name] = suggested_cp
+                df_combined = df
+            else:
+                new_row = {'sku': sku_key, 'sale_price': expected_price, col_name: suggested_cp}
+                new_df = pd.DataFrame([new_row])
+
+                for col in df.columns:
+                    if col not in new_df.columns:
+                        new_df[col] = ""
+                new_df = new_df[df.columns]
+
+                df_combined = pd.concat([df, new_df], ignore_index=True)
+
             df_combined.to_excel(excel_path, index=False)
             if os.path.exists(excel_path):
                 try:
@@ -331,19 +401,58 @@ class POSPricingReconciler:
                 except Exception:
                     pass
 
+            log_sugg = f" (แนะนำ: {suggested_cp})" if suggested_cp else ""
             self.app.update_log(
-                f"💾 บันทึก SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}) ลงใน CP Data เรียบร้อยแล้ว"
+                f"💾 บันทึก SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg} ลงใน CP Data เรียบร้อยแล้ว"
             )
 
             if self.app.cp_df is not None:
-                if 'usage_start_date' in new_df.columns:
-                    new_df['usage_start_date'] = pd.to_datetime(new_df['usage_start_date'], format='mixed', dayfirst=True, errors='coerce')
-                if 'usage_end_date' in new_df.columns:
-                    new_df['usage_end_date'] = pd.to_datetime(new_df['usage_end_date'], format='mixed', dayfirst=True, errors='coerce')
-                self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
+                if 'suggested_cp' not in self.app.cp_df.columns:
+                    self.app.cp_df['suggested_cp'] = ""
+                if mask.any() and suggested_cp:
+                    self.app.cp_df.loc[mask, col_name] = suggested_cp
+                elif not mask.any():
+                    if 'usage_start_date' in new_df.columns:
+                        new_df['usage_start_date'] = new_df['usage_start_date'].apply(parse_smart_date)
+                    if 'usage_end_date' in new_df.columns:
+                        new_df['usage_end_date'] = new_df['usage_end_date'].apply(parse_smart_date)
+                    self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
 
         except Exception as err:
             print(f"[add_missing_cp_to_excel] Error appending row: {err}")
+
+    def find_suggested_cp_for_discount(self, target_discount: float) -> Optional[dict]:
+        """
+        คำนวณหาคูปอง (ตัวเดียว หรือคู่ผสม) จากรายการคูปองที่สแกนได้บนหน้าเว็บ SMCO
+        ที่มีมูลค่าส่วนลดตรงกับ target_discount พอดี (ความคลาดเคลื่อน <= 0.05 บาท)
+        """
+        details = getattr(self, 'last_scanned_smco_coupon_details', [])
+        if not details or target_discount <= 0:
+            return None
+
+        # 1. ตรวจสอบคูปองเดี่ยว (Single Coupon)
+        for c in details:
+            if abs(c['discount'] - target_discount) <= 0.05 and c['discount'] > 0:
+                return {
+                    "suggested_code": c['code'],
+                    "discount": c['discount'],
+                    "type": "single"
+                }
+
+        # 2. ตรวจสอบคูปองคู่ผสม (Combination เช่น CP 1 ตัว + DC 1 ตัว หรือ CP 2 ตัว)
+        for i in range(len(details)):
+            for j in range(i + 1, len(details)):
+                c1 = details[i]
+                c2 = details[j]
+                total_disc = c1['discount'] + c2['discount']
+                if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
+                    return {
+                        "suggested_code": f"{c1['code']} {c2['code']}",
+                        "discount": total_disc,
+                        "type": "combo"
+                    }
+
+        return None
 
     # ══════════════════════════════════════════════════════════════════════════
     # COUPON SELECTION & ADJUSTMENTS ON POS CART
@@ -614,6 +723,41 @@ class POSPricingReconciler:
             smco_coupon_names = [el.text.replace(" ", "").upper() for el in cp_name_elements if el.text.strip()]
             self.last_scanned_smco_coupons = [el.text.strip() for el in cp_name_elements if el.text.strip()]
 
+            # ดึงรายการคูปองพร้อมส่วนลดจาก XPath ที่ระบุ
+            scanned_details = []
+            try:
+                list_items = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'row list-group-item')]")
+                for item_el in list_items:
+                    name_spans = item_el.find_elements(
+                        By.XPATH, ".//span[@class='text-primary price-sku-h1 ng-binding' or contains(@class,'price-sku-h1')]"
+                    )
+                    c_name = name_spans[0].text.strip() if name_spans else ""
+
+                    disc_spans = item_el.find_elements(
+                        By.XPATH, ".//div[@class='col-xs-12']/span[@class='ng-binding'] | .//div[contains(@class,'col-xs-12')]/span[contains(@class,'ng-binding')]"
+                    )
+                    disc_text = disc_spans[0].text.strip() if disc_spans else ""
+
+                    disc_val = 0.0
+                    cleaned = disc_text.replace(',', '')
+                    m = re.search(r'(\d+(?:\.\d+)?)', cleaned)
+                    if m:
+                        try:
+                            disc_val = float(m.group(1))
+                        except Exception:
+                            disc_val = 0.0
+
+                    if c_name:
+                        scanned_details.append({
+                            "code": c_name,
+                            "discount": disc_val,
+                            "raw_discount": disc_text
+                        })
+            except Exception as e:
+                print(f"[scan_matching_cp_candidates_on_smco] Error scraping coupon details: {e}")
+
+            self.last_scanned_smco_coupon_details = scanned_details
+
             # ปิด Modal ชั่วคราว (ยังไม่เลือก)
             try:
                 agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
@@ -633,8 +777,15 @@ class POSPricingReconciler:
             for cand in cp_candidates:
                 cp_name = cand.get("cp_name", "")
                 is_bypass = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
+                has_oc = is_valid_adjustment(cand.get("oc_amount", ""))
+                has_dc = is_valid_adjustment(cand.get("dc_amount", ""))
+                has_cp = bool(cp_name and not is_bypass and str(cp_name).strip() != "")
 
-                if not cp_name or is_bypass or cp_name.strip() == "":
+                # หากไม่มีทั้ง CP, OC, DC และไม่ใช่ Bypass (แถวว่างเปล่าทั้งหมด) -> ข้ามทันที
+                if not (has_cp or is_bypass or has_oc or has_dc):
+                    continue
+
+                if not cp_name or is_bypass or str(cp_name).strip() == "":
                     # ชุดที่ไม่มีคูปอง (มีแต่ OC/DC หรือ bypass) ถือว่า match ได้
                     matched_candidates.append(cand)
                 else:
@@ -678,7 +829,7 @@ class POSPricingReconciler:
 
         formatted_items_to_oc = self.sku_formater(items_user_input).split(" ")
         oc_amounts_list_prog = str(oc_amounts_input).split()
-        oc_amounts_list = [int(self.oc_amounts_calculator(a)) for a in oc_amounts_list_prog]
+        oc_amounts_list = [float(self.oc_amounts_calculator(a)) for a in oc_amounts_list_prog]
         items_list_element = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
 
         for idx, item in enumerate(formatted_items_to_oc):
@@ -898,45 +1049,51 @@ class POSPricingReconciler:
                         continue
 
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
+                    # ถ้าราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0) ให้ปรับราคาขึ้น (Overcharge) ทันที
                     if diff_val > 0:
+                        bypassed = False
+                        oc_amount_to_apply = None
+
                         if cp_candidates:
-                            # กรณีพบข้อมูลใน cp_data: จะทำ OC ก็ต่อเมื่อคอลัมน์ oc_amount มีค่าระบุไว้เท่านั้น (หากไม่มี oc_amount จะไม่ทำ OC)
-                            applied = False
                             for cand in cp_candidates:
-                                if is_valid_adjustment(cand.get("oc_amount", "")):
-                                    oc_amount_str = cand.get("oc_amount", "")
-                                    self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
-                                    self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
-                                    applied = True
-                                    break
-                                elif str(cand.get("cp_name", "")).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]:
+                                cp_signal = str(cand.get("cp_name", "")).strip().upper()
+                                if cp_signal in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]:
                                     self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cand.get('cp_name')})")
-                                    applied = True
+                                    bypassed = True
                                     break
-                            if not applied:
-                                self.app.update_log(f"ℹ️ พบข้อมูลใน CP Data สำหรับ SKU: {sku_key} แต่ไม่มีการระบุ oc_amount -> ไม่ทำการ Overcharge")
-                        else:
-                            # กรณีไม่มีใน cp_data (เทียบครั้งแรกหลังยิง POS): ปรับตาม diff_val ปกติ
-                            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท")
-                            self.smco_set_overcharge_product(sku_key, str(diff_val))
+                                elif is_valid_adjustment(cand.get("oc_amount", "")):
+                                    oc_amount_to_apply = str(cand.get("oc_amount", "")).strip()
+                                    self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_to_apply} บาท")
+                                    break
+
+                        if not bypassed:
+                            if oc_amount_to_apply is not None:
+                                self.smco_set_overcharge_product(sku_key, str(oc_amount_to_apply))
+                            else:
+                                # หากไม่มีใน cp_data หรือใน cp_data ไม่ได้ระบุ oc_amount -> ปรับราคาขึ้นตามส่วนต่าง diff_val ทันที
+                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
+                                self.smco_set_overcharge_product(sku_key, str(diff_val))
 
                     # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
                     elif diff_val < 0:
                         self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key} (พบ {len(cp_candidates)} รูปแบบใน CP Data)")
 
-                        # สแกนดูว่าในบรรดา candidates ทั้งหมด มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง
-                        available_candidates = self.scan_matching_cp_candidates_on_smco(item_no_1indexed, cp_candidates) if cp_candidates else []
+                        # สแกนดูว่าในบรรดา candidates ทั้งหมด มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง (และอ่านรายละเอียดส่วนลดของทุกคูปองบน SMCO)
+                        available_candidates = self.scan_matching_cp_candidates_on_smco(item_no_1indexed, cp_candidates or [])
+
+                        target_discount = abs(float(diff_val))
+                        sugg_info = self.find_suggested_cp_for_discount(target_discount)
+                        suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
                         # ─── CASE 0: ไม่พบชุดใดที่ใช้ได้บน SMCO เลย ───
                         if len(available_candidates) == 0:
                             has_entry = len(cp_candidates) > 0
-                            if not has_entry:
-                                self.add_missing_cp_to_excel(sku_key, expected_price)
+                            self.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp_code)
 
                             log_msg = f"❌ ไม่พบชุด CP/DC ใดที่ตรงกับในระบบ SMCO สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออก: {expected_price}) -> หยุดปรับราคาและสร้างคำถาม"
                             logger.warning(log_msg)
                             self.app.update_log(log_msg)
-                            self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=has_entry, cp_candidates=cp_candidates)
+                            self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=has_entry, cp_candidates=cp_candidates, suggested_cp_info=sugg_info)
 
                         # ─── CASE 1: พบชุดที่ตรงบน SMCO พอดี 1 ชุด ───
                         elif len(available_candidates) == 1:
@@ -955,7 +1112,8 @@ class POSPricingReconciler:
                             has_valid_dc = is_valid_adjustment(dc_amount_str)
 
                             if not (has_valid_cp or has_valid_oc or has_valid_dc):
-                                self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
+                                self.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp_code)
+                                self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True, suggested_cp_info=sugg_info)
 
                             if has_valid_cp:
                                 self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
@@ -1076,9 +1234,11 @@ class POSPricingReconciler:
                             # -------------------------------------------------------------
 
                             # [OPTION B] Strict Safety: ไม่เลือกสุ่มสี่สุ่มห้า หยุดปรับราคา และสร้างคำถามพร้อมแจ้งรายละเอียดชุดที่พบ
-                            self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, available_candidates)
+                            if suggested_cp_code:
+                                self.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp_code)
+                            self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, available_candidates, suggested_cp_info=sugg_info)
 
-    def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list) -> None:
+    def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list, suggested_cp_info: Optional[dict] = None) -> None:
         """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อพบคูปองที่ตรงเงื่อนไขซ้ำซ้อนกันมากกว่า 1 ชุด"""
         marketplace = self.app.marketplace_target.get()
         purchase_time = self.app.cus_purchase_time.get()
@@ -1104,6 +1264,16 @@ class POSPricingReconciler:
 
         cand_str = "\n".join(cand_lines)
 
+        sugg_str = ""
+        if suggested_cp_info:
+            s_code = suggested_cp_info.get("suggested_code", "")
+            s_disc = suggested_cp_info.get("discount", 0.0)
+            sugg_str = (
+                f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ:\n"
+                f"   • แนะนำ: '{s_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
+                f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
+            )
+
         pattern_msg = (
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
             f"{sku_key} {product_name}\n"
@@ -1111,6 +1281,7 @@ class POSPricingReconciler:
             f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
             f"ขอวิธีปรับราคาครับ (พบคูปอง/ส่วนลดที่เข้าเงื่อนไข {len(candidate_list)} ชุดบน SMCO):\n"
             f"{cand_str}"
+            f"{sugg_str}"
         )
         self.app.update_log(pattern_msg)
         error_msg = f"Order skipped, multiple ambiguous CP/DC options found for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})\n{pattern_msg}"
@@ -1118,7 +1289,7 @@ class POSPricingReconciler:
         logger.warning(f"Order: {self.bot.cus_order}: {error_msg}")
         raise ValueError(error_msg)
 
-    def _raise_missing_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, has_entry: bool, cp_candidates: list = None) -> None:
+    def _raise_missing_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, has_entry: bool, cp_candidates: list = None, suggested_cp_info: Optional[dict] = None) -> None:
         """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อไม่พบคูปอง"""
         marketplace = self.app.marketplace_target.get()
         purchase_time = self.app.cus_purchase_time.get()
@@ -1145,6 +1316,16 @@ class POSPricingReconciler:
         else:
             extra_note = ""
 
+        sugg_str = ""
+        if suggested_cp_info:
+            s_code = suggested_cp_info.get("suggested_code", "")
+            s_disc = suggested_cp_info.get("discount", 0.0)
+            sugg_str = (
+                f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ:\n"
+                f"   • แนะนำ: '{s_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
+                f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
+            )
+
         pattern_msg = (
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
             f"{sku_key} {product_name}\n"
@@ -1152,6 +1333,7 @@ class POSPricingReconciler:
             f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
             f"ขอวิธีปรับราคาครับ"
             f"{extra_note}"
+            f"{sugg_str}"
         )
         self.app.update_log(pattern_msg)
         error_msg = f"Order skipped, CP/DC not set for SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออกบิล: {expected_price})\n{pattern_msg}"
