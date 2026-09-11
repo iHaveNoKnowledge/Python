@@ -7,9 +7,10 @@ PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
-from functions.pos.pricing_engine import OrderFinancials, POSPricingReconciler
+from functions.pos.pricing_engine import OrderFinancials, POSPricingReconciler, is_seller_voucher_desc
 from functions.product_manager import ProductManager
 import pandas as pd
+
 
 
 class TestSellerVoucherPricing(unittest.TestCase):
@@ -162,6 +163,394 @@ class TestSellerVoucherPricing(unittest.TestCase):
         self.assertEqual(res["SKU-SELLER-01"]["expected"], 500.0)
         self.assertEqual(res["SKU-SELLER-01"]["actual"], 500.0)
 
+    def test_is_seller_voucher_desc(self):
+        """ทดสอบการตรวจจับข้อความ Seller Voucher หลากหลายรูปแบบ"""
+        self.assertTrue(is_seller_voucher_desc("Seller Voucher"))
+        self.assertTrue(is_seller_voucher_desc("seller voucher 500 บาท"))
+        self.assertTrue(is_seller_voucher_desc("คูปองร้านค้า"))
+        self.assertTrue(is_seller_voucher_desc("ส่วนลดผู้ขาย (500.-)"))
+        self.assertTrue(is_seller_voucher_desc("ส่วนลดร้านค้า"))
+        self.assertTrue(is_seller_voucher_desc("Shop Voucher 10%"))
+        self.assertTrue(is_seller_voucher_desc("coupon voucher"))
+        self.assertTrue(is_seller_voucher_desc("Coupon Voucher 200.-"))
+
+        self.assertFalse(is_seller_voucher_desc("ส่วนลด Shopee"))
+        self.assertFalse(is_seller_voucher_desc("Campaign Mega Sale"))
+        self.assertFalse(is_seller_voucher_desc(""))
+        self.assertFalse(is_seller_voucher_desc(None))
+
+    def test_multi_sku_guard_skips_when_seller_voucher(self):
+        """ทดสอบว่าออเดอร์ที่มีหลาย SKU และมี Seller Voucher ในโหมด auto_inv จะถูกข้ามทันทีเพื่อให้ทำแบบ Manual"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+
+        items = [
+            {"เลขอ้างอิง SKU (SKU Reference No.)": "SKU-A", "ราคาขายสุทธิ": 500.0, "จำนวน": 1},
+            {"เลขอ้างอิง SKU (SKU Reference No.)": "SKU-B", "ราคาขายสุทธิ": 800.0, "จำนวน": 1},
+        ]
+        fin = OrderFinancials(marketplace="Shopee", items=items, seller_voucher=200.0)
+        self.mock_app.items = items
+        self.mock_app.financials = fin
+
+        verification_result = {
+            "price": {
+                "SKU-B": {"ok": False, "diff": -200.0, "expected": 600.0, "actual": 800.0}
+            }
+        }
+
+        with self.assertRaises(ValueError) as ctx:
+            reconciler.process_price_mismatches(verification_result)
+
+        self.assertIn("ออเดอร์มีหลาย SKU", str(ctx.exception))
+        self.assertIn("Manual", str(ctx.exception))
+
+    def test_single_sku_seller_voucher_missing_in_cp_data_fails_without_opening_smco(self):
+        """ทดสอบว่า Single SKU ที่มี Seller Voucher แต่ไม่มี pattern ใน cp_data.xlsx จะถูกบันทึกลง cp_data และ Fail ทันทีโดยไม่เปิด SMCO"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+
+        items = [
+            {"เลขอ้างอิง SKU (SKU Reference No.)": "SKU-SELLER-SINGLE", "ราคาขายสุทธิ": 1000.0, "จำนวน": 1}
+        ]
+        fin = OrderFinancials(marketplace="Shopee", items=items, seller_voucher=500.0)
+        self.mock_app.items = items
+        self.mock_app.financials = fin
+        self.mock_app.cus_purchase_time.get.return_value = "01/09/2026"
+
+        # Mock cp_candidates ให้ว่างเปล่า (ไม่พบใน cp_data.xlsx)
+        reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[])
+        reconciler.add_missing_cp_to_excel = MagicMock()
+        reconciler.scan_matching_cp_candidates_on_smco = MagicMock()
+
+        verification_result = {
+            "price": {
+                "SKU-SELLER-SINGLE": {"ok": False, "diff": -500.0, "expected": 500.0, "actual": 1000.0}
+            }
+        }
+
+        with self.assertRaises(ValueError) as ctx:
+            reconciler.process_price_mismatches(verification_result)
+
+        self.assertIn("มี Seller Voucher", str(ctx.exception))
+        self.assertIn("ไม่พบ pattern ราคาใน cp_data.xlsx", str(ctx.exception))
+        reconciler.add_missing_cp_to_excel.assert_called_once_with("SKU-SELLER-SINGLE", 500.0)
+        reconciler.scan_matching_cp_candidates_on_smco.assert_not_called()
+
+    def test_scan_matching_cp_candidates_filters_seller_voucher(self):
+        """ทดสอบว่า scan_matching_cp_candidates_on_smco กรองเฉพาะ candidate ที่มีคูปอง Seller Voucher ตรงมูลค่า"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # Mock items and correct_sku_pattern
+        self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "SKU-SELLER-01"}]
+        self.mock_app.correct_sku_pattern.return_value = ["SKU-SELLER-01"]
+        self.mock_bot.merged_dict = {'SMCO :: เปิดการขาย': 'WINDOW_SMCO'}
+
+        # Mock elements on POS panel and Modal
+        mock_panel = MagicMock(text="SKU-SELLER-01")
+        self.mock_driver.execute_script.return_value = ["SKU-SELLER-01"]
+
+        mock_cp_btn = MagicMock()
+        self.mock_driver.find_elements.side_effect = lambda by, selector: (
+            [mock_cp_btn] if "btn-coupon" in selector else []
+        )
+
+        # จำลอง scanned details จาก SMCO Modal
+        # 1. คูปอง CP-CAMPAIGN: ส่วนลด 100 แต่เป็นแคมเปญทั่วไป
+        # 2. คูปอง CP-SELLER-500: ส่วนลด 500 เป็น Seller Voucher (ตรงเป้า)
+        # 3. คูปอง CP-SELLER-200: ส่วนลด 200 เป็น Seller Voucher (มูลค่าไม่ตรง)
+        scanned_details = [
+            {"code": "CP-CAMPAIGN", "discount": 100.0, "desc": "แคมเปญ 9.9"},
+            {"code": "CP-SELLER-500", "discount": 500.0, "desc": "Seller Voucher 500 บาท"},
+            {"code": "CP-SELLER-200", "discount": 200.0, "desc": "Seller Voucher 200 บาท"},
+        ]
+
+        cp_candidates = [
+            {"cp_name": "CP-CAMPAIGN", "oc_amount": 0, "dc_amount": 0},
+            {"cp_name": "CP-SELLER-500", "oc_amount": 0, "dc_amount": 0},
+            {"cp_name": "CP-SELLER-200", "oc_amount": 0, "dc_amount": 0},
+        ]
+
+        mock_header_names = []
+        mock_item_els = []
+        for d in scanned_details:
+            h_el = MagicMock(text=d["code"])
+            h_el.is_displayed.return_value = True
+            mock_header_names.append(h_el)
+
+            item_mock = MagicMock()
+            n_mock = MagicMock(text=d["code"])
+            disc_mock = MagicMock(text=f"{d['discount']:.2f} บาท")
+            desc_mock = MagicMock(text=d["desc"])
+
+            def make_item_finder(n, disc, desc):
+                def item_find_elements(by, selector):
+                    if "price-sku-h1" in selector:
+                        return [n]
+                    elif "couponDesc" in selector:
+                        return [desc]
+                    elif "col-xs-12" in selector:
+                        return [disc]
+                    return []
+                return item_find_elements
+
+            item_mock.find_elements.side_effect = make_item_finder(n_mock, disc_mock, desc_mock)
+            mock_item_els.append(item_mock)
+
+        def custom_find_elements(by, selector):
+            if "btn-coupon" in selector:
+                return [mock_cp_btn]
+            elif "posbook.data.cnFormPaymentId" in selector and "price-sku-h1" in selector:
+                return mock_header_names
+            elif "list-group-item" in selector:
+                return mock_item_els
+            return []
+
+        self.mock_driver.find_elements.side_effect = custom_find_elements
+
+        matched = reconciler.scan_matching_cp_candidates_on_smco(
+            item_no=1, cp_candidates=cp_candidates, required_seller_voucher=500.0
+        )
+
+        # ต้องเหลือเฉพาะ CP-SELLER-500 เท่านั้น!
+        self.assertEqual(len(matched), 1)
+        self.assertEqual(matched[0]["cp_name"], "CP-SELLER-500")
+
+    def test_seller_voucher_priority_when_initial_diff_positive(self):
+        """ทดสอบว่าเมื่อ diff > 0 เริ่มต้น (ราคา POS ต่ำกว่า expected) แต่มี Seller Voucher
+        ระบบต้องให้ความสำคัญกับการใส่คูปอง Seller Voucher ก่อน แล้วจึงค่อยพิจารณา Overcharge"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # Mock app financials & auto_inv
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.mock_app.cus_seller_voucher.get.return_value = 200.0
+        self.mock_app.items = [{
+            'เลขอ้างอิง SKU (SKU Reference No.)': 'SKU-PRIORITY-01',
+            'ราคาขายสุทธิ': '1000.0',
+            'ส่วนลดจาก Shopee': '0',
+            'จำนวน': '1'
+        }]
+
+        sku_key = 'SKU-PRIORITY-01'
+        expected_price = 800.0  # 1000 - 200
+        actual_price = 750.0    # POS ต่ำกว่า expected -> diff = +50 > 0
+
+        verification_result = {
+            "price": {
+                sku_key: {
+                    "expected": expected_price,
+                    "actual": actual_price,
+                    "diff": 50.0,
+                    "ok": False
+                }
+            }
+        }
+
+        # Candidate ใน Excel
+        reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
+            {"cp_name": "CP-SELLER-200", "oc_amount": "", "dc_amount": ""}
+        ])
+
+        # Mock find_and_apply_seller_voucher_on_smco ให้ใส่ Seller Voucher สำเร็จ
+        reconciler.find_and_apply_seller_voucher_on_smco = MagicMock(return_value=(
+            True, "APPLIED", {"code": "CP-SELLER-200", "discount": 200.0}
+        ))
+
+        # Mock ProductManager.verify_item_price หลังใส่คูปอง (Phase 2)
+        # สมมุติว่าหลังใส่คูปอง ราคา actual กลายเป็น 550.0 -> diff ยังเหลือ +250.0
+        self.mock_bot.ProductManager.verify_item_price.return_value = {
+            sku_key: {
+                "expected": expected_price,
+                "actual": 550.0,
+                "diff": 250.0,
+                "ok": False
+            }
+        }
+
+        # Mock Overcharge
+        reconciler.smco_set_overcharge_product = MagicMock()
+
+        reconciler.process_price_mismatches(verification_result)
+
+        # ตรวจสอบว่า เรื่องที่ 1: มีการเรียกใส่คูปอง Seller Voucher ก่อนเสมอ!
+        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(1, 200.0)
+
+        # ตรวจสอบว่า เรื่องที่ 2: มีการ Overcharge ส่วนต่างที่เหลือ (250 บาท) หลังใส่คูปอง
+        reconciler.smco_set_overcharge_product.assert_called_once_with(sku_key, "250.0")
+
+    def test_seller_voucher_priority_followed_by_campaign_cp(self):
+        """ทดสอบกรณีแยก 2 เรื่อง: ใส่ Seller Voucher ในเรื่องที่ 1 ก่อน
+        แล้วเรื่องที่ 2 (ราคายังสูงกว่า expected) เข้าสู่กระบวนการเลือก Campaign CP เดิมจาก cp_data.xlsx"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.mock_app.cus_seller_voucher.get.return_value = 100.0
+        self.mock_app.items = [{
+            'เลขอ้างอิง SKU (SKU Reference No.)': 'SKU-TWO-STEP-01',
+            'ราคาขายสุทธิ': '1000.0',
+            'ส่วนลดจาก Shopee': '0',
+            'จำนวน': '1'
+        }]
+
+        sku_key = 'SKU-TWO-STEP-01'
+        expected_price = 700.0  # 1000 - 100 (voucher) - 200 (campaign cp) = 700
+        actual_price = 1000.0
+
+        verification_result = {
+            "price": {
+                sku_key: {
+                    "expected": expected_price,
+                    "actual": actual_price,
+                    "diff": -300.0,
+                    "ok": False
+                }
+            }
+        }
+
+        # Candidate แคมเปญใน cp_data.xlsx
+        reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
+            {"cp_name": "CP-CAMPAIGN-200", "oc_amount": "", "dc_amount": ""}
+        ])
+
+        # เรื่องที่ 1: ใส่ Seller Voucher
+        reconciler.find_and_apply_seller_voucher_on_smco = MagicMock(return_value=(
+            True, "APPLIED", {"code": "CP-SELLER-100", "discount": 100.0}
+        ))
+
+        # หลังใส่ Seller Voucher ราคาลดลงเหลือ 900 -> diff = 700 - 900 = -200 (ยังสูงกว่า expected)
+        self.mock_bot.ProductManager.verify_item_price.return_value = {
+            sku_key: {
+                "expected": expected_price,
+                "actual": 900.0,
+                "diff": -200.0,
+                "ok": False
+            }
+        }
+
+        # เรื่องที่ 2: สแกน Campaign CP บน SMCO เจอ 1 ชุด
+        reconciler.scan_matching_cp_candidates_on_smco = MagicMock(return_value=[
+            {"cp_name": "CP-CAMPAIGN-200", "oc_amount": "", "dc_amount": ""}
+        ])
+
+        reconciler.cp_sonic_blow_process = MagicMock(return_value=True)
+
+        reconciler.process_price_mismatches(verification_result)
+
+        # ตรวจสอบว่า เรื่องที่ 1 ถูกเรียก
+        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(1, 100.0)
+
+        # ตรวจสอบว่า เรื่องที่ 2 เลือก Campaign CP ต่อ
+        reconciler.scan_matching_cp_candidates_on_smco.assert_called_once_with(
+            1, [{"cp_name": "CP-CAMPAIGN-200", "oc_amount": "", "dc_amount": ""}], required_seller_voucher=0.0
+        )
+        reconciler.cp_sonic_blow_process.assert_called_once_with(1, "CP-CAMPAIGN-200")
+
+    def test_raise_missing_cp_guide_shows_price_before_seller_voucher(self):
+        """ทดสอบว่าข้อความใน pattern ขอวิธีปรับราคา แสดงราคาขายก่อนหัก Seller Voucher"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # จำลอง OrderFinancials ที่มีราคาขาย 1,200 และมี Seller Voucher 200
+        fin = OrderFinancials(
+            items=[{
+                'เลขอ้างอิง SKU (SKU Reference No.)': 'SKU-GUIDE-01',
+                'ราคาขายสุทธิ': '1200.0',
+                'ส่วนลดจาก Shopee': '0',
+                'จำนวน': '1'
+            }],
+            seller_voucher=200.0
+        )
+        self.mock_app.financials = fin
+        self.mock_app.marketplace_target.get.return_value = "SHOPEE"
+        self.mock_app.cus_purchase_time.get.return_value = "11-09-2026 12:00"
+
+        item = {
+            'เลขอ้างอิง SKU (SKU Reference No.)': 'SKU-GUIDE-01',
+            'ชื่อสินค้า': 'Test Item Guide',
+            'ราคาขายสุทธิ': '1200.0'
+        }
+
+        logs = []
+        self.mock_app.update_log.side_effect = lambda msg: logs.append(msg)
+
+        with self.assertRaises(ValueError):
+            reconciler._raise_missing_cp_guide(
+                item=item,
+                sku_key='SKU-GUIDE-01',
+                actual_price=1000.0,
+                expected_price=1000.0,  # 1200 - 200 = 1000 (ราคาหลังหัก voucher)
+                purchased_date="11-09-2026",
+                has_entry=False
+            )
+
+        # ใน logs ต้องมีข้อความ pattern ที่แสดงราคา "ลูกค้าซื้อราคา 1,200.00 บาท" (ก่อนหัก voucher)
+        pattern_found = False
+        for msg in logs:
+            if "ลูกค้าซื้อราคา 1,200.00 บาท" in msg:
+                pattern_found = True
+                break
+        self.assertTrue(pattern_found, f"ไม่พบข้อความ 'ลูกค้าซื้อราคา 1,200.00 บาท' ใน logs: {logs}")
+
+    def test_scan_matching_cp_fallback_to_coupon_detail_remark(self):
+        """ทดสอบว่าเมื่อไม่พบข้อความใน couponDesc จะค้นหา fallback จาก couponDetailRemark XPath แทน"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # Mock items, pattern, window dict, and execute_script for panel SKU match
+        self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "SKU-REMARK-01"}]
+        self.mock_app.correct_sku_pattern.return_value = ["SKU-REMARK-01"]
+        self.mock_bot.merged_dict = {'SMCO :: เปิดการขาย': 'WINDOW_SMCO'}
+        self.mock_driver.execute_script.return_value = ["SKU-REMARK-01"]
+
+        mock_cp_btn = MagicMock()
+        mock_cp_btn.is_displayed.return_value = True
+
+        cp_candidates = [
+            {"cp_name": "CP-REMARK-500", "oc_amount": "", "dc_amount": ""}
+        ]
+
+        h_el = MagicMock(text="CP-REMARK-500")
+        h_el.is_displayed.return_value = True
+
+        item_mock = MagicMock()
+        n_mock = MagicMock(text="CP-REMARK-500")
+        disc_mock = MagicMock(text="500.00 บาท")
+        remark_mock = MagicMock(text="coupon voucher 500.-")
+        general_promo_mock = MagicMock(text="General Campaign Promo")
+
+        def item_find_elements(by, selector):
+            if "price-sku-h1" in selector:
+                return [n_mock]
+            elif "couponDesc" in selector:
+                return [general_promo_mock]  # มีข้อความ แต่ไม่ใช่ seller voucher
+            elif "couponDetailRemark" in selector:
+                return [remark_mock]  # เจอใน fallback couponDetailRemark ว่าเป็น coupon voucher
+            elif "col-xs-12" in selector:
+                return [disc_mock]
+            return []
+
+        item_mock.find_elements.side_effect = item_find_elements
+
+        def custom_find_elements(by, selector):
+            if "btn-coupon" in selector:
+                return [mock_cp_btn]
+            elif "posbook.data.cnFormPaymentId" in selector and "price-sku-h1" in selector:
+                return [h_el]
+            elif "list-group-item" in selector:
+                return [item_mock]
+            return []
+
+        self.mock_driver.find_elements.side_effect = custom_find_elements
+
+        matched = reconciler.scan_matching_cp_candidates_on_smco(
+            item_no=1, cp_candidates=cp_candidates, required_seller_voucher=500.0
+        )
+
+        self.assertEqual(len(matched), 1)
+        self.assertEqual(matched[0]["cp_name"], "CP-REMARK-500")
+        details = getattr(reconciler, 'last_scanned_smco_coupon_details', [])
+        self.assertEqual(len(details), 1)
+        self.assertEqual(details[0]["desc"], "coupon voucher 500.-")
+
 
 if __name__ == "__main__":
     unittest.main()
+
+

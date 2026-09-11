@@ -71,6 +71,24 @@ def is_valid_adjustment(amount_str: Any) -> bool:
     return False
 
 
+def is_seller_voucher_desc(desc: Any) -> bool:
+    """ตรวจสอบว่าคำอธิบายคูปองมีข้อความบ่งชี้ว่าเป็น Seller Voucher หรือไม่ (รองรับทั้งไทยและอังกฤษ ยืดหยุ่นต่อช่องว่างและตัวพิมพ์)"""
+    if not desc or pd.isna(desc):
+        return False
+    normalized = re.sub(r'[\s_]+', '', str(desc)).lower()
+    keywords = [
+        "sellervoucher",
+        "couponvoucher",
+        "ส่วนลดผู้ขาย",
+        "คูปองร้านค้า",
+        "ส่วนลดร้านค้า",
+        "shopvoucher",
+        "storevoucher",
+    ]
+    return any(k in normalized for k in keywords)
+
+
+
 @dataclass
 class OrderFinancials:
     """
@@ -421,10 +439,11 @@ class POSPricingReconciler:
         except Exception as err:
             print(f"[add_missing_cp_to_excel] Error appending row: {err}")
 
-    def find_suggested_cp_for_discount(self, target_discount: float) -> Optional[dict]:
+    def find_suggested_cp_for_discount(self, target_discount: float, require_seller_voucher: bool = False) -> Optional[dict]:
         """
         คำนวณหาคูปอง (ตัวเดียว หรือคู่ผสม) จากรายการคูปองที่สแกนได้บนหน้าเว็บ SMCO
         ที่มีมูลค่าส่วนลดตรงกับ target_discount พอดี (ความคลาดเคลื่อน <= 0.05 บาท)
+        หาก require_seller_voucher=True จะพิจารณาเฉพาะคูปองที่มีข้อความบ่งชี้ว่าเป็น Seller Voucher เท่านั้น
         """
         details = getattr(self, 'last_scanned_smco_coupon_details', [])
         if not details or target_discount <= 0:
@@ -432,6 +451,8 @@ class POSPricingReconciler:
 
         # 1. ตรวจสอบคูปองเดี่ยว (Single Coupon)
         for c in details:
+            if require_seller_voucher and not is_seller_voucher_desc(c.get("desc", "")):
+                continue
             if abs(c['discount'] - target_discount) <= 0.05 and c['discount'] > 0:
                 return {
                     "suggested_code": c['code'],
@@ -444,6 +465,10 @@ class POSPricingReconciler:
             for j in range(i + 1, len(details)):
                 c1 = details[i]
                 c2 = details[j]
+                if require_seller_voucher:
+                    has_sv = is_seller_voucher_desc(c1.get("desc", "")) or is_seller_voucher_desc(c2.get("desc", ""))
+                    if not has_sv:
+                        continue
                 total_disc = c1['discount'] + c2['discount']
                 if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
                     return {
@@ -666,10 +691,11 @@ class POSPricingReconciler:
         print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
         return any_success
 
-    def scan_matching_cp_candidates_on_smco(self, item_no: int, cp_candidates: list) -> list:
+    def scan_matching_cp_candidates_on_smco(self, item_no: int, cp_candidates: list, required_seller_voucher: float = 0.0) -> list:
         """
         สแกนดูคูปองทั้งหมดบนหน้าต่าง Modal ของ SMCO แล้วจับคู่กับ cp_candidates
         ส่งกลับ list ของ candidate ที่พบคูปองบนหน้าเว็บ SMCO จริง (หรือ candidate ที่ไม่จำเป็นต้องใช้ CP)
+        หากระบุ required_seller_voucher > 0 จะบังคับว่า candidate นั้นต้องมีคูปอง Seller Voucher ที่มีมูลค่าตรงกันพอดี
         """
         item_idx = int(item_no) - 1
         demonic_ordered_items_list = self.app.correct_sku_pattern(
@@ -723,34 +749,104 @@ class POSPricingReconciler:
             smco_coupon_names = [el.text.replace(" ", "").upper() for el in cp_name_elements if el.text.strip()]
             self.last_scanned_smco_coupons = [el.text.strip() for el in cp_name_elements if el.text.strip()]
 
-            # ดึงรายการคูปองพร้อมส่วนลดจาก XPath ที่ระบุ
+            # ดึงรายการคูปองพร้อมส่วนลดและคำอธิบายจาก XPath ที่ระบุ
             scanned_details = []
             try:
-                list_items = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'row list-group-item')]")
+                list_items = self.driver.find_elements(
+                    By.XPATH, "//div[contains(@ng-show, 'posbook.data.cnFormPaymentId===undefined')]/div[contains(@class,'row list-group-item ng-scope')]"
+                )
+                if not list_items:
+                    list_items = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'row list-group-item')]")
+
                 for item_el in list_items:
+                    # 1. ค้นหารหัสคูปอง (Coupon Code)
                     name_spans = item_el.find_elements(
                         By.XPATH, ".//span[@class='text-primary price-sku-h1 ng-binding' or contains(@class,'price-sku-h1')]"
                     )
                     c_name = name_spans[0].text.strip() if name_spans else ""
+                    item_text_str = str(item_el.text) if hasattr(item_el, 'text') and not isinstance(item_el.text, MagicMock if 'MagicMock' in globals() else type(None)) else ""
+                    if not item_text_str and hasattr(item_el, 'text') and isinstance(item_el.text, str):
+                        item_text_str = item_el.text
 
-                    disc_spans = item_el.find_elements(
-                        By.XPATH, ".//div[@class='col-xs-12']/span[@class='ng-binding'] | .//div[contains(@class,'col-xs-12')]/span[contains(@class,'ng-binding')]"
+                    if not c_name and item_text_str:
+                        m_code = re.search(r'\b(CP\d+|DC\d+)\b', item_text_str)
+                        if m_code:
+                            c_name = m_code.group(1)
+
+                    # 2. ค้นหาคำอธิบายและ Remark (Description)
+                    c_desc = ""
+                    desc_spans = item_el.find_elements(
+                        By.XPATH, ".//span[@ng-show='pmt.couponDesc !== undefined' or contains(@class,'font-color-secondary')]"
                     )
-                    disc_text = disc_spans[0].text.strip() if disc_spans else ""
+                    for ds in desc_spans:
+                        t = ds.text.strip() if hasattr(ds, 'text') and isinstance(ds.text, str) else str(getattr(ds, 'text', ''))
+                        if t:
+                            c_desc = t
+                            if is_seller_voucher_desc(t):
+                                break
 
+                    # หากหา xpath แรกไม่เจอ หรือข้อความไม่ใช่ Seller Voucher ให้ตรวจที่ fallback xpath
+                    if not c_desc or not is_seller_voucher_desc(c_desc):
+                        fallback_desc_spans = item_el.find_elements(
+                            By.XPATH, ".//span[contains(@ng-show, 'couponDetailRemark') or contains(@class, 'font-color')]"
+                        )
+                        for fb_el in fallback_desc_spans:
+                            fb_text = fb_el.text.strip() if hasattr(fb_el, 'text') and isinstance(fb_el.text, str) else str(getattr(fb_el, 'text', ''))
+                            if fb_text:
+                                if not c_desc or is_seller_voucher_desc(fb_text):
+                                    c_desc = fb_text
+                                    if is_seller_voucher_desc(fb_text):
+                                        break
+
+                    # ตรวจสอบเพิ่มเติมจากบรรทัดทั้งหมดใน item_text_str (ดักจับคำว่า coupon voucher / seller voucher)
+                    if not is_seller_voucher_desc(c_desc) and item_text_str:
+                        for line_t in item_text_str.split('\n'):
+                            if is_seller_voucher_desc(line_t):
+                                c_desc = line_t.strip()
+                                break
+
+                    # 3. ค้นหามูลค่าส่วนลด (Discount Amount)
                     disc_val = 0.0
-                    cleaned = disc_text.replace(',', '')
-                    m = re.search(r'(\d+(?:\.\d+)?)', cleaned)
-                    if m:
-                        try:
-                            disc_val = float(m.group(1))
-                        except Exception:
-                            disc_val = 0.0
+                    disc_text = ""
+
+                    # วิธีที่ 1: ค้นหาจาก span หรือข้อความที่มีรูปแบบ "ตัวเลข.-" (เช่น 200.-, 400.-) ซึ่งเป็นรูปแบบเฉพาะของส่วนลด SMCO
+                    amount_spans = item_el.find_elements(
+                        By.XPATH, ".//span[contains(text(), '.-') or contains(@class, 'text-danger')]"
+                    )
+                    for asp in amount_spans:
+                        t = asp.text.strip() if hasattr(asp, 'text') and isinstance(asp.text, str) else str(getattr(asp, 'text', ''))
+                        m_amt = re.search(r'([\d,]+(?:\.\d+)?)\s*\.-', t)
+                        if m_amt:
+                            disc_text = t
+                            disc_val = float(m_amt.group(1).replace(',', ''))
+                            break
+
+                    # วิธีที่ 2: ค้นหารูปแบบ "ตัวเลข.-" จาก item_text_str ทั้งหมด
+                    if disc_val == 0.0 and item_text_str:
+                        m_amt = re.search(r'([\d,]+(?:\.\d+)?)\s*\.-', item_text_str)
+                        if m_amt:
+                            disc_text = m_amt.group(0)
+                            disc_val = float(m_amt.group(1).replace(',', ''))
+
+                    # วิธีที่ 3: fallback สำหรับกรณีไม่มี ".-"
+                    if disc_val == 0.0:
+                        disc_spans = item_el.find_elements(
+                            By.XPATH, ".//div[@class='col-xs-12']/span[@class='ng-binding'] | .//div[contains(@class,'col-xs-12')]/span[contains(@class,'ng-binding')]"
+                        )
+                        disc_text = disc_spans[0].text.strip() if disc_spans and hasattr(disc_spans[0], 'text') and isinstance(disc_spans[0].text, str) else ""
+                        cleaned = disc_text.replace(',', '')
+                        m = re.search(r'(\d+(?:\.\d+)?)', cleaned)
+                        if m:
+                            try:
+                                disc_val = float(m.group(1))
+                            except Exception:
+                                disc_val = 0.0
 
                     if c_name:
                         scanned_details.append({
                             "code": c_name,
                             "discount": disc_val,
+                            "desc": c_desc,
                             "raw_discount": disc_text
                         })
             except Exception as e:
@@ -785,27 +881,52 @@ class POSPricingReconciler:
                 if not (has_cp or is_bypass or has_oc or has_dc):
                     continue
 
+                # หากมีการบังคับ Seller Voucher (required_seller_voucher > 0)
+                # candidate จะต้องมีคูปอง (has_cp ต้องเป็นจริง ไม่ใช่ bypass หรือ oc/dc ล้วน)
+                if required_seller_voucher > 0 and (not has_cp or is_bypass):
+                    continue
+
                 if not cp_name or is_bypass or str(cp_name).strip() == "":
                     # ชุดที่ไม่มีคูปอง (มีแต่ OC/DC หรือ bypass) ถือว่า match ได้
                     matched_candidates.append(cand)
                 else:
                     raw_tokens = [t.strip().upper() for part in str(cp_name).split(',') for t in part.split() if t.strip()]
                     all_tokens_in_smco = True
+                    has_matching_seller_voucher_token = False
+
                     for token in raw_tokens:
                         token_clean = token.replace(" ", "")
                         found = False
+                        token_is_matching_sv = False
+
                         if token.isdigit():
                             target_i = int(token) - 1
                             if 0 <= target_i < len(smco_coupon_names):
                                 found = True
+                                if 0 <= target_i < len(scanned_details):
+                                    sc_item = scanned_details[target_i]
+                                    if is_seller_voucher_desc(sc_item.get("desc", "")) and abs(sc_item.get("discount", 0.0) - required_seller_voucher) <= 0.05:
+                                        token_is_matching_sv = True
                         else:
                             for idx_el, elem_name in enumerate(smco_coupon_names):
                                 if token_clean in elem_name:
                                     found = True
+                                    if idx_el < len(scanned_details):
+                                        sc_item = scanned_details[idx_el]
+                                        if is_seller_voucher_desc(sc_item.get("desc", "")) and abs(sc_item.get("discount", 0.0) - required_seller_voucher) <= 0.05:
+                                            token_is_matching_sv = True
                                     break
+
                         if not found:
                             all_tokens_in_smco = False
                             break
+
+                        if token_is_matching_sv:
+                            has_matching_seller_voucher_token = True
+
+                    # หากต้องการ Seller Voucher แต่ไม่มี token ไหนเป็น Seller Voucher ที่มูลค่าตรง -> ไม่ผ่าน
+                    if required_seller_voucher > 0 and not has_matching_seller_voucher_token:
+                        all_tokens_in_smco = False
 
                     if all_tokens_in_smco:
                         matched_candidates.append(cand)
@@ -821,6 +942,44 @@ class POSPricingReconciler:
             except Exception:
                 pass
             return []
+
+    def find_and_apply_seller_voucher_on_smco(self, item_no: int, required_seller_voucher: float) -> tuple[bool, str, Optional[dict]]:
+        """
+        [เรื่องที่ 1: Seller Voucher]
+        สแกนคูปองบนหน้าเว็บ SMCO และค้นหาคูปองที่มีคำว่า 'Seller Voucher' และมีส่วนลดตรงกับ required_seller_voucher พอดี
+        หากพบตรง 1 ตัว จะสั่งเลือกคูปอง Seller Voucher นั้นลงในตะกร้าสินค้าทันที
+
+        Returns:
+            (success: bool, status: str, coupon_info: Optional[dict])
+            status สามารถเป็น: 'APPLIED', 'NOT_FOUND', 'AMBIGUOUS', 'ERROR'
+        """
+        try:
+            # สแกนคูปองบน SMCO เพื่อดึงรายละเอียดลง self.last_scanned_smco_coupon_details
+            self.scan_matching_cp_candidates_on_smco(item_no, [], required_seller_voucher=0.0)
+            details = getattr(self, 'last_scanned_smco_coupon_details', [])
+            print(f"[find_and_apply_seller_voucher_on_smco] Scanned {len(details)} coupons: {details}")
+
+            matching_sv = []
+            for d in details:
+                if is_seller_voucher_desc(d.get("desc", "")) and abs(d.get("discount", 0.0) - required_seller_voucher) <= 0.05:
+                    matching_sv.append(d)
+
+            if len(matching_sv) == 0:
+                print(f"[find_and_apply_seller_voucher_on_smco] No matching seller voucher found for amount {required_seller_voucher}. Available details: {details}")
+                return False, "NOT_FOUND", None
+            elif len(matching_sv) > 1:
+                return False, "AMBIGUOUS", matching_sv[0]
+            else:
+                chosen = matching_sv[0]
+                cp_code = chosen.get("code", "")
+                ok = self.cp_sonic_blow_process(item_no, cp_code)
+                if ok:
+                    return True, "APPLIED", chosen
+                else:
+                    return False, "ERROR", chosen
+        except Exception as e:
+            print(f"[find_and_apply_seller_voucher_on_smco] Error: {e}")
+            return False, "ERROR", None
 
     def smco_set_overcharge_product(self, items_user_input: str = None, oc_amounts_input: str = None) -> None:
         """ปรับราคาขึ้น (Overcharge) สำหรับ SKU ที่ต้องการ"""
@@ -1021,6 +1180,49 @@ class POSPricingReconciler:
                     return True
             return False
 
+        # ตรวจสอบสถานะโหมด Auto Invoice และยอด Seller Voucher ของออเดอร์
+        is_auto_inv = False
+        try:
+            if hasattr(self.app, 'is_auto_invoice_mode') and hasattr(self.app.is_auto_invoice_mode, 'get'):
+                v = self.app.is_auto_invoice_mode.get()
+                is_auto_inv = bool(v) if isinstance(v, (bool, int)) else False
+            elif hasattr(self, 'main_app') and hasattr(self.main_app, 'is_auto_invoice_mode') and hasattr(self.main_app.is_auto_invoice_mode, 'get'):
+                v = self.main_app.is_auto_invoice_mode.get()
+                is_auto_inv = bool(v) if isinstance(v, (bool, int)) else False
+        except Exception:
+            is_auto_inv = False
+
+        seller_voucher = 0.0
+        try:
+            if hasattr(self.app, 'financials') and hasattr(self.app.financials, 'seller_voucher'):
+                sv = self.app.financials.seller_voucher
+                if isinstance(sv, (int, float)) and not isinstance(sv, bool):
+                    seller_voucher = float(sv)
+                elif isinstance(sv, str) and sv.strip() and sv.strip().replace('.', '', 1).isdigit():
+                    seller_voucher = float(sv.strip())
+
+            if seller_voucher == 0.0 and hasattr(self.app, 'cus_seller_voucher') and hasattr(self.app.cus_seller_voucher, 'get'):
+                sv = self.app.cus_seller_voucher.get()
+                if isinstance(sv, (int, float)) and not isinstance(sv, bool):
+                    seller_voucher = float(sv)
+                elif isinstance(sv, str) and sv.strip() and sv.strip().replace('.', '', 1).isdigit():
+                    seller_voucher = float(sv.strip())
+        except Exception:
+            seller_voucher = 0.0
+
+        # Multi-SKU Guard: หากมีหลาย SKU และมี Seller Voucher > 0 -> ข้ามเพื่อให้ทำแบบ Manual
+        if is_auto_inv and seller_voucher > 0:
+            unique_skus = set()
+            for it in (self.app.items or []):
+                sk = str(it.get('เลขอ้างอิง SKU (SKU Reference No.)', '')).strip()
+                if sk:
+                    unique_skus.add(sk)
+            if len(unique_skus) > 1:
+                err_msg = f"ออเดอร์มีหลาย SKU ({len(unique_skus)} รายการ) และมี Seller Voucher ({seller_voucher:,.2f} บาท) -> ข้ามเพื่อให้ทำแบบ Manual"
+                self.app.update_log(f"⚠️ {err_msg}")
+                logger.warning(f"Order {getattr(self.bot, 'cus_order', '')}: {err_msg}")
+                raise ValueError(err_msg)
+
         processed_skus = set()
         for i, item in enumerate(self.app.items):
             sku_key = item.get('เลขอ้างอิง SKU (SKU Reference No.)')
@@ -1048,6 +1250,84 @@ class POSPricingReconciler:
                     if not isinstance(diff_val, (int, float)):
                         continue
 
+                    # ══════════════════════════════════════════════════════════
+                    # ขั้นตอนที่ 1 (เรื่องที่ 1): เติมคูปอง Seller Voucher ก่อน
+                    # ══════════════════════════════════════════════════════════
+                    if is_auto_inv and seller_voucher > 0:
+                        # Pre-check cp_data: หากไม่มี pattern ใน cp_data.xlsx
+                        # ให้เพิ่มแถวลง cp_data.xlsx ทันที และข้ามออเดอร์โดยไม่เปิด SMCO
+                        if not cp_candidates:
+                            self.add_missing_cp_to_excel(sku_key, expected_price)
+                            err_msg = (
+                                f"มี Seller Voucher ({seller_voucher:,.2f} บาท) แต่ไม่พบ pattern ราคาใน cp_data.xlsx "
+                                f"สำหรับ SKU: {sku_key} (ราคาที่ต้องออกบิล: {expected_price:,.2f}) -> เพิ่มแถวลง cp_data.xlsx แล้วข้ามออเดอร์"
+                            )
+                            self.app.update_log(f"❌ {err_msg}")
+                            logger.warning(f"Order {getattr(self.bot, 'cus_order', '')}: {err_msg}")
+                            raise ValueError(err_msg)
+
+                        self.app.update_log(
+                            f"🔍 [เรื่องที่ 1: Seller Voucher] ค้นหาและใส่คูปอง Seller Voucher ({seller_voucher:,.2f} บาท) บน SMCO ให้กับ SKU: {sku_key} ก่อนเป็นอันดับแรก..."
+                        )
+                        sv_ok, sv_status, sv_chosen = self.find_and_apply_seller_voucher_on_smco(
+                            item_no_1indexed, seller_voucher
+                        )
+
+                        if not sv_ok:
+                            sugg_info = self.find_suggested_cp_for_discount(
+                                seller_voucher, require_seller_voucher=True
+                            )
+                            suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
+                            has_entry = len(cp_candidates) > 0
+                            self.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp_code)
+
+                            if sv_status == "NOT_FOUND":
+                                log_msg = (
+                                    f"❌ มี Seller Voucher ({seller_voucher:,.2f} บาท) แต่ไม่พบคูปอง Seller Voucher "
+                                    f"ที่มีมูลค่าส่วนลดตรงกันบน SMCO สำหรับ SKU: {sku_key} -> ยกเลิก/ข้ามออเดอร์ทันที"
+                                )
+                            elif sv_status == "AMBIGUOUS":
+                                log_msg = (
+                                    f"⚠️ พบคูปอง Seller Voucher ที่ตรงเงื่อนไขบน SMCO มากกว่า 1 รายการ "
+                                    f"สำหรับ SKU: {sku_key} -> ข้ามออเดอร์เพื่อความปลอดภัย"
+                                )
+                            else:
+                                log_msg = f"❌ ไม่สามารถกดเลือกคูปอง Seller Voucher บนหน้าเว็บ SMCO ได้สำหรับ SKU: {sku_key}"
+
+                            logger.warning(log_msg)
+                            self.app.update_log(log_msg)
+                            self._raise_missing_cp_guide(
+                                item, sku_key, actual_price, expected_price, purchased_date,
+                                has_entry=has_entry, cp_candidates=cp_candidates, suggested_cp_info=sugg_info
+                            )
+
+                        self.app.update_log(
+                            f"🎫 [เรื่องที่ 1 สำเร็จ] ใส่คูปอง Seller Voucher [{sv_chosen['code']}] ให้กับ SKU: {sku_key} เรียบร้อยแล้ว"
+                        )
+                        time.sleep(0.5)
+
+                        # ตรวจสอบราคาบน POS อีกครั้งหลังใส่ Seller Voucher
+                        new_price_res = self.bot.ProductManager.verify_item_price()
+                        if sku_key in new_price_res:
+                            item_price_info = new_price_res[sku_key]
+                            diff_val = item_price_info.get("diff", 0)
+                            actual_price = item_price_info.get("actual", 0)
+                        else:
+                            diff_val = 0
+
+                        if item_price_info.get("ok", False) or abs(diff_val) <= 0.05:
+                            self.app.update_log(
+                                f"✅ ราคา SKU: {sku_key} หลังใส่ Seller Voucher ตรงกับราคาเป้าหมายแล้ว ({actual_price:,.2f} บาท)"
+                            )
+                            continue
+
+                        self.app.update_log(
+                            f"🔄 [เรื่องที่ 2: Pattern CP เดิม] หลังใส่ Seller Voucher ราคายังมีส่วนต่าง ({diff_val:+,.2f} บาท) เข้าสู่ขั้นตอนปรับราคาตาม Pattern เดิม..."
+                        )
+
+                    # ══════════════════════════════════════════════════════════
+                    # ขั้นตอนที่ 2 (เรื่องที่ 2): ปรับราคาตาม Pattern เดิมใน cp_data.xlsx
+                    # ══════════════════════════════════════════════════════════
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
                     # ถ้าราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0) ให้ปรับราคาขึ้น (Overcharge) ทันที
                     if diff_val > 0:
@@ -1078,19 +1358,23 @@ class POSPricingReconciler:
                     elif diff_val < 0:
                         self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key} (พบ {len(cp_candidates)} รูปแบบใน CP Data)")
 
-                        # สแกนดูว่าในบรรดา candidates ทั้งหมด มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง (และอ่านรายละเอียดส่วนลดของทุกคูปองบน SMCO)
-                        available_candidates = self.scan_matching_cp_candidates_on_smco(item_no_1indexed, cp_candidates or [])
+                        # สแกนดูว่าในบรรดา candidates ทั้งหมด มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง
+                        available_candidates = self.scan_matching_cp_candidates_on_smco(
+                            item_no_1indexed, cp_candidates or [], required_seller_voucher=0.0
+                        )
 
                         target_discount = abs(float(diff_val))
-                        sugg_info = self.find_suggested_cp_for_discount(target_discount)
+                        sugg_info = self.find_suggested_cp_for_discount(
+                            target_discount, require_seller_voucher=False
+                        )
                         suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
                         # ─── CASE 0: ไม่พบชุดใดที่ใช้ได้บน SMCO เลย ───
                         if len(available_candidates) == 0:
                             has_entry = len(cp_candidates) > 0
                             self.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp_code)
-
                             log_msg = f"❌ ไม่พบชุด CP/DC ใดที่ตรงกับในระบบ SMCO สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออก: {expected_price}) -> หยุดปรับราคาและสร้างคำถาม"
+
                             logger.warning(log_msg)
                             self.app.update_log(log_msg)
                             self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=has_entry, cp_candidates=cp_candidates, suggested_cp_info=sugg_info)
@@ -1306,6 +1590,30 @@ class POSPricingReconciler:
         except Exception:
             expected_formatted = str(expected_price)
 
+        # หากมี Seller Voucher ให้แสดงราคาซื้อของลูกค้าแบบไม่รวม Seller Voucher ในข้อความแพทเทิร์นถามราคา
+        display_price = expected_price
+        try:
+            if hasattr(self.app, 'financials') and self.app.financials:
+                aggr = getattr(self.app.financials, 'aggregated_items', {})
+                if sku_key in aggr:
+                    t_qty = aggr[sku_key].get("total_qty", 1.0) or 1.0
+                    t_price = aggr[sku_key].get("total_price", 0.0)
+                    t_disc = aggr[sku_key].get("total_discount", 0.0)
+                    display_price = (t_price + t_disc) / t_qty
+            elif hasattr(item, 'get'):
+                raw_p = str(item.get('ราคาขายสุทธิ', item.get('ราคาตั้งต้น', expected_price))).replace(',', '')
+                raw_d = str(item.get('ส่วนลดจาก Shopee', 0)).replace(',', '')
+                raw_q = str(item.get('จำนวน', 1)).replace(',', '')
+                qty = float(raw_q) if raw_q else 1.0
+                display_price = (float(raw_p) + (float(raw_d) if raw_d else 0.0)) / (qty if qty > 0 else 1.0)
+        except Exception:
+            display_price = expected_price
+
+        try:
+            display_price_formatted = f"{float(display_price):,.2f}"
+        except Exception:
+            display_price_formatted = str(display_price)
+
         excel_cp_names = [c.get('cp_name') for c in (cp_candidates or []) if c.get('cp_name')]
         smco_scanned = getattr(self, 'last_scanned_smco_coupons', [])
 
@@ -1330,7 +1638,7 @@ class POSPricingReconciler:
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
             f"{sku_key} {product_name}\n"
             f"ยิงขายขึ้น {actual_formatted} บาท\n"
-            f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+            f"ลูกค้าซื้อราคา {display_price_formatted} บาท\n"
             f"ขอวิธีปรับราคาครับ"
             f"{extra_note}"
             f"{sugg_str}"

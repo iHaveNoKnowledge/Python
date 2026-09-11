@@ -6,8 +6,99 @@ from tkinter import filedialog
 import pandas as pd
 from loguru import logger
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 from pypdf import PdfReader
 from selenium.webdriver.common.by import By
+
+
+def classify_failed_reason(reason: str) -> str:
+    """วิเคราะห์และจัดหมวดหมู่ Failed Reason เป็นหมวดหมู่มาตรฐาน
+
+    หมวดหมู่:
+        - SN_SHORTAGE: ปัญหาเกี่ยวกับ Serial Number (SN ไม่พอ / ขาด SN)
+        - PRICE_MISMATCH: ปัญหาราคา / ส่วนลด / ขอวิธีปรับราคา
+        - TRACKING_ERROR: ปัญหา Tracking Number หรือ Package Card
+        - POSTAL_NOT_FOUND: ปัญหารหัสไปรษณีย์ / Dropdown ที่อยู่
+        - ORDER_NOT_FOUND: ค้นหาคำสั่งซื้อไม่พบในระบบ
+        - OTHER: ข้อผิดพลาดอื่นๆ
+    """
+    if not reason or pd.isna(reason):
+        return "OTHER"
+
+    r = str(reason).lower()
+
+    # 1. SN_SHORTAGE
+    sn_keywords = [
+        "จำนวน sn ไม่พอ",
+        "sn ใน accel file",
+        "sn_shortage",
+        "ไม่มี sn",
+        "sn ไม่พอ",
+        "ขาด sn",
+        "ยิง sn ไม่สำเร็จ",
+        "input serial",
+        "please input serial",
+        "btn-serial",
+    ]
+    if any(k in r for k in sn_keywords):
+        return "SN_SHORTAGE"
+    if ("sn" in r or "serial" in r) and any(w in r for w in ["ไม่พอ", "ขาด", "ไม่มี", "shortage", "missing"]):
+        return "SN_SHORTAGE"
+
+    # 2. PRICE_MISMATCH
+    price_keywords = [
+        "ขอวิธีปรับราคา",
+        "ราคาไม่ตรง",
+        "ราคา/จำนวนไม่ตรง",
+        "price mismatch",
+        "ไม่มีสินค้าให้ตรวจสอบและปรับราคา",
+        "ปรับราคา",
+        "ส่วนลด",
+        "คูปอง",
+        "cp_data",
+        "seller voucher",
+        "seller_voucher",
+        "voucher",
+    ]
+    if any(k in r for k in price_keywords):
+        return "PRICE_MISMATCH"
+
+    # 3. TRACKING_ERROR
+    tracking_keywords = [
+        "tracking",
+        "package card",
+        "นัดรับ",
+        "ได้เลขไม่ครบจำนวนรายการ",
+    ]
+    if any(k in r for k in tracking_keywords):
+        return "TRACKING_ERROR"
+
+    # 4. POSTAL_NOT_FOUND
+    postal_keywords = [
+        "postal code",
+        "รหัสไปรษณีย์",
+        "cannot be found in dropdown",
+        "dropdown",
+        "ตำบล",
+        "อำเภอ",
+    ]
+    if any(k in r for k in postal_keywords):
+        return "POSTAL_NOT_FOUND"
+
+    # 5. ORDER_NOT_FOUND
+    order_not_found_keywords = [
+        "ไม่พบออเดอร์",
+        "order not found",
+        "ไม่พบคำสั่งซื้อ",
+        "order_search",
+        "ไม่มีข้อมูลใน accel",
+        "ค้นหาออเดอร์ใหม่ไม่พบ",
+    ]
+    if any(k in r for k in order_not_found_keywords):
+        return "ORDER_NOT_FOUND"
+
+    return "OTHER"
+
 
 
 class AccelMode:
@@ -1188,7 +1279,7 @@ class AccelMode:
             return
 
     def _apply_excel_formatting(self, file_path):
-        """กำหนด AutoFilter และ Freeze Row 1 (A2) ให้กับทุก sheet ในไฟล์ Excel"""
+        """กำหนด AutoFilter, Freeze Row 1 (A2) และปรับความกว้างคอลัมน์ให้พอดีกับข้อมูลทุก sheet"""
         if not file_path or not os.path.exists(file_path):
             return
         try:
@@ -1197,6 +1288,36 @@ class AccelMode:
                 if ws.max_row > 0 and ws.max_column > 0:
                     ws.auto_filter.ref = ws.dimensions
                     ws.freeze_panes = "A2"
+
+                    # ปรับความกว้างคอลัมน์ให้อ่านง่ายพอดีข้อความ
+                    for col in ws.columns:
+                        col_cell = col[0]
+                        if not col_cell or col_cell.column is None:
+                            continue
+                        col_letter = get_column_letter(col_cell.column)
+                        header_val = str(col_cell.value or '').strip()
+
+                        max_len = 0
+                        for cell in col:
+                            if cell.value is not None:
+                                cell_lines = str(cell.value).split('\n')
+                                line_max = max(len(l) for l in cell_lines) if cell_lines else 0
+                                if line_max > max_len:
+                                    max_len = line_max
+
+                        if header_val == 'orders':
+                            target_width = max(max_len + 4, 24)
+                        elif header_val == 'timestamp':
+                            target_width = max(max_len + 3, 20)
+                        elif header_val == 'failed_category':
+                            target_width = max(max_len + 4, 18)
+                        elif header_val == 'failed_reason':
+                            target_width = min(max(max_len + 4, 25), 70)
+                        else:
+                            target_width = min(max(max_len + 3, 12), 50)
+
+                        ws.column_dimensions[col_letter].width = target_width
+
             wb.save(file_path)
             wb.close()
         except Exception as e:
@@ -1240,12 +1361,13 @@ class AccelMode:
         if saved_successfully:
             self._apply_excel_formatting(self.accel_file_dir)
 
-    def record_failed_order(self, order, reason):
-        """Record failed order
+    def record_failed_order(self, order, reason, category=None):
+        """Record failed order into Failed_Orders sheet in Accel Excel file.
 
         Args:
-            order (_type_): _order to record
-            reason (_type_): 
+            order: order object or string
+            reason: reason string
+            category: optional explicit category name. If None, classified automatically via classify_failed_reason.
         """
         if hasattr(order, 'get'):
             order_str = order.get()
@@ -1265,7 +1387,7 @@ class AccelMode:
                 return
 
             failed_df = pd.DataFrame(
-                columns=['orders', 'failed_reason', 'timestamp'])
+                columns=['timestamp', 'failed_category', 'orders', 'failed_reason'])
 
             try:
                 failed_df = pd.read_excel(
@@ -1273,18 +1395,39 @@ class AccelMode:
             except Exception:
                 print("Failed_Orders sheet does not exist yet. Creating a new one.")
 
+            # Backward compatibility: ถ้าชีตเดิมไม่มี failed_category ให้คำนวณย้อนหลังจาก failed_reason
+            if 'failed_category' not in failed_df.columns:
+                if 'failed_reason' in failed_df.columns:
+                    failed_df['failed_category'] = failed_df['failed_reason'].apply(classify_failed_reason)
+                else:
+                    failed_df['failed_category'] = 'OTHER'
+
+            if 'timestamp' not in failed_df.columns:
+                failed_df['timestamp'] = ''
+            if 'orders' not in failed_df.columns:
+                failed_df['orders'] = ''
+            if 'failed_reason' not in failed_df.columns:
+                failed_df['failed_reason'] = ''
+
+            # จัดเรียงคอลัมน์เดิมให้ตรงโครงสร้างใหม่ [timestamp, failed_category, orders, failed_reason]
+            failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
+
+            actual_category = str(category).strip() if category else classify_failed_reason(reason)
+
             new_row = pd.DataFrame([{
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+                'failed_category': actual_category,
                 'orders': order_str,
-                'failed_reason': str(reason),
-                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+                'failed_reason': str(reason)
             }])
 
             failed_df = failed_df[failed_df['orders'] != order_str]
             failed_df = pd.concat([failed_df, new_row], ignore_index=True)
+            failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
 
             self._save_df_to_excel(failed_df, 'Failed_Orders')
             print(
-                f"Successfully recorded failed order {order_str} to Failed_Orders sheet.")
+                f"Successfully recorded failed order {order_str} [{actual_category}] to Failed_Orders sheet.")
             self.used_serials = []
             self.sn_shortage = []
         except PermissionError as e:

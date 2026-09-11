@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from loguru import logger
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -102,6 +103,11 @@ class MarketplaceScraper:
                 ))
 
             search_elmt = self.bot.retry_on_stale_element(find_search_element)
+            try:
+                search_elmt.send_keys(Keys.CONTROL + "a")
+                search_elmt.send_keys(Keys.BACKSPACE)
+            except Exception:
+                pass
             search_elmt.clear()
             search_elmt.send_keys(order_no)
 
@@ -111,6 +117,10 @@ class MarketplaceScraper:
                 'div.order-search-buttons button.search-btn.eds-button.eds-button--primary.eds-button--normal.eds-button--outline'
             )
             self.driver.execute_script("arguments[0].click();", search_btn)
+            try:
+                search_elmt.send_keys(Keys.ENTER)
+            except Exception:
+                pass
         except Exception:
             print("Cannot search Shopee order")
             tb_str = traceback.format_exc()
@@ -121,38 +131,52 @@ class MarketplaceScraper:
                 raise ConnectionError(f"WebDriver connection lost during operation_start: {tb_str}") from None
             raise ValueError(f"Shopee search order Error: {tb_str}")
 
-        time.sleep(1)
-
         # 6. Wait for search result or empty indicator
         found_order = False
-        search_timeout = 10.0
+        search_timeout = 15.0
+        min_wait_before_empty = 3.0  # ให้เวลา Shopee โหลดข้อมูลอย่างน้อย 3 วินาทีก่อนสรุปว่าไม่พบออเดอร์
         start_time = time.time()
+        time.sleep(1.0)
+
         while not self.bot.operation_thread.is_set():
+            # 6.1 ตรวจสอบว่าพบออเดอร์หรือไม่
             try:
                 status_el = self.driver.find_elements(By.CLASS_NAME, 'status-wrapper')
                 order_sn_el = self.driver.find_elements(By.XPATH, "//div/span[@class='order-sn']")
 
-                if (status_el and status_el[0].is_displayed()) or (order_sn_el and order_sn_el[0].is_displayed()):
+                if (status_el and any(el.is_displayed() for el in status_el)) or (order_sn_el and any(el.is_displayed() for el in order_sn_el)):
                     found_order = True
                     print("Found order in Shopee")
                     break
             except Exception as e:
                 print(f"Error checking Shopee elements: {e}")
 
+            # 6.2 ตรวจสอบว่าหน้าเว็บยังโหลดอยู่หรือไม่ (Loading Spinner / Overlay)
+            is_loading = False
             try:
-                page_text = self.driver.page_source.lower()
-                empty_indicators = ["no data", "ไม่มีข้อมูล", "no orders", "no results"]
-                empty_el = self.driver.find_elements(
-                    By.CSS_SELECTOR, ".eds-empty, .empty-wrapper, .no-orders, .no-data")
-
-                if (empty_el and any(el.is_displayed() for el in empty_el)) or any(ind in page_text for ind in empty_indicators):
-                    print("Detected empty page in Shopee (order not found)")
-                    break
+                loading_el = self.driver.find_elements(
+                    By.CSS_SELECTOR, ".eds-loading, .shopee-loading, .eds-spin, .loading-wrapper, div[class*='loading']"
+                )
+                if loading_el and any(el.is_displayed() for el in loading_el):
+                    is_loading = True
             except Exception:
                 pass
 
-            if time.time() - start_time > search_timeout:
-                print("Search timeout in Shopee")
+            # 6.3 ตรวจสอบหน้าว่างเปล่าเฉพาะเมื่อไม่ได้โหลดอยู่ และผ่านเวลาขั้นต่ำไปแล้ว
+            elapsed = time.time() - start_time
+            if not is_loading and elapsed >= min_wait_before_empty:
+                try:
+                    empty_el = self.driver.find_elements(
+                        By.CSS_SELECTOR, ".eds-empty, .empty-wrapper, .no-orders, .no-data"
+                    )
+                    if empty_el and any(el.is_displayed() for el in empty_el):
+                        print(f"Detected empty page in Shopee (order not found) after {elapsed:.1f}s")
+                        break
+                except Exception:
+                    pass
+
+            if elapsed > search_timeout:
+                print(f"Search timeout in Shopee after {elapsed:.1f}s")
                 break
             time.sleep(0.5)
 
@@ -296,6 +320,11 @@ class MarketplaceScraper:
         except Exception:
             pass
 
+        try:
+            search_elmt.send_keys(Keys.CONTROL + "a")
+            search_elmt.send_keys(Keys.BACKSPACE)
+        except Exception:
+            pass
         search_elmt.clear()
         search_elmt.send_keys(order_no)
 
@@ -305,35 +334,52 @@ class MarketplaceScraper:
             '/html/body/div/section/div[2]/div/div[1]/div/div/form/div[2]/div/div/div/div[1]/div[3]/div[1]/div/div/div[1]'
         )
         search_btn.click()
-        time.sleep(0.75)
+        try:
+            search_elmt.send_keys(Keys.ENTER)
+        except Exception:
+            pass
 
         # 5. Wait for result or empty indicator
         found_order = False
-        search_timeout = 10.0
+        search_timeout = 15.0
+        min_wait_before_empty = 3.0
         start_time = time.time()
         status_btn_xpath = '/html/body/div/section/div[2]/div/div[1]/div/div/div[3]/div/div[3]/div/div[2]/div/div/div[5]/div[1]/button'
+        time.sleep(1.0)
 
         while not self.bot.operation_thread.is_set():
             try:
                 status_el = self.driver.find_elements(By.XPATH, status_btn_xpath)
-                if status_el and status_el[0].is_displayed():
+                if status_el and any(el.is_displayed() for el in status_el):
                     found_order = True
                     print("Found order in Lazada")
                     break
             except Exception as e:
                 print(f"Error checking Lazada elements: {e}")
 
+            # Check loading spinner
+            is_loading = False
             try:
-                page_text = self.driver.page_source.lower()
-                empty_el = self.driver.find_elements(By.CSS_SELECTOR, ".next-table-empty, .empty, .no-data")
-                if (empty_el and any(el.is_displayed() for el in empty_el)) or "ไม่มีข้อมูล" in page_text or "no data" in page_text:
-                    print("Detected empty page in Lazada (order not found)")
-                    break
+                loading_el = self.driver.find_elements(
+                    By.CSS_SELECTOR, ".next-loading, .loading, div[class*='loading']"
+                )
+                if loading_el and any(el.is_displayed() for el in loading_el):
+                    is_loading = True
             except Exception:
                 pass
 
-            if time.time() - start_time > search_timeout:
-                print("Search timeout in Lazada")
+            elapsed = time.time() - start_time
+            if not is_loading and elapsed >= min_wait_before_empty:
+                try:
+                    empty_el = self.driver.find_elements(By.CSS_SELECTOR, ".next-table-empty, .empty, .no-data")
+                    if empty_el and any(el.is_displayed() for el in empty_el):
+                        print(f"Detected empty page in Lazada (order not found) after {elapsed:.1f}s")
+                        break
+                except Exception:
+                    pass
+
+            if elapsed > search_timeout:
+                print(f"Search timeout in Lazada after {elapsed:.1f}s")
                 break
             time.sleep(0.5)
 
