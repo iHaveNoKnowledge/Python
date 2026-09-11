@@ -4592,7 +4592,6 @@ class Bot_POS:
                                 logger.info(f"Order: {self.app.order} (gen {my_generation}) aborted before operation_start.")
                                 break
                             logger.info(f"Order: {self.app.order} Start!!")
-                            self.is_test_checkpoint_halt = False
                             self.app.report_manager.start_order(
                                 self.app.order,
                                 marketplace=self.app.marketplace_target.get(),
@@ -4602,9 +4601,6 @@ class Bot_POS:
                             self.current_checkpoint = "เริ่มรัน"
                             self.operation_start()
                         # ปล่อย driver_lock หลังจบหน้าแรก เพื่อให้ auto_add_product สามารถทำงานได้ระหว่างรอหน้าท้าย
-                        if getattr(self, 'is_test_checkpoint_halt', False):
-                            # บอทหยุดที่จุดทดสอบหน้าแรก (เช่น Checkpoint 1, 2, 3) ออกจากลูปเพื่อไปทำออเดอร์ถัดไป หรือส่งมอบหน้าจอ
-                            break
                         if self.app.order != "" and not self.operation_thread.is_set():
                             self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
                             if hasattr(self, 'payment_handler') and self.payment_handler:
@@ -6223,7 +6219,6 @@ class Bot_POS:
                 if self.should_stop_at_test_checkpoint("3. หลังยิงสินค้า/คูปองหน้าแรก"):
                     logger.info(
                         f"Order: {self.cus_order} Testing mode stopped at Checkpoint 3 (Front page). Attempting to update Accel file with order data.")
-                    self.is_test_checkpoint_halt = True
                     try:
                         tracking_no = (
                             ", ".join(self.tracking_manager.trackings)
@@ -6242,7 +6237,7 @@ class Bot_POS:
                         used_sns = getattr(self.app.accel_mode, "used_serials", [])
 
                         self.app.accel_mode.deduct_accel_file_data(
-                            self.app.cus_order, used_sns, remove_order=True, update_memory=True)
+                            self.app.cus_order, used_sns)
                         self.app.accel_mode.record_completed_order(
                             self.app.cus_order,
                             tracking=tracking_no,
@@ -6252,34 +6247,6 @@ class Bot_POS:
                             serials=used_sns,
                             pricing_detail=pricing_detail
                         )
-
-                        # ตรวจสอบเงื่อนไข Auto-advance: Test Mode + Accel Mode + Auto Invoice Mode
-                        is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get())
-                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
-                        is_auto_advance = is_accel and is_auto_inv
-                        is_test_passed = "TEST_SUCCESS" in test_status
-
-                        if is_auto_advance:
-                            if is_test_passed:
-                                self.app.update_log("🚀 [Test Mode + Accel] Checkpoint 3 ผ่าน (All OK)! กำลังล้างตะกร้าเพื่อเริ่ม Order ถัดไป...")
-                                logger.info(f"Order: {self.cus_order} - Test Mode Checkpoint 3 passed in Accel+AutoInv mode. Auto-advancing.")
-                                self.clean_pos_cart()
-                                if hasattr(self.app, 'report_manager'):
-                                    self.app.report_manager.finish_order(self.app.order, overall_status="SUCCESS")
-                            else:
-                                msg_fail = f"❌ [Test Mode Checkpoint 3] การทดสอบไม่ผ่าน ({test_status}) บอทหยุดเพื่อให้ผู้ใช้ตรวจสอบ"
-                                self.app.update_log(msg_fail)
-                                logger.error(f"Order: {self.cus_order} - {msg_fail}")
-                                if hasattr(self.app, 'report_manager'):
-                                    self.app.report_manager.finish_order(self.app.order, overall_status="FAILED", note=test_status)
-                                if hasattr(self.app, 'is_accel_mode_activated'):
-                                    self.app.is_accel_mode_activated.set(False)
-                                if hasattr(self.app, 'display_bot_status_label'):
-                                    self.app.display_bot_status_label.configure(
-                                        text="Bot Status: Your Turn (Test Failed)",
-                                        fg_color="#ff2b2b",
-                                        text_color="#ffffff",
-                                    )
 
                     except Exception as err:
                         logger.info(
@@ -8421,76 +8388,6 @@ class Bot_POS:
     def final_popup_after_green_btn_handler(self, is_etax=False, operation_obj=None):
         return self.payment_handler.final_popup_handler(is_etax, operation_obj)
 
-    def clean_pos_cart(self) -> bool:
-        """
-        ล้างตะกร้าสินค้าในหน้าเปิดการขาย (POS Page 1) ให้ว่างเปล่า
-        ใช้วิธี Fast Clear (คลิกปุ่มกากบาทที่ memberSearch แล้วกด OK swal2)
-        หากสินค้ายังตกค้าง จะสลับไปรีโหลดหน้า POS เป็น Fallback
-        """
-        try:
-            print("🧼 เริ่มกระบวนการล้างตะกร้า POS (clean_pos_cart)...")
-            self.app.update_log("🧼 กำลังล้างตะกร้าสินค้าบน POS...")
-            fast_cleared = False
-            clear_xpath = (
-                "//span[@id='select2-memberSearch-container']//span[@class='select2-selection__clear']"
-                " | //span[contains(@id, 'select2-memberSearch')]//span[contains(@class, 'select2-selection__clear')]"
-            )
-            clear_btns = self.driver.find_elements(By.XPATH, clear_xpath)
-            target_btns = [b for b in clear_btns if b.is_displayed()] or clear_btns
-            for btn in target_btns:
-                try:
-                    btn.click()
-                except Exception:
-                    self.driver.execute_script("arguments[0].click();", btn)
-
-                # รอปุ่มยืนยัน Pop-up (swal2-confirm)
-                confirm_btn = None
-                for _ in range(12):
-                    c_btns = self.driver.find_elements(
-                        By.XPATH,
-                        "//button[@class = 'swal2-confirm styled' and (text()='OK' or text()='ตกลง')]"
-                    )
-                    disp = [b for b in c_btns if b.is_displayed()]
-                    if disp:
-                        confirm_btn = disp[0]
-                        break
-                    time.sleep(0.12)
-
-                if confirm_btn:
-                    try:
-                        confirm_btn.click()
-                    except Exception:
-                        self.driver.execute_script("arguments[0].click();", confirm_btn)
-
-                # ตรวจสอบว่าสินค้าในตะกร้าถูกล้างหมดแล้ว
-                for _ in range(15):
-                    remaining_items = (
-                        self.driver.find_elements(By.XPATH, self.ProductManager.XPATH_SKU_TEXTS)
-                        if hasattr(self, 'ProductManager') and hasattr(self.ProductManager, 'XPATH_SKU_TEXTS')
-                        else []
-                    )
-                    remaining_skus = [el.text.strip() for el in remaining_items if el.text.strip()]
-                    if not remaining_skus:
-                        fast_cleared = True
-                        break
-                    time.sleep(0.1)
-
-                if fast_cleared:
-                    print("✨ ล้างตะกร้าแบบเร็วสำเร็จ (clean_pos_cart)")
-                    self.app.update_log("✨ ล้างตะกร้าแบบเร็วสำเร็จเรียบร้อย")
-                    return True
-
-            if not fast_cleared:
-                print("🔄 Fast clear ไม่สำเร็จ กำลังรีโหลดหน้า POS เพื่อล้างตะกร้า...")
-                self.app.update_log("🔄 สลับไปรีโหลดหน้า POS เพื่อล้างตะกร้าให้เป็นศูนย์...")
-                self.driver.get(f"{self.origin}/smartcore/smartpos/pointofsales/posmainv3.htm")
-                self.interruptible_sleep(1.5)
-                return True
-        except Exception as e:
-            print(f"clean_pos_cart error: {e}")
-            logger.warning(f"clean_pos_cart failed: {e}")
-            return False
-
     def return_to_first_page(self):
         return self.payment_handler.return_to_first_page()
 
@@ -8513,18 +8410,14 @@ class Bot_POS:
 
         prefix = current_checkpoint_name[:2]
         if current_checkpoint_name in selected_cp_value or (prefix and selected_cp_value.startswith(prefix)):
-            msg = f"🔬 [Test Mode] ถึงจุดหยุดที่เลือก: '{selected_cp_value}'"
+            msg = f"🔬 [Test Mode] ถึงจุดหยุดที่เลือก: '{selected_cp_value}' (ส่งมอบหน้าจอให้ User)"
             print(msg)
             self.app.update_log(f"⚠️ {msg}")
             logger.info(f"Order: {self.cus_order} - {msg}")
             self.current_checkpoint = f"Test Mode: หยุดที่ {selected_cp_value}"
 
-            is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get())
-            is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
-            is_auto_advance = is_accel and is_auto_inv
-
             _op_thread = getattr(self.app, 'operation_thread', None)
-            if (_op_thread is None or not _op_thread.is_set()) and not is_auto_advance:
+            if _op_thread is None or not _op_thread.is_set():
                 self.app.display_bot_status_label.configure(
                     text=f"Bot Status: Your Turn ({prefix})",
                     fg_color="#ffec1f",
