@@ -63,16 +63,16 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
-### [5.2.5 / ver5.x.x] - 2026-09-11
+### [ver5.x.x] - 2026-09-11
 - [x] **[Test Mode Accel Auto-Advance on Pass]** เพิ่มระบบข้ามไปออเดอร์ถัดไปอัตโนมัติใน Test Mode เมื่อเปิดรันคู่กับ Accel Mode + Auto Invoice:
   - หาก `is_testing == True` และรันบน `is_accel_mode == True` คู่กับ `is_auto_invoice_mode == True`:
     - **กรณี Test ผ่าน (All OK)**: บันทึกข้อมูลออเดอร์ที่ทดสอบสำเร็จลงไฟล์ Accel (`deduct_accel_file_data`, `record_completed_order`), รายงานผลลง `report_manager.finish_order("SUCCESS")`, กดย้อนกลับไปหน้าแรก (`return_to_first_page`), ล้างตะกร้าสินค้า (`clean_pos_cart`), และส่งสัญญาณให้คิวของ Accel Mode ดำเนินการออเดอร์ถัดไปได้ทันทีอย่างต่อเนื่องโดยไม่ติดค้างที่หน้าจอ
     - **กรณี Test ไม่ผ่าน (Fail)**: บอทจะหยุดการทำงานทันที, ปิด Accel Mode (`is_accel_mode_activated = False`), ปรับสถานะป้ายเป็น `Bot Status: Your Turn (Test Failed)` และค้างหน้าจอไว้เพื่อให้ผู้ใช้เข้ามาตรวจสอบสาเหตุได้อย่างแม่นยำ
     - **กรณีทดสอบแบบ Manual ออเดอร์เดี่ยว (ไม่ใช่ Accel Mode)**: คงพฤติกรรมเดิมไว้ทุกประการ โดยบอทจะหยุดที่ Checkpoint ตามที่เลือกเพื่อให้ผู้ใช้ตรวจสอบและดำเนินการต่อเอง
-  - เพิ่มเมธอด `clean_pos_cart()` บน `Bot_POS` ใน `autopage_MKII_ver5.2.5LITE.py` และ `ver5.x.x.py` สำหรับเคลียร์ตะกร้าสินค้าแบบ Fast Clear พร้อมกดยืนยัน Pop-up
+  - เพิ่มเมธอด `clean_pos_cart()` บน `Bot_POS` ใน `ver5.x.x.py` สำหรับเคลียร์ตะกร้าสินค้าแบบ Fast Clear พร้อมกดยืนยัน Pop-up
   - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_test_mode_checkpoints.py` ครอบคลุมทั้งกรณี Pass (Auto-advance) และ Fail (Halt) ผ่านฉลุย 100%
 
-### [5.2.5 / ver5.x.x] - 2026-09-09
+### [5.2.5] - 2026-09-09
 - [x] **[Seller Voucher CP Integration & SSOT Pricing Guard]** ปรับปรุงระบบคำนวณราคาเพื่อรองรับการเปลี่ยนผ่านของ Seller Voucher ไปเป็น Campaign Coupon (CP) บน SMCO POS:
   - ปรับปรุง `OrderFinancials.recalculate()` ใน `functions/pos/pricing_engine.py` ให้อ่านค่า `โค้ดส่วนลดชำระโดยผู้ขาย` / `ส่วนลดจากร้านค้า` ทั้งในระดับแถวสินค้าและระดับออเดอร์ นำไปหักออกจากราคาคาดหวัง (`item_expected_prices`) ของ SKU เป้าหมาย เพื่อให้บอทค้นหาและเลือก CP ใน `cp_data.xlsx` ที่มีมูลค่าส่วนลดตรงกับ Seller Voucher
   - ปรับปรุง `ProductManager.verify_item_price()` และ `verify_total_price()` ใน `functions/product_manager.py` ให้ใช้ `OrderFinancials` เป็น Single Source of Truth (SSOT) ในการเปรียบเทียบราคาต่อชิ้นและยอดรวมตะกร้าสินค้าบน POS แทนการคำนวณราคาแบบเดิม
