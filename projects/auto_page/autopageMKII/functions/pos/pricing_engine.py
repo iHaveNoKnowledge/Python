@@ -88,6 +88,34 @@ def is_seller_voucher_desc(desc: Any) -> bool:
     return any(k in normalized for k in keywords)
 
 
+def get_coupon_recency_score(code: str, desc: str = "") -> int:
+    """
+    คำนวณคะแนนความใหม่ของคูปอง SMCO เพื่อนำมาจัดเรียงจากใหม่สุดไปเก่าสุด (Latest First)
+    รหัสคูปอง SMCO มักอยู่ในรูปแบบ CP/DC + YYMMDD + XXXX เช่น CP2609100001
+    """
+    if not code:
+        return 0
+    # ดึงตัวเลขลำดับจากรหัสคูปอง (เช่น CP2609100001 -> 2609100001)
+    m = re.search(r'\d{6,10}', str(code))
+    if m:
+        try:
+            return int(m.group(0))
+        except Exception:
+            pass
+
+    # fallback: ดึงวันที่จากข้อความรายละเอียด (เช่น 10/09/2026)
+    m_date = re.search(r'(\d{2})/(\d{2})/(\d{4})', f"{code} {desc}")
+    if m_date:
+        try:
+            d, m_val, y = int(m_date.group(1)), int(m_date.group(2)), int(m_date.group(3))
+            return (y % 100) * 100000000 + m_val * 1000000 + d * 10000
+        except Exception:
+            pass
+
+    return 0
+
+
+
 
 @dataclass
 class OrderFinancials:
@@ -444,23 +472,36 @@ class POSPricingReconciler:
         คำนวณหาคูปอง (ตัวเดียว หรือคู่ผสม) จากรายการคูปองที่สแกนได้บนหน้าเว็บ SMCO
         ที่มีมูลค่าส่วนลดตรงกับ target_discount พอดี (ความคลาดเคลื่อน <= 0.05 บาท)
         หาก require_seller_voucher=True จะพิจารณาเฉพาะคูปองที่มีข้อความบ่งชี้ว่าเป็น Seller Voucher เท่านั้น
+        โดยจะแนะนำคูปองที่ใหม่ที่สุด (Latest First) เสมอ
         """
         details = getattr(self, 'last_scanned_smco_coupon_details', [])
         if not details or target_discount <= 0:
             return None
 
-        # 1. ตรวจสอบคูปองเดี่ยว (Single Coupon)
+        # 1. ตรวจสอบคูปองเดี่ยว (Single Coupon) - รวบรวมทั้งหมดแล้วเลือกตัวที่ใหม่ที่สุด
+        matching_singles = []
         for c in details:
             if require_seller_voucher and not is_seller_voucher_desc(c.get("desc", "")):
                 continue
             if abs(c['discount'] - target_discount) <= 0.05 and c['discount'] > 0:
-                return {
+                matching_singles.append({
                     "suggested_code": c['code'],
                     "discount": c['discount'],
-                    "type": "single"
-                }
+                    "type": "single",
+                    "score": get_coupon_recency_score(c.get('code', ''), c.get('desc', ''))
+                })
+
+        if matching_singles:
+            matching_singles.sort(key=lambda x: x["score"], reverse=True)
+            best = matching_singles[0]
+            return {
+                "suggested_code": best["suggested_code"],
+                "discount": best["discount"],
+                "type": best["type"]
+            }
 
         # 2. ตรวจสอบคูปองคู่ผสม (Combination เช่น CP 1 ตัว + DC 1 ตัว หรือ CP 2 ตัว)
+        matching_combos = []
         for i in range(len(details)):
             for j in range(i + 1, len(details)):
                 c1 = details[i]
@@ -471,13 +512,27 @@ class POSPricingReconciler:
                         continue
                 total_disc = c1['discount'] + c2['discount']
                 if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
-                    return {
+                    s1 = get_coupon_recency_score(c1.get('code', ''), c1.get('desc', ''))
+                    s2 = get_coupon_recency_score(c2.get('code', ''), c2.get('desc', ''))
+                    combo_score = max(s1, s2)
+                    matching_combos.append({
                         "suggested_code": f"{c1['code']} {c2['code']}",
                         "discount": total_disc,
-                        "type": "combo"
-                    }
+                        "type": "combo",
+                        "score": combo_score
+                    })
+
+        if matching_combos:
+            matching_combos.sort(key=lambda x: x["score"], reverse=True)
+            best = matching_combos[0]
+            return {
+                "suggested_code": best["suggested_code"],
+                "discount": best["discount"],
+                "type": best["type"]
+            }
 
         return None
+
 
     # ══════════════════════════════════════════════════════════════════════════
     # COUPON SELECTION & ADJUSTMENTS ON POS CART
@@ -964,11 +1019,18 @@ class POSPricingReconciler:
                 if is_seller_voucher_desc(d.get("desc", "")) and abs(d.get("discount", 0.0) - required_seller_voucher) <= 0.05:
                     matching_sv.append(d)
 
+            # เรียงลำดับให้คูปองที่ใหม่ที่สุดขึ้นมาก่อนเสมอ
+            matching_sv.sort(
+                key=lambda x: get_coupon_recency_score(x.get('code', ''), x.get('desc', '')),
+                reverse=True
+            )
+
             if len(matching_sv) == 0:
                 print(f"[find_and_apply_seller_voucher_on_smco] No matching seller voucher found for amount {required_seller_voucher}. Available details: {details}")
                 return False, "NOT_FOUND", None
             elif len(matching_sv) > 1:
                 return False, "AMBIGUOUS", matching_sv[0]
+
             else:
                 chosen = matching_sv[0]
                 cp_code = chosen.get("code", "")

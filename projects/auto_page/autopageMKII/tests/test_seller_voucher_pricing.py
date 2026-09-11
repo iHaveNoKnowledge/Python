@@ -549,8 +549,34 @@ class TestSellerVoucherPricing(unittest.TestCase):
         self.assertEqual(len(details), 1)
         self.assertEqual(details[0]["desc"], "coupon voucher 500.-")
 
+    def test_find_suggested_cp_for_discount_selects_latest_coupon(self):
+        """ทดสอบว่า find_suggested_cp_for_discount แนะนำคูปองที่มีรหัส/วันที่ใหม่ล่าสุดเสมอเมื่อมีหลายตัวที่ลดได้ตรงกัน"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # จำลองรายละเอียดคูปองที่สแกนได้บน SMCO โดยคูปองเก่า (CP2609070026) อยู่ก่อนคูปองใหม่ (CP2609100001)
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "DC2410010001", "discount": 3000.0, "desc": "DC MSI Notebook 2025"},
+            {"code": "DC2507220036", "discount": 60.0, "desc": "BUNDLE MOUSE WISE MT-202"},
+            {"code": "CP2609070008", "discount": 500.0, "desc": "Promotion MSI Claw 07 Sep"},
+            {"code": "CP2609070026", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 08-15 Sep 2026"},
+            {"code": "CP2609100001", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 10-30 Sep 2026"},
+        ]
+
+        # ค้นหาคูปองแนะนำสำหรับส่วนลด 500 บาท
+        res = reconciler.find_suggested_cp_for_discount(500.0, require_seller_voucher=False)
+        self.assertIsNotNone(res)
+        # ต้องเลือก CP2609100001 ที่ใหม่กว่า ไม่ใช่ CP2609070026 หรือ CP2609070008 ที่เก่ากว่า
+        self.assertEqual(res["suggested_code"], "CP2609100001")
+        self.assertEqual(res["discount"], 500.0)
+
+        # หากต้องการเฉพาะ Seller Voucher
+        res_sv = reconciler.find_suggested_cp_for_discount(500.0, require_seller_voucher=True)
+        self.assertIsNotNone(res_sv)
+        self.assertEqual(res_sv["suggested_code"], "CP2609100001")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
