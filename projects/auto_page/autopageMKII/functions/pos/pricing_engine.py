@@ -491,15 +491,6 @@ class POSPricingReconciler:
                     "score": get_coupon_recency_score(c.get('code', ''), c.get('desc', ''))
                 })
 
-        if matching_singles:
-            matching_singles.sort(key=lambda x: x["score"], reverse=True)
-            best = matching_singles[0]
-            return {
-                "suggested_code": best["suggested_code"],
-                "discount": best["discount"],
-                "type": best["type"]
-            }
-
         # 2. ตรวจสอบคูปองคู่ผสม (Combination เช่น CP 1 ตัว + DC 1 ตัว หรือ CP 2 ตัว)
         matching_combos = []
         for i in range(len(details)):
@@ -522,16 +513,45 @@ class POSPricingReconciler:
                         "score": combo_score
                     })
 
-        if matching_combos:
+        best = None
+        if matching_singles:
+            matching_singles.sort(key=lambda x: x["score"], reverse=True)
+            best = matching_singles[0]
+        elif matching_combos:
             matching_combos.sort(key=lambda x: x["score"], reverse=True)
             best = matching_combos[0]
-            return {
-                "suggested_code": best["suggested_code"],
-                "discount": best["discount"],
-                "type": best["type"]
-            }
 
-        return None
+        if not best:
+            return None
+
+        # ตรวจสอบคูปองที่เป็นค่าเริ่มต้น (Pre-selected coupons บน SMCO)
+        preselected = getattr(self, 'last_preselected_smco_coupons', None)
+        if preselected is None:
+            preselected = []
+            for c in details:
+                if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
+                    preselected.append(c.get("code"))
+
+        # หากเป็นการค้นหา Seller Voucher สำหรับเรื่องที่ 1 หรือไม่มี preselected ให้ใช้รหัสใหม่เพียวๆ
+        if require_seller_voucher or not preselected:
+            final_code = best["suggested_code"]
+            pre_codes = []
+        else:
+            # ดึงรหัส preselected ที่ไม่ซ้ำกับคูปองใหม่ที่แนะนำ
+            new_tokens = [tok.strip().upper() for tok in best["suggested_code"].split()]
+            pre_codes = [p for p in preselected if p.strip().upper() not in new_tokens]
+            if pre_codes:
+                final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
+            else:
+                final_code = best["suggested_code"]
+
+        return {
+            "suggested_code": final_code,
+            "preselected_codes": pre_codes,
+            "new_code": best["suggested_code"],
+            "discount": best["discount"],
+            "type": best["type"]
+        }
 
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -897,17 +917,36 @@ class POSPricingReconciler:
                             except Exception:
                                 disc_val = 0.0
 
+                    # 4. ตรวจสอบสถานะการเลือกของปุ่มคูปอง (btn-primary = ถูกเลือกอยู่แล้ว / btn-default = ยังไม่ถูกเลือก)
+                    is_sel = False
+                    try:
+                        primary_btns = item_el.find_elements(
+                            By.XPATH, ".//button[contains(@class, 'btn-primary')]"
+                        )
+                        if primary_btns and any(b.is_displayed() for b in primary_btns):
+                            is_sel = True
+                        elif primary_btns:
+                            is_sel = True
+                    except Exception:
+                        pass
+
                     if c_name:
                         scanned_details.append({
                             "code": c_name,
                             "discount": disc_val,
                             "desc": c_desc,
-                            "raw_discount": disc_text
+                            "raw_discount": disc_text,
+                            "is_selected": is_sel
                         })
             except Exception as e:
                 print(f"[scan_matching_cp_candidates_on_smco] Error scraping coupon details: {e}")
 
             self.last_scanned_smco_coupon_details = scanned_details
+            preselected = []
+            for sc in scanned_details:
+                if sc.get("is_selected") and sc.get("code") and sc.get("code") not in preselected:
+                    preselected.append(sc.get("code"))
+            self.last_preselected_smco_coupons = preselected
 
             # ปิด Modal ชั่วคราว (ยังไม่เลือก)
             try:
@@ -1690,11 +1729,24 @@ class POSPricingReconciler:
         if suggested_cp_info:
             s_code = suggested_cp_info.get("suggested_code", "")
             s_disc = suggested_cp_info.get("discount", 0.0)
-            sugg_str = (
-                f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ:\n"
-                f"   • แนะนำ: '{s_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
-                f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
-            )
+            pre_codes = suggested_cp_info.get("preselected_codes", [])
+            new_code = suggested_cp_info.get("new_code", s_code)
+
+            if pre_codes:
+                pre_str = ", ".join(pre_codes)
+                sugg_str = (
+                    f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ (แบบคู่ผสม):\n"
+                    f"   • คูปองเริ่มต้นที่ติดมากับสินค้า: '{pre_str}'\n"
+                    f"   • คูปองที่ต้องเลือกเพิ่ม: '{new_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
+                    f"   • รหัสรวมที่แนะนำ: '{s_code}'\n"
+                    f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
+                )
+            else:
+                sugg_str = (
+                    f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ:\n"
+                    f"   • แนะนำ: '{s_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
+                    f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
+                )
 
         pattern_msg = (
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"

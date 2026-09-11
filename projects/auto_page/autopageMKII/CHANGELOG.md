@@ -69,8 +69,11 @@
     - **กรณี Test ผ่าน (All OK)**: บันทึกข้อมูลออเดอร์ที่ทดสอบสำเร็จลงไฟล์ Accel (`deduct_accel_file_data`, `record_completed_order`), รายงานผลลง `report_manager.finish_order("SUCCESS")`, กดย้อนกลับไปหน้าแรก (`return_to_first_page`), ล้างตะกร้าสินค้า (`clean_pos_cart`), และส่งสัญญาณให้คิวของ Accel Mode ดำเนินการออเดอร์ถัดไปได้ทันทีอย่างต่อเนื่องโดยไม่ติดค้างที่หน้าจอ
     - **กรณี Test ไม่ผ่าน (Fail)**: บอทจะหยุดการทำงานทันที, ปิด Accel Mode (`is_accel_mode_activated = False`), ปรับสถานะป้ายเป็น `Bot Status: Your Turn (Test Failed)` และค้างหน้าจอไว้เพื่อให้ผู้ใช้เข้ามาตรวจสอบสาเหตุได้อย่างแม่นยำ
     - **กรณีทดสอบแบบ Manual ออเดอร์เดี่ยว (ไม่ใช่ Accel Mode)**: คงพฤติกรรมเดิมไว้ทุกประการ โดยบอทจะหยุดที่ Checkpoint ตามที่เลือกเพื่อให้ผู้ใช้ตรวจสอบและดำเนินการต่อเอง
-  - เพิ่มเมธอด `clean_pos_cart()` บน `Bot_POS` ใน `ver5.x.x.py` สำหรับเคลียร์ตะกร้าสินค้าแบบ Fast Clear พร้อมกดยืนยัน Pop-up
-  - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_test_mode_checkpoints.py` ครอบคลุมทั้งกรณี Pass (Auto-advance) และ Fail (Halt) ผ่านฉลุย 100%
+- [x] **[Pre-selected Default CP Pairing Recommendation]** เพิ่มระบบแนะนำคูปองแบบคู่ผสม (คูปองเริ่มต้น + คูปองที่ต้องเพิ่ม) เมื่อตรวจพบคูปองที่ถูกเลือกเป็นค่าเริ่มต้น (`btn-primary`) บนหน้าต่างคูปองของ SMCO:
+  - ใน `scan_matching_cp_candidates_on_smco` ตรวจสอบสถานะปุ่ม `btn-primary` เพื่อดึงรหัสคูปองที่ถูกเลือกอยู่แล้ว (รวมทั้ง Default CP และ Seller Voucher) เก็บเข้า `last_preselected_smco_coupons`
+  - ใน `find_suggested_cp_for_discount` คำนวณคูปองแนะนำใหม่แล้วนำมาเชื่อมคู่กับคูปองเริ่มต้น เช่น `'CP2608280058 CP2608310072'`
+  - ใน `_raise_missing_cp_guide` แจ้งเตือนแจกแจงชัดเจนว่าสินค้ามีคูปองเริ่มต้นใด และต้องเพิ่มคูปองใด พร้อมบันทึกรหัสคู่ผสมลงในคอลัมน์ `suggested_cp` ของ `cp_data.xlsx` ทันที เพื่อให้ผู้ใช้คัดลอกไปใช้ใน `cp_name` ได้โดยไม่ต้องเปิดดูหน้าเว็บเอง
+  - เพิ่มชุดทดสอบอัตโนมัติ 7 ข้อใน `tests/test_preselected_coupon_recommendation.py` ผ่านฉลุย 100%
 
 ### [5.2.5] - 2026-09-09
 - [x] **[Seller Voucher CP Integration & SSOT Pricing Guard]** ปรับปรุงระบบคำนวณราคาเพื่อรองรับการเปลี่ยนผ่านของ Seller Voucher ไปเป็น Campaign Coupon (CP) บน SMCO POS:
