@@ -261,11 +261,84 @@ class POSPaymentHandler:
                             expected_cus_name=cus_name_val,
                             expected_price=final_price,
                         )
-                        status_text = "✅ ครบถ้วน (All OK)" if verification.get("all_ok") else "❌ ไม่ครบถ้วน"
+                        is_all_ok = bool(verification.get("all_ok"))
+                        status_text = "✅ ครบถ้วน (All OK)" if is_all_ok else "❌ ไม่ครบถ้วน"
                         print(f"🔬 [Test Mode Checkpoint 4] Final page verification: {status_text} -> {verification}")
                         self.app.update_log(
-                            f"🔬 [Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text} (หยุดการทำงานตาม Checkpoint 4)"
+                            f"🔬 [Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text}"
                         )
+
+                        # ตรวจสอบเงื่อนไข Auto-advance: Test Mode + Accel Mode + Auto Invoice Mode คู่กัน
+                        is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get())
+                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+                        is_auto_advance = is_accel and is_auto_inv
+
+                        if is_auto_advance:
+                            if is_all_ok:
+                                self.app.update_log("🚀 [Test Mode + Accel] ผลการ Test หน้าท้ายผ่าน (All OK)! กำลังบันทึกผลและกดย้อนกลับเพื่อเริ่ม Order ถัดไป...")
+                                logger.info(f"Order: {self.cus_order} - Test Mode Checkpoint 4 passed in Accel+AutoInv mode. Auto-advancing to next order.")
+
+                                # 1. บันทึกผลการทดสอบลงไฟล์ Accel
+                                try:
+                                    tracking_no = (
+                                        ", ".join(self.bot.tracking_manager.trackings)
+                                        if hasattr(self.bot, 'tracking_manager') and self.bot.tracking_manager.trackings
+                                        else ""
+                                    )
+                                    used_sns = getattr(self.app.accel_mode, "used_serials", [])
+                                    pricing_detail = getattr(self.app, 'last_pricing_detail', "")
+                                    self.app.accel_mode.deduct_accel_file_data(
+                                        self.cus_order, sku_serials=used_sns, remove_order=True, update_memory=True
+                                    )
+                                    self.app.accel_mode.record_completed_order(
+                                        self.cus_order,
+                                        tracking=tracking_no,
+                                        bill_no="TEST_MODE",
+                                        status="TEST_SUCCESS (หน้าท้ายครบถ้วน/All OK)",
+                                        price=str(round(final_price, 2)),
+                                        serials=used_sns,
+                                        pricing_detail=pricing_detail
+                                    )
+                                except Exception as rec_err:
+                                    logger.warning(f"บันทึกผล Accel mode test ล้มเหลว: {rec_err}")
+
+                                # 2. รายงาน Report Manager
+                                if hasattr(self.app, 'report_manager'):
+                                    self.app.report_manager.finish_order(self.cus_order, overall_status="SUCCESS")
+
+                                # 3. กดย้อนกลับไปหน้าแรก และ ล้างตะกร้า POS
+                                self.return_to_first_page()
+                                time.sleep(0.5)
+                                if hasattr(self.bot, 'clean_pos_cart'):
+                                    self.bot.clean_pos_cart()
+
+                                self.bot.autofinal = False
+                                return True
+                            else:
+                                # Test ไม่ผ่าน: หยุดการทำงานทันทีเพื่อให้ผู้ใช้ตรวจสอบจุดผิดพลาด
+                                err_details = [k for k, v in verification.items() if k != 'all_ok' and isinstance(v, dict) and not v.get('ok', False)]
+                                msg_fail = f"❌ [Test Mode Checkpoint 4] ข้อมูลหน้าท้ายไม่ครบถ้วน ({err_details}) บอทหยุดเพื่อให้ผู้ใช้ตรวจสอบ"
+                                print(msg_fail)
+                                self.app.update_log(msg_fail)
+                                logger.error(f"Order: {self.cus_order} - {msg_fail}")
+
+                                if hasattr(self.app, 'report_manager'):
+                                    self.app.report_manager.finish_order(self.cus_order, overall_status="FAILED", note=str(err_details))
+
+                                if hasattr(self.app, 'is_accel_mode_activated'):
+                                    self.app.is_accel_mode_activated.set(False)
+
+                                if hasattr(self.app, 'display_bot_status_label'):
+                                    self.app.display_bot_status_label.configure(
+                                        text="Bot Status: Your Turn (Test Failed)",
+                                        fg_color="#ff2b2b",
+                                        text_color="#ffffff",
+                                    )
+
+                                self.bot.autofinal = False
+                                return False
+
+                        # Single test (ไม่ใช่ Accel Mode): รักษาพฤติกรรมเดิม (หยุดหน้าท้าย ให้ผู้ใช้ตรวจสอบ/กดต่อเอง)
                         self.bot.autofinal = False
                         return True
 

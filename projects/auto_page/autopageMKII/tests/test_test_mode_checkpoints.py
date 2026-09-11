@@ -83,6 +83,70 @@ class TestTestModeCheckpoints(unittest.TestCase):
         self.assertFalse(self.mock_bot.should_stop_at_test_checkpoint("3. หลังยิงสินค้า/คูปองหน้าแรก"))
         self.assertFalse(self.mock_bot.should_stop_at_test_checkpoint("4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"))
 
+    def test_checkpoint_4_auto_advance_on_pass_when_accel_and_autoinv(self):
+        """เมื่อเปิด test mode + accel_mode + auto_inv คู่กัน และหน้าท้ายผ่าน (all_ok=True) ต้องบันทึก Accel, กดย้อนกลับ, ล้างตะกร้า และ return True"""
+        self.mock_app.is_testing = True
+        self.mock_app.test_checkpoint.get.return_value = "4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"
+        self.mock_app.is_accel_mode.get.return_value = True
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+
+        self.handler.verify_final_page_elements = MagicMock(return_value={"all_ok": True})
+        self.handler.return_to_first_page = MagicMock()
+        self.mock_bot.clean_pos_cart = MagicMock()
+
+        # Simulate executing the Checkpoint 4 block
+        verification = self.handler.verify_final_page_elements()
+        is_all_ok = bool(verification.get("all_ok"))
+        is_accel = self.mock_app.is_accel_mode.get()
+        is_auto_inv = self.mock_app.is_auto_invoice_mode.get()
+        is_auto_advance = is_accel and is_auto_inv
+
+        self.assertTrue(is_auto_advance)
+        self.assertTrue(is_all_ok)
+
+        # Trigger actions
+        self.mock_app.accel_mode.deduct_accel_file_data(self.mock_bot.cus_order, remove_order=True, update_memory=True)
+        self.mock_app.accel_mode.record_completed_order(self.mock_bot.cus_order, status="TEST_SUCCESS (หน้าท้ายครบถ้วน/All OK)")
+        self.mock_app.report_manager.finish_order(self.mock_bot.cus_order, overall_status="SUCCESS")
+        self.handler.return_to_first_page()
+        self.mock_bot.clean_pos_cart()
+
+        self.mock_app.accel_mode.deduct_accel_file_data.assert_called_once_with(self.mock_bot.cus_order, remove_order=True, update_memory=True)
+        self.mock_app.accel_mode.record_completed_order.assert_called_once()
+        self.mock_app.report_manager.finish_order.assert_called_once_with(self.mock_bot.cus_order, overall_status="SUCCESS")
+        self.handler.return_to_first_page.assert_called_once()
+        self.mock_bot.clean_pos_cart.assert_called_once()
+
+    def test_checkpoint_4_halts_on_fail_when_accel_and_autoinv(self):
+        """เมื่อเปิด test mode + accel_mode + auto_inv คู่กัน แต่หน้าท้ายไม่ผ่าน (all_ok=False) ต้องไม่ auto-advance, ปิด accel_mode, และขึ้นสถานะ Test Failed"""
+        self.mock_app.is_testing = True
+        self.mock_app.test_checkpoint.get.return_value = "4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"
+        self.mock_app.is_accel_mode.get.return_value = True
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+
+        self.handler.verify_final_page_elements = MagicMock(return_value={"all_ok": False, "cash_price": {"ok": False}})
+        self.handler.return_to_first_page = MagicMock()
+        self.mock_bot.clean_pos_cart = MagicMock()
+
+        verification = self.handler.verify_final_page_elements()
+        is_all_ok = bool(verification.get("all_ok"))
+        is_accel = self.mock_app.is_accel_mode.get()
+        is_auto_inv = self.mock_app.is_auto_invoice_mode.get()
+        is_auto_advance = is_accel and is_auto_inv
+
+        self.assertTrue(is_auto_advance)
+        self.assertFalse(is_all_ok)
+
+        # Failure handling
+        self.mock_app.report_manager.finish_order(self.mock_bot.cus_order, overall_status="FAILED")
+        self.mock_app.is_accel_mode_activated.set(False)
+        self.mock_app.display_bot_status_label.configure(text="Bot Status: Your Turn (Test Failed)")
+
+        self.mock_app.report_manager.finish_order.assert_called_once_with(self.mock_bot.cus_order, overall_status="FAILED")
+        self.mock_app.is_accel_mode_activated.set.assert_called_once_with(False)
+        self.handler.return_to_first_page.assert_not_called()
+        self.mock_bot.clean_pos_cart.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
