@@ -6705,36 +6705,71 @@ class Bot_POS:
 
                 if self.operation_thread.is_set():
                     return
-                # * CLick Save Button (commented out but kept for completeness)
-                if customer_type == "normal" or self.app.is_auto_invoice_mode.get():
-                    save_btn = self.driver.find_element(
-                        By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')
-                    is_disabled = save_btn.get_attribute("disabled")
-                    if is_disabled is not None or not save_btn.is_enabled():
-                        logger.warning(
-                            f"Order: {self.cus_order} - Save button is disabled (disabled={is_disabled}). Refreshing page and restarting...")
-                        try:
-                            self.driver.refresh()
-                        except Exception as e:
-                            logger.error(f"Failed to refresh browser: {e}")
-                        time.sleep(2)
-                        raise RefreshRequiredException(
-                            "ปุ่มบันทึกถูกปิดใช้งาน (disabled)")
 
-                    save_btn.click()
+                # หน่วงเวลาให้ Dropdown / Backdrop ของ Select2 ปิดสนิท และรอ AngularJS digest cycle ตรวจสอบฟอร์ม
+                time.sleep(0.5)
 
-                # * Wait for saving process to complete
-                while is_functionworking and not self.operation_thread.is_set():
+                # * Click Save Button with Retry Loop and JS Click Fallback
+                save_xpath = '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]'
+                for attempt in range(5):
+                    if self.operation_thread.is_set():
+                        return
+
                     try:
-                        self.wait50.until(EC.invisibility_of_element_located(
-                            (By.XPATH, '/html/body/div[2]/div[3]/div[13]/div/div/div[3]/div/div[1]/div[4]/button[1]')))
-                        is_functionworking = False
-                        break
-                    except RefreshRequiredException:
-                        raise
-                    except:
-                        print("[metthod]addCustomer: Save button still appear")
+                        save_buttons = self.driver.find_elements(By.XPATH, save_xpath)
+                        if not save_buttons:
+                            save_buttons = self.driver.find_elements(
+                                By.CSS_SELECTOR, '#customerNewModal button.btn-success, #customerNewModal .modal-footer button.btn-success'
+                            )
 
+                        if not save_buttons or not save_buttons[0].is_displayed():
+                            print(f"[addCustomer] Save button is not visible or modal already closed (attempt {attempt + 1}/5)")
+                            is_functionworking = False
+                            break
+
+                        save_btn = save_buttons[0]
+                        is_disabled = save_btn.get_attribute("disabled")
+                        if is_disabled is not None or not save_btn.is_enabled():
+                            logger.warning(
+                                f"Order: {self.cus_order} - Save button is disabled (disabled={is_disabled}). Attempt {attempt + 1}/5...")
+                            time.sleep(1)
+                            continue
+
+                        # ลองคลิกด้วย Native Click ก่อน หากถูกดัก/ติด backdrop ให้ Fallback ด้วย JavaScript Click
+                        try:
+                            save_btn.click()
+                        except Exception as click_err:
+                            print(f"[addCustomer] Native click intercepted, trying JavaScript click: {click_err}")
+                            self.driver.execute_script("arguments[0].click();", save_btn)
+
+                        # รอตรวจดูว่า modal และปุ่ม Save หายไปแล้วหรือไม่
+                        modal_closed = False
+                        for _ in range(15):
+                            if self.operation_thread.is_set():
+                                return
+                            time.sleep(0.2)
+                            remaining_btns = self.driver.find_elements(By.XPATH, save_xpath)
+                            if not remaining_btns or not any(b.is_displayed() for b in remaining_btns):
+                                modal_closed = True
+                                break
+
+                        if modal_closed:
+                            print("[addCustomer] Save button clicked and modal closed successfully.")
+                            is_functionworking = False
+                            break
+                        else:
+                            print(f"[addCustomer] Save button still visible after click, retrying with JS click (attempt {attempt + 1}/5)...")
+                            try:
+                                self.driver.execute_script("arguments[0].click();", save_btn)
+                            except Exception:
+                                pass
+                            time.sleep(0.5)
+
+                    except Exception as e:
+                        print(f"[addCustomer] Error during save button click attempt {attempt + 1}: {e}")
+                        time.sleep(1)
+
+                is_functionworking = False
                 break
 
             except (InvalidSessionIdException, WebDriverException) as err:

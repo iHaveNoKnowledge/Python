@@ -159,6 +159,79 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
         self.assertIn("คูปองที่ต้องเลือกเพิ่ม: 'CP2608310072'", full_log)
         self.assertIn("รหัสรวมที่แนะนำ: 'CP2608280058 CP2608310072'", full_log)
 
+    def test_scan_matching_cp_candidates_detects_auto_and_selected_text(self):
+        """จำลองกรณีมีทั้งคูปอง Selected (ปุ่ม) และคูปอง Auto (ไม่มีปุ่ม) บน Modal ของ SMCO"""
+        mock_driver = MagicMock()
+        self.reconciler.driver = mock_driver
+
+        # แถว 1: DC2410010001 (มีปุ่มข้อความ "Selected")
+        item1 = MagicMock()
+        span_name1 = MagicMock()
+        span_name1.text = "DC2410010001"
+        btn1 = MagicMock()
+        btn1.text = "Selected"
+        btn1.get_attribute.return_value = "btn btn-info"
+        item1.find_elements.side_effect = lambda by, xp: (
+            [span_name1] if "price-sku-h1" in xp else
+            [btn1] if xp == ".//button" or "btn-info" in xp else
+            []
+        )
+        item1.text = "Selected\nDC2410010001\nTopup DC MSI Notebook 2025\n3000.-"
+
+        # แถว 2: DC2507220036 (สถานะ Auto ไม่มีปุ่ม)
+        item2 = MagicMock()
+        span_name2 = MagicMock()
+        span_name2.text = "DC2507220036"
+        auto_span = MagicMock()
+        auto_span.text = "Auto"
+        auto_span.is_displayed.return_value = True
+        item2.find_elements.side_effect = lambda by, xp: (
+            [span_name2] if "price-sku-h1" in xp else
+            [auto_span] if "Auto" in xp or "auto" in xp else
+            []
+        )
+        item2.text = "Auto\nDC2507220036\nTopup NOTEBOOK MSI : BUNDLE MOUSE\n60.-"
+
+        # แถว 3: CP2609100001 (ปุ่ม Un select ยังไม่เลือก)
+        item3 = MagicMock()
+        span_name3 = MagicMock()
+        span_name3.text = "CP2609100001"
+        btn3 = MagicMock()
+        btn3.text = "Un select"
+        btn3.get_attribute.return_value = "btn btn-default"
+        item3.find_elements.side_effect = lambda by, xp: (
+            [span_name3] if "price-sku-h1" in xp else
+            [btn3] if xp == ".//button" or "btn-default" in xp else
+            []
+        )
+        item3.text = "Un select\nCP2609100001\nPromotion MSI Seller Voucher\n500.-"
+
+        mock_driver.execute_script.return_value = ["MNL-002281"]
+        cp_btn = MagicMock()
+        mock_driver.find_elements.side_effect = lambda by, xp: (
+            [cp_btn] if "btn-coupon" in xp else
+            [item1, item2, item3] if "list-group-item" in xp else
+            [span_name1, span_name2, span_name3] if "price-sku-h1" in xp else
+            []
+        )
+
+        with patch.object(self.reconciler, "cp_sonic_blow_process"):
+            self.reconciler.scan_matching_cp_candidates_on_smco(item_no=1, cp_candidates=[])
+
+        self.assertEqual(len(self.reconciler.last_scanned_smco_coupon_details), 3)
+        self.assertTrue(self.reconciler.last_scanned_smco_coupon_details[0]["is_selected"])
+        self.assertTrue(self.reconciler.last_scanned_smco_coupon_details[1]["is_selected"])
+        self.assertFalse(self.reconciler.last_scanned_smco_coupon_details[2]["is_selected"])
+        self.assertEqual(self.reconciler.last_preselected_smco_coupons, ["DC2410010001", "DC2507220036"])
+
+        # เมื่อนำไปคำนวณแนะนำสำหรับ 500 บาท คูปองรวมจะต้องผสมทั้ง DC2410010001 DC2507220036 และ CP2609100001
+        res = self.reconciler.find_suggested_cp_for_discount(500.0)
+        self.assertIsNotNone(res)
+        self.assertEqual(res["suggested_code"], "DC2410010001 DC2507220036 CP2609100001")
+        self.assertEqual(res["preselected_codes"], ["DC2410010001", "DC2507220036"])
+        self.assertEqual(res["new_code"], "CP2609100001")
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -770,15 +770,23 @@ class POSPricingReconciler:
             panels = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
             if 1 <= item_no_1indexed <= len(panels):
                 target_panel = panels[item_no_1indexed - 1]
-                tooltip_elements = target_panel.find_elements(By.XPATH, ".//a[@data-toggle='tooltip']")
+                # 1. จาก tooltip elements
+                tooltip_elements = target_panel.find_elements(By.XPATH, ".//a[@data-toggle='tooltip'] | .//*[@data-toggle='tooltip']")
                 for el in tooltip_elements:
                     text = el.text or ""
-                    title = el.get_attribute("title") or ""
+                    title = el.get_attribute("title") or el.get_attribute("data-original-title") or ""
                     combined = f"{text} {title}".upper()
                     matches = re.findall(r'\b((?:CP|DC)\d+)\b', combined)
                     for m in matches:
                         if m not in found_codes:
                             found_codes.append(m)
+
+                # 2. จากข้อความทั้งหมดใน panel ที่มี pattern CP/DC
+                panel_text = target_panel.text or ""
+                matches = re.findall(r'\b((?:CP|DC)\d+)\b', panel_text.upper())
+                for m in matches:
+                    if m not in found_codes:
+                        found_codes.append(m)
         except Exception as e:
             print(f"[get_existing_panel_coupons] Error: {e}")
         return found_codes
@@ -817,6 +825,9 @@ class POSPricingReconciler:
             return []
 
         try:
+            # ดึงรหัสคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel บน POS Cart ก่อนเปิด Modal
+            panel_codes = self.get_existing_panel_coupons(item_no)
+
             item_list_cp_btn_elements = self.driver.find_elements(
                 By.XPATH, "//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
             )
@@ -934,18 +945,67 @@ class POSPricingReconciler:
                             except Exception:
                                 disc_val = 0.0
 
-                    # 4. ตรวจสอบสถานะการเลือกของปุ่มคูปอง (btn-primary = ถูกเลือกอยู่แล้ว / btn-default = ยังไม่ถูกเลือก)
+                    # 4. ตรวจสอบสถานะการเลือกของคูปอง:
+                    # - คูปองที่ถูกเลือกแล้ว: ปุ่มสีน้ำเงินเขียนว่า "Selected", หรือมี class "btn-primary", หรือมีคำว่า "เลือกแล้ว"
+                    # - คูปองอัตโนมัติ (Default/Auto): แสดงคำว่า "Auto" หรือ "อัตโนมัติ" (อาจไม่มีแท็ก button)
+                    # - คูปองที่ยังไม่ถูกเลือก: ปุ่มสีขาวเขียนว่า "Un select" (หรือมี class btn-default)
                     is_sel = False
                     try:
-                        primary_btns = item_el.find_elements(
-                            By.XPATH, ".//button[contains(@class, 'btn-primary')]"
-                        )
-                        if primary_btns and any(b.is_displayed() for b in primary_btns):
+                        # 4.1 ตรวจสอบว่าตรงกับคูปองที่ติดอยู่บน Item Panel ของสินค้าหรือไม่
+                        if c_name and c_name in panel_codes:
                             is_sel = True
-                        elif primary_btns:
-                            is_sel = True
-                    except Exception:
-                        pass
+
+                        # 4.2 ตรวจสอบ class btn-primary โดยตรง
+                        if not is_sel:
+                            primary_btns = item_el.find_elements(
+                                By.XPATH, ".//button[contains(@class, 'btn-primary')]"
+                            )
+                            if primary_btns and any(b.is_displayed() for b in primary_btns):
+                                is_sel = True
+                            elif primary_btns:
+                                is_sel = True
+
+                        # 4.3 ตรวจสอบสถานะ Auto (คูปองระบบคำนวณให้อัตโนมัติตั้งแต่ต้น)
+                        if not is_sel:
+                            item_raw_text = item_el.text if hasattr(item_el, 'text') and isinstance(item_el.text, str) else ""
+                            auto_elements = item_el.find_elements(
+                                By.XPATH, ".//*[contains(text(), 'Auto') or contains(text(), 'auto') or contains(text(), 'อัตโนมัติ')]"
+                            )
+                            if auto_elements and any(a.is_displayed() for a in auto_elements):
+                                is_sel = True
+                            elif re.search(r'\bAuto\b', item_raw_text, re.IGNORECASE):
+                                is_sel = True
+
+                        # 4.4 ตรวจสอบปุ่มในแถว
+                        if not is_sel:
+                            btn_elements = item_el.find_elements(By.XPATH, ".//button")
+                            for btn in btn_elements:
+                                b_text = btn.text.strip() if hasattr(btn, 'text') and isinstance(btn.text, str) else ""
+                                b_class = btn.get_attribute("class") or ""
+
+                                # หากเป็น Un select แปลว่ายังไม่ถูกเลือก
+                                if "un select" in b_text.lower() or "unselect" in b_text.lower():
+                                    is_sel = False
+                                    break
+
+                                # หากเป็น Selected หรือ class btn-primary หรือมีคำว่าเลือกแล้ว
+                                if "selected" in b_text.lower() or "เลือกแล้ว" in b_text.lower() or "btn-primary" in b_class:
+                                    is_sel = True
+                                    break
+
+                        # 4.5 Fallback จากข้อความในแถว (บรรทัดแรกๆ เช่น "Selected", "Auto")
+                        if not is_sel and item_raw_text:
+                            first_lines = item_raw_text.split('\n')[:3]
+                            for line in first_lines:
+                                line_clean = line.strip().lower()
+                                if "un select" in line_clean or "unselect" in line_clean:
+                                    is_sel = False
+                                    break
+                                if line_clean == "selected" or line_clean.startswith("selected") or line_clean == "auto":
+                                    is_sel = True
+                                    break
+                    except Exception as ex_sel:
+                        print(f"[scan_matching_cp_candidates_on_smco] Error checking is_selected: {ex_sel}")
 
                     if c_name:
                         scanned_details.append({
@@ -964,8 +1024,7 @@ class POSPricingReconciler:
                 if sc.get("is_selected") and sc.get("code") and sc.get("code") not in preselected:
                     preselected.append(sc.get("code"))
 
-            # ดึงคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel ของสินค้าบนหน้า POS ร่วมด้วย
-            panel_codes = self.get_existing_panel_coupons(item_no)
+            # รวมคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel ของสินค้าบนหน้า POS Cart
             for pc in panel_codes:
                 if pc and pc not in preselected:
                     preselected.append(pc)
