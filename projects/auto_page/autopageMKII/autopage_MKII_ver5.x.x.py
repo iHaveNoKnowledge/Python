@@ -455,6 +455,15 @@ class MyApp:
     def finish_order(self):
         """กดปุ่ม Finish เพื่อ click controlKeyF2 บนเว็บ"""
         try:
+            # ก่อนเปลี่ยนหน้าไป Phase 2 บันทึกรายการคูปองและราคาขายสุทธิของแต่ละ SKU ลงใน cp_data.xlsx (หากยังไม่ได้บันทึก)
+            if hasattr(self, 'bot') and hasattr(self.bot, 'pricing_reconciler') and self.bot.pricing_reconciler:
+                cur_order = str(getattr(self.bot, 'cus_order', '') or getattr(self, 'cus_order', '')).strip()
+                if getattr(self.bot.pricing_reconciler, '_last_recorded_order_id', None) != cur_order:
+                    try:
+                        self.bot.pricing_reconciler.record_pos_cart_summary_to_excel(cur_order)
+                    except Exception as rec_err:
+                        print(f"Finish: Error recording POS cart summary: {rec_err}")
+
             if hasattr(self, 'bot') and hasattr(self.bot, 'driver'):
                 self.is_finish_order_triggered.set(True)
                 self.bot.driver.find_element(
@@ -6206,6 +6215,15 @@ class Bot_POS:
 
             if self.app.is_auto_invoice_mode.get():
                 self.pricing_reconciler.reconcile_and_verify()
+
+            # บันทึกสรุปรายการ SKU คูปอง และราคาขายสุทธิลงใน cp_data.xlsx หากยังไม่ได้บันทึก
+            try:
+                if hasattr(self, 'pricing_reconciler') and self.pricing_reconciler:
+                    cur_order = str(self.cus_order or getattr(self.app, 'cus_order', '')).strip()
+                    if getattr(self.pricing_reconciler, '_last_recorded_order_id', None) != cur_order:
+                        self.pricing_reconciler.record_pos_cart_summary_to_excel(cur_order)
+            except Exception as e:
+                logger.warning(f"Error recording POS cart summary to excel: {e}")
 
             self.check_abort()
 

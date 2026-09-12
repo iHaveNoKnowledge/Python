@@ -9,6 +9,7 @@ Contains:
 from __future__ import annotations
 
 import datetime
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -221,6 +222,8 @@ class POSPricingReconciler:
         self.app = bot.app
         self.driver = bot.driver
         self.wait50 = bot.wait50
+        self._last_recorded_order_id: Optional[str] = None
+        self.last_expected_prices: Dict[str, float] = {}
 
     # ══════════════════════════════════════════════════════════════════════════
     # HELPER UTILITIES
@@ -464,6 +467,300 @@ class POSPricingReconciler:
 
         except Exception as err:
             print(f"[add_missing_cp_to_excel] Error appending row: {err}")
+
+    def scrape_pos_cart_items(self) -> List[Dict[str, Any]]:
+        """
+        ดึงข้อมูลรายการสินค้าและคูปองที่ถูกเลือก/ใช้งานจริงในตะกร้าหน้าแรก POS (#bodyOfSku):
+        - sku: รหัส SKU สินค้า
+        - coupons: รหัสคูปองทั้งหมดที่ถูกใช้กับสินค้านี้ (แยกด้วยเว้นวรรค เช่น 'CP... DC...')
+        - total_net: ราคาสุทธิรวมของบรรทัดสินค้านี้บน POS
+        - unit_net: ราคาสุทธิเฉลี่ยต่อหน่วย
+        - qty: จำนวนสินค้า
+        """
+        results: List[Dict[str, Any]] = []
+        if not self.driver:
+            return results
+
+        # วิธีที่ 1: ดึงจาก page_source ผ่าน BeautifulSoup (เร็วมาก และป้องกัน StaleElementReference)
+        try:
+            from bs4 import BeautifulSoup
+            page_src = getattr(self.driver, 'page_source', '')
+            if page_src and ("bodyOfSku" in page_src or "dataOfDetail" in page_src):
+                soup = BeautifulSoup(page_src, "html.parser")
+                panels = soup.select("#bodyOfSku .panel-default, #bodyOfSku div[ng-repeat*='dataOfDetail']")
+
+                # กรองไม่ให้ได้ panel ซ้อนกัน (nested)
+                filtered_panels = []
+                for p in panels:
+                    if p not in filtered_panels and not any(p in other.parents for other in panels):
+                        filtered_panels.append(p)
+
+                for p in filtered_panels:
+                    # 1. รหัส SKU
+                    u_tag = p.select_one("span[ng-click*='productNameChangeChk'] u")
+                    sku = u_tag.get_text(strip=True) if u_tag else ""
+                    if not sku:
+                        wrap = p.select_one(".wrap-text")
+                        if wrap:
+                            m_sku = re.search(r'\b([A-Za-z0-9]{2,}[A-Za-z0-9]?-?\d{1,6})\b', wrap.get_text())
+                            if m_sku:
+                                sku = m_sku.group(1)
+
+                    if not sku:
+                        continue
+
+                    # 2. คูปองที่ถูกใช้
+                    coupons: List[str] = []
+                    # 2.1 คูปองที่เลือกใช้งาน (dataOfCoupon)
+                    for c_div in p.select("div[ng-repeat*='dataOfCoupon']"):
+                        exp_span = c_div.select_one(".font-expired")
+                        if exp_span and "Discount Expired" in exp_span.get_text() and "ng-hide" not in exp_span.get("class", []):
+                            continue
+                        link = c_div.select_one("a[data-toggle='tooltip'], a")
+                        if link:
+                            c_code = link.get_text(strip=True)
+                            if c_code and c_code not in coupons:
+                                coupons.append(c_code)
+
+                    # 2.2 คูปองอัตโนมัติ/Bundle Condition (couponauto)
+                    for cdt in p.select("div[ng-repeat*='couponauto'] span.font-color-base"):
+                        m_cp = re.search(r'\b([A-Z]{2}\d{10})\b', cdt.get_text())
+                        if m_cp and m_cp.group(1) not in coupons:
+                            coupons.append(m_cp.group(1))
+
+                    # 3. จำนวนสินค้า (Qty)
+                    qty = 1.0
+                    qty_el = p.select_one("span[style*='font-size:26px']") or p.select_one(".text-center span.ng-binding")
+                    if qty_el:
+                        try:
+                            m_q = re.search(r'\d+', qty_el.get_text())
+                            if m_q:
+                                qty = float(m_q.group(0))
+                        except Exception:
+                            pass
+
+                    # 4. ราคาสุทธิ (Total Net)
+                    total_net_el = None
+                    for row in p.select("div.row"):
+                        if "Total Net:" in row.get_text():
+                            total_net_el = row.select_one("a[ng-click*='displayPrice']")
+                            if total_net_el:
+                                break
+                    if not total_net_el:
+                        price_links = p.select("a[ng-click*='displayPrice']")
+                        if price_links:
+                            total_net_el = price_links[-1]
+
+                    price_val = 0.0
+                    if total_net_el:
+                        try:
+                            price_val = float(total_net_el.get_text(strip=True).replace(",", ""))
+                        except Exception:
+                            pass
+
+                    unit_net = round(price_val / qty, 2) if qty > 0 else price_val
+                    formatted_sku = self.sku_formater(sku) if hasattr(self, "sku_formater") else sku
+                    results.append({
+                        "sku": formatted_sku,
+                        "coupons": " ".join(coupons),
+                        "total_net": price_val,
+                        "unit_net": unit_net,
+                        "qty": qty
+                    })
+
+                if results:
+                    return results
+        except Exception as soup_err:
+            logger.debug(f"[scrape_pos_cart_items] BeautifulSoup scrape failed: {soup_err}")
+
+        # วิธีที่ 2: Selenium Element Fallback
+        try:
+            panel_els = self.driver.find_elements(
+                By.XPATH,
+                "//div[@id='bodyOfSku']//div[contains(@class, 'panel-default')] | //div[@id='bodyOfSku']/div[contains(@ng-repeat, 'dataOfDetail')]"
+            )
+            for p_el in panel_els:
+                try:
+                    sku_els = p_el.find_elements(By.XPATH, ".//span[contains(@ng-click, 'productNameChangeChk')]//u")
+                    if not sku_els:
+                        continue
+                    sku = sku_els[0].text.strip()
+                    if not sku:
+                        continue
+
+                    # คูปอง
+                    coupons = []
+                    c_links = p_el.find_elements(By.XPATH, ".//div[contains(@ng-repeat, 'dataOfCoupon')]//a")
+                    for cl in c_links:
+                        c_text = cl.text.strip()
+                        if c_text and c_text not in coupons:
+                            coupons.append(c_text)
+
+                    auto_spans = p_el.find_elements(By.XPATH, ".//div[contains(@ng-repeat, 'couponauto')]//span[contains(@class, 'font-color-base')]")
+                    for asp in auto_spans:
+                        m_cp = re.search(r'\b([A-Z]{2}\d{10})\b', asp.text)
+                        if m_cp and m_cp.group(1) not in coupons:
+                            coupons.append(m_cp.group(1))
+
+                    # Qty
+                    qty = 1.0
+                    qty_spans = p_el.find_elements(By.XPATH, ".//div[contains(@class, 'text-center')]//span[contains(@style, 'font-size:26px')]")
+                    if qty_spans:
+                        m_q = re.search(r'\d+', qty_spans[0].text)
+                        if m_q:
+                            qty = float(m_q.group(0))
+
+                    # Net Price
+                    price_val = 0.0
+                    price_els = p_el.find_elements(By.XPATH, ".//div[contains(., 'Total Net:')]//a[contains(@ng-click, 'displayPrice')] | .//a[contains(@ng-click, 'displayPrice')]")
+                    displayed_price_els = [el for el in price_els if el.is_displayed()]
+                    if displayed_price_els:
+                        raw_p = displayed_price_els[-1].text.strip().replace(",", "")
+                        try:
+                            price_val = float(raw_p)
+                        except Exception:
+                            pass
+
+                    unit_net = round(price_val / qty, 2) if qty > 0 else price_val
+                    formatted_sku = self.sku_formater(sku) if hasattr(self, "sku_formater") else sku
+                    results.append({
+                        "sku": formatted_sku,
+                        "coupons": " ".join(coupons),
+                        "total_net": price_val,
+                        "unit_net": unit_net,
+                        "qty": qty
+                    })
+                except Exception as item_err:
+                    logger.debug(f"[scrape_pos_cart_items] Error scraping panel element: {item_err}")
+        except Exception as sel_err:
+            logger.warning(f"[scrape_pos_cart_items] Selenium scrape failed: {sel_err}")
+
+        return results
+
+    def record_pos_cart_summary_to_excel(self, order_id: str = "") -> None:
+        """
+        บันทึกข้อมูลสรุปการออกบิล (SKU, คูปองที่ใช้จริง, ราคาขายสุทธิต่อหน่วย, รหัสออเดอร์, วันที่)
+        ลงในไฟล์ cp_data.xlsx โดยไม่เขียนทับข้อมูลคูปองเดิมใน cp_name
+        - last_order_id: รหัสคำสั่งซื้อ
+        - last_used_cp: คูปองที่ใช้จริง (เช่น 'CP2609070007 CP2609070008 CP2609100001 DC2410010001')
+        - last_actual_price: ราคาขายสุทธิสุทธิ/หน่วยบน POS (Unit Net Price)
+        - last_updated: วันที่และเวลาที่บันทึก
+        """
+        try:
+            if not order_id:
+                order_id = str(
+                    getattr(self.bot, 'cus_order', '') or getattr(self.app, 'cus_order', '')
+                ).strip()
+
+            excel_path = getattr(self.app, 'cp_table_location', '')
+            if not excel_path or not os.path.exists(excel_path):
+                base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+                candidates = [
+                    os.path.join(base_dir, "tables", "cp_data.xlsx"),
+                    os.path.join(base_dir, "assets", "tables", "cp_data.xlsx")
+                ]
+                for c in candidates:
+                    if os.path.exists(c):
+                        excel_path = c
+                        break
+
+            if not excel_path or not os.path.exists(excel_path):
+                logger.warning("[record_pos_cart_summary_to_excel] ไม่พบไฟล์ cp_data.xlsx สำหรับบันทึกข้อมูล")
+                return
+
+            cart_items = self.scrape_pos_cart_items()
+            if not cart_items:
+                logger.info("[record_pos_cart_summary_to_excel] ไม่พบรายการสินค้าในตะกร้าหน้าแรก POS ข้ามการบันทึก")
+                return
+
+            try:
+                df = pd.read_excel(excel_path)
+            except Exception as read_err:
+                print(f"[record_pos_cart_summary_to_excel] Error reading excel: {read_err}")
+                return
+
+            new_cols = ['last_order_id', 'last_used_cp', 'last_actual_price', 'last_updated']
+            for col in new_cols:
+                if col not in df.columns:
+                    df[col] = ""
+
+            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            for item in cart_items:
+                sku_raw = item.get("sku", "")
+                sku_clean = str(sku_raw).strip().upper()
+                used_cp = str(item.get("coupons", "")).strip()
+                act_price = float(item.get("unit_net", 0.0))
+
+                # จับคู่แถวเดิม:
+                # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)
+                mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - act_price).abs() <= 0.05)
+
+                # 2. ถ้าไม่เจอ เช็ค sku และ sale_price ตรงกับ expected_price
+                if not mask.any() and hasattr(self, 'last_expected_prices') and self.last_expected_prices:
+                    exp_p = self.last_expected_prices.get(sku_clean) or self.last_expected_prices.get(sku_raw)
+                    if exp_p is not None:
+                        mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - exp_p).abs() <= 0.05)
+
+                # 3. ถ้ายังไม่เจอ เช็คเฉพาะ sku เดียวกัน
+                if not mask.any():
+                    sku_only = (df['sku'].astype(str).str.strip().str.upper() == sku_clean)
+                    if sku_only.any():
+                        matching_indices = df[sku_only].index
+                        if len(matching_indices) == 1:
+                            mask = sku_only
+                        else:
+                            closest_idx = (df.loc[matching_indices, 'sale_price'] - act_price).abs().idxmin()
+                            mask = df.index == closest_idx
+
+                if mask.any():
+                    df.loc[mask, 'last_order_id'] = str(order_id)
+                    df.loc[mask, 'last_used_cp'] = used_cp
+                    df.loc[mask, 'last_actual_price'] = act_price
+                    df.loc[mask, 'last_updated'] = now_str
+                else:
+                    new_row = {
+                        'sku': sku_raw,
+                        'sale_price': act_price,
+                        'cp_name': '',
+                        'last_order_id': str(order_id),
+                        'last_used_cp': used_cp,
+                        'last_actual_price': act_price,
+                        'last_updated': now_str
+                    }
+                    new_df = pd.DataFrame([new_row])
+                    for c in df.columns:
+                        if c not in new_df.columns:
+                            new_df[c] = ""
+                    new_df = new_df[df.columns]
+                    df = pd.concat([df, new_df], ignore_index=True)
+
+            # บันทึกลง Excel
+            df.to_excel(excel_path, index=False)
+            if os.path.exists(excel_path):
+                try:
+                    self.app._cp_last_mtime = os.path.getmtime(excel_path)
+                except Exception:
+                    pass
+
+            if getattr(self.app, 'cp_df', None) is not None:
+                self.app.cp_df = df
+
+            self._last_recorded_order_id = str(order_id)
+
+            self.app.update_log(
+                f"📝 [บันทึกประวัติออเดอร์] บันทึกข้อมูลคูปองและราคาขายลงใน CP Data เรียบร้อย ({len(cart_items)} รายการ)"
+            )
+            for it in cart_items:
+                cp_display = it['coupons'] if it['coupons'] else "(ไม่มีคูปอง)"
+                self.app.update_log(
+                    f"   • {it['sku']} -> คูปอง: {cp_display} | ราคาสุทธิ: {it['unit_net']:,.2f} บาท"
+                )
+
+        except PermissionError as perm_err:
+            self.app.update_log(f"⚠️ ไม่สามารถบันทึก cp_data.xlsx ได้เนื่องจากไฟล์ถูกเปิดใช้งานอยู่: {perm_err}")
+        except Exception as err:
+            logger.error(f"[record_pos_cart_summary_to_excel] Error: {err}")
 
     def find_suggested_cp_for_discount(self, target_discount: float, require_seller_voucher: bool = False) -> Optional[dict]:
         """
@@ -1902,6 +2199,13 @@ class POSPricingReconciler:
             print("verification_result (Round 1): ", verification_result)
             self.bot.current_checkpoint = "ตรวจสอบราคาและจำนวนสำเร็จ"
 
+            if isinstance(verification_result.get("price"), dict):
+                self.last_expected_prices = {
+                    str(k).strip().upper(): v.get("expected")
+                    for k, v in verification_result.get("price", {}).items()
+                    if isinstance(v.get("expected"), (int, float))
+                }
+
             # เช็คจำนวนสินค้า (ขาด SN, ยิงไม่ติด, หรือมีสินค้าตกค้าง) -> fail order ทันที
             qty_shortage_lines = []
             for sku, info in verification_result.get("qty", {}).items():
@@ -1951,6 +2255,12 @@ class POSPricingReconciler:
 
             if post_verification.get("all_ok"):
                 self._log_price_verification_summary(post_verification)
+                try:
+                    order_id = str(getattr(self.bot, 'cus_order', '') or getattr(self.app, 'cus_order', '')).strip()
+                    self.record_pos_cart_summary_to_excel(order_id)
+                except Exception as rec_err:
+                    logger.warning(f"[reconcile_and_verify] บันทึกสรุปรายการสินค้า/คูปองลง Excel ไม่สำเร็จ: {rec_err}")
+
                 if self.app.is_testing:
                     self.app.update_log("🧪 TEST MODE: กรอกของและตรวจสอบสินค้า/ราคาผ่านแล้ว (All OK). หยุดก่อนกด finish_order()")
                     self.bot.current_checkpoint = "TEST MODE: ตรวจสินค้าผ่าน หยุดก่อน finish_order()"
