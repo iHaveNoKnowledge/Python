@@ -372,7 +372,9 @@ class TestSellerVoucherPricing(unittest.TestCase):
         reconciler.process_price_mismatches(verification_result)
 
         # ตรวจสอบว่า เรื่องที่ 1: มีการเรียกใส่คูปอง Seller Voucher ก่อนเสมอ!
-        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(1, 200.0)
+        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(
+            1, 200.0, cp_candidates=[{'cp_name': 'CP-SELLER-200', 'oc_amount': '', 'dc_amount': ''}]
+        )
 
         # ตรวจสอบว่า เรื่องที่ 2: มีการ Overcharge ส่วนต่างที่เหลือ (250 บาท) หลังใส่คูปอง
         reconciler.smco_set_overcharge_product.assert_called_once_with(sku_key, "250.0")
@@ -436,7 +438,9 @@ class TestSellerVoucherPricing(unittest.TestCase):
         reconciler.process_price_mismatches(verification_result)
 
         # ตรวจสอบว่า เรื่องที่ 1 ถูกเรียก
-        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(1, 100.0)
+        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(
+            1, 100.0, cp_candidates=[{"cp_name": "CP-CAMPAIGN-200", "oc_amount": "", "dc_amount": ""}]
+        )
 
         # ตรวจสอบว่า เรื่องที่ 2 เลือก Campaign CP ต่อ
         reconciler.scan_matching_cp_candidates_on_smco.assert_called_once_with(
@@ -574,9 +578,103 @@ class TestSellerVoucherPricing(unittest.TestCase):
         self.assertIsNotNone(res_sv)
         self.assertEqual(res_sv["suggested_code"], "CP2609100001")
 
+    def test_find_and_apply_seller_voucher_multi_selects_candidate_match(self):
+        """ทดสอบกรณีบน SMCO มี Seller Voucher 500 บาท 2 ตัว แต่ใน cp_candidates ระบุ CP2609100001 -> ต้องเลือก CP2609100001"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2609070026", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 08-15 Sep 2026"},
+            {"code": "CP2609100001", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 10-30 Sep 2026"},
+        ]
+        reconciler.cp_sonic_blow_process = MagicMock(return_value=True)
+
+        candidates = [{"cp_name": "CP2609070007 CP2609070008 CP2609100001", "oc_amount": "2590.0", "dc_amount": ""}]
+        ok, status, chosen = reconciler.find_and_apply_seller_voucher_on_smco(1, 500.0, cp_candidates=candidates)
+
+        self.assertTrue(ok)
+        self.assertEqual(status, "APPLIED")
+        self.assertEqual(chosen["code"], "CP2609100001")
+        reconciler.cp_sonic_blow_process.assert_called_once_with(1, "CP2609100001")
+
+    def test_find_and_apply_seller_voucher_multi_falls_back_to_latest(self):
+        """ทดสอบกรณีบน SMCO มี Seller Voucher 500 บาท 2 ตัว แต่ใน cp_candidates ไม่ได้ระบุตัวใดเลย -> เลือกรหัสที่ใหม่กว่า (CP2609100001)"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2609070026", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 08-15 Sep 2026"},
+            {"code": "CP2609100001", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 10-30 Sep 2026"},
+        ]
+        reconciler.cp_sonic_blow_process = MagicMock(return_value=True)
+
+        ok, status, chosen = reconciler.find_and_apply_seller_voucher_on_smco(1, 500.0, cp_candidates=None)
+
+        self.assertTrue(ok)
+        self.assertEqual(status, "APPLIED")
+        self.assertEqual(chosen["code"], "CP2609100001")
+        reconciler.cp_sonic_blow_process.assert_called_once_with(1, "CP2609100001")
+
+    def test_overcharge_with_cp_candidate_applies_both_oc_and_cp(self):
+        """ทดสอบกรณี diff > 0 (Overcharge) และใน candidate มีทั้ง oc_amount และ cp_name -> ใส่ทั้ง Overcharge และ Campaign CP"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.mock_app.cus_seller_voucher.get.return_value = 500.0
+        sku_key = 'CO6-011018'
+        self.mock_app.items = [{
+            'เลขอ้างอิง SKU (SKU Reference No.)': sku_key,
+            'ราคาขายสุทธิ': '29020.0',
+            'ส่วนลดจาก Shopee': '0',
+            'จำนวน': '1'
+        }]
+
+        # Expected bill price = 28520.0, POS base = 26430.0
+        # Initial verification (before SV applied)
+        verification_result = {
+            "price": {
+                sku_key: {
+                    "expected": 28520.0,
+                    "actual": 26430.0,
+                    "diff": 2090.0,
+                    "ok": False
+                }
+            }
+        }
+
+        # Candidates in cp_data.xlsx
+        reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
+            {"cp_name": "CP2609070007 CP2609070008 CP2609100001", "oc_amount": "2590.0", "dc_amount": ""}
+        ])
+
+        # SV step applies CP2609100001 (500 discount)
+        # Note: In reality, after SV is applied to POS base 26430, or if OC is 2590: 26430 + 2590 - 500 = 28520.
+        reconciler.find_and_apply_seller_voucher_on_smco = MagicMock(return_value=(
+            True, "APPLIED", {"code": "CP2609100001", "discount": 500.0}
+        ))
+
+        # After SV applied, diff is verified: expected=28520, actual=25930 -> diff = +2590
+        self.mock_bot.ProductManager.verify_item_price.side_effect = [
+            # 1st call after SV applied
+            {sku_key: {"expected": 28520.0, "actual": 25930.0, "diff": 2590.0, "ok": False}},
+            # 2nd call after OC and CP applied
+            {sku_key: {"expected": 28520.0, "actual": 28520.0, "diff": 0.0, "ok": True}}
+        ]
+
+        reconciler.smco_set_overcharge_product = MagicMock()
+        reconciler.apply_candidate_coupons_if_missing = MagicMock(return_value=True)
+
+        reconciler.process_price_mismatches(verification_result)
+
+        # Verified that SV was searched and applied with cp_candidates passed
+        reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once()
+        # Verified that Overcharge 2590.0 was set
+        reconciler.smco_set_overcharge_product.assert_called_once_with(sku_key, "2590.0")
+        # Verified that apply_candidate_coupons_if_missing was called for the remaining campaign coupons
+        reconciler.apply_candidate_coupons_if_missing.assert_called_once_with(
+            1, sku_key, "CP2609070007 CP2609070008 CP2609100001"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

@@ -3461,7 +3461,7 @@ class MyApp:
                 print('สินค้ารวมค่าส่ง: ', self.f(self.nondistortedData['จำนวนเงินทั้งหมด'] + float(self.cus_ship_cost.get())))
                 self.update_log(f"เวลาที่สั่ง: {self.cus_purchase_time.get()}")
                 self.update_log(f"ค่าขนส่ง: {self.f(self.cus_ship_cost.get())}")
-                self.update_log(f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง: {self.f(self.financials.total_cart_price)}")
+                self.update_log(f"ราคาที่ต้องยิงทั้งหมด+ค่าส่ง-sellervoucher: {self.f(self.financials.total_cart_price)}")
 
                 self.update_log(f" ")
                 self.update_log(f"-↓↓↓↓↓↓-หน้าสุดท้าย-↓↓↓↓↓↓-")
