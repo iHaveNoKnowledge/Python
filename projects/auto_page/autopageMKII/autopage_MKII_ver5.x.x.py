@@ -3553,6 +3553,20 @@ class MyApp:
         name_edited = re.sub(
             r'TAX\s*ID:?\s*[\d-]*', '', name_edited, flags=re.IGNORECASE).strip()
 
+        # --- แก้ไขคำพิมพ์ผิดยอดฮิตสำหรับประเภทนิติบุคคล ---
+        # 1. แก้ไขคำว่า "จำกัด" ที่ลูกค้าพิมพ์สลับตัวอักษรหรือพิมพ์ผิดบ่อย เช่น จำกดั, จํากัด, จำกัต, จำก้ด, จำ กัด
+        name_edited = re.sub(r'จ[ำํ]\s*ก\s*ด\s*ั', 'จำกัด', name_edited)
+        name_edited = re.sub(r'จ[ำํ]\s*ก\s*[ั้ิีะ]?\s*[ดตัก]\s*ั?', 'จำกัด', name_edited)
+        name_edited = re.sub(r'จ[ำํ]\s+กัด', 'จำกัด', name_edited)
+
+        # 2. แก้ไขคำว่า "บริษัท" ที่พิมพ์ผิด เช่น บรัษัท, บรืษัท, บริบัท, บริทัษ
+        name_edited = re.sub(r'บร[ัืิ]ษ[ัิ]?ท', 'บริษัท', name_edited)
+        name_edited = re.sub(r'บริ[บพ]ัท', 'บริษัท', name_edited)
+        name_edited = re.sub(r'บริทัษ', 'บริษัท', name_edited)
+
+        # 3. ยุบคำว่า "จำกัด" ที่เบิ้ลซ้ำ (เช่น "จำกัด จำกัด", "จำกัดจำกัด")
+        name_edited = re.sub(r'(?:จำกัด\s*){2,}', 'จำกัด ', name_edited).strip()
+
         # --- patterns สำหรับสำนักงานใหญ่ ---
         head_office_patterns = [
             r'\(\s*สำนักงานใหญ่\s*\)?', r'สำนักงานใหญ่',
@@ -3603,6 +3617,8 @@ class MyApp:
         elif name_edited.startswith(("หจก", "ห้างหุ้นส่วนจำกัด", "ห.")):
             name_edited = re.sub(
                 r'^(หจก\.?|ห้างหุ้นส่วนจำกัด|ห\.)', '', name_edited).strip()
+            name_edited = re.sub(
+                r'จำกัด\s*$', '', name_edited).strip()
             if not name_edited.startswith("ห้างหุ้นส่วนจำกัด"):
                 name_edited = f"ห้างหุ้นส่วนจำกัด {name_edited}"
 
@@ -3612,12 +3628,15 @@ class MyApp:
                 r'^(บจก\.?|บริษัท|บ\.|จก\.|บจ\.?)', '', name_edited).strip()
             # ลบคำว่า "จำกัด" ท้ายประโยคเดิมออกก่อน
             name_edited = re.sub(
-                r'จำกัด\s*[A-Za-z0-9]*$', '', name_edited).strip()
+                r'(?:จำกัด|จ[ำํ]\s*ก\s*ด\s*ั)\s*[A-Za-z0-9]*$', '', name_edited).strip()
 
             if not name_edited.startswith("บริษัท"):
                 name_edited = f"บริษัท {name_edited}"
             if not name_edited.endswith("จำกัด"):
                 name_edited = f"{name_edited} จำกัด"
+
+        # ยุบคำว่า "จำกัด" ซ้ำซ้อนที่อาจเกิดขึ้นท้ายชื่อ
+        name_edited = re.sub(r'(?:\s*จำกัด){2,}$', ' จำกัด', name_edited).strip()
 
         # --- ต่อ suffix คืน ---
         if extracted_suffix:
@@ -6507,7 +6526,7 @@ class Bot_POS:
             use_dropdown_address = False
 
         elif customer_type == "tax":
-            name = self.app.cus_name.get()
+            name = self.app.tax_name_formatter(self.app.cus_name.get())
             # Remove any trailing branch info to standardize format
             name = re.sub(r'\s*\(?(?:สำนักงานใหญ่|สํานักงานใหญ่|สนญ\.?|00000)\)?\s*$', '', name)
             name = re.sub(r'\s*\(?สาขา[^)]*\)?\s*$', '', name)
