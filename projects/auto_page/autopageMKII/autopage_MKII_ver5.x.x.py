@@ -4558,9 +4558,29 @@ class Bot_POS:
     def record_failed_with_checkpoint(self, reason):
         checkpoint = getattr(self, 'current_checkpoint', 'เริ่มรัน')
         full_reason = f"{reason} (ด่านที่ติด: {checkpoint})"
-        if hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'record_failed_order'):
-            self.app.accel_mode.record_failed_order(
-                self.app.cus_order, full_reason)
+        order_val = self.app.cus_order.get() if hasattr(self.app.cus_order, 'get') else str(self.app.cus_order)
+        is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
+        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+
+        if hasattr(self.app, 'accel_mode'):
+            if hasattr(self.app.accel_mode, 'record_failed_order'):
+                self.app.accel_mode.record_failed_order(
+                    order_val, full_reason)
+            if (is_accel and is_auto_inv) and hasattr(self.app.accel_mode, 'deduct_accel_file_data'):
+                try:
+                    self.app.accel_mode.deduct_accel_file_data(order_val, remove_order=True, update_memory=True)
+                except Exception as d_err:
+                    print(f"record_failed_with_checkpoint deduct error: {d_err}")
+
+        if is_accel and is_auto_inv:
+            try:
+                if hasattr(self, 'payment_handler') and self.payment_handler:
+                    self.payment_handler.return_to_first_page()
+                    time.sleep(0.5)
+                if hasattr(self, 'clean_pos_cart'):
+                    self.clean_pos_cart()
+            except Exception as c_err:
+                print(f"record_failed_with_checkpoint clean cart error: {c_err}")
 
     def is_connection_error(self, err):
         err_str = str(err).lower()
@@ -4633,10 +4653,19 @@ class Bot_POS:
                         if getattr(self, 'is_test_checkpoint_halt', False):
                             # บอทหยุดที่จุดทดสอบหน้าแรก (เช่น Checkpoint 1, 2, 3) ออกจากลูปเพื่อไปทำออเดอร์ถัดไป หรือส่งมอบหน้าจอ
                             break
+                        if getattr(self, 'is_forbid', False) or getattr(self, 'is_skip', False):
+                            logger.info(f"Order: {self.app.order} is cancelled or skipped. Finishing order and advancing.")
+                            status = "CANCELLED" if getattr(self, 'is_forbid', False) else "SKIPPED"
+                            self.app.report_manager.finish_order(self.app.order, overall_status=status)
+                            break
                         if self.app.order != "" and not self.operation_thread.is_set():
                             self.current_checkpoint = "เข้าสู่หน้าจอสรุปออเดอร์แล้ว"
+                            payment_success = True
                             if hasattr(self, 'payment_handler') and self.payment_handler:
-                                self.payment_handler.process_final_payment()
+                                payment_success = self.payment_handler.process_final_payment()
+                            if getattr(self, 'is_forbid', False) or getattr(self, 'is_skip', False) or not payment_success:
+                                logger.info(f"Order: {self.app.order} payment failed or was skipped. Ending thread cycle.")
+                                break
                             self.app.report_manager.finish_order(self.app.order, overall_status="SUCCESS")
                             break  # รันสำเร็จ ออกจากลูปเพื่อไปทำออเดอร์ถัดไป
                     else:
@@ -5839,6 +5868,7 @@ class Bot_POS:
 
             # If order was skipped in auto-invoice mode (already completed & deducted)
             if marketplace_result.is_skip:
+                self.is_skip = True
                 return
 
             # If order is forbidden (e.g. cancelled/returned)

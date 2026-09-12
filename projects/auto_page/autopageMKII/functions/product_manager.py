@@ -103,6 +103,7 @@ class ProductManager:
             sku = self.app.correct_sku_pattern(item[self.COL_SKU])
             qty = item[self.COL_QTY]
             self.bot.AutoAddProduct.auto_add_product(sku, qty)
+            time.sleep(0.5)  # หน่วงเวลาระหว่างรายการสินค้าในคำสั่งซื้อ
 
     # ══════════════════════════════════════════════════════════════════════════
     # [!]  VERIFY ITEM QTY  — เช็คจำนวนบน POS vs input data
@@ -122,7 +123,7 @@ class ProductManager:
           "PR2-000456": {"expected": 1, "actual": "NOT_FOUND", "ok": False},
         }
         """
-        time.sleep(0.5)  # รอ DOM settle หลัง add
+        time.sleep(0.8)  # รอ DOM settle หลัง add
 
         # * 1) ดึง SKU ทั้งหมดที่แสดงบนหน้า POS
         sku_elements = self.driver.find_elements(By.XPATH, self.XPATH_SKU_TEXTS)
@@ -132,7 +133,7 @@ class ProductManager:
             try:
                 sku_text = sku_el.text.strip()
                 qty_text = qty_el.text.strip()
-                pos_data[sku_text] = int(qty_text)
+                pos_data[sku_text] = pos_data.get(sku_text, 0) + int(qty_text)
             except Exception as e:
                 print(f"[ProductManager.verify_item_qty] parse error: {e}")
 

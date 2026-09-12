@@ -202,17 +202,23 @@ class MarketplaceScraper:
         self.app.cus_cur_status.set(result.status)
 
         # 8. Update GUI status indicator & Check forbidden states
+        is_auto_running = bool(
+            (hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get()) or
+            (hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
+        )
         self.app.display_current_status.configure(text_color="#000000", fg_color="#8fd4ff")
         if result.status == "ส่งสินค้าแล้ว":
             self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
-            if hasattr(self.app, 'POP_UP'):
+            if hasattr(self.app, 'POP_UP') and not is_auto_running:
                 self.app.POP_UP.show("Caution!!", f"Order {order_no} มีสถานะ '{result.status}'", "alert")
             logger.info(f"Order: {order_no} has status: '{result.status}'")
 
         elif "ยกเลิก" in result.status:
             self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
             result.is_forbid = True
-            if hasattr(self.app, 'POP_UP'):
+            if hasattr(self, 'bot') and self.bot:
+                self.bot.is_forbid = True
+            if hasattr(self.app, 'POP_UP') and not is_auto_running:
                 self.app.POP_UP.show("Caution!!", f"Order {order_no} มีสถานะ '{result.status}'", "alert")
             logger.info(f"Order: {order_no} has status: '{result.status}'")
 
@@ -255,6 +261,8 @@ class MarketplaceScraper:
 
                     result.is_skip = True
                     result.skip_reason = f"ข้าม (สถานะ: {shopee_status})"
+                    if hasattr(self, 'bot') and self.bot:
+                        self.bot.is_skip = True
                     return result
 
         return result
@@ -403,6 +411,25 @@ class MarketplaceScraper:
         if "พิมพ์ใบแจ้งหนี้" in result.status or "ยกเลิก" in result.status:
             self.app.display_current_status.configure(fg_color="#ff2b2b", text_color="#FFF")
             result.is_forbid = True
+            if hasattr(self, 'bot') and self.bot:
+                self.bot.is_forbid = True
+            if hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get():
+                success_msg = f"ข้ามออเดอร์ (สถานะ: {result.status}) ถือว่า Complete ตามเงื่อนไข"
+                self.app.update_log(f"✅ {success_msg}")
+                if hasattr(self.app, 'accel_mode'):
+                    if hasattr(self.app.accel_mode, 'deduct_accel_file_data'):
+                        try:
+                            self.app.accel_mode.deduct_accel_file_data(order_no, remove_order=True)
+                        except Exception as xl_err:
+                            logger.warning(f"ไม่สามารถ deduct order จาก Sheet1 ได้: {xl_err}")
+                    if hasattr(self.app.accel_mode, 'record_completed_order'):
+                        self.app.accel_mode.record_completed_order(
+                            order_no, status=f"ข้าม (สถานะ: {result.status})", serials="")
+                result.is_skip = True
+                result.skip_reason = f"ข้าม (สถานะ: {result.status})"
+                if hasattr(self, 'bot') and self.bot:
+                    self.bot.is_skip = True
+                return result
         elif result.status == "สถานะการจัดส่ง":
             self.app.display_current_status.configure(fg_color="#00ff11", text_color="#000000")
 

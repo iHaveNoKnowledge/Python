@@ -199,13 +199,14 @@ class AutoAddProduct:
 
                         # * เตรียม SKU input
                         sku_input_element.clear()
+                        time.sleep(0.3)
                         sku_input_element.send_keys(sku)
                         print(f"Placing SKU Input with {sku} success")
 
                         # * ส่ง request
                         sku_input_element.send_keys(Keys().ENTER)
                         print("Pressed Enter to submit SKU")
-                        time.sleep(0.2)
+                        time.sleep(0.6)
 
                         # * ดึง response ด้วย utility
                         response_data = self.network_capture.capture_response(target_url_part, max_attempts=20)
@@ -226,6 +227,7 @@ class AutoAddProduct:
 
                         self.price_setter(sku=product_from_response, srp=srp)
                         self.item_qty_setter(product_from_response, qty)
+                        time.sleep(0.8)  # หน่วงเวลาให้ AngularJS DOM และตะกร้าสินค้า settle ก่อนยิง SKU ถัดไป
 
                     break  # สำเร็จ ออกจาก retry loop
 

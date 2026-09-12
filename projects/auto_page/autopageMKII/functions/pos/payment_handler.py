@@ -39,6 +39,11 @@ class POSPaymentHandler:
         Executes the final payment page loop and billing submission.
         Returns True if payment and billing completion succeeded, False otherwise.
         """
+        if getattr(self.bot, 'is_forbid', False) or getattr(self.bot, 'is_skip', False):
+            print("process_final_payment: Order is cancelled/forbidden/skipped. Bypassing final payment immediately.")
+            logger.info(f"Order: {getattr(self.bot, 'cus_order', '')} is cancelled/skipped, bypassing final payment.")
+            return False
+
         self.bot.autofinal = True
         while self.bot.autofinal and not self.bot.operation_thread.is_set():
             if hasattr(self.bot, 'check_abort'):
@@ -163,6 +168,9 @@ class POSPaymentHandler:
                         # 1. Collect and apply Tracking Number & Order No to Remark Modal
                         time.sleep(0.75)
                         remark_text = self.cus_order
+                        is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
+                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+
                         if getattr(self.app, 'tracking_from_data_complete', False):
                             print(f"Tracking จาก data ครบ: {self.app.tracking_from_data} ข้าม collect_tracking")
                             self.app.update_log(
@@ -180,6 +188,9 @@ class POSPaymentHandler:
                             except Exception as track_err:
                                 print(f"Tracking collection failed: {track_err}, returning SMCO to first page...")
                                 self.app.update_log(f"⚠️ {track_err} -> กำลังกดย้อนกลับไปหน้าแรกของ SMCO...")
+                                if is_accel and is_auto_inv:
+                                    fail_msg = f"เลข Tracking บน Shopee ไม่ครบตามจำนวน Package (ติดนัดรับ/รอเลข): {track_err}"
+                                    return self._handle_auto_inv_accel_abort(fail_msg, category="TRACKING_ERROR")
                                 self.return_to_first_page()
                                 raise track_err
 
@@ -240,6 +251,9 @@ class POSPaymentHandler:
 
                     except Exception as err:
                         print("Final page form filling failed, skip to waiting for price:", err)
+                        if is_accel and is_auto_inv:
+                            cat = "TRACKING_ERROR" if "tracking" in str(err).lower() else "GENERAL_ERROR"
+                            return self._handle_auto_inv_accel_abort(f"เกิดข้อผิดพลาดในการกรอกข้อมูลหน้าท้าย: {err}", category=cat)
                         break
 
                     # 7. Enter final price into ripCash00
@@ -437,6 +451,10 @@ class POSPaymentHandler:
                                     print(f"❌ {err_msg}")
                                     self.app.update_log(f"❌ {err_msg}")
                                     logger.error(f"Order: {self.cus_order} - {err_msg}")
+                                    is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
+                                    is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+                                    if is_accel and is_auto_inv:
+                                        return self._handle_auto_inv_accel_abort(err_msg, category="VERIFICATION_FAILED")
                             except Exception as e:
                                 print(f"Verification and payment submission failed: {e}")
                                 logger.error(f"Verification and payment error: {e}")
@@ -857,4 +875,58 @@ class POSPaymentHandler:
 
         except Exception as e:
             print(f"Error returning to first page: {e}")
+
+    def _handle_auto_inv_accel_abort(self, error_msg: str, category: str = "GENERAL_ERROR") -> bool:
+        """
+        ในโหมด auto_inv + accel_mode เมื่อพบปัญหาในการออกบิลหน้าท้าย:
+        1. ไม่หยุดรอผู้ใช้ (Do NOT wait)
+        2. กดย้อนกลับไปหน้าแรก และล้างตะกร้า POS (clean_pos_cart)
+        3. บันทึกข้อผิดพลาดลงชีต Failed_Orders
+        4. ตัดออเดอร์ออกจาก Sheet1 ของไฟล์ Accel (deduct_accel_file_data)
+        5. บันทึกผล FAILED ใน report_manager
+        6. คืนค่า False เพื่อจบการทำงานและข้ามไปออเดอร์ถัดไปทันที
+        """
+        print(f"[Auto Inv + Accel Abort] {error_msg}")
+        self.app.update_log(f"❌ [Auto Inv + Accel] {error_msg} -> ตัดข้ามเป็น Failed Order และล้างตะกร้าทันที")
+        logger.error(f"Order: {self.cus_order} - Auto Inv + Accel error: {error_msg}")
+
+        # 1. กดย้อนกลับไปหน้าแรก
+        try:
+            self.return_to_first_page()
+        except Exception as ret_err:
+            print(f"Error returning to first page: {ret_err}")
+
+        time.sleep(0.5)
+
+        # 2. ล้างตะกร้า POS หน้าแรก
+        if hasattr(self.bot, 'clean_pos_cart'):
+            try:
+                self.bot.clean_pos_cart()
+            except Exception as clean_err:
+                print(f"Error cleaning POS cart: {clean_err}")
+
+        # 3. บันทึก Failed Order และตัดออเดอร์ออกจาก Accel Sheet1
+        if hasattr(self.app, 'accel_mode'):
+            try:
+                self.app.accel_mode.record_failed_order(self.cus_order, str(error_msg), category=category)
+                self.app.accel_mode.deduct_accel_file_data(self.cus_order, remove_order=True, update_memory=True)
+            except Exception as acc_err:
+                print(f"Error recording failed order / deducting accel file: {acc_err}")
+
+        # 4. บันทึก Report Manager
+        if hasattr(self.app, 'report_manager'):
+            try:
+                self.app.report_manager.finish_order(self.cus_order, overall_status="FAILED", note=str(error_msg))
+            except Exception as rep_err:
+                print(f"Error reporting to report manager: {rep_err}")
+
+        # 5. รีเซ็ตสถานะและธงเพื่อก้าวข้ามไปออเดอร์ถัดไป
+        self.bot.autofinal = False
+        self.bot.is_skip = True
+        self.app.is_bot_browser_busy.set(False)
+        if hasattr(self.app, 'is_finish_order_triggered'):
+            self.app.is_finish_order_triggered.set(False)
+
+        return False
+
 
