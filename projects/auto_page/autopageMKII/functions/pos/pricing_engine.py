@@ -382,16 +382,14 @@ class POSPricingReconciler:
                 "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else ""
             })
 
-        # หากมีชุด candidate ที่ระบุ CP หรือ OC/DC หรือ Bypass ชัดเจนอยู่แล้ว ให้ตัดแถวเปล่าที่ไม่มีข้อมูลใดๆ ทิ้งทันที (ป้องกัน False Ambiguity)
+        # หากมีแถว candidate ใน Excel ให้ตัดแถวเปล่าที่ไม่มีข้อมูลใดๆ (ไม่มีทั้ง cp_name, oc_amount, dc_amount) ทิ้งทันที
         active_candidates = [
             c for c in candidates
             if c.get("cp_name") or is_valid_adjustment(c.get("oc_amount")) or is_valid_adjustment(c.get("dc_amount"))
             or str(c.get("cp_name")).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
         ]
-        if active_candidates:
-            candidates = active_candidates
+        return active_candidates
 
-        return candidates
 
     def find_cp_from_excel(self, sku: str, platform_price: float, purchased_date_str: str) -> Optional[dict]:
         """
@@ -532,18 +530,17 @@ class POSPricingReconciler:
                 if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
                     preselected.append(c.get("code"))
 
-        # หากเป็นการค้นหา Seller Voucher สำหรับเรื่องที่ 1 หรือไม่มี preselected ให้ใช้รหัสใหม่เพียวๆ
-        if require_seller_voucher or not preselected:
-            final_code = best["suggested_code"]
-            pre_codes = []
-        else:
-            # ดึงรหัส preselected ที่ไม่ซ้ำกับคูปองใหม่ที่แนะนำ
+        # ดึงรหัส preselected ที่มีอยู่เดิมบนหน้าเว็บ (เช่น Default CP หรือ DC) โดยไม่ใส่ซ้ำกับคูปองใหม่ที่แนะนำ
+        if preselected:
             new_tokens = [tok.strip().upper() for tok in best["suggested_code"].split()]
             pre_codes = [p for p in preselected if p.strip().upper() not in new_tokens]
             if pre_codes:
                 final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
             else:
                 final_code = best["suggested_code"]
+        else:
+            final_code = best["suggested_code"]
+            pre_codes = []
 
         return {
             "suggested_code": final_code,
@@ -766,6 +763,26 @@ class POSPricingReconciler:
         print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
         return any_success
 
+    def get_existing_panel_coupons(self, item_no_1indexed: int) -> list:
+        """ดึงรหัสคูปอง (CP/DC) ที่ปรากฏอยู่บน Item Panel ของสินค้านั้นบนหน้า POS Cart"""
+        found_codes = []
+        try:
+            panels = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+            if 1 <= item_no_1indexed <= len(panels):
+                target_panel = panels[item_no_1indexed - 1]
+                tooltip_elements = target_panel.find_elements(By.XPATH, ".//a[@data-toggle='tooltip']")
+                for el in tooltip_elements:
+                    text = el.text or ""
+                    title = el.get_attribute("title") or ""
+                    combined = f"{text} {title}".upper()
+                    matches = re.findall(r'\b((?:CP|DC)\d+)\b', combined)
+                    for m in matches:
+                        if m not in found_codes:
+                            found_codes.append(m)
+        except Exception as e:
+            print(f"[get_existing_panel_coupons] Error: {e}")
+        return found_codes
+
     def scan_matching_cp_candidates_on_smco(self, item_no: int, cp_candidates: list, required_seller_voucher: float = 0.0) -> list:
         """
         สแกนดูคูปองทั้งหมดบนหน้าต่าง Modal ของ SMCO แล้วจับคู่กับ cp_candidates
@@ -946,6 +963,13 @@ class POSPricingReconciler:
             for sc in scanned_details:
                 if sc.get("is_selected") and sc.get("code") and sc.get("code") not in preselected:
                     preselected.append(sc.get("code"))
+
+            # ดึงคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel ของสินค้าบนหน้า POS ร่วมด้วย
+            panel_codes = self.get_existing_panel_coupons(item_no)
+            for pc in panel_codes:
+                if pc and pc not in preselected:
+                    preselected.append(pc)
+
             self.last_preselected_smco_coupons = preselected
 
             # ปิด Modal ชั่วคราว (ยังไม่เลือก)
@@ -1037,18 +1061,19 @@ class POSPricingReconciler:
                 pass
             return []
 
-    def find_and_apply_seller_voucher_on_smco(self, item_no: int, required_seller_voucher: float, cp_candidates: list = None) -> tuple[bool, str, Optional[dict]]:
+    def find_and_apply_seller_voucher_on_smco(self, item_no: int, required_seller_voucher: float, cp_candidates: list = None, require_candidate_match: bool = True) -> tuple[bool, str, Optional[dict]]:
         """
-        [เรื่องที่ 1: Seller Voucher]
+        [Phase 1: Seller Voucher]
         สแกนคูปองบนหน้าเว็บ SMCO และค้นหาคูปองที่มีคำว่า 'Seller Voucher' และมีส่วนลดตรงกับ required_seller_voucher พอดี
-        หากมีหลายคูปองที่ตรงกัน:
-          1. ตรวจสอบว่าใน cp_candidates มีการระบุรหัสคูปองตัวใดไว้ใน cp_name หรือไม่ -> ถ้ามี ให้เลือกรหัสนั้น
-          2. หากไม่มี ให้เลือกคูปองที่ใหม่ที่สุด (Latest First) จากคะแนน recency score
-        สั่งเลือกคูปอง Seller Voucher นั้นลงในตะกร้าสินค้าทันที
+        - หากพบตรงเงื่อนไข:
+          1. ตรวจสอบว่าใน cp_candidates มีการระบุรหัสคูปองตัวใดไว้ใน cp_name หรือไม่ -> ถ้ามี ให้เลือกรหัสนั้นและสั่งเลือกใช้งาน
+          2. หากไม่มีใน cp_candidates:
+             - หาก require_candidate_match=True: จะไม่เลือกใช้งานสุ่มสี่สุ่มห้า และส่งคืน status="UNCONFIGURED" เพื่อให้หยุดแนะนำให้ผู้ใช้ตรวจสอบก่อน
+             - หาก require_candidate_match=False: เลือกตัวที่ใหม่ที่สุด (Latest First) จากคะแนน recency score
 
         Returns:
             (success: bool, status: str, coupon_info: Optional[dict])
-            status สามารถเป็น: 'APPLIED', 'NOT_FOUND', 'ERROR'
+            status สามารถเป็น: 'APPLIED', 'NOT_FOUND', 'UNCONFIGURED', 'ERROR'
         """
         try:
             # สแกนคูปองบน SMCO เพื่อดึงรายละเอียดลง self.last_scanned_smco_coupon_details
@@ -1085,9 +1110,13 @@ class POSPricingReconciler:
                     if chosen:
                         break
 
-            # หากไม่พบที่ระบุใน cp_candidates ให้เลือกตัวที่ใหม่ที่สุด (Latest First)
+            # หากไม่พบที่ระบุใน cp_candidates
             if not chosen:
                 chosen = matching_sv[0]
+                if require_candidate_match:
+                    print(f"[find_and_apply_seller_voucher_on_smco] Seller voucher {chosen['code']} found on SMCO but NOT configured in cp_candidates. Halting for user verification.")
+                    return False, "UNCONFIGURED", chosen
+
                 if len(matching_sv) > 1:
                     print(f"[find_and_apply_seller_voucher_on_smco] Multiple matching vouchers ({[m['code'] for m in matching_sv]}), auto-selecting newest: {chosen['code']}")
 
@@ -1424,33 +1453,21 @@ class POSPricingReconciler:
                         continue
 
                     # ══════════════════════════════════════════════════════════
-                    # ขั้นตอนที่ 1 (เรื่องที่ 1): เติมคูปอง Seller Voucher ก่อน
+                    # ขั้นตอนที่ 1 (Phase 1): เติมคูปอง Seller Voucher ก่อน
                     # ══════════════════════════════════════════════════════════
                     if is_auto_inv and seller_voucher > 0:
-                        # Pre-check cp_data: หากไม่มี pattern ใน cp_data.xlsx
-                        # ให้เพิ่มแถวลง cp_data.xlsx ทันที และข้ามออเดอร์โดยไม่เปิด SMCO
-                        if not cp_candidates:
-                            self.add_missing_cp_to_excel(sku_key, expected_price)
-                            err_msg = (
-                                f"มี Seller Voucher ({seller_voucher:,.2f} บาท) แต่ไม่พบ pattern ราคาใน cp_data.xlsx "
-                                f"สำหรับ SKU: {sku_key} (ราคาที่ต้องออกบิล: {expected_price:,.2f}) -> เพิ่มแถวลง cp_data.xlsx แล้วข้ามออเดอร์"
-                            )
-                            self.app.update_log(f"❌ {err_msg}")
-                            logger.warning(f"Order {getattr(self.bot, 'cus_order', '')}: {err_msg}")
-                            raise ValueError(err_msg)
-
                         self.app.update_log(
-                            f"🔍 [เรื่องที่ 1: Seller Voucher] ค้นหาและใส่คูปอง Seller Voucher ({seller_voucher:,.2f} บาท) บน SMCO ให้กับ SKU: {sku_key} ก่อนเป็นอันดับแรก..."
+                            f"🔍 [Phase 1: Seller Voucher] ค้นหาและตรวจสอบคูปอง Seller Voucher ({seller_voucher:,.2f} บาท) บน SMCO ให้กับ SKU: {sku_key} ก่อนเป็นอันดับแรก..."
                         )
                         sv_ok, sv_status, sv_chosen = self.find_and_apply_seller_voucher_on_smco(
-                            item_no_1indexed, seller_voucher, cp_candidates=cp_candidates
+                            item_no_1indexed, seller_voucher, cp_candidates=cp_candidates, require_candidate_match=True
                         )
 
                         if not sv_ok:
                             sugg_info = self.find_suggested_cp_for_discount(
                                 seller_voucher, require_seller_voucher=True
                             )
-                            suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
+                            suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ((sv_chosen.get("code") if sv_chosen else ""))
                             has_entry = len(cp_candidates) > 0
                             self.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp_code)
 
@@ -1458,6 +1475,11 @@ class POSPricingReconciler:
                                 log_msg = (
                                     f"❌ มี Seller Voucher ({seller_voucher:,.2f} บาท) แต่ไม่พบคูปอง Seller Voucher "
                                     f"ที่มีมูลค่าส่วนลดตรงกันบน SMCO สำหรับ SKU: {sku_key} -> ยกเลิก/ข้ามออเดอร์ทันที"
+                                )
+                            elif sv_status == "UNCONFIGURED":
+                                log_msg = (
+                                    f"⚠️ พบคูปอง Seller Voucher บน SMCO แต่ยังไม่ได้ระบุใน cp_data.xlsx สำหรับ SKU: {sku_key} "
+                                    f"-> แนะนำ: [{suggested_cp_code}] (บันทึกใส่คอลัมน์ suggested_cp แล้ว) หยุดเพื่อให้ตรวจสอบก่อน"
                                 )
                             else:
                                 log_msg = f"❌ ไม่สามารถกดเลือกคูปอง Seller Voucher บนหน้าเว็บ SMCO ได้สำหรับ SKU: {sku_key}"
@@ -1470,7 +1492,7 @@ class POSPricingReconciler:
                             )
 
                         self.app.update_log(
-                            f"🎫 [เรื่องที่ 1 สำเร็จ] ใส่คูปอง Seller Voucher [{sv_chosen['code']}] ให้กับ SKU: {sku_key} เรียบร้อยแล้ว"
+                            f"🎫 [Phase 1 สำเร็จ] ใส่คูปอง Seller Voucher [{sv_chosen['code']}] ให้กับ SKU: {sku_key} เรียบร้อยแล้ว"
                         )
                         time.sleep(0.5)
 
@@ -1490,11 +1512,11 @@ class POSPricingReconciler:
                             continue
 
                         self.app.update_log(
-                            f"🔄 [เรื่องที่ 2: Pattern CP เดิม] หลังใส่ Seller Voucher ราคายังมีส่วนต่าง ({diff_val:+,.2f} บาท) เข้าสู่ขั้นตอนปรับราคาตาม Pattern เดิม..."
+                            f"🔄 [Phase 2: Pattern CP เดิม] หลังใส่ Seller Voucher ราคายังมีส่วนต่าง ({diff_val:+,.2f} บาท) เข้าสู่ขั้นตอนปรับราคาตาม Pattern เดิม..."
                         )
 
                     # ══════════════════════════════════════════════════════════
-                    # ขั้นตอนที่ 2 (เรื่องที่ 2): ปรับราคาตาม Pattern เดิมใน cp_data.xlsx
+                    # ขั้นตอนที่ 2 (Phase 2): ปรับราคาตาม Pattern เดิมใน cp_data.xlsx
                     # ══════════════════════════════════════════════════════════
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
                     # ถ้าราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0) ให้ปรับราคาขึ้น (Overcharge) ทันที
@@ -1519,8 +1541,13 @@ class POSPricingReconciler:
                         if not bypassed:
                             if oc_amount_to_apply is not None:
                                 self.smco_set_overcharge_product(sku_key, str(oc_amount_to_apply))
+                            elif seller_voucher > 0:
+                                # หากเป็นออเดอร์ที่มี Seller Voucher: ไม่อนุญาตให้ auto-overcharge โดยพลการหากไม่มี oc_amount ระบุใน cp_data.xlsx
+                                self.app.update_log(
+                                    f"ℹ️ ออเดอร์มี Seller Voucher แต่ไม่มีการระบุ oc_amount ใน cp_data.xlsx สำหรับ SKU: {sku_key} (ส่วนต่าง: +{diff_val:,.2f} บาท) -> ไม่ทำการ Overcharge อัตโนมัติ เพื่อความปลอดภัย"
+                                )
                             else:
-                                # หากไม่มีใน cp_data หรือใน cp_data ไม่ได้ระบุ oc_amount -> ปรับราคาขึ้นตามส่วนต่าง diff_val ทันที
+                                # กรณีออเดอร์ทั่วไปที่ไม่มี Seller Voucher: ปรับราคาขึ้นตามส่วนต่าง diff_val ทันที
                                 self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
                                 self.smco_set_overcharge_product(sku_key, str(diff_val))
 
@@ -1754,9 +1781,12 @@ class POSPricingReconciler:
         smco_scanned = getattr(self, 'last_scanned_smco_coupons', [])
 
         if has_entry:
-            excel_str = ", ".join(excel_cp_names) if excel_cp_names else "ระบุแต่ยังไม่มีรหัส CP"
-            smco_str = ", ".join(smco_scanned) if smco_scanned else "ไม่พบปุ่ม CP หรือไม่มีคูปองบนหน้า SMCO"
-            extra_note = f"\n(มี SKU ใน CP_data แล้ว แต่ CP ใน Excel กับหน้า SMCO ไม่ตรงกัน:\n  • ใน cp_data.xlsx ระบุ: {excel_str}\n  • บนหน้า SMCO มี: {smco_str})"
+            if excel_cp_names:
+                excel_str = ", ".join(excel_cp_names)
+                smco_str = ", ".join(smco_scanned) if smco_scanned else "ไม่พบปุ่ม CP หรือไม่มีคูปองบนหน้า SMCO"
+                extra_note = f"\n(มี SKU ใน CP_data แล้ว แต่ CP ใน Excel กับหน้า SMCO ไม่ตรงกัน:\n  • ใน cp_data.xlsx ระบุ: {excel_str}\n  • บนหน้า SMCO มี: {smco_str})"
+            else:
+                extra_note = "\n(มี SKU ใน cp_data.xlsx แล้ว แต่ยังไม่ได้ระบุรหัส CP หรือ Overcharge)"
         else:
             extra_note = ""
 

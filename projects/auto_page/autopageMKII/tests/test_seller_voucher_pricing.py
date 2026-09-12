@@ -204,8 +204,8 @@ class TestSellerVoucherPricing(unittest.TestCase):
         self.assertIn("ออเดอร์มีหลาย SKU", str(ctx.exception))
         self.assertIn("Manual", str(ctx.exception))
 
-    def test_single_sku_seller_voucher_missing_in_cp_data_fails_without_opening_smco(self):
-        """ทดสอบว่า Single SKU ที่มี Seller Voucher แต่ไม่มี pattern ใน cp_data.xlsx จะถูกบันทึกลง cp_data และ Fail ทันทีโดยไม่เปิด SMCO"""
+    def test_single_sku_seller_voucher_missing_in_cp_data_scans_and_records_suggested_cp(self):
+        """ทดสอบว่า Single SKU ที่มี Seller Voucher และยังไม่มีใน cp_data.xlsx จะสแกน SMCO เพื่อบันทึก suggested_cp ลงใน cp_data และหยุดขอวิธีปรับราคา"""
         reconciler = POSPricingReconciler(self.mock_bot)
         self.mock_app.is_auto_invoice_mode.get.return_value = True
 
@@ -221,6 +221,11 @@ class TestSellerVoucherPricing(unittest.TestCase):
         reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[])
         reconciler.add_missing_cp_to_excel = MagicMock()
         reconciler.scan_matching_cp_candidates_on_smco = MagicMock()
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP_DEFAULT", "discount": 100.0, "desc": "Default Promo", "is_selected": True},
+            {"code": "CP2609100001", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 10-30 Sep 2026", "is_selected": False},
+        ]
+        reconciler.last_preselected_smco_coupons = ["CP_DEFAULT"]
 
         verification_result = {
             "price": {
@@ -231,10 +236,11 @@ class TestSellerVoucherPricing(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             reconciler.process_price_mismatches(verification_result)
 
-        self.assertIn("มี Seller Voucher", str(ctx.exception))
-        self.assertIn("ไม่พบ pattern ราคาใน cp_data.xlsx", str(ctx.exception))
-        reconciler.add_missing_cp_to_excel.assert_called_once_with("SKU-SELLER-SINGLE", 500.0)
-        reconciler.scan_matching_cp_candidates_on_smco.assert_not_called()
+        self.assertIn("ขอวิธีปรับราคาครับ", str(ctx.exception))
+        # บันทึก suggested_cp ที่รวมทั้งคูปองเริ่มต้น และคูปอง Seller Voucher
+        reconciler.add_missing_cp_to_excel.assert_called_once_with(
+            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP_DEFAULT CP2609100001"
+        )
 
     def test_scan_matching_cp_candidates_filters_seller_voucher(self):
         """ทดสอบว่า scan_matching_cp_candidates_on_smco กรองเฉพาะ candidate ที่มีคูปอง Seller Voucher ตรงมูลค่า"""
@@ -347,7 +353,7 @@ class TestSellerVoucherPricing(unittest.TestCase):
 
         # Candidate ใน Excel
         reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
-            {"cp_name": "CP-SELLER-200", "oc_amount": "", "dc_amount": ""}
+            {"cp_name": "CP-SELLER-200", "oc_amount": "250.0", "dc_amount": ""}
         ])
 
         # Mock find_and_apply_seller_voucher_on_smco ให้ใส่ Seller Voucher สำเร็จ
@@ -373,7 +379,7 @@ class TestSellerVoucherPricing(unittest.TestCase):
 
         # ตรวจสอบว่า เรื่องที่ 1: มีการเรียกใส่คูปอง Seller Voucher ก่อนเสมอ!
         reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(
-            1, 200.0, cp_candidates=[{'cp_name': 'CP-SELLER-200', 'oc_amount': '', 'dc_amount': ''}]
+            1, 200.0, cp_candidates=[{'cp_name': 'CP-SELLER-200', 'oc_amount': '250.0', 'dc_amount': ''}], require_candidate_match=True
         )
 
         # ตรวจสอบว่า เรื่องที่ 2: มีการ Overcharge ส่วนต่างที่เหลือ (250 บาท) หลังใส่คูปอง
@@ -439,7 +445,7 @@ class TestSellerVoucherPricing(unittest.TestCase):
 
         # ตรวจสอบว่า เรื่องที่ 1 ถูกเรียก
         reconciler.find_and_apply_seller_voucher_on_smco.assert_called_once_with(
-            1, 100.0, cp_candidates=[{"cp_name": "CP-CAMPAIGN-200", "oc_amount": "", "dc_amount": ""}]
+            1, 100.0, cp_candidates=[{"cp_name": "CP-CAMPAIGN-200", "oc_amount": "", "dc_amount": ""}], require_candidate_match=True
         )
 
         # ตรวจสอบว่า เรื่องที่ 2 เลือก Campaign CP ต่อ
@@ -596,7 +602,7 @@ class TestSellerVoucherPricing(unittest.TestCase):
         reconciler.cp_sonic_blow_process.assert_called_once_with(1, "CP2609100001")
 
     def test_find_and_apply_seller_voucher_multi_falls_back_to_latest(self):
-        """ทดสอบกรณีบน SMCO มี Seller Voucher 500 บาท 2 ตัว แต่ใน cp_candidates ไม่ได้ระบุตัวใดเลย -> เลือกรหัสที่ใหม่กว่า (CP2609100001)"""
+        """ทดสอบกรณีบน SMCO มี Seller Voucher 500 บาท 2 ตัว แต่ใน cp_candidates ไม่ได้ระบุตัวใดเลย -> เลือกรหัสที่ใหม่กว่าเมื่อ require_candidate_match=False"""
         reconciler = POSPricingReconciler(self.mock_bot)
         reconciler.last_scanned_smco_coupon_details = [
             {"code": "CP2609070026", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 08-15 Sep 2026"},
@@ -604,12 +610,27 @@ class TestSellerVoucherPricing(unittest.TestCase):
         ]
         reconciler.cp_sonic_blow_process = MagicMock(return_value=True)
 
-        ok, status, chosen = reconciler.find_and_apply_seller_voucher_on_smco(1, 500.0, cp_candidates=None)
+        ok, status, chosen = reconciler.find_and_apply_seller_voucher_on_smco(1, 500.0, cp_candidates=None, require_candidate_match=False)
 
         self.assertTrue(ok)
         self.assertEqual(status, "APPLIED")
         self.assertEqual(chosen["code"], "CP2609100001")
         reconciler.cp_sonic_blow_process.assert_called_once_with(1, "CP2609100001")
+
+    def test_find_and_apply_seller_voucher_unconfigured_requires_verification(self):
+        """ทดสอบว่าเมื่อพบคูปอง Seller Voucher บน SMCO แต่ใน cp_candidates ไม่ได้ระบุไว้ (และ require_candidate_match=True) จะต้องไม่เลือกสุ่มสี่สุ่มห้าและส่งคืน UNCONFIGURED"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2609100001", "discount": 500.0, "desc": "Promotion MSI Seller Voucher 10-30 Sep 2026"},
+        ]
+        reconciler.cp_sonic_blow_process = MagicMock(return_value=True)
+
+        ok, status, chosen = reconciler.find_and_apply_seller_voucher_on_smco(1, 500.0, cp_candidates=[], require_candidate_match=True)
+
+        self.assertFalse(ok)
+        self.assertEqual(status, "UNCONFIGURED")
+        self.assertEqual(chosen["code"], "CP2609100001")
+        reconciler.cp_sonic_blow_process.assert_not_called()
 
     def test_overcharge_with_cp_candidate_applies_both_oc_and_cp(self):
         """ทดสอบกรณี diff > 0 (Overcharge) และใน candidate มีทั้ง oc_amount และ cp_name -> ใส่ทั้ง Overcharge และ Campaign CP"""

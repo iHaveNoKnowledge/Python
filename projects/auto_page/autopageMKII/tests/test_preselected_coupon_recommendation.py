@@ -72,8 +72,8 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
         self.assertEqual(res["suggested_code"], "CP2608310072")
         self.assertEqual(res["preselected_codes"], [])
 
-    def test_require_seller_voucher_does_not_prepend_preselected(self):
-        """เมื่อค้นหา Seller Voucher สำหรับเรื่องที่ 1 ไม่นำ preselected มาพ่วงหน้า"""
+    def test_require_seller_voucher_also_prepends_preselected(self):
+        """เมื่อค้นหา Seller Voucher หากมีคูปองเริ่มต้น (เช่น CP_DEFAULT หรือ DC...) ให้พ่วงรหัสเริ่มต้นด้วยเสมอ"""
         self.reconciler.last_scanned_smco_coupon_details = [
             {"code": "CP_DEFAULT", "discount": 100.0, "desc": "Default Promo", "is_selected": True},
             {"code": "SV_200", "discount": 200.0, "desc": "Seller Voucher 200.-", "is_selected": False},
@@ -82,8 +82,8 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
 
         res = self.reconciler.find_suggested_cp_for_discount(200.0, require_seller_voucher=True)
         self.assertIsNotNone(res)
-        self.assertEqual(res["suggested_code"], "SV_200")
-        self.assertEqual(res["preselected_codes"], [])
+        self.assertEqual(res["suggested_code"], "CP_DEFAULT SV_200")
+        self.assertEqual(res["preselected_codes"], ["CP_DEFAULT"])
 
     def test_scan_matching_cp_candidates_detects_btn_primary(self):
         """จำลองหน้าเว็บ SMCO ว่าปุ่ม btn-primary ถูกตรวจจับเป็น is_selected=True และลง last_preselected_smco_coupons"""
