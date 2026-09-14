@@ -35,7 +35,7 @@ from functions.marketplace_scraper import MarketplaceScraper
 from functions.pos.customer_test_handler import CustomerModalTestHandler
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
 from functions.pos.payment_handler import POSPaymentHandler
-from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler, parse_smart_date)
+from functions.pos.pricing_engine import (OrderFinancials, POSPricingReconciler, parse_smart_date, format_cp_excel)
 from functions.product_manager import ProductManager
 from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
@@ -2091,6 +2091,7 @@ class MyApp:
                     df_combined = pd.concat([df_excel, new_df], ignore_index=True)
 
                 df_combined.to_excel(excel_path, index=False)
+                format_cp_excel(excel_path)
                 if os.path.exists(excel_path):
                     try:
                         self._cp_last_mtime = os.path.getmtime(excel_path)
@@ -2129,28 +2130,8 @@ class MyApp:
             return
         try:
             file_path = os.path.normpath(file_path)
-            # เตรียมไฟล์ Excel ให้ Auto Filter ครอบทุกคอลัมน์ และ Freeze แถวแรกที่เป็นหัวตาราง
-            # - สั่ง save เฉพาะเมื่อมี sheet ที่ยังไม่ได้ตั้งค่า (ลดความเสี่ยงทำไฟล์พัง/ช้า)
-            # - keep_vba=True เพื่อรักษา macro ใน .xlsm ไม่ให้หายไป
-            # NOTE: Comment เก็บไว้ก่อนตามที่ผู้ใช้แจ้ง (เนื่องจากต้องเปิดไฟล์ดูผ่าน software จัดการ xlsx ตลอด ทำให้ไฟล์โดน lock หากทำ UI CRUD ข้อมูลตารางแล้วค่อยนำกลับมาใช้)
-            # if file_path.lower().endswith(('.xlsx', '.xlsm')):
-            #     try:
-            #         wb = load_workbook(
-            #             file_path, keep_vba=file_path.lower().endswith('.xlsm'))
-            #         need_save = False
-            #         for ws in wb.worksheets:
-            #             if ws.max_row > 0 and ws.max_column > 0:
-            #                 if ws.auto_filter.ref != ws.dimensions:
-            #                     ws.auto_filter.ref = ws.dimensions
-            #                     need_save = True
-            #                 if ws.freeze_panes != "A2":
-            #                     ws.freeze_panes = "A2"
-            #                     need_save = True
-            #         if need_save:
-            #             wb.save(file_path)
-            #         wb.close()
-            #     except Exception as e:
-            #         self.update_log(f"เตรียมรูปแบบไฟล์ Excel ไม่สำเร็จ: {e}")
+            # จัดรูปแบบ freeze row 1, auto-filter, column width 32 ก่อนเปิดไฟล์
+            format_cp_excel(file_path)
             os.startfile(file_path)
             self.update_log(f"เปิดไฟล์: {os.path.basename(file_path)}")
         except Exception as e:
@@ -4537,8 +4518,8 @@ class Bot_POS:
     def process_price_mismatches(self, verification_result: dict) -> None:
         return self.pricing_reconciler.process_price_mismatches(verification_result)
 
-    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float, suggested_cp: str = ""):
-        return self.pricing_reconciler.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp)
+    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float, suggested_cp: str = "", start_date: Any = None, end_date: Any = None):
+        return self.pricing_reconciler.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp, start_date=start_date, end_date=end_date)
 
     def smco_pos_item_list_srp_bringer(self, sku: str):
         return 0

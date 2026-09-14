@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 import unittest
@@ -237,9 +238,9 @@ class TestSellerVoucherPricing(unittest.TestCase):
             reconciler.process_price_mismatches(verification_result)
 
         self.assertIn("ขอวิธีปรับราคาครับ", str(ctx.exception))
-        # บันทึก suggested_cp ที่รวมทั้งคูปองเริ่มต้น และคูปอง Seller Voucher
+        # บันทึก suggested_cp ที่รวมทั้งคูปองเริ่มต้น และคูปอง Seller Voucher พร้อมวันที่
         reconciler.add_missing_cp_to_excel.assert_called_once_with(
-            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP_DEFAULT CP2609100001"
+            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP_DEFAULT CP2609100001", start_date=datetime.date(2026, 9, 10)
         )
 
     def test_scan_matching_cp_candidates_filters_seller_voucher(self):
