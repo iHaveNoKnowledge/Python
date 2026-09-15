@@ -7111,14 +7111,16 @@ class Bot_POS:
                         break
 
                 if matched_item:
-                    # พยายามคลิกไอเทมที่ตรงกันโดยค้นจาก text ก่อน เพื่อป้องกัน IndexError หรือ index ไม่ตรงกับ DOM
+                    # พยายามคลิกไอเทมที่ตรงกันโดยค้นจาก exact text ก่อน เพื่อป้องกันคำสั้นไปตรงกับคำยาว (เช่น 'วัฒนา' ไปโดน 'ทวีวัฒนา')
                     clicked = False
                     th_val = matched_item.get(th_field, "")
                     en_val = matched_item.get(en_field, "")
+
+                    # 1. ค้นหาแบบ Exact match ก่อนเสมอ
                     for li in li_dropdowns:
                         try:
                             txt = li.text.strip()
-                            if txt and (txt == th_val or txt == en_val or th_val in txt or en_val in txt):
+                            if txt and (txt == th_val or txt == en_val):
                                 li.click()
                                 clicked = True
                                 print(
@@ -7127,15 +7129,30 @@ class Bot_POS:
                         except Exception:
                             continue
 
+                    # 2. หากไม่พบ exact match ให้เลือกตาม index ของ matched_item จาก API
                     if not clicked:
                         if matched_item_idx < len(li_dropdowns):
                             li_dropdowns[matched_item_idx].click()
                             print(
                                 f"Selected '{search_value}', item idx {matched_item_idx} successfully")
                         else:
-                            input_element.send_keys(Keys.ENTER)
-                            print(
-                                f"Selected '{search_value}' via Keys.ENTER fallback (idx {matched_item_idx} out of range {len(li_dropdowns)})")
+                            # 3. Fallback: ถ้า index เกิน ค่อยลองค้นหาแบบ partial match หรือกด ENTER
+                            for li in li_dropdowns:
+                                try:
+                                    txt = li.text.strip()
+                                    if txt and (th_val in txt or en_val in txt):
+                                        li.click()
+                                        clicked = True
+                                        print(
+                                            f"Selected '{search_value}' by partial matching text '{txt}' successfully")
+                                        break
+                                except Exception:
+                                    continue
+
+                            if not clicked:
+                                input_element.send_keys(Keys.ENTER)
+                                print(
+                                    f"Selected '{search_value}' via Keys.ENTER fallback (idx {matched_item_idx} out of range {len(li_dropdowns)})")
 
                     # Clear logs หลังใช้งาน
                     self.network_capture.clear_logs()

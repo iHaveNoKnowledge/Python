@@ -63,6 +63,12 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-09-15
+- [x] **[Address Dropdown Exact Match Priority]** แก้ไขปัญหาการเลือก อำเภอ/เขต/จังหวัด ใน `select_li_from_dropdown` ผิดพลาดเมื่อคำค้นหาเป็นคำย่อยของคำอื่น (เช่น ค้นหา "วัฒนา" แต่ระบบไปเลือก "ทวีวัฒนา"):
+  - ปรับปรุงตรรกะใน [autopage_MKII_ver5.x.x.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py) ให้ตรวจสอบและคลิกรายการที่เป็น Exact Match (`txt == th_val or txt == en_val`) ก่อนเสมอในรอบแรก เพื่อป้องกันปัญหา Substring Match ที่ทำให้คำค้นหาสั้นไปจับคู่โดนคำยาวที่อยู่ลำดับก่อนหน้า
+  - หากไม่พบ Exact Match จะเลือกตาม Index จาก API (`matched_item_idx`) ซึ่งตรงกับลำดับรายการที่แสดงใน Select2 Dropdown ของ SMCO
+  - คง Fallback ด้วย Partial Match และ `Keys.ENTER` ไว้เฉพาะกรณีที่ Index เกินขอบเขตของตัวเลือกใน DOM
+
 ### [ver5.x.x] - 2026-09-11
 - [x] **[Test Mode Accel Auto-Advance on Pass]** เพิ่มระบบข้ามไปออเดอร์ถัดไปอัตโนมัติใน Test Mode เมื่อเปิดรันคู่กับ Accel Mode + Auto Invoice:
   - หาก `is_testing == True` และรันบน `is_accel_mode == True` คู่กับ `is_auto_invoice_mode == True`:
