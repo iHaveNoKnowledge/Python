@@ -90,20 +90,21 @@ class ProductManager:
         for i, item in enumerate(self.app.items):
             print(f"[ProductManager] Item {i}: {item}")
 
-            # --- ข้ามการแอดสินค้า ถ้าอยู่ใน accel_file (accel_mode จัดการไปแล้ว) ---
-            original_sku = str(item.get(self.COL_SKU, ""))
-            if has_accel_data:
-                is_sku_ready_to_pick = [key for key in available_sn_skus_list if key in original_sku]
-                if len(is_sku_ready_to_pick) > 0:
-                    print(
-                        f"[ProductManager] ⏩ Skip adding Item {i} ({original_sku}) เพราะมีอยู่ใน accel_file (accel_mode หรือ accel_fill_sku จัดการไปแล้ว)")
-                    continue
-            # ----------------------------------------------------
-
-            sku = self.app.correct_sku_pattern(item[self.COL_SKU])
             qty = item[self.COL_QTY]
-            self.bot.AutoAddProduct.auto_add_product(sku, qty)
-            time.sleep(0.5)  # หน่วงเวลาระหว่างรายการสินค้าในคำสั่งซื้อ
+            # แตก SKU กรณีคอมโบ (+) เพื่อเช็คแยกรายตัว
+            sub_skus = self.app.correct_sku_pattern(item[self.COL_SKU])
+            skus_to_add = []
+            for s in sub_skus:
+                s_str = str(s).strip()
+                if has_accel_data and any(str(key).lower() in s_str.lower() or s_str.lower() in str(key).lower() for key in available_sn_skus_list):
+                    print(
+                        f"[ProductManager] ⏩ Skip sub-sku {s_str} จาก Item {i} เพราะมีอยู่ใน accel_file (accel_mode หรือ accel_fill_sku จัดการ)")
+                    continue
+                skus_to_add.append(s_str)
+
+            if skus_to_add:
+                self.bot.AutoAddProduct.auto_add_product(skus_to_add, qty)
+                time.sleep(0.5)  # หน่วงเวลาระหว่างรายการสินค้าในคำสั่งซื้อ
 
     # ══════════════════════════════════════════════════════════════════════════
     # [!]  VERIFY ITEM QTY  — เช็คจำนวนบน POS vs input data

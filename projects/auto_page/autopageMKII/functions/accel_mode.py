@@ -622,73 +622,597 @@ class AccelMode:
             logger.warning(
                 "ไม่สามารถดึงข้อมูลสต็อก SN จาก SMCO API ได้ (API_ERROR)")
 
-    # * เอาไว้ใช้กับ smco โดยการเอา sn จาก accel file มาใส่ในช่อง sku input บนเว็บ smco และทำการ verify บนเว็บ
-    def accel_fill_sku(self, driver, operation_thread):
-        from loguru import logger
-        from selenium.webdriver.common.keys import Keys
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.support.ui import WebDriverWait
+    # * ──────────────────────────────────────────────────────────────────────────
+    # * Aggregation & Rollback Helpers สำหรับ Accel Mode
+    # * ──────────────────────────────────────────────────────────────────────────
+    def _aggregate_order_skus(self, items):
+        """รวม QTY ของแต่ละ SKU ใน items ทั้งออเดอร์ (รวมถึงการแตกเครื่องหมาย + ในคอมโบ)"""
+        correct_func = getattr(self.main_app, 'correct_sku_pattern', None)
+        aggregated = {}
+        for row in items:
+            raw_sku = str(row.get('เลขอ้างอิง SKU (SKU Reference No.)') or row.get('sellerSku') or '').strip()
+            try:
+                qty = int(row.get('จำนวน', 1))
+            except (ValueError, TypeError):
+                qty = 1
+            item_name = str(row.get('ชื่อสินค้า', '')).strip()
 
-        def adjust_qty_down(sku, target_qty):
-            print(
-                f"กำลังตรวจสอบและปรับลดจำนวนสินค้า SKU: {sku} ให้เท่ากับ {target_qty}")
-            for attempt in range(10):
-                if operation_thread.is_set():
+            if correct_func:
+                sub_skus = correct_func(raw_sku)
+            else:
+                sub_skus = [s.strip() for s in raw_sku.replace(" ", "").split("+") if s.strip()]
+
+            if not sub_skus:
+                sub_skus = [raw_sku]
+
+            for s in sub_skus:
+                s_clean = str(s).strip()
+                if not s_clean:
+                    continue
+                if s_clean not in aggregated:
+                    aggregated[s_clean] = {
+                        'qty': 0,
+                        'item_name': item_name,
+                        'original_skus': set()
+                    }
+                aggregated[s_clean]['qty'] += qty
+                aggregated[s_clean]['original_skus'].add(raw_sku)
+        return aggregated
+
+    def restore_uncommitted_serials(self):
+        """คืน SN ที่ผ่านการ verify ในรอบที่พัง/abort กลับเข้า obj_data_from_accel_file เพื่อไม่ให้เสีย SN ไปฟรี"""
+        from loguru import logger
+        if hasattr(self, 'used_serials') and self.used_serials:
+            for item in self.used_serials:
+                sku = item.get('sku')
+                sn = item.get('sn')
+                if sku and sn and sku in self.obj_data_from_accel_file:
+                    if sn not in self.obj_data_from_accel_file[sku]:
+                        self.obj_data_from_accel_file[sku].insert(0, sn)
+                        logger.info(f"คืน SN {sn} (SKU: {sku}) กลับเข้าหน่วยความจำเนื่องจากคำสั่งซื้อยังไม่เสร็จสมบูรณ์")
+            self.used_serials = []
+
+    def _safe_close_modal(self, driver):
+        """ปิด Modal การกรอก SN บนหน้าเว็บ SMCO อย่างปลอดภัย"""
+        from selenium.webdriver.common.by import By
+        try:
+            close_btns = driver.find_elements(
+                By.XPATH,
+                "//button[@class='btn smco-btn-cancel-pos' and @ng-click='exitInsertSerial()']"
+            )
+            if not close_btns:
+                close_btns = driver.find_elements(
+                    By.XPATH,
+                    "//button[@ng-click='exitInsertSerial()' or @data-dismiss='modal' or @class='close' or text()='ยกเลิก']"
+                )
+            for cb in close_btns:
+                if cb.is_displayed():
+                    driver.execute_script("arguments[0].click();", cb)
+                    time.sleep(0.5)
+                    break
+        except Exception as close_err:
+            print(f"Error closing modal: {close_err}")
+
+    def _adjust_qty_down(self, driver, sku, target_qty, operation_thread):
+        """ปรับลดจำนวนสินค้า SKU บนหน้าเว็บ SMCO ให้เท่ากับ target_qty"""
+        from selenium.webdriver.common.by import By
+        print(f"กำลังตรวจสอบและปรับลดจำนวนสินค้า SKU: {sku} ให้เท่ากับ {target_qty}")
+        for attempt in range(10):
+            if operation_thread.is_set():
+                break
+            try:
+                sku_elements = driver.find_elements(
+                    By.XPATH,
+                    "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u")
+                target_idx = None
+                for idx, elem in enumerate(sku_elements):
+                    if elem.text.strip().lower() == sku.strip().lower() or sku.strip().lower() in elem.text.strip().lower():
+                        target_idx = idx
+                        break
+
+                if target_idx is None:
                     break
 
+                current_qty_elements = driver.find_elements(
+                    By.XPATH, "//span[@class='col-sm-4 ng-binding' and not(contains(@class, 'ng-hide'))]"
+                )
+                if target_idx >= len(current_qty_elements):
+                    break
+
+                current_qty = int(current_qty_elements[target_idx].text.strip())
+                if current_qty <= target_qty:
+                    break
+
+                decrease_buttons = driver.find_elements(
+                    By.XPATH, "//button[@ng-click='incrementMainQty(false, x)' and not(contains(@class, 'ng-hide'))]"
+                )
+                if target_idx >= len(decrease_buttons):
+                    break
+
+                driver.execute_script("arguments[0].click();", decrease_buttons[target_idx])
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"เกิดข้อผิดพลาดระหว่างปรับลดจำนวน: {e}")
+                time.sleep(0.5)
+
+    # * ──────────────────────────────────────────────────────────────────────────
+    # * FLOW 1: ยิง SN ผ่านช่องค้นหาบน (Inline Flow) สำหรับ QTY == 1
+    # * ──────────────────────────────────────────────────────────────────────────
+    def _fill_single_sku_inline(self, driver, operation_thread, target_sku, matched_col, item_name, sku_input_selectors):
+        from loguru import logger
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
+
+        sku_fail_count = 0
+        while not operation_thread.is_set():
+            candidates = self.obj_data_from_accel_file.get(matched_col, [])
+            if not candidates:
+                logger.warning(f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {target_sku} ({matched_col})")
+                if self.main_app.is_auto_invoice_mode.get():
+                    self.sn_shortage.append({
+                        'sku': target_sku,
+                        'item_name': item_name,
+                        'ordered': 1,
+                        'got': 0,
+                        'short': 1,
+                    })
+                    return False
+                else:
+                    msg = f"⚠️ [Manual Mode] จำนวน SN ในไฟล์ Excel ไม่พอสำหรับ SKU: {target_sku} (ต้องการ 1 ขาด 1) กรุณากรอกต่อในหน้าจอ"
+                    logger.warning(msg)
+                    self.main_app.update_log(msg)
+                    if hasattr(self.main_app, 'display_bot_status_label'):
+                        self.main_app.display_bot_status_label.configure(text="Your Turn", text_color="#F39C12")
+                    operation_thread.set()
+                    return False
+
+            candidate_sn = candidates[0]
+            logger.info(f"ลองใช้งาน SN จาก Excel: {candidate_sn} สำหรับ SKU: {target_sku}")
+
+            skuInput = None
+            while not operation_thread.is_set():
+                for sel in sku_input_selectors:
+                    try:
+                        el = driver.find_element(By.XPATH, sel)
+                        if el.is_displayed():
+                            skuInput = el
+                            break
+                    except Exception:
+                        pass
+                if skuInput is not None:
+                    break
+                time.sleep(0.5)
+
+            if skuInput is None:
+                logger.error(f"ไม่พบช่อง Input SKU บนหน้าเว็บ SMCO")
+                return False
+
+            skuInput.clear()
+            attempts = 10
+            while attempts > 0:
                 try:
-                    # ค้นหา index ของ SKU บนหน้าเว็บ
+                    skuInput.send_keys(candidate_sn)
+                    break
+                except Exception:
+                    time.sleep(0.5)
+                    attempts -= 1
+            else:
+                logger.error('sku input in smco cannot be interacted with')
+                raise ValueError('sku input in smco cannot be interacted with')
+
+            skuInput.send_keys(Keys.ENTER)
+
+            sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{target_sku}']"
+            check_btn_xpath = "//i[contains(@class, 'fa-check-square-o') or contains(@class, 'fa-check-square')]"
+
+            wait_timeout = 30
+            start_wait = time.time()
+            check_btn = None
+            found_mode = None
+            target_red_btn = None
+
+            while (time.time() - start_wait) < wait_timeout and not operation_thread.is_set():
+                try:
+                    check_btn = driver.find_element(By.XPATH, check_btn_xpath)
+                    if check_btn.is_displayed():
+                        found_mode = 'inline_check'
+                        break
+                except Exception:
+                    pass
+
+                elapsed = time.time() - start_wait
+                if elapsed > 15:
+                    try:
+                        sku_elems = driver.find_elements(
+                            By.XPATH,
+                            "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                        )
+                        serial_btns = driver.find_elements(
+                            By.XPATH,
+                            "//button[contains(@class, 'btn-serial btn btn-sm btn-outline')]"
+                        )
+                        for idx, s_el in enumerate(sku_elems):
+                            s_text = s_el.text.strip().lower()
+                            if target_sku.lower() in s_text or s_text in target_sku.lower():
+                                if idx < len(serial_btns):
+                                    btn = serial_btns[idx]
+                                    btn_class = btn.get_attribute('class') or ''
+                                    if 'ng-redalert' in btn_class or 'btn-danger' in btn_class:
+                                        target_red_btn = btn
+                                        found_mode = 'redalert_modal'
+                                        break
+                    except Exception:
+                        pass
+                time.sleep(0.5)
+
+            if found_mode == 'redalert_modal' and target_red_btn:
+                return self._fill_multi_sku_modal(driver, operation_thread, target_sku, matched_col, 1, item_name, sku_input_selectors)
+
+            if found_mode != 'inline_check' or not check_btn:
+                logger.error(f"หมดเวลารอปุ่มยืนยัน SN สำหรับ {candidate_sn}")
+                self.deduct_accel_file_data(
+                    self.main_app.cus_order, [{'sku': matched_col, 'sn': candidate_sn}],
+                    remove_order=False, update_memory=False)
+                if candidate_sn in self.obj_data_from_accel_file[matched_col]:
+                    self.obj_data_from_accel_file[matched_col].remove(candidate_sn)
+                sku_fail_count += 1
+                if sku_fail_count > 2:
+                    self._filter_invalid_sns(driver, matched_col)
+                continue
+
+            try:
+                self.main_app.bot.network_capture.clear_logs()
+            except Exception:
+                pass
+
+            try:
+                driver.execute_script("arguments[0].click();", check_btn)
+            except Exception:
+                check_btn.click()
+
+            response = self.main_app.bot.network_capture.capture_response(
+                'verifySerialFullBill.htm', max_attempts=40, wait_interval=0.5
+            )
+
+            is_invalid = False
+            reasons = []
+            if response is not None:
+                if isinstance(response, list):
+                    for item in response:
+                        if isinstance(item, dict) and ('reasonNameEn' in item or 'reasonNameTh' in item):
+                            is_invalid = True
+                            reasons.append(item.get('reasonNameEn') or item.get('reasonNameTh') or 'Unknown Reason')
+                elif isinstance(response, dict) and ('reasonNameEn' in response or 'reasonNameTh' in response):
+                    is_invalid = True
+                    reasons.append(response.get('reasonNameEn') or response.get('reasonNameTh') or 'Unknown Reason')
+
+            button_disappeared = False
+            for _ in range(10):
+                try:
+                    btn = driver.find_element(By.XPATH, check_btn_xpath)
+                    if not btn.is_displayed():
+                        button_disappeared = True
+                        break
+                except Exception:
+                    button_disappeared = True
+                    break
+                time.sleep(0.5)
+
+            if is_invalid or not button_disappeared:
+                logger.warning(f"SN {candidate_sn} ใช้งานไม่ได้! ({reasons if is_invalid else 'ปุ่มไม่หายไป'})")
+                try:
+                    swal_ok = driver.find_element(By.XPATH, "//button[@class='swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
+                    if swal_ok.is_displayed():
+                        swal_ok.click()
+                except Exception:
+                    pass
+                try:
+                    alert = driver.switch_to.alert
+                    alert.accept()
+                except Exception:
+                    pass
+
+                # ลบรายการที่พังออกจากตะกร้า
+                try:
                     sku_elements = driver.find_elements(
                         By.XPATH,
-                        "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u")
-                    target_idx = None
+                        "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+                    )
+                    t_idx = None
                     for idx, elem in enumerate(sku_elements):
-                        if elem.text.strip() == sku.strip():
-                            target_idx = idx
+                        t_text = elem.text.strip().lower()
+                        if target_sku.lower() in t_text or t_text in target_sku.lower():
+                            t_idx = idx
                             break
+                    delete_buttons = driver.find_elements(By.XPATH, "//button[@class='btn btn-danger btn-sm ng-scope']")
+                    if t_idx is not None and t_idx < len(delete_buttons):
+                        driver.execute_script("arguments[0].click();", delete_buttons[t_idx])
+                except Exception as del_e:
+                    logger.warning(f"ลบรายการสินค้าที่พังล้มเหลว: {del_e}")
 
-                    if target_idx is None:
-                        print(
-                            f"ไม่พบ SKU: {sku} บนหน้าเว็บ จึงไม่ต้องปรับลดจำนวน")
-                        break
+                self.deduct_accel_file_data(
+                    self.main_app.cus_order, [{'sku': matched_col, 'sn': candidate_sn}],
+                    remove_order=False, update_memory=False
+                )
+                if candidate_sn in self.obj_data_from_accel_file[matched_col]:
+                    self.obj_data_from_accel_file[matched_col].remove(candidate_sn)
+                sku_fail_count += 1
+                if sku_fail_count > 2:
+                    self._filter_invalid_sns(driver, matched_col)
+                time.sleep(1.0)
+            else:
+                logger.info(f"SN {candidate_sn} ใช้งานได้สำเร็จ!")
+                self.used_serials.append({'sku': matched_col, 'sn': candidate_sn})
+                if candidate_sn in self.obj_data_from_accel_file[matched_col]:
+                    self.obj_data_from_accel_file[matched_col].remove(candidate_sn)
+                time.sleep(1.0)
+                return True
+        return False
 
-                    # ดึงจำนวนสินค้าปัจจุบันบนหน้าเว็บ
-                    current_qty_elements = driver.find_elements(
-                        By.XPATH, "//span[@class='col-sm-4 ng-binding' and not(contains(@class, 'ng-hide'))]"
-                    )
-                    if target_idx >= len(current_qty_elements):
-                        print(
-                            f"Warning: target_idx {target_idx} เกินจำนวนของ element แสดงจำนวนสินค้า")
-                        break
+    # * ──────────────────────────────────────────────────────────────────────────
+    # * FLOW 2: จัดการผ่านปุ่ม Serial แดงและ Modal สำหรับ QTY > 1
+    # * ──────────────────────────────────────────────────────────────────────────
+    def _fill_multi_sku_modal(self, driver, operation_thread, target_sku, matched_col, target_qty, item_name, sku_input_selectors):
+        from loguru import logger
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
 
-                    current_qty = int(
-                        current_qty_elements[target_idx].text.strip())
-                    print(
-                        f"จำนวนปัจจุบันบนหน้าเว็บ: {current_qty}, จำนวนที่ควรจะเป็น (target): {target_qty}")
+        logger.info(f"เริ่มกระบวนการ Modal สำหรับ SKU: {target_sku} จำนวน: {target_qty}")
 
-                    if current_qty <= target_qty:
-                        # จำนวนเหมาะสมแล้ว หรือน้อยกว่า/เท่ากับเป้าหมาย ไม่ต้องปรับลด
-                        break
+        # 1. ตรวจสอบว่าสินค้าอยู่ในตะกร้าแล้วหรือไม่ หากยังไม่มีให้แอดด้วย target_qty
+        sku_elements = driver.find_elements(
+            By.XPATH,
+            "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+        )
+        already_in_cart = False
+        for el in sku_elements:
+            t_text = str(getattr(el, 'text', '') or '').strip().lower()
+            if target_sku.lower() in t_text or t_text in target_sku.lower():
+                already_in_cart = True
+                break
 
-                    # ดึงปุ่มปรับลดจำนวน
-                    decrease_buttons = driver.find_elements(
-                        By.XPATH, "//button[@ng-click='incrementMainQty(false, x)' and not(contains(@class, 'ng-hide'))]"
-                    )
-                    if target_idx >= len(decrease_buttons):
-                        print(
-                            f"Warning: target_idx {target_idx} เกินจำนวนของปุ่มปรับลดจำนวน")
-                        break
-
-                    # กดปุ่มปรับลดจำนวน
-                    print(
-                        f"กดปุ่มปรับลดจำนวนของ SKU: {sku} จาก {current_qty} เหลือ {current_qty - 1}")
+        if not already_in_cart:
+            logger.info(f"แอดสินค้า {target_sku} จำนวน {target_qty} ชิ้น เข้าสู่ตะกร้า POS...")
+            if hasattr(self.main_app, 'bot') and hasattr(self.main_app.bot, 'AutoAddProduct'):
+                self.main_app.bot.AutoAddProduct.auto_add_product([target_sku], qty=target_qty)
+            else:
+                sku_qty_elements = driver.find_elements(
+                    By.XPATH, "//input[@style='text-align:center;' and @ng-model='modelAddOn.productQty']")
+                if sku_qty_elements:
                     driver.execute_script(
-                        "arguments[0].click();", decrease_buttons[target_idx])
-                    time.sleep(0.5)  # รอให้หน้าจออัปเดต
+                        "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",
+                        sku_qty_elements[0], target_qty)
+                sku_inp = None
+                for sel in sku_input_selectors:
+                    try:
+                        el = driver.find_element(By.XPATH, sel)
+                        if el.is_displayed():
+                            sku_inp = el
+                            break
+                    except Exception:
+                        pass
+                if sku_inp:
+                    sku_inp.clear()
+                    time.sleep(0.2)
+                    sku_inp.send_keys(target_sku)
+                    sku_inp.send_keys(Keys.ENTER)
+            time.sleep(1.0)
 
-                except Exception as e:
-                    print(f"เกิดข้อผิดพลาดระหว่างปรับลดจำนวน: {e}")
-                    time.sleep(0.5)
+        # 2. รอแถวสินค้าและปุ่ม Serial
+        start_find = time.time()
+        target_serial_btn = None
+        while (time.time() - start_find) < 15 and not operation_thread.is_set():
+            sku_elems = driver.find_elements(
+                By.XPATH,
+                "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
+            )
+            serial_btns = driver.find_elements(
+                By.XPATH,
+                "//button[contains(@class, 'btn-serial')]"
+            )
+            for idx, s_el in enumerate(sku_elems):
+                s_text = str(getattr(s_el, 'text', '') or '').strip().lower()
+                if target_sku.lower() in s_text or s_text in target_sku.lower():
+                    if idx < len(serial_btns):
+                        target_serial_btn = serial_btns[idx]
+                        break
+            if target_serial_btn is not None:
+                break
+            time.sleep(0.5)
+
+        if target_serial_btn is None:
+            logger.error(f"ไม่พบปุ่ม Serial สำหรับ SKU {target_sku} บนหน้าเว็บ SMCO")
+            return False
+
+        # 3. คลิกปุ่ม Serial เพื่อเปิด Modal
+        logger.info(f"คลิกปุ่ม Serial เพื่อเปิด Modal สำหรับ SKU {target_sku}...")
+        try:
+            driver.execute_script("arguments[0].click();", target_serial_btn)
+        except Exception:
+            target_serial_btn.click()
+
+        # รอ Modal แสดง
+        modal_opened = False
+        m_wait = time.time()
+        while (time.time() - m_wait) < 10 and not operation_thread.is_set():
+            if driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']") or \
+               driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]"):
+                modal_opened = True
+                break
+            time.sleep(0.5)
+
+        if not modal_opened:
+            logger.error(f"ไม่สามารถเปิด Modal กรอก SN สำหรับ SKU {target_sku} ได้")
+            return False
+
+        modal_filled_sns = []
+        sku_fail_count = 0
+
+        while not operation_thread.is_set():
+            # ค้นหาช่อง input ใน Modal ที่ยังว่าง
+            empty_inputs = driver.find_elements(
+                By.XPATH,
+                "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
+            )
+            empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
+
+            if empty_inputs:
+                candidates = self.obj_data_from_accel_file.get(matched_col, [])
+                avail_candidates = [s for s in candidates if s not in modal_filled_sns]
+
+                if len(avail_candidates) < len(empty_inputs):
+                    logger.warning(
+                        f"ไม่มี SN ใน Excel พอสำหรับ SKU: {target_sku} (ต้องการ {len(empty_inputs)} แต่เหลือ {len(avail_candidates)})"
+                    )
+                    if self.main_app.is_auto_invoice_mode.get():
+                        self._safe_close_modal(driver)
+                        self.sn_shortage.append({
+                            'sku': target_sku,
+                            'item_name': item_name,
+                            'ordered': target_qty,
+                            'got': len(modal_filled_sns),
+                            'short': target_qty - len(modal_filled_sns)
+                        })
+                        return False
+                    else:
+                        msg = f"⚠️ [Manual Mode] จำนวน SN ในไฟล์ไม่พอสำหรับ SKU: {target_sku} (ต้องการ {target_qty} ขาด {target_qty - len(modal_filled_sns)}) กรุณากรอกต่อในหน้าจอ"
+                        logger.warning(msg)
+                        self.main_app.update_log(msg)
+                        if hasattr(self.main_app, 'display_bot_status_label'):
+                            self.main_app.display_bot_status_label.configure(text="Your Turn", text_color="#F39C12")
+                        operation_thread.set()
+                        return False
+
+                for inp, next_sn in zip(empty_inputs, avail_candidates):
+                    try:
+                        inp.clear()
+                        inp.send_keys(next_sn)
+                        inp.send_keys(Keys.ENTER)
+                        modal_filled_sns.append(next_sn)
+                        time.sleep(0.3)
+                    except Exception as inp_err:
+                        logger.warning(f"ข้อผิดพลาดขณะกรอก SN {next_sn}: {inp_err}")
+
+            # 4. กด Verify ใน Modal
+            logger.info("กำลังกดปุ่มยืนยัน SN ใน Modal (_verifyInsertSerial)...")
+            try:
+                verify_btn = driver.find_element(By.XPATH, "//button[@id='_verifyInsertSerial']")
+                driver.execute_script("arguments[0].click();", verify_btn)
+            except Exception as v_err:
+                logger.warning(f"กดปุ่ม _verifyInsertSerial ล้มเหลว: {v_err}")
+
+            # 5. Dynamic Wait Loop: รอจนกว่าปุ่ม OK จะปลดล็อค หรือมีแถวสีแดง
+            start_v_wait = time.time()
+            v_timeout = 20
+            is_ok_ready = False
+            has_red_rows = False
+
+            while (time.time() - start_v_wait) < v_timeout and not operation_thread.is_set():
+                time.sleep(0.5)
+                ok_btns = driver.find_elements(
+                    By.XPATH,
+                    "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
+                )
+                if ok_btns and ok_btns[0].is_displayed():
+                    btn_dis = ok_btns[0].get_attribute("disabled")
+                    if (btn_dis is None or btn_dis not in ["true", "disabled"]) and ok_btns[0].is_enabled():
+                        is_ok_ready = True
+                        break
+
+                red_rows = driver.find_elements(
+                    By.XPATH,
+                    "//tr[contains(@class, 'ng-scope') and contains(@class, 'font-color-secondary-red')]"
+                )
+                if red_rows:
+                    has_red_rows = True
+                    break
+
+            # Safety buffer sleep 1 วินาที
+            time.sleep(1.0)
+
+            # 6. ตรวจสอบผลลัพธ์
+            if is_ok_ready:
+                logger.info(f"ปุ่ม OK พร้อมใช้งาน ยืนยัน SN ทั้ง {len(modal_filled_sns)} ตัวสำเร็จ!")
+                ok_btn = driver.find_element(
+                    By.XPATH,
+                    "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
+                )
+                try:
+                    driver.execute_script("arguments[0].click();", ok_btn)
+                except Exception:
+                    ok_btn.click()
+                time.sleep(1.0)
+
+                for passed_sn in modal_filled_sns:
+                    self.used_serials.append({'sku': matched_col, 'sn': passed_sn})
+                    if passed_sn in self.obj_data_from_accel_file.get(matched_col, []):
+                        self.obj_data_from_accel_file[matched_col].remove(passed_sn)
+                return True
+            else:
+                # 7. จัดการแถวที่ไม่ผ่าน (ลบเฉพาะตัวที่เสีย โดยไม่ลบแถวสินค้าบน POS)
+                rows = driver.find_elements(
+                    By.XPATH,
+                    "//tr[contains(@class, 'ng-scope') and .//input[@ng-model='element.checkBox']]"
+                )
+                if not rows:
+                    rows = driver.find_elements(By.XPATH, "//tr[contains(@class, 'ng-scope')]")
+                checkboxes = driver.find_elements(By.XPATH, "//input[@ng-model='element.checkBox']")
+
+                failed_indices = []
+                for r_idx, row in enumerate(rows):
+                    r_class = row.get_attribute("class") or ""
+                    if "font-color-secondary-red" in r_class:
+                        failed_indices.append(r_idx)
+                        logger.warning(f"แถวที่ {r_idx + 1} เช็ค SN ไม่ผ่าน")
+
+                if not failed_indices:
+                    logger.warning("ไม่พบแถวที่เป็น font-color-secondary-red แต่ปุ่ม OK ยังไม่พร้อม")
+                    continue
+
+                for f_idx in failed_indices:
+                    if f_idx < len(checkboxes):
+                        cb = checkboxes[f_idx]
+                        try:
+                            if not cb.is_selected():
+                                driver.execute_script("arguments[0].click();", cb)
+                        except Exception as cb_err:
+                            logger.warning(f"ติ๊ก Checkbox แถว {f_idx} ผิดพลาด: {cb_err}")
+
+                    if f_idx < len(modal_filled_sns):
+                        failed_sn = modal_filled_sns[f_idx]
+                        logger.info(f"ลบ SN {failed_sn} ออกจาก Excel และหน่วยความจำ...")
+                        self.deduct_accel_file_data(
+                            self.main_app.cus_order,
+                            [{'sku': matched_col, 'sn': failed_sn}],
+                            remove_order=False,
+                            update_memory=False
+                        )
+                        if failed_sn in self.obj_data_from_accel_file.get(matched_col, []):
+                            self.obj_data_from_accel_file[matched_col].remove(failed_sn)
+
+                for f_idx in sorted(failed_indices, reverse=True):
+                    if f_idx < len(modal_filled_sns):
+                        modal_filled_sns.pop(f_idx)
+
+                logger.info("กำลังกดปุ่มลบรายการ SN ที่ไม่ผ่าน (_deleteInsertSerial)...")
+                try:
+                    delete_btn = driver.find_element(By.XPATH, "//button[@id='_deleteInsertSerial']")
+                    driver.execute_script("arguments[0].click();", delete_btn)
+                except Exception as del_err:
+                    logger.warning(f"ไม่สามารถคลิกปุ่ม _deleteInsertSerial ได้: {del_err}")
+                time.sleep(1.0)
+
+                sku_fail_count += len(failed_indices)
+                if sku_fail_count > 2:
+                    self._filter_invalid_sns(driver, matched_col)
+
+        return False
+
+    # * ──────────────────────────────────────────────────────────────────────────
+    # * MAIN ENTRY POINT: accel_fill_sku
+    # * ──────────────────────────────────────────────────────────────────────────
+    def accel_fill_sku(self, driver, operation_thread):
+        from loguru import logger
 
         # ซิงค์ obj_data_from_accel_file จาก accel_df_state ล่าสุดเสมอ เพื่อป้องกัน SN หายกรณีรอบก่อนหน้า abort/fail
         if hasattr(self, 'accel_df_state') and isinstance(self.accel_df_state, pd.DataFrame) and not self.accel_df_state.empty:
@@ -699,584 +1223,70 @@ class AccelMode:
 
         accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
         self.used_serials = []
-        # * เก็บ SKU ที่ยิง SN ได้ไม่ครบตามที่ลูกค้าสั่ง (SN ใน accel file ไม่พอ)
         self.sn_shortage = []
-        ordered_product_data_rows: list = self.main_app.items
-        print('accel_fill_sku() ตรวจสอบ items = ', ordered_product_data_rows)
 
-        sku_input_xpath = "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search')]"
+        ordered_product_data_rows = getattr(self.main_app, 'items', [])
+        logger.info(f"accel_fill_sku() ตรวจสอบ items = {ordered_product_data_rows}")
 
-        if len(ordered_product_data_rows) > 0:
-            for i, ordered_item in enumerate(ordered_product_data_rows):
-                print("item ordered by customer", ordered_item)
-                current_ordered_sku = ordered_item['เลขอ้างอิง SKU (SKU Reference No.)']
-                print("current_sku: ", current_ordered_sku)
-                sku_qtys = int(ordered_item['จำนวน'])
-                is_sku_ready_to_pick = [key for key in accel_available_skus_list
-                                        if str(key) in str(current_ordered_sku)]
-
-                if len(is_sku_ready_to_pick) > 0:
-                    successful_count = 0
-                    sku_fail_count = 0
-                    while successful_count < sku_qtys and not operation_thread.is_set():
-                        # ปรับลดจำนวนให้เท่ากับ successful_count ก่อนลอง SN ตัวใหม่
-                        adjust_qty_down(current_ordered_sku, successful_count)
-
-                        # ตรวจสอบว่ายังมี SN ในหน่วยความจำไหม
-                        candidates = self.obj_data_from_accel_file.get(
-                            current_ordered_sku, [])
-                        if not candidates:
-                            logger.warning(
-                                f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_ordered_sku}")
-                            break
-
-                        candidate_sn = candidates[0]
-                        print(f"ลองใช้งาน SN จาก Excel: {candidate_sn}")
-
-                        # รอช่อง Input SKU แสดงขึ้นมา
-                        skuInput = None
-                        sku_input_selectors = [
-                            "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search')]",
-                            "//input[@name='svalue' and contains(@class, 'arFilterBox-search')]",
-                            "//input[contains(@class, 'arFilterBox-search')]",
-                            "//input[@name='svalue']"
-                        ]
-
-                        while not operation_thread.is_set():
-                            for sel in sku_input_selectors:
-                                try:
-                                    el = driver.find_element(By.XPATH, sel)
-                                    if el.is_displayed():
-                                        skuInput = el
-                                        break
-                                except Exception:
-                                    pass
-                            if skuInput is not None:
-                                break
-                            time.sleep(0.5)
-
-                        if skuInput is None:
-                            logger.error(f"ไม่พบช่อง Input SKU บนหน้าเว็บ SMCO สำหรับ order: {self.main_app.cus_order.get()}")
-                            break
-
-                        skuInput.clear()
-
-                        attempts = 10
-                        while attempts > 0:
-                            try:
-                                skuInput.send_keys(candidate_sn)
-                                break
-                            except:
-                                time.sleep(0.5)
-                                attempts -= 1
-                        else:
-                            logger.error(
-                                f'sku input in smco cannot be interacted with from order: {self.main_app.cus_order.get()}')
-                            raise ValueError(
-                                'sku input in smco cannot be interacted with')
-
-                        print(f"กรอก SN: {candidate_sn} สำเร็จ")
-                        skuInput.send_keys(Keys.ENTER)
-                        print("กด Enter ที่ช่อง input สำเร็จ")
-
-                        # รอ SKU element และปุ่ม //i[@class='fa fa-check-square-o'] หรือปุ่ม Red Alert Modal แสดงขึ้นมา
-                        sku_elem_xpath = f"//span[@ng-click='productNameChangeChk(x)']/a/u[text()='{current_ordered_sku}']"
-                        check_btn_xpath = "//i[contains(@class, 'fa-check-square-o') or contains(@class, 'fa-check-square')]"
-
-                        wait_timeout = 44
-                        start_wait = time.time()
-                        check_btn = None
-                        sku_elem = None
-                        found_mode = None  # 'inline_check' หรือ 'redalert_modal'
-                        target_red_btn = None
-
-                        print("กำลังรอปุ่มยืนยัน SN (fa-check-square-o) หรือ SKU element / ปุ่ม Red Alert...")
-                        while (time.time() - start_wait) < wait_timeout and not operation_thread.is_set():
-                            # 1. เช็คกรณีปกติ: sku_elem + check_btn โผล่มาคู่กัน
-                            try:
-                                sku_elem = driver.find_element(By.XPATH, sku_elem_xpath)
-                                check_btn = driver.find_element(By.XPATH, check_btn_xpath)
-                                if sku_elem.is_displayed() and check_btn.is_displayed():
-                                    found_mode = 'inline_check'
-                                    break
-                            except Exception:
-                                pass
-
-                            # 2. เช็คกรณีพิเศษ: sku_elem โผล่มาแล้ว แต่ check_btn ไม่โผล่ และปุ่ม SN กลายเป็น redalert
-                            # (ต้องรออย่างน้อย 15 วินาที เพื่อให้ SMCO ทำการ validate SN และ render DOM ให้เสร็จก่อน)
-                            elapsed = time.time() - start_wait
-                            if elapsed > 15:
-                                try:
-                                    sku_elems = driver.find_elements(
-                                        By.XPATH,
-                                        "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
-                                    )
-                                    serial_btns = driver.find_elements(
-                                        By.XPATH,
-                                        "//button[contains(@class, 'btn-serial btn btn-sm btn-outline')]"
-                                    )
-                                    for idx, s_el in enumerate(sku_elems):
-                                        s_text = s_el.text.strip()
-                                        if (current_ordered_sku.strip().lower() in s_text.lower() or
-                                                s_text.lower() in current_ordered_sku.strip().lower()):
-                                            if idx < len(serial_btns):
-                                                btn = serial_btns[idx]
-                                                btn_class = btn.get_attribute('class') or ''
-                                                if 'ng-redalert' in btn_class or 'btn-danger' in btn_class:
-                                                    target_red_btn = btn
-                                                    break
-
-                                    if target_red_btn is not None:
-                                        found_mode = 'redalert_modal'
-                                        break
-                                except Exception:
-                                    pass
-
-                            time.sleep(0.5)
-
-                        # ถ้าหมดเวลาแล้วยังไม่เจอกรณีใด ให้เช็ค target_red_btn ซ้ำอีกครั้ง
-                        if found_mode is None and target_red_btn is not None:
-                            found_mode = 'redalert_modal'
-
-                        if found_mode is None:
-                            logger.error(
-                                f"หมดเวลารอปุ่มยืนยัน SN หรือ SKU element สำหรับ {candidate_sn}")
-                            # หากรอไม่เจอ ถือว่า SN นั้นมีปัญหา ให้เอาออกแล้วลองตัวถัดไป
-                            self.deduct_accel_file_data(
-                                self.main_app.cus_order, [
-                                    {'sku': current_ordered_sku, 'sn': candidate_sn}],
-                                remove_order=False, update_memory=False)
-                            if candidate_sn in self.obj_data_from_accel_file[current_ordered_sku]:
-                                self.obj_data_from_accel_file[current_ordered_sku].remove(
-                                    candidate_sn)
-
-                            sku_fail_count += 1
-                            if sku_fail_count > 2:
-                                self._filter_invalid_sns(driver, current_ordered_sku)
-                            continue
-
-                        # ─── CASE: Red Alert Modal Flow ─────────────────────────
-                        if found_mode == 'redalert_modal':
-                            logger.info(
-                                f"พบ SKU {current_ordered_sku} โผล่ขึ้นมา แต่ปุ่ม check (fa-check-square-o) ไม่แสดง พบปุ่ม SN แบบ Red Alert กำลังเปิด Modal เพื่อกรอก SN...")
-                            try:
-                                driver.execute_script("arguments[0].click();", target_red_btn)
-                            except Exception as click_err:
-                                logger.warning(f"JS click target_red_btn ล้มเหลว: {click_err}")
-                                target_red_btn.click()
-
-                            # รอ Modal แสดง
-                            modal_opened = False
-                            modal_start_wait = time.time()
-                            while (time.time() - modal_start_wait) < 10 and not operation_thread.is_set():
-                                try:
-                                    if driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']") or \
-                                       driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]"):
-                                        modal_opened = True
-                                        break
-                                except:
-                                    pass
-                                time.sleep(0.5)
-
-                            if not modal_opened:
-                                logger.error(f"ไม่สามารถเปิด Modal กรอก SN สำหรับ SKU {current_ordered_sku} ได้")
-                                continue
-
-                            modal_filled_sns = []
-
-                            while not operation_thread.is_set():
-                                # กรอก SN ลงในช่องว่างจนกว่าจะไม่พบช่องว่าง
-                                print("กำลังค้นหาช่องว่างสำหรับกรอก SN ใน Modal...")
-                                while not operation_thread.is_set():
-                                    empty_inputs = driver.find_elements(
-                                        By.XPATH,
-                                        "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
-                                    )
-                                    empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
-                                    if not empty_inputs:
-                                        print("ไม่พบช่อง input SN ที่ว่างแล้วใน Modal (กรอกครบแล้ว)")
-                                        break
-
-                                    candidates = self.obj_data_from_accel_file.get(current_ordered_sku, [])
-                                    avail_candidates = [s for s in candidates if s not in modal_filled_sns]
-                                    if not avail_candidates:
-                                        logger.warning(
-                                            f"ไม่มี SN เหลือใน Excel สำหรับกรอกลง Modal SKU: {current_ordered_sku}")
-                                        break
-
-                                    next_sn = avail_candidates[0]
-                                    target_inp = empty_inputs[0]
-                                    print(f"กำลังกรอก SN ลงใน Modal: {next_sn}")
-                                    try:
-                                        target_inp.clear()
-                                        target_inp.send_keys(next_sn)
-                                        target_inp.send_keys(Keys.ENTER)
-                                        modal_filled_sns.append(next_sn)
-                                        time.sleep(0.3)
-                                    except Exception as inp_err:
-                                        print(f"ข้อผิดพลาดขณะกรอก SN ลง Modal: {inp_err}")
-                                        time.sleep(0.5)
-
-                                # กดปุ่ม Verify ใน Modal
-                                print("กำลังกดปุ่มยืนยัน SN ใน Modal (_verifyInsertSerial)...")
-                                try:
-                                    verify_modal_btn = driver.find_element(
-                                        By.XPATH, "//button[@id='_verifyInsertSerial']")
-                                    driver.execute_script("arguments[0].click();", verify_modal_btn)
-                                except Exception as v_err:
-                                    logger.warning(f"ไม่สามารถคลิกปุ่ม _verifyInsertSerial ได้: {v_err}")
-
-                                time.sleep(1.5)
-
-                                # เช็คปุ่ม OK (_okInsertSerial)
-                                try:
-                                    ok_btn = driver.find_element(
-                                        By.XPATH,
-                                        "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
-                                    )
-                                    btn_disabled_attr = ok_btn.get_attribute("disabled")
-                                    is_disabled = (
-                                        btn_disabled_attr is not None
-                                        or btn_disabled_attr in ["true", "disabled"]
-                                        or not ok_btn.is_enabled()
-                                    )
-                                except Exception as ok_err:
-                                    print(f"ไม่พบปุ่ม _okInsertSerial หรือเกิดข้อผิดพลาด: {ok_err}")
-                                    is_disabled = True
-
-                                if not is_disabled:
-                                    print("ปุ่ม OK พร้อมใช้งาน (ไม่มี disabled) -> ยืนยัน SN ทั้งหมดใน Modal สำเร็จ!")
-                                    try:
-                                        driver.execute_script("arguments[0].click();", ok_btn)
-                                    except Exception:
-                                        ok_btn.click()
-                                    time.sleep(1.0)
-
-                                    for passed_sn in modal_filled_sns:
-                                        print(f"SN {passed_sn} ใน Modal ใช้งานได้สำเร็จ!")
-                                        self.used_serials.append({'sku': current_ordered_sku, 'sn': passed_sn})
-                                        if passed_sn in self.obj_data_from_accel_file.get(current_ordered_sku, []):
-                                            self.obj_data_from_accel_file[current_ordered_sku].remove(passed_sn)
-                                        successful_count += 1
-                                    break
-                                else:
-                                    print("ปุ่ม OK ยังติด disabled='disabled' (มี SN ที่เช็คไม่ผ่าน) -> ตรวจสอบแถวสีแดง...")
-                                    rows = driver.find_elements(
-                                        By.XPATH,
-                                        "//tr[contains(@class, 'ng-scope') and .//input[@ng-model='element.checkBox']]"
-                                    )
-                                    if not rows:
-                                        rows = driver.find_elements(
-                                            By.XPATH, "//tr[contains(@class, 'ng-scope')]")
-
-                                    checkboxes = driver.find_elements(
-                                        By.XPATH, "//input[@ng-model='element.checkBox']")
-
-                                    failed_indices = []
-                                    for r_idx, row in enumerate(rows):
-                                        r_class = row.get_attribute("class") or ""
-                                        if "font-color-secondary-red" in r_class:
-                                            failed_indices.append(r_idx)
-                                            print(f"แถวที่ {r_idx + 1} เช็ค SN ไม่ผ่าน (class: {r_class})")
-
-                                    if not failed_indices:
-                                        print("ไม่พบแถวที่เป็น font-color-secondary-red")
-                                        candidates = self.obj_data_from_accel_file.get(current_ordered_sku, [])
-                                        avail_candidates = [s for s in candidates if s not in modal_filled_sns]
-                                        if not avail_candidates:
-                                            logger.warning("ไม่มี SN เหลือให้กรอกใน Modal อีกแล้ว")
-                                            break
-                                        continue
-
-                                    for f_idx in failed_indices:
-                                        if f_idx < len(checkboxes):
-                                            cb = checkboxes[f_idx]
-                                            try:
-                                                if not cb.is_selected():
-                                                    driver.execute_script("arguments[0].click();", cb)
-                                                    print(f"ติ๊ก Checkbox แถวที่ {f_idx + 1}")
-                                            except Exception as cb_err:
-                                                print(f"ติ๊ก Checkbox แถว {f_idx} ผิดพลาด: {cb_err}")
-
-                                        if f_idx < len(modal_filled_sns):
-                                            failed_sn = modal_filled_sns[f_idx]
-                                            print(f"ลบ SN {failed_sn} ออกจาก Excel และหน่วยความจำ...")
-                                            self.deduct_accel_file_data(
-                                                self.main_app.cus_order,
-                                                [{'sku': current_ordered_sku, 'sn': failed_sn}],
-                                                remove_order=False,
-                                                update_memory=False
-                                            )
-                                            if failed_sn in self.obj_data_from_accel_file.get(current_ordered_sku, []):
-                                                self.obj_data_from_accel_file[current_ordered_sku].remove(failed_sn)
-
-                                    for f_idx in sorted(failed_indices, reverse=True):
-                                        if f_idx < len(modal_filled_sns):
-                                            modal_filled_sns.pop(f_idx)
-
-                                    print("กำลังกดปุ่มลบรายการ SN ที่ไม่ผ่าน (_deleteInsertSerial)...")
-                                    try:
-                                        delete_btn = driver.find_element(
-                                            By.XPATH,
-                                            "//button[@class='btn btn-warning' and @id='_deleteInsertSerial' and @ng-click='_deleteInsertSerial()']"
-                                        )
-                                        driver.execute_script("arguments[0].click();", delete_btn)
-                                    except Exception:
-                                        try:
-                                            delete_btn = driver.find_element(
-                                                By.XPATH, "//button[@id='_deleteInsertSerial']")
-                                            driver.execute_script("arguments[0].click();", delete_btn)
-                                        except Exception as del_err:
-                                            print(f"ไม่สามารถคลิกปุ่ม _deleteInsertSerial ได้: {del_err}")
-
-                                    time.sleep(1.0)
-
-                                    sku_fail_count += len(failed_indices)
-                                    if sku_fail_count > 2:
-                                        self._filter_invalid_sns(driver, current_ordered_sku)
-
-                                    candidates = self.obj_data_from_accel_file.get(current_ordered_sku, [])
-                                    avail_candidates = [s for s in candidates if s not in modal_filled_sns]
-                                    if not avail_candidates:
-                                        logger.warning(
-                                            f"ไม่มี SN เหลือใน Excel สำหรับ SKU: {current_ordered_sku} หลังลบตัวที่ไม่ผ่าน")
-                                        break
-
-                            # ปิด Modal อย่างปลอดภัยหากยังเปิดค้างอยู่ (เช่น SN ไม่พอหรือกดยกเลิก)
-                            try:
-                                close_btns = driver.find_elements(
-                                    By.XPATH,
-                                    "//button[@class='btn smco-btn-cancel-pos' and @ng-click='exitInsertSerial()']"
-                                )
-                                if not close_btns:
-                                    close_btns = driver.find_elements(
-                                        By.XPATH,
-                                        "//button[@ng-click='exitInsertSerial()' or @data-dismiss='modal' or @class='close' or text()='ยกเลิก']"
-                                    )
-                                for cb in close_btns:
-                                    if cb.is_displayed():
-                                        driver.execute_script("arguments[0].click();", cb)
-                                        time.sleep(0.5)
-                                        break
-                            except Exception as close_err:
-                                print(f"เกิดข้อผิดพลาดขณะปิด Modal: {close_err}")
-
-                            continue
-
-                        # ─── CASE: Inline Check Flow ────────────────────────────
-                        # ดัก req response api
-                        # เคลียร์ logs ก่อนกดเพื่อความถูกต้อง
-                        try:
-                            self.main_app.bot.network_capture.clear_logs()
-                        except Exception as log_err:
-                            logger.warning(
-                                f"ไม่สามารถเคลียร์ log performance ได้: {log_err}")
-
-                        #/ กดปุ่มยืนยัน
-                        print(f"กำลังกดปุ่มยืนยัน SN...")
-                        try:
-                            driver.execute_script("arguments[0].click();", check_btn)
-                        except Exception as click_err:
-                            logger.warning(f"JS click ล้มเหลว จะลองคลิกแบบปกติ: {click_err}")
-                            check_btn.click()
-
-                        # รอและดัก response
-                        print("กำลังรอ response จาก /verifySerialFullBill.htm ...")
-                        response = self.main_app.bot.network_capture.capture_response(
-                            'verifySerialFullBill.htm', max_attempts=40, wait_interval=0.5
-                        )
-
-                        # ตรวจสอบความถูกต้อง
-                        is_invalid = False
-                        reasons = []
-
-                        if response is not None:
-                            if isinstance(response, list):
-                                for item in response:
-                                    if isinstance(item, dict):
-                                        if 'reasonNameEn' in item or 'reasonNameTh' in item:
-                                            is_invalid = True
-                                            reasons.append(item.get('reasonNameEn') or item.get(
-                                                'reasonNameTh') or 'Unknown Reason')
-                            elif isinstance(response, dict):
-                                if 'reasonNameEn' in response or 'reasonNameTh' in response:
-                                    is_invalid = True
-                                    reasons.append(response.get('reasonNameEn') or response.get(
-                                        'reasonNameTh') or 'Unknown Reason')
-
-                        # ตรวจสอบว่าปุ่ม //i[@class='fa fa-check-square-o'] หายไปหรือไม่
-                        button_disappeared = False
-                        for _ in range(10):
-                            try:
-                                btn = driver.find_element(
-                                    By.XPATH, check_btn_xpath)
-                                if not btn.is_displayed():
-                                    button_disappeared = True
-                                    break
-                            except:
-                                button_disappeared = True
-                                break
-                            time.sleep(0.5)
-
-                        # ถ้ามี reasonNameEn/Th หรือปุ่มไม่ยอมหายไป แสดงว่าใช้งานไม่ได้
-                        if is_invalid or not button_disappeared:
-                            print(
-                                f"SN {candidate_sn} ใช้งานไม่ได้! เหตุผล: {reasons if is_invalid else 'ปุ่มไม่หายไป'}")
-
-                            # 1. ปิด Swal popup หรือ alert ที่เด้งขึ้นมา
-                            try:
-                                swal_ok = driver.find_element(
-                                    By.XPATH,
-                                    "//button[@class='swal2-confirm styled' and (text()='OK' or text()='ตกลง')]")
-                                if swal_ok.is_displayed():
-                                    swal_ok.click()
-                                    print("ปิด Swal popup สำเร็จ")
-                            except:
-                                pass
-
-                            try:
-                                alert = driver.switch_to.alert
-                                alert_text = alert.text
-                                alert.accept()
-                                print(f"ยอมรับ browser alert: {alert_text}")
-                            except:
-                                pass
-
-                            # 2. ค้นหาลำดับของ SKU ที่มีปัญหาใน DOM แล้วกดปุ่มลบ (btn-danger) และเช็คว่าหายไปแล้วจริงๆ
-                            try:
-                                target_idx = None
-                                sku_elements = driver.find_elements(
-                                    By.XPATH,
-                                    "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
-                                )
-                                for idx, elem in enumerate(sku_elements):
-                                    text_content = elem.text.strip()
-                                    if (current_ordered_sku.strip().lower() in text_content.lower() or
-                                            text_content.lower() in current_ordered_sku.strip().lower()):
-                                        target_idx = idx
-                                        break
-
-                                delete_buttons = driver.find_elements(
-                                    By.XPATH,
-                                    "//button[@class='btn btn-danger btn-sm ng-scope']"
-                                )
-
-                                deleted_button_clicked = False
-                                if target_idx is not None and target_idx < len(delete_buttons):
-                                    driver.execute_script("arguments[0].click();", delete_buttons[target_idx])
-                                    print(
-                                        f"กดปุ่มลบรายการลำดับที่ {target_idx} (SKU: {current_ordered_sku}) ที่ตรวจสอบไม่ผ่านสำเร็จ")
-                                    deleted_button_clicked = True
-                                else:
-                                    # Fallback: ลองหาปุ่มลบผ่าน panel ancestor
-                                    for elem in sku_elements:
-                                        if (current_ordered_sku.strip().lower() in elem.text.strip().lower() or
-                                                elem.text.strip().lower() in current_ordered_sku.strip().lower()):
-                                            try:
-                                                panel = elem.find_element(
-                                                    By.XPATH, "./ancestor::div[contains(@class, 'panel')][1]")
-                                                del_btns = panel.find_elements(
-                                                    By.XPATH, ".//button[contains(@class, 'btn-danger')]")
-                                                if del_btns:
-                                                    driver.execute_script("arguments[0].click();", del_btns[0])
-                                                    print(
-                                                        f"กดปุ่มลบรายการ SKU: {current_ordered_sku} ผ่าน panel ancestor สำเร็จ")
-                                                    deleted_button_clicked = True
-                                                    break
-                                            except:
-                                                pass
-
-                                if not deleted_button_clicked:
-                                    print(
-                                        f"ไม่สามารถหาปุ่มลบสำหรับ SKU {current_ordered_sku} ได้ ลองปรับลดจำนวนด้วย adjust_qty_down")
-                                    adjust_qty_down(current_ordered_sku, successful_count)
-
-                                # เช็คว่า SKU ของ SN นั้น หายไปจาก DOM แล้วจริงๆ ก่อนเติม SN ถัดไป
-                                print(f"กำลังตรวจสอบว่า SKU {current_ordered_sku} หายไปจาก DOM หรือยัง...")
-                                start_check = time.time()
-                                while (time.time() - start_check) < 6:
-                                    current_skus = [
-                                        e.text.strip() for e in driver.find_elements(
-                                            By.XPATH,
-                                            "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
-                                        )
-                                    ]
-                                    is_still_in_dom = any(
-                                        current_ordered_sku.strip().lower() in s.lower() or s.lower() in current_ordered_sku.strip().lower()
-                                        for s in current_skus
-                                    )
-                                    if not is_still_in_dom:
-                                        print(f"ยืนยันเรียบร้อย: SKU {current_ordered_sku} หายไปจาก DOM แล้วจริงๆ!")
-                                        break
-                                    time.sleep(0.5)
-
-                            except Exception as del_err:
-                                print(f"เกิดข้อผิดพลาดในการลบรายการ: {del_err}")
-                                adjust_qty_down(current_ordered_sku, successful_count)
-
-                            # 3. ลบ SN ตัวที่มีปัญหาออกจาก Excel และหน่วยความจำ
-                            self.deduct_accel_file_data(
-                                self.main_app.cus_order, [
-                                    {'sku': current_ordered_sku, 'sn': candidate_sn}],
-                                remove_order=False, update_memory=False
-                            )
-                            if candidate_sn in self.obj_data_from_accel_file[current_ordered_sku]:
-                                self.obj_data_from_accel_file[current_ordered_sku].remove(
-                                    candidate_sn)
-
-                            sku_fail_count += 1
-                            if sku_fail_count > 2:
-                                self._filter_invalid_sns(driver, current_ordered_sku)
-                            time.sleep(1)
-                            # วนกลับไปรันใหม่โดยไม่เพิ่ม successful_count
-                        else:
-                            print(f"SN {candidate_sn} ใช้งานได้สำเร็จ!")
-                            # แอดเข้า used serials
-                            self.used_serials.append({'sku': current_ordered_sku, 'sn': candidate_sn})
-                            # เอาออกจากหน่วยความจำ (เพราะใช้ได้แล้ว)
-                            if candidate_sn in self.obj_data_from_accel_file[current_ordered_sku]:
-                                self.obj_data_from_accel_file[current_ordered_sku].remove(
-                                    candidate_sn)
-                            successful_count += 1
-                            time.sleep(1)
-
-                    # เมื่อจบ loop ของ SKU นี้ ปรับลดจำนวนสินค้าให้ตรงตามจริงที่สำเร็จอีกครั้งเพื่อความถูกต้อง
-                    adjust_qty_down(current_ordered_sku, successful_count)
-
-                    # * ถ้ายิง SN ได้ไม่ครบตามจำนวนที่ลูกค้าสั่ง (SN ใน accel file ไม่พอ) ให้เก็บ SKU ที่ขาดไว้
-                    if successful_count < sku_qtys and not operation_thread.is_set():
-                        self.sn_shortage.append({
-                            'sku': current_ordered_sku,
-                            'item_name': str(ordered_item.get('ชื่อสินค้า', '')).strip(),
-                            'ordered': sku_qtys,
-                            'got': successful_count,
-                            'short': sku_qtys - successful_count,
-                        })
-                else:
-                    logger.info(
-                        f"มี current_sku ใน Accel_File หรือไม่?: {current_ordered_sku in self.obj_data_from_accel_file}")
-                    print("มี current_sku ใน Accel_File หรือไม่?:",
-                          current_ordered_sku in self.obj_data_from_accel_file)
-
-            # * auto_inv mode: ถ้ามี SKU ที่ SN ไม่พอ ให้ fail order นี้ทันที
-            # * (รวมทุก SKU ที่ขาดไว้ในข้อความ error เดียว → record_failed_order จะได้บันทึกครบทั้ง SKU1, SKU2
-            # *  ไม่ใช่เขียนทับกันเหลือแค่ SKU ล่าสุด)
-            if self.sn_shortage and self.main_app.is_auto_invoice_mode.get() and not operation_thread.is_set():
-                shortage_lines = []
-                for s in self.sn_shortage:
-                    label = s['sku']
-                    item_name = s['item_name']
-                    if item_name and item_name.lower() != 'nan':
-                        label += f" ({item_name})"
-                    shortage_lines.append(
-                        f"  • {label}: ลูกค้าสั่ง {s['ordered']} แต่ยิง SN ได้ {s['got']} (ขาด {s['short']})")
-                err_msg = "จำนวน SN ไม่พอ (SN ใน accel file น้อยกว่าจำนวนที่ลูกค้าสั่ง):\n" + \
-                    "\n".join(shortage_lines)
-                self.main_app.update_log(f"❌ {err_msg}")
-                raise ValueError(err_msg)
-        else:
-            print("No items, return!!")
+        if not ordered_product_data_rows:
+            logger.info("No items, return!!")
             return
+
+        # รวม QTY ของแต่ละ SKU ทั้งออเดอร์ (แตกคอมโบ +)
+        aggregated_skus = self._aggregate_order_skus(ordered_product_data_rows)
+        logger.info(f"accel_fill_sku() ยอดรวม SKU ทั้งออเดอร์ = {aggregated_skus}")
+
+        sku_input_selectors = [
+            "//span[contains(@class, 'arFilterBox-')]//input[@name='svalue' and contains(@class, 'arFilterBox-search')]",
+            "//input[@name='svalue' and contains(@class, 'arFilterBox-search')]",
+            "//input[contains(@class, 'arFilterBox-search')]",
+            "//input[@name='svalue']"
+        ]
+
+        for target_sku_key, info in aggregated_skus.items():
+            if operation_thread.is_set():
+                break
+
+            matched_col = None
+            for col in accel_available_skus_list:
+                if str(col).lower() in target_sku_key.lower() or target_sku_key.lower() in str(col).lower():
+                    matched_col = col
+                    break
+
+            if not matched_col:
+                logger.info(f"SKU {target_sku_key} ไม่มีใน accel_file ข้ามไป")
+                continue
+
+            target_qty = info['qty']
+            item_name = info['item_name']
+            logger.info(f"กำลังจัดการ SKU {target_sku_key} (คอลัมน์ใน Excel: {matched_col}) ต้องการ QTY = {target_qty}")
+
+            if target_qty == 1:
+                # ยิงช่องบน inline ตามเดิม
+                self._fill_single_sku_inline(
+                    driver, operation_thread, target_sku_key, matched_col, item_name, sku_input_selectors
+                )
+            else:
+                # QTY > 1 ใช้ปุ่ม Serial แดงและ Modal
+                self._fill_multi_sku_modal(
+                    driver, operation_thread, target_sku_key, matched_col, target_qty, item_name, sku_input_selectors
+                )
+
+        # ตรวจสอบการ fail เมื่อ SN ไม่พอในโหมด auto_inv
+        if self.sn_shortage and self.main_app.is_auto_invoice_mode.get() and not operation_thread.is_set():
+            # คืน SN ที่ผ่านแล้วกลับเข้าหน่วยความจำเพื่อไม่ให้สูญหาย
+            self.restore_uncommitted_serials()
+            shortage_lines = []
+            for s in self.sn_shortage:
+                label = s['sku']
+                item_name = s['item_name']
+                if item_name and item_name.lower() != 'nan':
+                    label += f" ({item_name})"
+                shortage_lines.append(
+                    f"  • {label}: ลูกค้าสั่ง {s['ordered']} แต่ยิง SN ได้ {s['got']} (ขาด {s['short']})")
+            err_msg = "จำนวน SN ไม่พอ (SN ใน accel file น้อยกว่าจำนวนที่ลูกค้าสั่ง):\n" + "\n".join(shortage_lines)
+            self.main_app.update_log(f"❌ {err_msg}")
+            raise ValueError(err_msg)
 
     def _apply_excel_formatting(self, file_path):
         """กำหนด AutoFilter, Freeze Row 1 (A2) และปรับความกว้างคอลัมน์ให้พอดีกับข้อมูลทุก sheet"""

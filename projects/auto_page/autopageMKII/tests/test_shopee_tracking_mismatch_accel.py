@@ -146,6 +146,68 @@ class TestShopeeTrackingMismatchAccel(unittest.TestCase):
         # ล้างตะกร้า POS
         bot.clean_pos_cart.assert_called_once()
 
+    @patch("time.sleep", return_value=None)
+    def test_tracking_mismatch_in_manual_mode_does_not_return_to_first_page(self, mock_sleep):
+        """
+        ทดสอบว่าในโหมด Manual (is_auto_invoice_mode = False):
+        เมื่อหา tracking ไม่พบ (เช่น collect_tracking raise ValueError):
+        1. บอทต้องไม่เรียก return_to_first_page() เด็ดขาด (คงอยู่หน้า Payment ต่อไป)
+        2. บอทต้องไม่เรียก clean_pos_cart()
+        3. ไม่บันทึก failed order
+        4. trackings ถูกรีเซ็ตเป็น empty list []
+        5. เรียก apply_tracking_to_final_page เพื่อกรอกเลขออเดอร์ลงหน้าท้าย
+        """
+        from functions.pos.payment_handler import POSPaymentHandler
+
+        # ปิดโหมด auto_invoice
+        self.mock_app.is_auto_invoice_mode = MockVar(False)
+        self.mock_app.marketplace_target = MockVar("SHOPEE")
+        self.mock_app.sum_price = 500.0
+        self.mock_app.cus_ship_cost = MockVar(45.0)
+        self.mock_app.cus_seller_voucher = MockVar(0.0)
+        self.mock_app.cus_name = MockVar("ลูกค้าทดสอบ")
+        self.mock_app.user_id = MockVar("12345")
+        self.mock_app.is_finish_order_triggered = MockVar(False)
+
+        handler = POSPaymentHandler(bot=self.mock_bot)
+        handler.return_to_first_page = MagicMock()
+
+        final_page_el = MagicMock()
+        final_page_el.is_displayed.return_value = True
+        final_page_el.text = "Payment: ชำระเงิน"
+        self.mock_bot.driver.find_elements.return_value = [final_page_el]
+        self.mock_bot.driver.find_element.return_value = final_page_el
+        self.mock_bot.operation_states = {"purchased_channel": None}
+        self.mock_bot.channel_options = {}
+
+        # จำลองการหา tracking ไม่พบ
+        self.mock_bot.tracking_manager.collect_tracking.side_effect = ValueError("ไม่พบเลข Tracking บน SHOPEE")
+
+        handler.last_page = final_page_el
+        # ให้ loop 9 หยุดทันทีเพื่อจบการทดสอบ
+        self.mock_bot.autofinal = False
+        self.mock_bot.operation_thread.is_set.return_value = False
+
+        result = handler.process_final_payment()
+
+        # 1. ต้องไม่ย้อนกลับไปหน้าแรก
+        handler.return_to_first_page.assert_not_called()
+
+        # 2. ต้องไม่ล้างตะกร้า
+        self.mock_bot.clean_pos_cart.assert_not_called()
+
+        # 3. ต้องไม่บันทึก failed order
+        self.mock_accel.record_failed_order.assert_not_called()
+
+        # 4. trackings ต้องเป็น empty list
+        self.assertEqual(self.mock_bot.tracking_manager.trackings, [])
+
+        # 5. ต้องเรียก apply_tracking_to_final_page เพื่อกรอก Order No
+        self.mock_bot.tracking_manager.apply_tracking_to_final_page.assert_called_once_with(
+            order_no="260904TESTSHOPEE01"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
+

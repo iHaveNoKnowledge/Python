@@ -335,10 +335,22 @@ class POSPricingReconciler:
         self.wait50 = bot.wait50
         self._last_recorded_order_id: Optional[str] = None
         self.last_expected_prices: Dict[str, float] = {}
+        self._applied_adjustments: Dict[str, Set[str]] = {}
 
     # ══════════════════════════════════════════════════════════════════════════
     # HELPER UTILITIES
     # ══════════════════════════════════════════════════════════════════════════
+    def _track_adjustment(self, sku: str, method: str) -> None:
+        """บันทึกประวัติการปรับราคาของ SKU (OC, DC, CP) ในรอบการทำงานปัจจุบัน"""
+        if not sku:
+            return
+        sku_clean = str(sku).strip().upper()
+        if not hasattr(self, '_applied_adjustments') or self._applied_adjustments is None:
+            self._applied_adjustments = {}
+        if sku_clean not in self._applied_adjustments:
+            self._applied_adjustments[sku_clean] = set()
+        self._applied_adjustments[sku_clean].add(str(method).strip().upper())
+
     def sku_formater(self, sku_input: str) -> str:
         """แปลง SKU ให้อยู่ในฟอร์แมตมาตรฐาน เช่น sp2-1703 -> SP2-001703"""
         prog = re.findall(r'[A-Za-z]{2,}[A-Za-z0-9]?-?\d{1,6}', str(sku_input))
@@ -839,7 +851,7 @@ class POSPricingReconciler:
                 print(f"[record_pos_cart_summary_to_excel] Error reading excel: {read_err}")
                 return
 
-            new_cols = ['last_order_id', 'last_used_cp', 'last_actual_price', 'last_updated']
+            new_cols = ['last_order_id', 'last_used_cp', 'last_adjustment_method', 'last_actual_price', 'last_updated']
             for col in new_cols:
                 if col not in df.columns:
                     df[col] = ""
@@ -851,6 +863,48 @@ class POSPricingReconciler:
                 sku_clean = str(sku_raw).strip().upper()
                 used_cp = str(item.get("coupons", "")).strip()
                 act_price = float(item.get("unit_net", 0.0))
+
+                # ตรวจสอบวิธีการปรับราคา (last_adjustment_method):
+                bot_methods = set()
+                if hasattr(self, '_applied_adjustments') and self._applied_adjustments:
+                    bot_methods = self._applied_adjustments.get(sku_clean, set())
+                    if not bot_methods:
+                        for k, v in self._applied_adjustments.items():
+                            if k in sku_clean or sku_clean in k:
+                                bot_methods = v
+                                break
+
+                if bot_methods:
+                    has_cp = "CP" in bot_methods
+                    has_oc = "OC" in bot_methods
+                    has_dc = "DC" in bot_methods
+                    if has_cp and has_oc:
+                        method_val = "CP + OC"
+                    elif has_cp and has_dc:
+                        method_val = "CP + DC"
+                    elif has_oc:
+                        method_val = "OC"
+                    elif has_dc:
+                        method_val = "DC"
+                    elif has_cp:
+                        method_val = "CP"
+                    else:
+                        method_val = "NONE"
+                else:
+                    # บอทไม่ได้เป็นผู้สั่งปรับราคา: ตรวจสอบว่าผู้ใช้ปรับเองบนหน้าเว็บ (MANUAL) หรือราคาตรงอยู่แล้ว (NONE)
+                    has_any_coupon = bool(used_cp and used_cp.strip() != "")
+                    matched_base_prices = df[df['sku'].astype(str).str.strip().str.upper() == sku_clean]['sale_price'].tolist()
+                    is_price_changed = False
+                    if matched_base_prices:
+                        is_price_changed = not any(
+                            abs(bp - act_price) <= 0.05
+                            for bp in matched_base_prices
+                            if isinstance(bp, (int, float)) and not pd.isna(bp)
+                        )
+                    if has_any_coupon or is_price_changed:
+                        method_val = "MANUAL"
+                    else:
+                        method_val = "NONE"
 
                 # จับคู่แถวเดิม:
                 # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)
@@ -876,6 +930,7 @@ class POSPricingReconciler:
                 if mask.any():
                     df.loc[mask, 'last_order_id'] = str(order_id)
                     df.loc[mask, 'last_used_cp'] = used_cp
+                    df.loc[mask, 'last_adjustment_method'] = method_val
                     df.loc[mask, 'last_actual_price'] = act_price
                     df.loc[mask, 'last_updated'] = now_str
                 else:
@@ -885,6 +940,7 @@ class POSPricingReconciler:
                         'cp_name': '',
                         'last_order_id': str(order_id),
                         'last_used_cp': used_cp,
+                        'last_adjustment_method': method_val,
                         'last_actual_price': act_price,
                         'last_updated': now_str
                     }
@@ -915,8 +971,14 @@ class POSPricingReconciler:
             )
             for it in cart_items:
                 cp_display = it['coupons'] if it['coupons'] else "(ไม่มีคูปอง)"
+                sku_clean = str(it.get('sku', '')).strip().upper()
+                row_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean)
+                method_display = ""
+                if row_mask.any() and 'last_adjustment_method' in df.columns:
+                    method_display = str(df.loc[row_mask, 'last_adjustment_method'].iloc[0])
+                method_text = f" | วิธีปรับ: {method_display}" if method_display else ""
                 self.app.update_log(
-                    f"   • {it['sku']} -> คูปอง: {cp_display} | ราคาสุทธิ: {it['unit_net']:,.2f} บาท"
+                    f"   • {it['sku']} -> คูปอง: {cp_display}{method_text} | ราคาสุทธิ: {it['unit_net']:,.2f} บาท"
                 )
 
         except PermissionError as perm_err:
@@ -1259,6 +1321,9 @@ class POSPricingReconciler:
                     time.sleep(0.05)
 
         print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
+        if any_success:
+            for it in demonic_ordered_items_list:
+                self._track_adjustment(it, 'CP')
         return any_success
 
     def get_existing_panel_coupons(self, item_no_1indexed: int) -> list:
@@ -1797,6 +1862,7 @@ class POSPricingReconciler:
                                     (By.XPATH, "//a[@class='btn btn-success text-center' and @ng-click='okChagePriceProduct()']")))
                             except Exception:
                                 time.sleep(1)
+                            self._track_adjustment(item, 'OC')
                             break
                     except Exception as err:
                         err_msg = f"การปรับราคาขึ้น (Overcharge) สำหรับ SKU: {item} ผิดพลาด: {err}"
@@ -1895,6 +1961,7 @@ class POSPricingReconciler:
                                     (By.CSS_SELECTOR, '.row.row-space div.text-center a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')))
                             except Exception:
                                 time.sleep(1)
+                            self._track_adjustment(item, 'DC')
                             break
                     except Exception as err:
                         logger.error(f"Order: {self.bot.cus_order}: smco_set_discount error: {err}")
@@ -2424,6 +2491,8 @@ class POSPricingReconciler:
         ดำเนินการยิงสินค้าลง POS, ตรวจสอบรอบที่ 1, ปรับราคา mismatch, และตรวจสอบรอบที่ 2
         """
         try:
+            if hasattr(self, '_applied_adjustments') and self._applied_adjustments is not None:
+                self._applied_adjustments.clear()
             self.bot.ProductManager.auto_add_all_items()
             self.bot.current_checkpoint = "กรอกสินค้าลง POS สำเร็จ"
 

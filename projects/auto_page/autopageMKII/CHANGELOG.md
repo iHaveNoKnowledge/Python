@@ -13,7 +13,7 @@
 - [ ] **[Shopee]** เพิ่มตรรกะแยกเงื่อนไขระหว่าง Shopee ปกติ กับ Shopee Mobile ในหน้าท้าย (เลือกว่าจะจ่ายช่องทางไหนแยกกัน)
 - [ ] **[UI / Selenium]** Last pop-up มีตัวรอ event ที่เป็น `driver.wait` ทำให้รอนาน ให้เปลี่ยนเป็น `while loop` ดัก element เพื่อให้จบเร็วกว่า
 - [ ] **[Address / SMCO]** ตรวจสอบการเลือก อำเภอ/เขต จาก enum บน SMCO คำภาษาไทยบางคำไม่ตรงกับระบบ อาจนำ `PyThaiNLP` (Tokenize) มาใช้คู่กับ `FuzzyWuzzy`
-- [ ] **[AccelMode / SN]** ปรับปรุง `deduct_accel_file_data` ตรวจสอบความถูกต้องของ SN หลังกรอก และตรวจสอบ SN เมื่อมีหลาย SKU ที่ไม่มีใน Transfer
+- [x] **[AccelMode / SN]** แก้ไขปัญหา SN เสียเมื่อ SKU มี QTY > 1: ปรับไปใช้ Red Serial Button + Modal Flow สำหรับ Multi-QTY, ทำ Combo Aggregation รวมจำนวนข้ามแถว, Dynamic Wait ตรวจสอบสถานะ, ลบเฉพาะ SN ที่เสียด้วย `_deleteInsertSerial` โดยไม่ลบแถวสินค้าบนตะกร้า และคืนสิทธิ์ SN ในหน่วยความจำหากออเดอร์ไม่สำเร็จ
 - [x] **[Logging]** ทำ Log Rotation ให้กับไฟล์ Log เพื่อไม่ให้ขนาดไฟล์ใหญ่เกินไป และสามารถเก็บย้อนหลังแยกรายวันได้
 - [ ] **[Performance]** ปรับตัวดึง Tracking ให้ Dynamic ขึ้น เช่น ตอนเริ่มค้นหาออเดอร์ถ้ามี Tracking อยู่แล้ว ให้ดึงใส่ Stage ไว้ล่วงหน้าทันที
 
@@ -62,6 +62,37 @@
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
+
+### [ver5.x.x] - 2026-09-16
+- [x] **[Accel Mode Multi-QTY Serial Number Modal Flow & Combo Aggregation]** ปรับปรุงระบบกรอก Serial Number (SN) บน SMCO POS ใน Accel Mode ให้รองรับ SKU ที่มี QTY > 1 และสินค้าชุด Combo อย่างสมบูรณ์ แก้ไขปัญหา SN ถูกล้างทิ้งฟรีเมื่อมี SN เสีย:
+  - **ปัญหาเดิม**: เมื่อ SKU ต้องการกรอก SN มากกว่า 1 ตัว บอทใช้วิธียิง SN ทีละตัวผ่านช่องค้นหาบนหัวเว็บ SMCO หากตัวแรกผ่านแต่ตัวที่สองไม่ผ่าน กลไกจัดการข้อผิดพลาดเดิมจะไปกดปุ่มถังขยะสีแดง (`btn-danger`) บนตารางตะกร้าสินค้า ซึ่งลบสินค้าทั้งแถวทิ้ง ทำให้ SN ตัวแรกที่ถูกต้องถูกระบบ SMCO ล้างทิ้งไปด้วย และเสียโควตา SN ไปฟรี
+  - **ตรรกะใหม่ Multi-QTY (QTY > 1)**:
+    - เปลี่ยนไปใช้ **Red Serial Button (`btn-serial` / `ng-redalert`)** เพื่อเปิด Modal จัดการ SN ของสินค้านั้น
+    - กรอก SN จากคิวลงในช่องของ Modal ทีเดียวตามจำนวน QTY แล้วกดปุ่มตรวจสอบความถูกต้อง (`_testInsertSerial`)
+    - ใช้ **Dynamic Waiting** วนลูปตรวจสอบสถานะปุ่มยืนยัน (`_okInsertSerial`) และแถวที่ผิดพลาด (`.font-color-secondary-red`) พร้อม Safe Buffer Delay ป้องกันปัญหา Timing ช้า-เร็วบนเว็บ SMCO
+    - **การจัดการ SN เสียเฉพาะตัว**: หากมีบางแถวใน Modal ขึ้นสีแดง (Serial ไม่ถูกต้อง/ไม่มีในสต็อก) ระบบจะคลิกเลือก Checkbox และกดปุ่มลบเฉพาะตัวที่เสียผ่าน `_deleteInsertSerial` โดยที่แถวสินค้าและ SN ตัวที่ถูกต้องใน Modal ยังคงอยู่ครบถ้วน ไม่กระทบตะกร้าสินค้า
+    - บันทึกตัดทอนเฉพาะ SN ตัวที่เสียออกจากข้อมูลคิว พร้อมดึง SN ตัวสำรองตัวใหม่มาเติมใส่ Modal แล้วตรวจสอบซ้ำจนครบ
+  - **การจัดการกรณี SN สำรองไม่เพียงพอ (Shortage Handling)**:
+    - **โหมด Manual**: ปิดการทำงานอัตโนมัติ ไม่ปิด Modal ทิ้ง และสลับสถานะเป็น `Bot Status: Your Turn (Serial Shortage)` พร้อมแจ้งเตือนใน Log เพื่อให้ผู้ใช้ตัดสินใจหรือหยิบ SN นอกระบบมาเติมเอง
+    - **โหมด Auto Invoice**: ปิด Modal อย่างปลอดภัย (`_safe_close_modal`), คืนสิทธิ์ SN ที่ผ่านแล้วแต่ยังไม่ถูกบันทึกกลับเข้าคิวในหน่วยความจำ (`restore_uncommitted_serials`), สั่งบันทึกลงชีต `Failed_Orders` พร้อมระบุสาเหตุ `Serial Shortage`, ล้างตะกร้าสินค้า และกดย้อนกลับไปหน้าแรกเพื่อเริ่มออเดอร์ถัดไป
+  - **รองรับ SKU แบบ Combo (สินค้าชุดที่มีเครื่องหมาย `+`)**:
+    - ใน `ProductManager.auto_add_all_items`: แตก Combo SKU ออกเป็นสินค้าย่อย หากตัวใดไม่ต้องการ SN จะยิงเข้าตะกร้าสินค้าตามปกติ ส่วนสินค้าย่อยที่ต้องการ SN จะถูกส่งต่อให้ Accel Mode
+    - ใน `AccelMode._aggregate_order_skus`: รวมยอด QTY สุทธิของ SKU เดียวกันที่กระจายอยู่หลายบรรทัดหรือใน Combo ชุดต่างๆ ให้เป็นก้อนเดียว ก่อนส่งเข้ากระบวนการเติม SN เพื่อให้ยอดตรงกับแถวบนตะกร้า POS ของ SMCO
+  - **Uncommitted Serial Restoration Guard**:
+    - เพิ่ม `restore_uncommitted_serials()` ใน `AccelMode` และผูกเข้ากับ `record_failed_with_checkpoint` เพื่อคืน Serial Number ที่บอทดึงไปทดสอบแล้วแต่เกิดเหตุการณ์ Order ล้มเหลวกลางคัน ให้กลับมาอยู่ในคิวพร้อมใช้สำหรับออเดอร์ถัดไปเสมอ ไม่สูญหาย
+  - เพิ่มชุดทดสอบอัตโนมัติใน [test_accel_multi_qty_sn.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_accel_multi_qty_sn.py) ผ่านฉลุย 100% (6/6 tests)
+- [x] **[Tracking Error Handling: Manual vs Auto Inv Mode]** ปรับปรุงพฤติกรรมเมื่อไม่พบเลข Tracking หรือ Tracking ไม่ครบในขั้นตอน Phase 2 (Payment Page) ให้แยกการทำงานตามโหมดอย่างถูกต้อง:
+  - **โหมด Manual (ไม่มีการเปิด `auto_inv`)**:
+    - หากหา Tracking ไม่พบ ไม่สั่งย้อนกลับไปหน้าแรก (`self.return_to_first_page()` ถูกยกเลิกสำหรับโหมด Manual)
+    - คงสถานะหน้าจออยู่ที่ Phase 2 (หน้าชำระเงิน) ต่อไป โดยบอทจะกรอกข้อมูลส่วนที่เหลือให้ครบถ้วน (เลข Order ใน Remark, ช่องทางการชำระเงิน, PO No., ชื่อลูกค้า, ราคาสุทธิ)
+    - แจ้งเตือนใน Log เพื่อให้ผู้ใช้ทราบว่ากรอกข้อมูลอื่นเสร็จแล้ว และรอให้ผู้ใช้ตรวจสอบ/ระบุเลข Tracking เอง แล้วกดปุ่มชำระเงิน (ปุ่มเขียว) ต่อไปได้ทันที
+  - **โหมด Auto Invoice (`is_auto_invoice_mode == True`)**:
+    - หากหา Tracking ไม่พบ จะตัดรอบส่งเป็น `FAILED` ทันทีโดยเรียก `_handle_auto_inv_accel_abort`
+    - บันทึกประวัติข้อผิดพลาดลงชีต `Failed_Orders` ในไฟล์ Excel (`.xlsx`) และตัดออเดอร์ออกจาก Sheet1
+    - รายงานสถานะ `FAILED` ลง `report_manager`
+    - กดย้อนกลับไปหน้าแรกและสั่งล้างตะกร้า POS (`clean_pos_cart`) ทันทีเพื่อเตรียมเริ่มรอบออเดอร์ถัดไปโดยอัตโนมัติ
+  - ปรับปรุงเงื่อนไขใน [payment_handler.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/payment_handler.py) และ [autopage_MKII_ver5.x.x.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py) (`record_failed_with_checkpoint`)
+  - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
 
 ### [ver5.x.x] - 2026-09-15
 - [x] **[Address Dropdown Exact Match Priority]** แก้ไขปัญหาการเลือก อำเภอ/เขต/จังหวัด ใน `select_li_from_dropdown` ผิดพลาดเมื่อคำค้นหาเป็นคำย่อยของคำอื่น (เช่น ค้นหา "วัฒนา" แต่ระบบไปเลือก "ทวีวัฒนา"):

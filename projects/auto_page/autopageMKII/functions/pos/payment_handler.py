@@ -186,13 +186,15 @@ class POSPaymentHandler:
                             try:
                                 self.bot.tracking_manager.collect_tracking(remark_text, expected_count=expected_tracking_count)
                             except Exception as track_err:
-                                print(f"Tracking collection failed: {track_err}, returning SMCO to first page...")
-                                self.app.update_log(f"⚠️ {track_err} -> กำลังกดย้อนกลับไปหน้าแรกของ SMCO...")
-                                if is_accel and is_auto_inv:
-                                    fail_msg = f"เลข Tracking บน Shopee ไม่ครบตามจำนวน Package (ติดนัดรับ/รอเลข): {track_err}"
+                                if is_auto_inv:
+                                    print(f"Tracking collection failed in auto_inv: {track_err}, returning SMCO to first page and logging failed order...")
+                                    marketplace = self.app.marketplace_target.get() if hasattr(self.app, 'marketplace_target') else "Marketplace"
+                                    fail_msg = f"เลข Tracking บน {marketplace} ไม่ครบตามจำนวน Package หรือหาไม่พบ: {track_err}"
                                     return self._handle_auto_inv_accel_abort(fail_msg, category="TRACKING_ERROR")
-                                self.return_to_first_page()
-                                raise track_err
+                                else:
+                                    print(f"Tracking collection failed in manual mode: {track_err}. Staying on payment page without returning...")
+                                    self.app.update_log(f"⚠️ {track_err} -> ไม่พบ Tracking (โหมด Manual: อยู่หน้าชำระเงินต่อ ไม่ย้อนกลับ)")
+                                    self.bot.tracking_manager.trackings = []
 
                         # กรอก Order ไปที่ cnRemark และ modal (ref1RemarkTemp), Tracking ไปที่ ref2/ref3RemarkTemp
                         self.bot.tracking_manager.apply_tracking_to_final_page(order_no=self.cus_order)
@@ -251,7 +253,7 @@ class POSPaymentHandler:
 
                     except Exception as err:
                         print("Final page form filling failed, skip to waiting for price:", err)
-                        if is_accel and is_auto_inv:
+                        if is_auto_inv:
                             cat = "TRACKING_ERROR" if "tracking" in str(err).lower() else "GENERAL_ERROR"
                             return self._handle_auto_inv_accel_abort(f"เกิดข้อผิดพลาดในการกรอกข้อมูลหน้าท้าย: {err}", category=cat)
                         break
@@ -266,7 +268,10 @@ class POSPaymentHandler:
 
                     self.app.is_bot_browser_busy.set(False)
                     print("กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มเขียว หรือกดย้อนกลับไปหน้าที่ 1")
-                    self.app.update_log("✅ กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มชำระเงิน (ปุ่มเขียว) หรือกดย้อนกลับไปหน้า 1")
+                    if not self.bot.tracking_manager.trackings:
+                        self.app.update_log("⚠️ ไม่พบเลข Tracking: กรอกข้อมูลอื่นหน้าท้ายเรียบร้อยแล้ว รอผู้ใช้ตรวจสอบ/ใส่ tracking และกดปุ่มชำระเงิน (ปุ่มเขียว)")
+                    else:
+                        self.app.update_log("✅ กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มชำระเงิน (ปุ่มเขียว) หรือกดย้อนกลับไปหน้า 1")
 
                     # 8. Test Mode Guard: Checkpoint 4 (หยุดหลังกรอกหน้าท้าย - ก่อนกดปุ่มเขียว)
                     if hasattr(self.bot, 'should_stop_at_test_checkpoint') and self.bot.should_stop_at_test_checkpoint("4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"):
@@ -453,7 +458,7 @@ class POSPaymentHandler:
                                     logger.error(f"Order: {self.cus_order} - {err_msg}")
                                     is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
                                     is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
-                                    if is_accel and is_auto_inv:
+                                    if is_auto_inv:
                                         return self._handle_auto_inv_accel_abort(err_msg, category="VERIFICATION_FAILED")
                             except Exception as e:
                                 print(f"Verification and payment submission failed: {e}")

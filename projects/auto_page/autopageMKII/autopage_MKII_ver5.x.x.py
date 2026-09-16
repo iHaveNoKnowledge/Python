@@ -4544,16 +4544,21 @@ class Bot_POS:
         is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
 
         if hasattr(self.app, 'accel_mode'):
+            if hasattr(self.app.accel_mode, 'restore_uncommitted_serials'):
+                try:
+                    self.app.accel_mode.restore_uncommitted_serials()
+                except Exception as r_err:
+                    print(f"record_failed_with_checkpoint restore serials error: {r_err}")
             if hasattr(self.app.accel_mode, 'record_failed_order'):
                 self.app.accel_mode.record_failed_order(
                     order_val, full_reason)
-            if (is_accel and is_auto_inv) and hasattr(self.app.accel_mode, 'deduct_accel_file_data'):
+            if is_auto_inv and hasattr(self.app.accel_mode, 'deduct_accel_file_data'):
                 try:
                     self.app.accel_mode.deduct_accel_file_data(order_val, remove_order=True, update_memory=True)
                 except Exception as d_err:
                     print(f"record_failed_with_checkpoint deduct error: {d_err}")
 
-        if is_accel and is_auto_inv:
+        if is_auto_inv:
             try:
                 if hasattr(self, 'payment_handler') and self.payment_handler:
                     self.payment_handler.return_to_first_page()
