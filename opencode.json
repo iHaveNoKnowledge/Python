@@ -1,0 +1,20 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "typesafe-docs": {
+      "type": "remote",
+      "url": "https://docs.typesafe.ai/mcp",
+      "enabled": true,
+      "timeout": 30000
+    },
+    "jev": {
+      "type": "local",
+      "command": ["npx", "-y", "jev-judge-mcp"],
+      "enabled": true,
+      "timeout": 30000,
+      "environment": {
+        "TYPESAFE_API_KEY": "{env:TYPESAFE_API_KEY}"
+      }
+    }
+  }
+}

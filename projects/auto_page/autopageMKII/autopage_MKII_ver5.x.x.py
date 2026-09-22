@@ -61,6 +61,14 @@ except ImportError:
         RAPIDFUZZ_AVAILABLE = False
 
 try:
+    from openjev_name_matcher import get_shared_matcher, pick_customer_index
+    OPENJEV_MATCHER_AVAILABLE = True
+except ImportError:
+    OPENJEV_MATCHER_AVAILABLE = False
+    get_shared_matcher = None
+    pick_customer_index = None
+
+try:
     from functions.order_display_manager import OrderDisplayManager
 except ImportError:
     from order_display_manager import OrderDisplayManager
@@ -5283,6 +5291,41 @@ class Bot_POS:
                 continue
 
             # * ถ้ามันเจอก็จะ จบ function แต่ถ้าไม่เจอจะไปใช้ cb ต่อ
+
+        # * openjev: substring หาไม่เจอ -> ให้ local NLI ช่วย rerank ก่อน Add ใหม่
+        # * ปลอดภัย: โมเดลไม่พร้อม / ไม่มั่นใจ (entail < threshold) / error ใดๆ -> ตกไป Add ใหม่เหมือนเดิม
+        if OPENJEV_MATCHER_AVAILABLE:
+            try:
+                _matcher = get_shared_matcher()
+                if _matcher is not None:
+                    _branch_num = str(self.app.tax_branch_num.get() or "")
+                    _idx, _via = pick_customer_index(
+                        cus_desire_name, cus_name_list,
+                        branch_num=_branch_num,
+                        is_branched=is_branched,
+                        has_branch_code=bool(self.has_branch_code_in_df),
+                        matcher=_matcher,
+                    )
+                    if _via == "openjev" and 0 <= _idx < len(cus_name_list):
+                        logger.info(
+                            f"[openjev] Order {self.cus_order}: เลือก '{cus_name_list[_idx]}' "
+                            f"จาก {len(cus_name_list)} ตัวเลือก (substring หาไม่เจอ)")
+                        print(f"[openjev] เลือกชื่อลูกค้า {cus_name_list[_idx]}")
+                        self.app.report_manager.record_customer_result(
+                            self.cus_order, "EXISTING", customer_code=cus_name_list[_idx]
+                        )
+                        while not self.operation_thread.is_set():
+                            try:
+                                self.driver.find_element(
+                                    By.XPATH, f"/html/body/span/span/span[2]/ul/li[{_idx+1}]").click()
+                                return
+                            except:
+                                print("No customer found")
+                                time.sleep(0.5)
+                                continue
+                        return
+            except Exception as _oj_err:
+                logger.warning(f"[openjev] Order {self.cus_order}: ข้าม ({_oj_err})")
 
         print(
             f"order: {self.cus_order} : select_cus_name_from_lis: ไม่มีชื่อที่ใช้ได้ Add ใหม่")
