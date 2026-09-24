@@ -34,8 +34,8 @@ class AutoAddProduct:
         return None
 
     # * main fxs/helpers
-    def item_qty_setter(self, item_identifier: str | int, qty: int = 1):
-        print("item_qty_setter called item_identifier: ", item_identifier, " qty: ", qty)
+    def item_qty_setter(self, item_identifier: str | int, qty_to_set: int = 1):
+        print("item_qty_setter called item_identifier: ", item_identifier, " qty: ", qty_to_set)
         try:
             if isinstance(item_identifier, str):  # * แปลงเป็น idx ก่อน
                 print("Converting")
@@ -64,33 +64,33 @@ class AutoAddProduct:
             target_current_qty = current_qty_elements[target_idx].text
             print("current_qty_elements count: ", len(current_qty_elements))
             print(f"target_current_qty at idx {target_idx}: '{target_current_qty}'")
-            print("qty needed: ", qty)
+            print("qty needed: ", qty_to_set)
 
             if target_idx >= 0:
                 print("Start qty setter check")
                 try:
                     # * Update XPath to exclude hidden elements for buttons too, just in case
-                    item_qty_elements = self.driver.find_elements(
+                    increase_qty_btn_elements = self.driver.find_elements(
                         By.XPATH, "//button[@ng-click='incrementMainQty(true, x)' and not(contains(@class, 'ng-hide'))]")
 
                     # * Check if we really need to loop
-                    if int(target_current_qty) < int(qty):
+                    if int(target_current_qty) < int(qty_to_set):
                         print(
-                            f"Quantity mismatch: current {target_current_qty} < needed {qty}. Starting increment loop.")
-                        while not self.bot.auto_add_product_stop_flag.is_set() and int(target_current_qty) < int(qty):
-                            print(f"target_current_qty and qty: {target_current_qty} and {qty}")
+                            f"Quantity mismatch: current {target_current_qty} < needed {qty_to_set}. Starting increment loop.")
+                        while not self.bot.auto_add_product_stop_flag.is_set() and int(target_current_qty) < int(qty_to_set):
+                            print(f"target_current_qty and qty: {target_current_qty} and {qty_to_set}")
                             try:
                                 print("click increase button")
-                                if target_idx < len(item_qty_elements):
-                                    item_qty_elements[target_idx].click()
+                                if target_idx < len(increase_qty_btn_elements):
+                                    increase_qty_btn_elements[target_idx].click()
                                 else:
                                     print(
-                                        f"Error: Button index {target_idx} out of range (buttons={len(item_qty_elements)})")
+                                        f"Error: Button index {target_idx} out of range (buttons={len(increase_qty_btn_elements)})")
                                     break
 
                                 # * Re-read quantity
                                 target_current_qty = current_qty_elements[target_idx].text
-                                if int(target_current_qty) >= int(qty):
+                                if int(target_current_qty) >= int(qty_to_set):
                                     break
                             except Exception as e:
                                 # * กรณียัง click ไม่ได้/มีปัญหากับการ click จะลงมาที่นี
@@ -99,7 +99,7 @@ class AutoAddProduct:
                                 continue
                     else:
                         print(
-                            f"Quantity match or exceed: current {target_current_qty} >= needed {qty}. No action needed.")
+                            f"Quantity match or exceed: current {target_current_qty} >= needed {qty_to_set}. No action needed.")
 
                 except Exception as e:
                     print(f"Error in item_qty_setter loop: {e}")
@@ -173,6 +173,7 @@ class AutoAddProduct:
                     for sku in skus:
                         while not self.bot.auto_add_product_stop_flag.is_set():
                             try:
+                                #/ มีการทำให้ qty ตรงตั้งแต่ตอนแรก(ตอน enter sku input)ซึ่งก็คือตรงนี้
                                 print("Processing SKU: ", sku, " with qty: ", qty)
                                 self.driver.execute_script(
                                     "angular.element(arguments[0]).val(arguments[1]).triggerHandler('input')",

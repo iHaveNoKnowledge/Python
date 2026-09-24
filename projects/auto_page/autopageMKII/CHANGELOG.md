@@ -16,6 +16,7 @@
 - [x] **[AccelMode / SN]** แก้ไขปัญหา SN เสียเมื่อ SKU มี QTY > 1: ปรับไปใช้ Red Serial Button + Modal Flow สำหรับ Multi-QTY, ทำ Combo Aggregation รวมจำนวนข้ามแถว, Dynamic Wait ตรวจสอบสถานะ, ลบเฉพาะ SN ที่เสียด้วย `_deleteInsertSerial` โดยไม่ลบแถวสินค้าบนตะกร้า และคืนสิทธิ์ SN ในหน่วยความจำหากออเดอร์ไม่สำเร็จ
 - [x] **[Logging]** ทำ Log Rotation ให้กับไฟล์ Log เพื่อไม่ให้ขนาดไฟล์ใหญ่เกินไป และสามารถเก็บย้อนหลังแยกรายวันได้
 - [ ] **[Performance]** ปรับตัวดึง Tracking ให้ Dynamic ขึ้น เช่น ตอนเริ่มค้นหาออเดอร์ถ้ามี Tracking อยู่แล้ว ให้ดึงใส่ Stage ไว้ล่วงหน้าทันที
+- [ ] **[AccelMode / Modal Speed]** Modal Serial Number เปิดช้าในบางจังหวะ กำลังรอปรับปรุงความเร็วในการค้นหาปุ่มและเปิด Modal
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
 - [ ] **[Auto CP SAGA]** ระบบตัดสินใจเลือกคูปองอัตโนมัติ (เปรียบเทียบราคา -> ดูช่วงเวลาโปรโมชั่น -> เลือกรุ่นที่ตรงที่สุดตาม Store)
@@ -62,6 +63,20 @@
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
+
+### [ver5.x.x] - 2026-09-24
+- [x] **[Accel Mode Multi-SKU Modal Two-Loop Refactoring]** ปรับปรุงโครงสร้างของ `_fill_multi_sku_modal()` ใน `accel_mode.py` ให้แยกเป็น 2 Loops อิสระอย่างชัดเจน (Loop กรอก และ Loop ตรวจสอบ/Reject):
+  - **Loop 1 (ลูปการกรอก Serial)**: วนลูปกรอก SN ลงในช่องว่าง (`ng-empty`) จนกระทั่งไม่มีช่องว่างเหลือ (`if not empty_inputs: break`) โดยตัดการยุ่งเกี่ยวกับ Checkbox ออกจากกระบวนการกรอก เพื่อเตรียมพร้อมเข้าสู่ขั้นตอนตรวจสอบ
+  - **Loop 2 (ลูปตรวจสอบ ยืนยัน หรือ Reject/Void)**:
+    - **Verify Trigger**: รอจนปุ่ม Verify (`_verifyInsertSerial`) หลุดจากสถานะ `disabled` แล้วกดคลิก
+    - **ตรวจเช็ค 2 ทางเลือก**:
+      - **ทางเลือกที่ 1 (ผ่านทั้งหมด)**: รอจนปุ่ม OK (`_okInsertSerial`) ปลดล็อค -> คลิกปุ่ม OK บันทึก SN ที่ผ่านลง `used_serials` และตัดจากหน่วยความจำ แล้วจบการทำงานทันที (Return True)
+      - **ทางเลือกที่ 2 (พบข้อผิดพลาด / Reject)**: เมื่อมีแถวที่เป็นสีแดง (`font-color-secondary-red`):
+        - ดึงค่า SN จากแถวแดงโดยตรง (`td[serialNo] -> p` หรือ `input`) เพื่อความแม่นยำ 100% ในการลบ
+        - ติ๊ก Checkbox (`input[@ng-model='element.checkBox']`) เฉพาะแถวสีแดงนั้น
+        - ลบ SN เสียออกจากหน่วยความจำและตัดออกจาก Excel
+        - กดปุ่ม Void โดยระบุ XPath เจาะจง `//div[@class='pull-right']/button[@id='_deleteInsertSerial']` (และคลิกที่ `span`) เพื่อป้องกันการชนกับปุ่มซ้ำที่ซ่อนอยู่ใน DOM ของโมดูลอื่น
+        - หน่วงเวลา 1.0 วินาที เพื่อให้ระบบเคลียร์แถวเสียและแสดงช่องว่างใหม่ แล้วหลุดจาก Loop 2 วนกลับไปเข้า **Loop 1** เพื่อกรอก SN ตัวใหม่แทนที่
 
 ### [ver5.x.x] - 2026-09-16
 - [x] **[Accel Mode Multi-QTY Serial Number Modal Flow & Combo Aggregation]** ปรับปรุงระบบกรอก Serial Number (SN) บน SMCO POS ใน Accel Mode ให้รองรับ SKU ที่มี QTY > 1 และสินค้าชุด Combo อย่างสมบูรณ์ แก้ไขปัญหา SN ถูกล้างทิ้งฟรีเมื่อมี SN เสีย:

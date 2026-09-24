@@ -625,7 +625,7 @@ class AccelMode:
     # * ──────────────────────────────────────────────────────────────────────────
     # * Aggregation & Rollback Helpers สำหรับ Accel Mode
     # * ──────────────────────────────────────────────────────────────────────────
-    def _aggregate_order_skus(self, items):
+    def _aggregate_order_skus(self, items) -> Dict[str, Any]:
         """รวม QTY ของแต่ละ SKU ใน items ทั้งออเดอร์ (รวมถึงการแตกเครื่องหมาย + ในคอมโบ)"""
         correct_func = getattr(self.main_app, 'correct_sku_pattern', None)
         aggregated = {}
@@ -1049,14 +1049,21 @@ class AccelMode:
         sku_fail_count = 0
 
         while not operation_thread.is_set():
-            # ค้นหาช่อง input ใน Modal ที่ยังว่าง
-            empty_inputs = driver.find_elements(
-                By.XPATH,
-                "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
-            )
-            empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
+            # * ══════════════════════════════════════════════════════════
+            # * [LOOP 1] ลูปการกรอก: กรอก SN จนกว่าจะไม่มีช่องว่าง (ng-empty)
+            # * ══════════════════════════════════════════════════════════
+            while not operation_thread.is_set():
+                empty_inputs = driver.find_elements(
+                    By.XPATH,
+                    "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
+                )
+                empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
 
-            if empty_inputs:
+                # หากไม่มีช่องว่างเหลือแล้ว แสดงว่ากรอกครบทุกช่องแล้ว -> ออกจาก Loop กรอกเพื่อไป Loop ตรวจสอบ
+                if not empty_inputs:
+                    logger.info("กรอก SN ครบทุกช่องแล้ว หลุดจาก Loop กรอก เข้าสู่ Loop ตรวจสอบ")
+                    break
+
                 candidates = self.obj_data_from_accel_file.get(matched_col, [])
                 avail_candidates = [s for s in candidates if s not in modal_filled_sns]
 
@@ -1093,7 +1100,24 @@ class AccelMode:
                     except Exception as inp_err:
                         logger.warning(f"ข้อผิดพลาดขณะกรอก SN {next_sn}: {inp_err}")
 
-            # 4. กด Verify ใน Modal
+            if operation_thread.is_set():
+                break
+
+            # * ══════════════════════════════════════════════════════════
+            # * [LOOP 2] ลูปการตรวจสอบ: ตรวจสอบยืนยัน หรือ Reject/Void
+            # * ══════════════════════════════════════════════════════════
+            # 1. รอจนกว่าปุ่ม Verify (_verifyInsertSerial) จะปลดล็อค disabled แล้วกดคลิก
+            v_wait_start = time.time()
+            verify_ready = False
+            while (time.time() - v_wait_start) < 10 and not operation_thread.is_set():
+                v_btns = driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']")
+                if v_btns and v_btns[0].is_displayed():
+                    v_dis = v_btns[0].get_attribute("disabled")
+                    if (v_dis is None or v_dis not in ["true", "disabled"]) and v_btns[0].is_enabled():
+                        verify_ready = True
+                        break
+                time.sleep(0.3)
+
             logger.info("กำลังกดปุ่มยืนยัน SN ใน Modal (_verifyInsertSerial)...")
             try:
                 verify_btn = driver.find_element(By.XPATH, "//button[@id='_verifyInsertSerial']")
@@ -1101,7 +1125,7 @@ class AccelMode:
             except Exception as v_err:
                 logger.warning(f"กดปุ่ม _verifyInsertSerial ล้มเหลว: {v_err}")
 
-            # 5. Dynamic Wait Loop: รอจนกว่าปุ่ม OK จะปลดล็อค หรือมีแถวสีแดง
+            # 2. รอตรวจสอบผลลัพธ์หลัง Verify (แยก 2 ทางเลือก: OK ปลดล็อค หรือ มีแถวสีแดง)
             start_v_wait = time.time()
             v_timeout = 20
             is_ok_ready = False
@@ -1121,16 +1145,16 @@ class AccelMode:
 
                 red_rows = driver.find_elements(
                     By.XPATH,
-                    "//tr[contains(@class, 'ng-scope') and contains(@class, 'font-color-secondary-red')]"
+                    "//tr[contains(@class, 'ng-scope') and (contains(@class, 'font-color-secondary-red') or .//p[contains(@class, 'font-color-secondary-red') and normalize-space()!=''])]"
                 )
                 if red_rows:
                     has_red_rows = True
                     break
 
-            # Safety buffer sleep 1 วินาที
+            # Buffer sleep เพื่อให้ DOM และสถานะปุ่มเสถียร
             time.sleep(1.0)
 
-            # 6. ตรวจสอบผลลัพธ์
+            # ทางเลือกที่ 1: ผ่านทั้งหมด ปุ่ม OK ปลดล็อค
             if is_ok_ready:
                 logger.info(f"ปุ่ม OK พร้อมใช้งาน ยืนยัน SN ทั้ง {len(modal_filled_sns)} ตัวสำเร็จ!")
                 ok_btn = driver.find_element(
@@ -1148,61 +1172,97 @@ class AccelMode:
                     if passed_sn in self.obj_data_from_accel_file.get(matched_col, []):
                         self.obj_data_from_accel_file[matched_col].remove(passed_sn)
                 return True
+
+            # ทางเลือกที่ 2: มีแถวไม่ผ่าน (font-color-secondary-red) ปุ่ม OK ยัง disabled
             else:
-                # 7. จัดการแถวที่ไม่ผ่าน (ลบเฉพาะตัวที่เสีย โดยไม่ลบแถวสินค้าบน POS)
-                rows = driver.find_elements(
+                failed_rows = driver.find_elements(
                     By.XPATH,
-                    "//tr[contains(@class, 'ng-scope') and .//input[@ng-model='element.checkBox']]"
+                    "//tr[contains(@class, 'ng-scope') and (contains(@class, 'font-color-secondary-red') or .//p[contains(@class, 'font-color-secondary-red') and normalize-space()!=''])]"
                 )
-                if not rows:
-                    rows = driver.find_elements(By.XPATH, "//tr[contains(@class, 'ng-scope')]")
-                checkboxes = driver.find_elements(By.XPATH, "//input[@ng-model='element.checkBox']")
 
-                failed_indices = []
-                for r_idx, row in enumerate(rows):
-                    r_class = row.get_attribute("class") or ""
-                    if "font-color-secondary-red" in r_class:
-                        failed_indices.append(r_idx)
-                        logger.warning(f"แถวที่ {r_idx + 1} เช็ค SN ไม่ผ่าน")
-
-                if not failed_indices:
-                    logger.warning("ไม่พบแถวที่เป็น font-color-secondary-red แต่ปุ่ม OK ยังไม่พร้อม")
+                if not failed_rows:
+                    logger.warning("ไม่พบแถวที่เป็น font-color-secondary-red และปุ่ม OK ยังไม่พร้อม วนตรวจสอบใหม่...")
                     continue
 
-                for f_idx in failed_indices:
-                    if f_idx < len(checkboxes):
-                        cb = checkboxes[f_idx]
+                logger.warning(f"พบแถวที่เช็ค SN ไม่ผ่านจำนวน {len(failed_rows)} แถว")
+                failed_sns_to_remove = []
+
+                for r in failed_rows:
+                    # 1. อ่านค่า SN จากแถวที่ไม่ผ่านโดยตรง
+                    sn_val = ""
+                    p_sn = r.find_elements(
+                        By.XPATH,
+                        ".//td[.//input[contains(@ng-model, 'element.serialNo')]]//p[normalize-space()!='']"
+                    )
+                    if p_sn:
+                        sn_val = p_sn[0].text.strip()
+                    else:
+                        inp_sn = r.find_elements(By.XPATH, ".//input[contains(@ng-model, 'element.serialNo')]")
+                        if inp_sn:
+                            sn_val = (inp_sn[0].get_attribute("value") or "").strip()
+
+                    # 2. ติ๊ก Checkbox เฉพาะแถวนี้
+                    cb_elems = r.find_elements(By.XPATH, ".//input[@ng-model='element.checkBox']")
+                    if cb_elems:
+                        cb = cb_elems[0]
                         try:
                             if not cb.is_selected():
                                 driver.execute_script("arguments[0].click();", cb)
                         except Exception as cb_err:
-                            logger.warning(f"ติ๊ก Checkbox แถว {f_idx} ผิดพลาด: {cb_err}")
+                            logger.warning(f"ติ๊ก Checkbox แถวสีแดงผิดพลาด: {cb_err}")
 
-                    if f_idx < len(modal_filled_sns):
-                        failed_sn = modal_filled_sns[f_idx]
-                        logger.info(f"ลบ SN {failed_sn} ออกจาก Excel และหน่วยความจำ...")
-                        self.deduct_accel_file_data(
-                            self.main_app.cus_order,
-                            [{'sku': matched_col, 'sn': failed_sn}],
-                            remove_order=False,
-                            update_memory=False
-                        )
-                        if failed_sn in self.obj_data_from_accel_file.get(matched_col, []):
-                            self.obj_data_from_accel_file[matched_col].remove(failed_sn)
+                    if sn_val:
+                        failed_sns_to_remove.append(sn_val)
+                        logger.warning(f"แถวสีแดงไม่ผ่าน ตรวจพบ SN: '{sn_val}'")
 
-                for f_idx in sorted(failed_indices, reverse=True):
-                    if f_idx < len(modal_filled_sns):
-                        modal_filled_sns.pop(f_idx)
+                # 3. ลบ SN เสียออกจาก Excel และหน่วยความจำ
+                for failed_sn in failed_sns_to_remove:
+                    logger.info(f"ลบ SN {failed_sn} ออกจาก Excel และหน่วยความจำ...")
+                    self.deduct_accel_file_data(
+                        self.main_app.cus_order,
+                        [{'sku': matched_col, 'sn': failed_sn}],
+                        remove_order=False,
+                        update_memory=False
+                    )
+                    if failed_sn in self.obj_data_from_accel_file.get(matched_col, []):
+                        self.obj_data_from_accel_file[matched_col].remove(failed_sn)
+                    if failed_sn in modal_filled_sns:
+                        modal_filled_sns.remove(failed_sn)
 
+                # 4. กดปุ่มลบรายการ SN ที่ไม่ผ่าน (_deleteInsertSerial) ผ่าน //div[@class='pull-right']
                 logger.info("กำลังกดปุ่มลบรายการ SN ที่ไม่ผ่าน (_deleteInsertSerial)...")
                 try:
-                    delete_btn = driver.find_element(By.XPATH, "//button[@id='_deleteInsertSerial']")
-                    driver.execute_script("arguments[0].click();", delete_btn)
+                    del_btns = driver.find_elements(
+                        By.XPATH,
+                        "//div[@class='pull-right']/button[@id='_deleteInsertSerial']"
+                    )
+                    if not del_btns:
+                        del_btns = driver.find_elements(
+                            By.XPATH,
+                            "//div[contains(@class, 'pull-right')]//button[@id='_deleteInsertSerial']"
+                        )
+                    if not del_btns:
+                        del_btns = driver.find_elements(By.XPATH, "//button[@id='_deleteInsertSerial']")
+
+                    del_clicked = False
+                    for d_btn in del_btns:
+                        if d_btn.is_displayed():
+                            span_elems = d_btn.find_elements(By.XPATH, ".//span")
+                            if span_elems:
+                                driver.execute_script("arguments[0].click();", span_elems[0])
+                            else:
+                                driver.execute_script("arguments[0].click();", d_btn)
+                            del_clicked = True
+                            break
+
+                    if not del_clicked and del_btns:
+                        driver.execute_script("arguments[0].click();", del_btns[0])
                 except Exception as del_err:
                     logger.warning(f"ไม่สามารถคลิกปุ่ม _deleteInsertSerial ได้: {del_err}")
+
                 time.sleep(1.0)
 
-                sku_fail_count += len(failed_indices)
+                sku_fail_count += len(failed_rows)
                 if sku_fail_count > 2:
                     self._filter_invalid_sns(driver, matched_col)
 
@@ -1216,7 +1276,7 @@ class AccelMode:
 
         # ซิงค์ obj_data_from_accel_file จาก accel_df_state ล่าสุดเสมอ เพื่อป้องกัน SN หายกรณีรอบก่อนหน้า abort/fail
         if hasattr(self, 'accel_df_state') and isinstance(self.accel_df_state, pd.DataFrame) and not self.accel_df_state.empty:
-            self.obj_data_from_accel_file = {
+            self.obj_data_from_accel_file: Dict[str, Any] = {
                 col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() not in ('nan', '<NA>', 'None', '')]
                 for col in self.accel_df_state.columns if pd.notna(col)
             }
@@ -1243,6 +1303,7 @@ class AccelMode:
             "//input[@name='svalue']"
         ]
 
+        #/ วน loop ตามจำนวนรายการ sku โดยรวม qty ไว้แล้ว มันคือการ aggregate sku นั่นเอง
         for target_sku_key, info in aggregated_skus.items():
             if operation_thread.is_set():
                 break
