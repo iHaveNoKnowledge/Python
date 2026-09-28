@@ -2,6 +2,7 @@ import os
 import re
 import time
 from tkinter import filedialog
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 from loguru import logger
@@ -762,8 +763,8 @@ class AccelMode:
                     logger.warning(msg)
                     self.main_app.update_log(msg)
                     if hasattr(self.main_app, 'display_bot_status_label'):
-                        self.main_app.display_bot_status_label.configure(text="Your Turn", text_color="#F39C12")
-                    operation_thread.set()
+                        self.main_app.display_bot_status_label.configure(
+                            text="Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
                     return False
 
             candidate_sn = candidates[0]
@@ -798,7 +799,12 @@ class AccelMode:
                     attempts -= 1
             else:
                 logger.error('sku input in smco cannot be interacted with')
-                raise ValueError('sku input in smco cannot be interacted with')
+                if hasattr(self.main_app, 'is_auto_invoice_mode') and self.main_app.is_auto_invoice_mode.get():
+                    raise ValueError('sku input in smco cannot be interacted with')
+                else:
+                    self.main_app.update_log(
+                        "⚠️ ไม่สามารถพิมพ์ลงช่อง Input SKU บนหน้าเว็บ SMCO ได้ (ให้จัดการเอง)")
+                    return False
 
             skuInput.send_keys(Keys.ENTER)
 
@@ -1082,12 +1088,13 @@ class AccelMode:
                         })
                         return False
                     else:
+                        self._safe_close_modal(driver)
                         msg = f"⚠️ [Manual Mode] จำนวน SN ในไฟล์ไม่พอสำหรับ SKU: {target_sku} (ต้องการ {target_qty} ขาด {target_qty - len(modal_filled_sns)}) กรุณากรอกต่อในหน้าจอ"
                         logger.warning(msg)
                         self.main_app.update_log(msg)
                         if hasattr(self.main_app, 'display_bot_status_label'):
-                            self.main_app.display_bot_status_label.configure(text="Your Turn", text_color="#F39C12")
-                        operation_thread.set()
+                            self.main_app.display_bot_status_label.configure(
+                                text="Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
                         return False
 
                 for inp, next_sn in zip(empty_inputs, avail_candidates):
@@ -1316,6 +1323,9 @@ class AccelMode:
 
             if not matched_col:
                 logger.info(f"SKU {target_sku_key} ไม่มีใน accel_file ข้ามไป")
+                if hasattr(self.main_app, 'is_auto_invoice_mode') and not self.main_app.is_auto_invoice_mode.get():
+                    self.main_app.update_log(
+                        f"ℹ️ SKU {target_sku_key} ไม่มีในไฟล์ Accel (ปล่อยให้ User จัดการเอง)")
                 continue
 
             target_qty = info['qty']

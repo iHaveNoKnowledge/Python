@@ -6286,8 +6286,15 @@ class Bot_POS:
             # * Add SKU จากไฟล์ Accel mode
             # if self.app.is_accel_mode_activated.get():
             if len(self.app.accel_mode.accel_df_state) > 0:
-                self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
-                self.current_checkpoint = "เริ่มกระบวนการเติม SKU จากไฟล์ Accel mode เข้าสู่ POS, สำเร็จ"
+                try:
+                    self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)
+                    self.current_checkpoint = "เริ่มกระบวนการเติม SKU จากไฟล์ Accel mode เข้าสู่ POS, สำเร็จ"
+                except Exception as accel_err:
+                    if hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get():
+                        raise accel_err
+                    else:
+                        logger.warning(f"accel_fill_sku non-fatal error in manual mode: {accel_err}")
+                        self.app.update_log(f"⚠️ เกิดข้อผิดพลาดในการยิง SN: {accel_err} (เปลี่ยนสถานะเป็น Your Turn)")
 
             self.check_abort()
 
