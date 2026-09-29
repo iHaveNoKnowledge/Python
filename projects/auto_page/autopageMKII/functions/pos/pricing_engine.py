@@ -1429,7 +1429,6 @@ class POSPricingReconciler:
         self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
-
         target_idx = None
         for idx, item in enumerate(demonic_ordered_items_list):
             try:
@@ -1459,7 +1458,7 @@ class POSPricingReconciler:
             if target_idx >= len(item_list_cp_btn_elements):
                 return []
 
-            # เปิด Modal ดูรายการคูปองที่มีบนหน้าเว็บ
+            #/ เปิด Modal ดูรายการคูปองที่มีบนหน้าเว็บ ###########################################################################################################
             scan_btn = item_list_cp_btn_elements[target_idx]
             try:
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", scan_btn)
