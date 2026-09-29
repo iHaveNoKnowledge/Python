@@ -1056,26 +1056,16 @@ class AccelMode:
 
         while not operation_thread.is_set():
             # * ══════════════════════════════════════════════════════════
-            # * [LOOP 1] ลูปการกรอก: กรอก SN จนกว่าจะไม่มีช่องว่าง (ng-empty)
+            # * [LOOP 1] ลูปการกรอก: กรอก SN ทีละช่องจนครบตามจำนวน QTY (target_qty)
             # * ══════════════════════════════════════════════════════════
-            while not operation_thread.is_set():
-                empty_inputs = driver.find_elements(
-                    By.XPATH,
-                    "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
-                )
-                empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
-
-                # หากไม่มีช่องว่างเหลือแล้ว แสดงว่ากรอกครบทุกช่องแล้ว -> ออกจาก Loop กรอกเพื่อไป Loop ตรวจสอบ
-                if not empty_inputs:
-                    logger.info("กรอก SN ครบทุกช่องแล้ว หลุดจาก Loop กรอก เข้าสู่ Loop ตรวจสอบ")
-                    break
-
+            while len(modal_filled_sns) < target_qty and not operation_thread.is_set():
                 candidates = self.obj_data_from_accel_file.get(matched_col, [])
                 avail_candidates = [s for s in candidates if s not in modal_filled_sns]
+                needed_count = target_qty - len(modal_filled_sns)
 
-                if len(avail_candidates) < len(empty_inputs):
+                if len(avail_candidates) < needed_count:
                     logger.warning(
-                        f"ไม่มี SN ใน Excel พอสำหรับ SKU: {target_sku} (ต้องการ {len(empty_inputs)} แต่เหลือ {len(avail_candidates)})"
+                        f"ไม่มี SN ใน Excel พอสำหรับ SKU: {target_sku} (ต้องการ {needed_count} แต่เหลือ {len(avail_candidates)})"
                     )
                     if self.main_app.is_auto_invoice_mode.get():
                         self._safe_close_modal(driver)
@@ -1084,31 +1074,58 @@ class AccelMode:
                             'item_name': item_name,
                             'ordered': target_qty,
                             'got': len(modal_filled_sns),
-                            'short': target_qty - len(modal_filled_sns)
+                            'short': needed_count
                         })
                         return False
                     else:
                         self._safe_close_modal(driver)
-                        msg = f"⚠️ [Manual Mode] จำนวน SN ในไฟล์ไม่พอสำหรับ SKU: {target_sku} (ต้องการ {target_qty} ขาด {target_qty - len(modal_filled_sns)}) กรุณากรอกต่อในหน้าจอ"
+                        msg = f"⚠️ [Manual Mode] จำนวน SN ในไฟล์ไม่พอสำหรับ SKU: {target_sku} (ต้องการ {target_qty} ขาด {needed_count}) กรุณากรอกต่อในหน้าจอ"
                         logger.warning(msg)
                         self.main_app.update_log(msg)
                         if hasattr(self.main_app, 'display_bot_status_label'):
                             self.main_app.display_bot_status_label.configure(
-                                text="Bot Status: Your Turn", fg_color="#21ff29", text_color="#000")
+                                text="Your Turn", text_color="#F39C12")
+                        if operation_thread:
+                            operation_thread.set()
                         return False
 
-                for inp, next_sn in zip(empty_inputs, avail_candidates):
-                    try:
-                        inp.clear()
-                        inp.send_keys(next_sn)
-                        inp.send_keys(Keys.ENTER)
-                        modal_filled_sns.append(next_sn)
-                        time.sleep(0.3)
-                    except Exception as inp_err:
-                        logger.warning(f"ข้อผิดพลาดขณะกรอก SN {next_sn}: {inp_err}")
+                # ค้นหาช่อง input ว่าง (ng-empty) บน Modal
+                empty_inputs = []
+                for _ in range(12):  # รอสูงสุดประมาณ 3.5 วินาที เผื่อ Angular กำลัง render แถวใหม่
+                    empty_inputs = driver.find_elements(
+                        By.XPATH,
+                        "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
+                    )
+                    empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
+                    if empty_inputs:
+                        break
+                    time.sleep(0.3)
 
-            if operation_thread.is_set():
-                break
+                if not empty_inputs:
+                    logger.warning(f"ไม่พบช่อง input ว่างสำหรับกรอก SN ลำดับที่ {len(modal_filled_sns) + 1}/{target_qty} บน Modal")
+                    break
+
+                # กรอก SN ช่องปัจจุบัน
+                inp = empty_inputs[0]
+                next_sn = avail_candidates[0]
+                try:
+                    inp.clear()
+                    inp.send_keys(next_sn)
+                    inp.send_keys(Keys.ENTER)
+                    modal_filled_sns.append(next_sn)
+                    logger.info(f"กรอก SN [{next_sn}] ช่องที่ {len(modal_filled_sns)}/{target_qty} สำเร็จ")
+                    time.sleep(0.4)  # รอให้ Angular ประมวลผลและสร้างแถวถัดไป
+                except Exception as inp_err:
+                    logger.warning(f"ข้อผิดพลาดขณะกรอก SN {next_sn}: {inp_err}")
+                    time.sleep(0.5)
+
+            if len(modal_filled_sns) < target_qty:
+                if operation_thread.is_set():
+                    break
+                logger.warning(f"กรอก SN ได้เพียง {len(modal_filled_sns)}/{target_qty} ตัว ไม่ครบตามจำนวนที่ต้องการ วนค้นหาช่องกรอกใหม่...")
+                continue
+
+            logger.info(f"กรอก SN ครบตามจำนวน QTY ({len(modal_filled_sns)}/{target_qty}) เรียบร้อยแล้ว -> เข้าสู่ Loop ตรวจสอบยืนยัน")
 
             # * ══════════════════════════════════════════════════════════
             # * [LOOP 2] ลูปการตรวจสอบ: ตรวจสอบยืนยัน หรือ Reject/Void
@@ -1276,6 +1293,82 @@ class AccelMode:
         return False
 
     # * ──────────────────────────────────────────────────────────────────────────
+    # * EARLY SN PRE-CHECK: check_sn_sufficiency
+    # * ──────────────────────────────────────────────────────────────────────────
+    def check_sn_sufficiency(self, ordered_items=None, raise_error=True):
+        """
+        ตรวจสอบความเพียงพอของ SN ล่วงหน้า (Early Pre-Check) สำหรับรายการสินค้าในออเดอร์
+        หากพบว่ามี SKU ใดที่จำนวน SN ใน accel_file น้อยกว่าที่ลูกค้าสั่ง จะคืนค่ารายการที่ขาด
+        และหาก raise_error=True จะบันทึก Failed Order และ raise ValueError ทันที เพื่อตัดข้ามออเดอร์ตั้งแต่ต้นทาง
+        """
+        from loguru import logger
+
+        # ซิงค์ obj_data_from_accel_file จาก accel_df_state ล่าสุดเสมอ
+        if hasattr(self, 'accel_df_state') and isinstance(self.accel_df_state, pd.DataFrame) and not self.accel_df_state.empty:
+            self.obj_data_from_accel_file = {
+                col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist() if str(x).strip() not in ('nan', '<NA>', 'None', '')]
+                for col in self.accel_df_state.columns if pd.notna(col)
+            }
+
+        accel_available_skus_list = list(self.obj_data_from_accel_file.keys())
+        items = ordered_items if ordered_items is not None else getattr(self.main_app, 'items', [])
+        if not items:
+            return None
+
+        aggregated_skus = self._aggregate_order_skus(items)
+        shortages = []
+
+        for target_sku_key, info in aggregated_skus.items():
+            matched_col = None
+            for col in accel_available_skus_list:
+                if str(col).lower() in target_sku_key.lower() or target_sku_key.lower() in str(col).lower():
+                    matched_col = col
+                    break
+
+            if not matched_col:
+                continue
+
+            available_sns = self.obj_data_from_accel_file.get(matched_col, [])
+            available_count = len(available_sns)
+            required_qty = info['qty']
+
+            if available_count < required_qty:
+                shortages.append({
+                    'sku': target_sku_key,
+                    'item_name': info.get('item_name', ''),
+                    'ordered': required_qty,
+                    'got': available_count,
+                    'short': required_qty - available_count
+                })
+
+        if shortages:
+            shortage_lines = []
+            for s in shortages:
+                label = s['sku']
+                item_name = s['item_name']
+                if item_name and str(item_name).lower() != 'nan':
+                    label += f" ({item_name})"
+                shortage_lines.append(
+                    f"  • {label}: ลูกค้าสั่ง {s['ordered']} แต่มี SN เหลือ {s['got']} (ขาด {s['short']})")
+            
+            err_msg = "จำนวน SN ไม่พอ (SN ใน accel file น้อยกว่าจำนวนที่ลูกค้าสั่ง):\n" + "\n".join(shortage_lines)
+            
+            # บันทึกลง Failed Orders ใน accel file ทันที
+            try:
+                cur_order = getattr(self.main_app, 'cus_order', '')
+                if cur_order:
+                    self.record_failed_order(cur_order, err_msg, category="SN_SHORTAGE")
+            except Exception as rec_err:
+                logger.warning(f"Error recording SN shortage failed order: {rec_err}")
+
+            if raise_error:
+                self.main_app.update_log(f"❌ {err_msg}")
+                raise ValueError(err_msg)
+            return shortages
+
+        return None
+
+    # * ──────────────────────────────────────────────────────────────────────────
     # * MAIN ENTRY POINT: accel_fill_sku
     # * ──────────────────────────────────────────────────────────────────────────
     def accel_fill_sku(self, driver, operation_thread):
@@ -1298,6 +1391,10 @@ class AccelMode:
         if not ordered_product_data_rows:
             logger.info("No items, return!!")
             return
+
+        # ตรวจสอบความเพียงพอของ SN ล่วงหน้าก่อนเริ่มยิงบน POS
+        if hasattr(self.main_app, 'is_auto_invoice_mode') and self.main_app.is_auto_invoice_mode.get():
+            self.check_sn_sufficiency(ordered_product_data_rows, raise_error=True)
 
         # รวม QTY ของแต่ละ SKU ทั้งออเดอร์ (แตกคอมโบ +)
         aggregated_skus = self._aggregate_order_skus(ordered_product_data_rows)

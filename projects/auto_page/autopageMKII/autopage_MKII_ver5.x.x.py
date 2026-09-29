@@ -3093,17 +3093,13 @@ class MyApp:
                     if key not in grouped:
                         grouped[key] = row.copy()
                     else:
-                        grouped[key]['จำนวน'] = int(
-                            grouped[key]['จำนวน']) + int(row['จำนวน'])
-                        grouped[key]['ราคาขายสุทธิ'] = float(
-                            grouped[key]['ราคาขายสุทธิ']) + float(row['ราคาขายสุทธิ'])
-                        grouped[key]['ส่วนลดจาก Shopee'] = float(
-                            grouped[key]['ส่วนลดจาก Shopee']) + float(row['ส่วนลดจาก Shopee'])
+                        grouped[key]['จำนวน'] = int(grouped[key]['จำนวน']) + int(row['จำนวน'])
+                        grouped[key]['ราคาขายสุทธิ'] = float(grouped[key]['ราคาขายสุทธิ']) + float(row['ราคาขายสุทธิ'])
+                        grouped[key]['ส่วนลดจาก Shopee'] = float(grouped[key]['ส่วนลดจาก Shopee']) + float(row['ส่วนลดจาก Shopee'])
 
                 self.items: list = list(grouped.values())
 
-                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict(
-                )
+                self.nondistortedData = self.data_frame[self.target_row][non_differential_col_data].iloc[0].to_dict()
                 print('self.nondistortedData', self.nondistortedData)
                 self.update_log(f"สินค้าที่มี")
 
@@ -3112,10 +3108,8 @@ class MyApp:
                     option = ""
                     if str(row['ชื่อตัวเลือก']) != "nan":
                         option = str(row['ชื่อตัวเลือก'])
-                    self.update_log(
-                        f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {option} {str(row['ชื่อสินค้า'])} ")
-                    self.update_log(
-                        f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
+                    self.update_log(f"SKU: {str(row['เลขอ้างอิง SKU (SKU Reference No.)'])} ชื่อสินค้า: {option} {str(row['ชื่อสินค้า'])} ")
+                    self.update_log(f"ราคาขาย: {float(row['ราคาขาย']):,.2f} จำนวน: {int(row['จำนวน'])} ราคาขายสุทธิ: {float(row['ราคาขายสุทธิ']):,.2f} ส่วนลดจาก Shopee: {float(row['ส่วนลดจาก Shopee']):,.2f}")
 
                 # * update list รายการสินค้า ช่องที่เลียนแบบ mimic list item like an orange theme app ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 self.root.after(0, lambda items=self.items: self.order_display_manager.create_data_rows(items))
@@ -5919,6 +5913,12 @@ class Bot_POS:
                 return
 
             self.check_abort()
+
+            # ⚠️ [EARLY SN PRE-CHECK] ตรวจสอบสต็อก SN ล่วงหน้าก่อนเริ่มทำรายการบน SMCO (ตัดข้ามทันทีหาก SN ไม่พอ)
+            if (hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get() and
+                hasattr(self.app, 'accel_mode') and hasattr(self.app.accel_mode, 'check_sn_sufficiency') and
+                len(getattr(self.app.accel_mode, 'accel_df_state', [])) > 0):
+                self.app.accel_mode.check_sn_sufficiency(self.app.items, raise_error=True)
 
             ### * SMCO PART ############################################################################
             # * เปลี่ยนไปtab SMCO0 เพื่อเช็ค ชื่อลูกค้า

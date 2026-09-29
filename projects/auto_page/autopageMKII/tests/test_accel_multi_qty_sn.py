@@ -212,6 +212,22 @@ class TestAccelMultiQtySN(unittest.TestCase):
         # ต้องแอดเฉพาะ NORMAL_SKU
         bot.AutoAddProduct.auto_add_product.assert_called_once_with(['NORMAL_SKU'], 1)
 
+    def test_check_sn_sufficiency_raises_and_records_failed_order(self):
+        """ทดสอบ Early Pre-Check: เมื่อ SN ไม่พอ ต้องโยน ValueError ทันทีและบันทึก Failed Order"""
+        self.accel.obj_data_from_accel_file = {'SKU_A': ['SN001']}
+        self.mock_app.cus_order = 'ORDER_12345'
+        self.accel.record_failed_order = MagicMock()
+
+        items = [{'เลขอ้างอิง SKU (SKU Reference No.)': 'SKU_A', 'จำนวน': 2, 'ชื่อสินค้า': 'Product A'}]
+
+        with self.assertRaises(ValueError) as ctx:
+            self.accel.check_sn_sufficiency(items, raise_error=True)
+
+        self.assertIn("จำนวน SN ไม่พอ", str(ctx.exception))
+        self.assertIn("SKU_A", str(ctx.exception))
+        self.accel.record_failed_order.assert_called_once()
+        self.assertEqual(self.accel.record_failed_order.call_args[0][0], 'ORDER_12345')
+
 
 if __name__ == '__main__':
     unittest.main()

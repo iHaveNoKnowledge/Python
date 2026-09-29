@@ -384,15 +384,35 @@ class POSPricingReconciler:
             return entered_data
 
     # ══════════════════════════════════════════════════════════════════════════
-    # EXCEL CP LOOKUP & MISSING RECORDING
+    # EXCEL / GOOGLE SHEET CP LOOKUP & MISSING RECORDING
     # ══════════════════════════════════════════════════════════════════════════
     def reload_cp_if_modified(self) -> None:
-        """ตรวจสอบและ reload CP Data อัตโนมัติเมื่อตรวจพบว่าไฟล์ Excel มีการแก้ไขหรือเซฟใหม่ (mtime เปลี่ยน)"""
+        """ตรวจสอบและ reload CP Data อัตโนมัติ (Dual-Source: GAS Web App + Local Excel)"""
+        excel_path = getattr(self.app, 'cp_table_location', '')
+        gas_url = getattr(self.app, 'cp_gas_url', None)
+
+        if not hasattr(self, '_dual_cp_loader') or self._dual_cp_loader is None:
+            try:
+                from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
+                self._dual_cp_loader = DualSourceCPLoader(
+                    gas_url=gas_url or DEFAULT_GAS_URL,
+                    local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None
+                )
+            except Exception as e:
+                self._dual_cp_loader = None
+
+        if self._dual_cp_loader:
+            if excel_path and self._dual_cp_loader.local_excel_path != excel_path:
+                self._dual_cp_loader.local_excel_path = excel_path
+            df = self._dual_cp_loader.load_cp_df()
+            if df is not None and not df.empty:
+                self.app.cp_df = df
+                return
+
         if hasattr(self.app, 'reload_cp_df_if_modified'):
             self.app.reload_cp_df_if_modified()
             return
 
-        excel_path = getattr(self.app, 'cp_table_location', '')
         if not excel_path or not os.path.exists(excel_path):
             return
 
@@ -561,14 +581,17 @@ class POSPricingReconciler:
             mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - expected_price).abs() <= 0.05)
 
             if mask.any():
-                # มีแถวเดิมอยู่แล้ว: อัปเดตคอลัมน์ suggested_cp ถ้ามีการระบุค่าแนะนำ
+                # มีแถวเดิมอยู่แล้ว: ดึงแถวเดิมออกมาอัปเดต และย้ายตำแหน่งไปต่อท้ายสุด (Move to Bottom)
+                existing_rows = df[mask].copy()
                 if suggested_cp:
-                    df.loc[mask, col_name] = suggested_cp
+                    existing_rows[col_name] = suggested_cp
                 if start_str and 'usage_start_date' in df.columns:
-                    df.loc[mask, 'usage_start_date'] = start_str
+                    existing_rows['usage_start_date'] = start_str
                 if end_str and 'usage_end_date' in df.columns:
-                    df.loc[mask, 'usage_end_date'] = end_str
-                df_combined = df
+                    existing_rows['usage_end_date'] = end_str
+                
+                df_without_old = df[~mask]
+                df_combined = pd.concat([df_without_old, existing_rows], ignore_index=True)
             else:
                 new_row = {'sku': sku_key, 'sale_price': expected_price, col_name: suggested_cp}
                 if 'usage_start_date' in df.columns or start_str:
@@ -597,7 +620,7 @@ class POSPricingReconciler:
             date_info = f" [{start_str} - {end_str}]" if (start_str or end_str) else ""
             log_sugg = f" (แนะนำ: {suggested_cp}{date_info})" if suggested_cp else ""
             self.app.update_log(
-                f"💾 บันทึก SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg} ลงใน CP Data เรียบร้อยแล้ว"
+                f"💾 บันทึก/ย้ายตำแหน่ง SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg} ไปไว้ท้ายตาราง CP Data เรียบร้อยแล้ว"
             )
 
             if self.app.cp_df is not None:
@@ -608,19 +631,34 @@ class POSPricingReconciler:
                 if 'usage_end_date' not in self.app.cp_df.columns:
                     self.app.cp_df['usage_end_date'] = ""
 
-                if mask.any():
+                app_mask = (self.app.cp_df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((self.app.cp_df['sale_price'] - expected_price).abs() <= 0.05)
+                if app_mask.any():
+                    app_rows = self.app.cp_df[app_mask].copy()
                     if suggested_cp:
-                        self.app.cp_df.loc[mask, col_name] = suggested_cp
+                        app_rows[col_name] = suggested_cp
                     if start_date_val:
-                        self.app.cp_df.loc[mask, 'usage_start_date'] = start_date_val
+                        app_rows['usage_start_date'] = start_date_val
                     if end_date_val:
-                        self.app.cp_df.loc[mask, 'usage_end_date'] = end_date_val
+                        app_rows['usage_end_date'] = end_date_val
+                    self.app.cp_df = pd.concat([self.app.cp_df[~app_mask], app_rows], ignore_index=True)
                 else:
                     if 'usage_start_date' in new_df.columns:
                         new_df['usage_start_date'] = new_df['usage_start_date'].apply(parse_smart_date)
                     if 'usage_end_date' in new_df.columns:
                         new_df['usage_end_date'] = new_df['usage_end_date'].apply(parse_smart_date)
                     self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
+
+            # ส่งข้อมูลขึ้น Google Sheet ในเบื้องหลัง (ถ้าเชื่อมต่อ GAS ไว้)
+            try:
+                if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                    payload = {
+                        "sku": sku_key,
+                        "expected_price": expected_price,
+                        "suggested_cp": suggested_cp
+                    }
+                    self._dual_cp_loader.push_record_to_gas(payload)
+            except Exception as gas_err:
+                print(f"[add_missing_cp_to_excel] Optional GAS push skipped: {gas_err}")
 
         except Exception as err:
             print(f"[add_missing_cp_to_excel] Error appending row: {err}")
@@ -980,6 +1018,32 @@ class POSPricingReconciler:
                 self.app.update_log(
                     f"   • {it['sku']} -> คูปอง: {cp_display}{method_text} | ราคาสุทธิ: {it['unit_net']:,.2f} บาท"
                 )
+
+            # ส่งข้อมูลสรุปการออกบิลและคูปองที่สำเร็จขึ้น Google Sheet (Pattern เดียวกับ Local cp_data.xlsx)
+            try:
+                if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                    for it in cart_items:
+                        used_c = it.get('coupons', '').strip()
+                        sku_c = str(it.get('sku', '')).strip().upper()
+                        act_p = float(it.get('unit_net', 0.0))
+                        
+                        row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c)
+                        m_val = str(df.loc[row_m, 'last_adjustment_method'].iloc[0]) if (row_m.any() and 'last_adjustment_method' in df.columns) else ""
+                        
+                        self._dual_cp_loader.push_record_to_gas({
+                            "sku": sku_c,
+                            "sale_price": act_p,
+                            "cp_name": used_c,
+                            "suggested_cp": used_c,
+                            "last_order_id": str(order_id),
+                            "last_used_cp": used_c,
+                            "last_adjustment_method": m_val,
+                            "last_actual_price": act_p,
+                            "last_updated": now_str,
+                            "action": "AUTO_LEARN_SUCCESS"
+                        })
+            except Exception as gas_err:
+                logger.debug(f"[record_pos_cart_summary_to_excel] Google Sheet sync skipped: {gas_err}")
 
         except PermissionError as perm_err:
             self.app.update_log(f"⚠️ ไม่สามารถบันทึก cp_data.xlsx ได้เนื่องจากไฟล์ถูกเปิดใช้งานอยู่: {perm_err}")
@@ -1361,9 +1425,7 @@ class POSPricingReconciler:
         หากระบุ required_seller_voucher > 0 จะบังคับว่า candidate นั้นต้องมีคูปอง Seller Voucher ที่มีมูลค่าตรงกันพอดี
         """
         item_idx = int(item_no) - 1
-        demonic_ordered_items_list = self.app.correct_sku_pattern(
-            self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)']
-        )
+        demonic_ordered_items_list: list = self.app.correct_sku_pattern(self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
