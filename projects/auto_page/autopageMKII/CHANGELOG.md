@@ -78,6 +78,16 @@
         - กดปุ่ม Void โดยระบุ XPath เจาะจง `//div[@class='pull-right']/button[@id='_deleteInsertSerial']` (และคลิกที่ `span`) เพื่อป้องกันการชนกับปุ่มซ้ำที่ซ่อนอยู่ใน DOM ของโมดูลอื่น
         - หน่วงเวลา 1.0 วินาที เพื่อให้ระบบเคลียร์แถวเสียและแสดงช่องว่างใหม่ แล้วหลุดจาก Loop 2 วนกลับไปเข้า **Loop 1** เพื่อกรอก SN ตัวใหม่แทนที่
 
+### [ver5.x.x] - 2026-09-29
+- [x] **[Dual-Source CP Loader & Google Apps Script Sync]** เพิ่มโมดูล `DualSourceCPLoader` (`functions/pos/cp_data_loader.py`) รองรับการอ่านและเขียนข้อมูลคูปอง/ส่วนต่างราคาแบบ Real-time ระหว่าง Cloud Google Sheets (ผ่าน Google Apps Script Web App) และ Local Excel (`cp_data.xlsx`):
+  - ระบบ In-Memory TTL Cache (120s) และ Fallback ใช้งาน Local Excel อัตโนมัติเมื่อ Offline
+  - Client-side & Server-side Deduplication ป้องกันการส่งข้อมูลซ้ำซ้อน ช่วยประหยัดโควตาและลดความหน่วง
+  - ระบบ Auto-Learn ส่งข้อมูลการออกบิลที่สำเร็จ (`AUTO_LEARN_SUCCESS`) พร้อมประวัติ `last_used_cp`, `last_order_id`, `last_adjustment_method`, `last_actual_price` ขึ้น Google Sheets ให้ทีมงานใช้งานร่วมกันได้ทันที
+  - เพิ่มระบบ Action List "Move to Bottom" เลื่อนแถวที่ไม่มี CP หรือปรับราคาไม่ได้ไปไว้ล่างสุดของตาราง Excel เพื่อให้จัดการต่อง่าย
+- [x] **[Early SN Sufficiency Pre-Check]** เพิ่มฟังก์ชัน `check_sn_sufficiency()` ใน `functions/accel_mode.py` และ `autopage_MKII_ver5.x.x.py` ตรวจสอบความพร้อมของ Serial Number ล่วงหน้าก่อนเริ่มยิงข้อมูลเข้าระบบ SMCO POS:
+  - ตัดข้ามออเดอร์และบันทึกลง `Failed_Orders` ทันทีหากจำนวน SN ไม่เพียงพอกับ QTY ในคำสั่งซื้อ ประหยัดเวลาและป้องกันการค้างหน้า POS
+- [x] **[Accel Multi-QTY Modal Fill Loop Fix]** แก้ไขลูปการกรอก Serial Number ในหน้าต่าง Modal (`_fill_multi_sku_modal`) ให้วนกรอกครบทุกแถวจนถึง `target_qty` โดยกด `ENTER` ให้ AngularJS สร้างแถวใหม่อย่างต่อเนื่องก่อนเข้าสู่ลูปตรวจสอบสถานะความถูกต้อง (เขียว/แดง)
+
 ### [ver5.x.x] - 2026-09-16
 - [x] **[Accel Mode Multi-QTY Serial Number Modal Flow & Combo Aggregation]** ปรับปรุงระบบกรอก Serial Number (SN) บน SMCO POS ใน Accel Mode ให้รองรับ SKU ที่มี QTY > 1 และสินค้าชุด Combo อย่างสมบูรณ์ แก้ไขปัญหา SN ถูกล้างทิ้งฟรีเมื่อมี SN เสีย:
   - **ปัญหาเดิม**: เมื่อ SKU ต้องการกรอก SN มากกว่า 1 ตัว บอทใช้วิธียิง SN ทีละตัวผ่านช่องค้นหาบนหัวเว็บ SMCO หากตัวแรกผ่านแต่ตัวที่สองไม่ผ่าน กลไกจัดการข้อผิดพลาดเดิมจะไปกดปุ่มถังขยะสีแดง (`btn-danger`) บนตารางตะกร้าสินค้า ซึ่งลบสินค้าทั้งแถวทิ้ง ทำให้ SN ตัวแรกที่ถูกต้องถูกระบบ SMCO ล้างทิ้งไปด้วย และเสียโควตา SN ไปฟรี
@@ -150,19 +160,6 @@
 - [x] **[Final Page Element Verification Guard]** เพิ่มฟังก์ชัน `verify_final_page_elements()` และระบบ Auto-recovery ใน `functions/pos/payment_handler.py` ตรวจสอบความครบถ้วนของ PO No. (`#textbox81037000102`), Customer Name (`#textbox81037000101`), ยอดเงิน Cash (`#ripCash00`), หมายเหตุ (`cnRemark`) และยอดคงเหลือ (`wrimagecard-lightGray == 0.00`) ก่อนกดปุ่มเขียว (`#btnPayment`) พร้อมชุดทดสอบอัตโนมัติ 6 ข้อใน `tests/test_final_page_validator.py`
 - [x] **[Test Mode Segmented Checkpoints]** เพิ่มระบบเลือกจุดหยุดใน Test Mode (`test_mode_frame`) ด้วย `CTkOptionMenu` แบบไดนามิก (แสดงเฉพาะเมื่อกด `Ctrl+Alt+T`) รองรับ 5 ระดับจุดหยุด: [1] หลังเลือกลูกค้า [2] หลังตรวจที่อยู่ [3] หลังยิงสินค้า/คูปองหน้าแรก [4] หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว) [5] ไม่หยุด-รันจนจบวงรอบ พร้อมระบบส่งมอบหน้าจอ (`Your Turn`) และชุดทดสอบใน `tests/test_test_mode_checkpoints.py`
 - [x] **[Add Customer Test Shortcut & Validation System]** เพิ่มโมดูล `CustomerModalTestHandler` (`functions/pos/customer_test_handler.py`) พร้อมปุ่มลัด `[🧪 Test Add Customer]` บน UI (และคีย์ลัด `Ctrl+Alt+C`) สำหรับทดสอบเปิดหน้าต่างสร้างลูกค้า กรอก `memNameTh`/`memNameEn` (ค่าเดียวกันเสมอ), `identity` (Tax ID), `addressCustomer` และตรวจสอบ dropdowns 4 ตัว (Province, District, SubDistrict, Zip) ทั้งภาษาไทย/อังกฤษ และตรวจสอบสถานะปุ่ม `//button[@ng-click='saveNewMember()']` ว่า attribute `disabled="disabled"` หลุดหายไปเมื่อกรอกครบ พร้อมระบบบันทึกรายงานผลการทดสอบลงไฟล์ Excel ในโฟลเดอร์ `reports/` อัตโนมัติ และชุดทดสอบครบ 5 เคสใน `tests/test_customer_modal_test_handler.py`
-
-
-### [5.2.6] - 2026-09-29
-#### Added & Improved
-- [x] **[Dual-Source CP Loader & Google Apps Script Sync]** เพิ่มโมดูล `DualSourceCPLoader` (`functions/pos/cp_data_loader.py`) รองรับการอ่านและเขียนข้อมูลคูปอง/ส่วนต่างราคาแบบ Real-time ระหว่าง Cloud Google Sheets (ผ่าน Google Apps Script Web App) และ Local Excel (`cp_data.xlsx`):
-  - ระบบ In-Memory TTL Cache (120s) และ Fallback ใช้งาน Local Excel อัตโนมัติเมื่อ Offline
-  - Client-side & Server-side Deduplication ป้องกันการส่งข้อมูลซ้ำซ้อน ช่วยประหยัดโควตาและลดความหน่วง
-  - ระบบ Auto-Learn ส่งข้อมูลการออกบิลที่สำเร็จ (`AUTO_LEARN_SUCCESS`) พร้อมประวัติ `last_used_cp`, `last_order_id`, `last_adjustment_method`, `last_actual_price` ขึ้น Google Sheets ให้ทีมงานใช้งานร่วมกันได้ทันที
-  - เพิ่มระบบ Action List "Move to Bottom" เลื่อนแถวที่ไม่มี CP หรือปรับราคาไม่ได้ไปไว้ล่างสุดของตาราง Excel เพื่อให้จัดการต่อง่าย
-- [x] **[Early SN Sufficiency Pre-Check]** เพิ่มฟังก์ชัน `check_sn_sufficiency()` ใน `functions/accel_mode.py` และ `autopage_MKII_ver5.x.x.py` ตรวจสอบความพร้อมของ Serial Number ล่วงหน้าก่อนเริ่มยิงข้อมูลเข้าระบบ SMCO POS:
-  - ตัดข้ามออเดอร์และบันทึกลง `Failed_Orders` ทันทีหากจำนวน SN ไม่เพียงพอกับ QTY ในคำสั่งซื้อ ประหยัดเวลาและป้องกันการค้างหน้า POS
-- [x] **[Accel Multi-QTY Modal Fill Loop Fix]** แก้ไขลูปการกรอก Serial Number ในหน้าต่าง Modal (`_fill_multi_sku_modal`) ให้วนกรอกครบทุกแถวจนถึง `target_qty` โดยกด `ENTER` ให้ AngularJS สร้างแถวใหม่อย่างต่อเนื่องก่อนเข้าสู่ลูปตรวจสอบสถานะความถูกต้อง (เขียว/แดง)
-
 ### [5.2.4LITE / 5.2.5] - 2026-08-27
 #### Fixed & Improved
 - [x] **[Print]** ปรับ `print_pdf_silence_sumatra` ในทั้ง `ver5.x.x.py` และ `ver5.2.4LITE.py` เป็นแบบ Non-blocking (`subprocess.Popen`) แก้ปัญหา Tkinter Not Responding
