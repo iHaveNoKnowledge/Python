@@ -474,6 +474,18 @@ class POSPricingReconciler:
         try:
             import base64
             import json
+
+            # สลับไปยังแท็บ SMCO หากจำเป็น
+            orig_handle = None
+            try:
+                if hasattr(self.bot, 'merged_dict') and 'SMCO :: เปิดการขาย' in self.bot.merged_dict:
+                    smco_handle = self.bot.merged_dict['SMCO :: เปิดการขาย']
+                    if self.driver.current_window_handle != smco_handle:
+                        orig_handle = self.driver.current_window_handle
+                        self.driver.switch_to.window(smco_handle)
+            except Exception:
+                pass
+
             cookies = self.driver.get_cookies() if hasattr(self.driver, 'get_cookies') and callable(self.driver.get_cookies) else []
             token_str = None
             if isinstance(cookies, list):
@@ -503,9 +515,17 @@ class POSPricingReconciler:
                         elif len(sub_parts) == 2:
                             ctx["emp_id"] = sub_parts[0]
                             ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+
+            if orig_handle:
+                try:
+                    self.driver.switch_to.window(orig_handle)
+                except Exception:
+                    pass
         except Exception as ex_jwt:
             logger.debug(f"[get_smco_session_context] Error reading JWT session context: {ex_jwt}")
-        self._session_ctx = ctx
+            
+        if any(v is not None for v in ctx.values()):
+            self._session_ctx = ctx
         return ctx
 
 
@@ -526,20 +546,27 @@ class POSPricingReconciler:
         if not sub_skus:
             return []
 
-        # ดึงข้อมูลจาก _product_master_cache
+        # ดึงข้อมูลจาก _product_master_cache ด้วย flexible matching
         cached_records = {}
         for s in sub_skus:
-            if s in self._product_master_cache:
-                cached_records[s] = self._product_master_cache[s]
+            s_clean = s.strip().upper()
+            if s_clean in self._product_master_cache:
+                cached_records[s] = self._product_master_cache[s_clean]
             else:
-                found = False
-                for k, v in self._product_master_cache.items():
-                    if k == s or s in k or k in s:
-                        cached_records[s] = v
-                        found = True
-                        break
-                if not found:
-                    return []
+                formatted_s = self.sku_formater(s_clean).strip().upper()
+                if formatted_s in self._product_master_cache:
+                    cached_records[s] = self._product_master_cache[formatted_s]
+                else:
+                    found = False
+                    for k, v in self._product_master_cache.items():
+                        k_clean = str(k).strip().upper()
+                        if k_clean == s_clean or s_clean in k_clean or k_clean in s_clean:
+                            cached_records[s] = v
+                            found = True
+                            break
+                    if not found:
+                        logger.debug(f"[get_aggregated_combo_coupons] SKU '{s}' not found in _product_master_cache (available: {list(self._product_master_cache.keys())})")
+                        return []
 
         ctx = self.get_smco_session_context()
         branch_id = ctx.get("branch_id")
@@ -555,20 +582,26 @@ class POSPricingReconciler:
             "sku_count": 0
         })
 
+        def _extract_coupons(rec_data: Any) -> list[dict]:
+            extracted = []
+            if isinstance(rec_data, list):
+                for item in rec_data:
+                    extracted.extend(_extract_coupons(item))
+            elif isinstance(rec_data, dict):
+                if "couponCode" in rec_data or "couponId" in rec_data:
+                    extracted.append(rec_data)
+                for key in ["coupons", "couponDetail", "couponDetails", "couponList", "productCoupons", "productCouponList", "listCoupon", "promotions"]:
+                    val = rec_data.get(key)
+                    if isinstance(val, list):
+                        for item in val:
+                            if isinstance(item, dict):
+                                extracted.append(item)
+            return extracted
+
         for s in sub_skus:
             rec_list = cached_records[s]
             seen_in_sku = set()
-            # สกัดรายการคูปองจาก Product Master Record
-            cp_list = []
-            if isinstance(rec_list, list):
-                for rec in rec_list:
-                    if isinstance(rec, dict):
-                        if "coupons" in rec and isinstance(rec["coupons"], list):
-                            cp_list.extend(rec["coupons"])
-                        elif "couponCode" in rec:
-                            cp_list.append(rec)
-            elif isinstance(rec_list, dict):
-                cp_list = rec_list.get("coupons", [])
+            cp_list = _extract_coupons(rec_list)
 
             for cp in cp_list:
                 if not isinstance(cp, dict) or cp.get("usedFlag") is True:
@@ -580,14 +613,26 @@ class POSPricingReconciler:
 
                 # ตรวจสอบสาขา / Store จาก JWT Context (ถ้ามีระบุใน couponBranchs)
                 branches = cp.get("couponBranchs", [])
-                if branches:
-                    matched_branch = any(
-                        (branch_id is None or b.get("couponBranchId") == branch_id) and
-                        (store_id is None or b.get("couponStoreId") == store_id)
-                        for b in branches if isinstance(b, dict)
-                    )
-                    if not matched_branch:
-                        continue
+                if branches and isinstance(branches, list):
+                    if branch_id is not None:
+                        matched_branch = False
+                        for b in branches:
+                            if not isinstance(b, dict):
+                                continue
+                            b_br = b.get("couponBranchId") if b.get("couponBranchId") is not None else b.get("branchId")
+                            b_st = b.get("couponStoreId") if b.get("couponStoreId") is not None else b.get("storeId")
+
+                            br_ok = (b_br is None) or (str(b_br).strip() == str(branch_id).strip())
+                            st_ok = True
+                            if store_id is not None and b_st is not None and str(b_st).strip() not in ["", "0", "None"]:
+                                st_ok = (str(b_st).strip() == str(store_id).strip())
+
+                            if br_ok and st_ok:
+                                matched_branch = True
+                                break
+                        if not matched_branch:
+                            logger.debug(f"[get_aggregated_combo_coupons] Skipping coupon {code} due to branch mismatch (branch_id={branch_id}, store_id={store_id})")
+                            continue
 
                 seen_in_sku.add(code)
                 disc = float(cp.get("couponDetailCash", 0.0)) + float(cp.get("couponDetailDisc", 0.0))
@@ -600,7 +645,7 @@ class POSPricingReconciler:
                 if not item["desc"]:
                     item["desc"] = cp.get("couponDesc", "")
                 if not item["remark"]:
-                    item["remark"] = cp.get("couponDetailRemark", "")
+                    item["remark"] = cp.get("couponDetailRemark", "") or cp.get("remark", "")
                 item["sku_count"] += 1
 
         aggregated_details = []
@@ -622,6 +667,7 @@ class POSPricingReconciler:
                     "is_aggregated": True
                 })
 
+        logger.debug(f"[get_aggregated_combo_coupons] Aggregated {len(aggregated_details)} coupons across {len(sub_skus)} sub-SKUs: {[a['code'] for a in aggregated_details]}")
         return aggregated_details
 
 
@@ -1522,6 +1568,9 @@ class POSPricingReconciler:
             "new_code": best["suggested_code"],
             "discount": best["discount"],
             "type": best["type"],
+            "start_date": best.get("start_date"),
+            "end_date": best.get("end_date"),
+            "remark": best.get("remark", ""),
             "suggested_start_date": best.get("start_date"),
             "suggested_end_date": best.get("end_date"),
             "suggested_remark": best.get("remark", "")
@@ -2044,7 +2093,18 @@ class POSPricingReconciler:
 
             # ผสานข้อมูลส่วนลดรวมของคูปองข้าม Sub-SKU (Aggregated Combo Coupons) จาก Network Response
             try:
-                raw_sku_ref = str(self.app.items[item_idx].get('เลขอ้างอิง SKU (SKU Reference No.)', ''))
+                raw_sku_ref = ""
+                if hasattr(self.app, 'items') and self.app.items and 0 <= item_idx < len(self.app.items):
+                    item_dict = self.app.items[item_idx]
+                    raw_sku_ref = (
+                        item_dict.get('เลขอ้างอิง SKU (SKU Reference No.)')
+                        or item_dict.get('เลขอ้างอิง SKU')
+                        or item_dict.get('sku')
+                        or ""
+                    )
+                if not raw_sku_ref and demonic_ordered_items_list:
+                    raw_sku_ref = "+".join([str(s) for s in demonic_ordered_items_list])
+
                 agg_coupons = self.get_aggregated_combo_coupons(raw_sku_ref or demonic_ordered_items_list)
                 if agg_coupons:
                     logger.info(f"[scan_matching_cp_candidates_on_smco] Merging {len(agg_coupons)} aggregated combo coupons for {raw_sku_ref}: {[c.get('code') for c in agg_coupons]}")

@@ -16,9 +16,11 @@ from functions.pos.pricing_engine import (
     extract_coupon_date_range,
     extract_target_price_from_text,
     format_cp_excel,
+    format_smart_datetime_str,
     get_coupon_start_and_end_dates,
     is_coupon_valid_for_order,
     parse_smart_date,
+    parse_smart_datetime,
 )
 
 
@@ -494,8 +496,56 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(sugg["suggested_code"], "DC2609160013")
         self.assertEqual(sugg["suggested_remark"], "Dynamic Combo Promo")
 
+    def test_aggregated_combo_coupons_4_part_sku_and_coupon_detail_format(self):
+        """ทดสอบการผสานคูปองสำหรับสินค้าเซ็ต 4 รายการ (เช่น Canon 4 สี) พร้อมโครงสร้าง couponDetail ของ SmartPOS v3"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler._session_ctx = {"emp_id": "9999", "branch_id": 180, "store_id": 208, "token": "dummy"}
+
+        sub_skus = ["SP2-001610", "SP2-001611", "SP2-001612", "SP2-001613"]
+        # ส่วนลดรวม 4 ตัว = 66.50 * 4 = 266.0 บาท
+        for sku in sub_skus:
+            resp = [
+                {
+                    "productId": 1001,
+                    "productCode": sku,
+                    "couponDetail": [
+                        {
+                            "couponId": 142599,
+                            "couponDetailId": 2410602,
+                            "startDate": "Sep 17, 2026 12:00:01 AM",
+                            "endDate": "Sep 30, 2026 11:59:59 PM",
+                            "couponCode": "CP2609160013",
+                            "couponDetailCash": 40.0,
+                            "couponDetailDisc": 26.5,
+                            "couponDesc": "Canon Pack 4 Colors Discount",
+                            "couponDetailRemark": "Dynamic Sep Shp GI-790",
+                            "usedFlag": False,
+                            "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 208}]
+                        }
+                    ]
+                }
+            ]
+            reconciler.record_product_master_response(sku, resp)
+
+        combo_sku = "SP2-001610+SP2-001611+SP2-001612+SP2-001613"
+        agg = reconciler.get_aggregated_combo_coupons(combo_sku)
+        self.assertEqual(len(agg), 1)
+        self.assertEqual(agg[0]["code"], "CP2609160013")
+        self.assertEqual(agg[0]["discount"], 266.0)
+        self.assertEqual(agg[0]["start_date"], datetime.datetime(2026, 9, 17, 0, 0, 1))
+        self.assertEqual(agg[0]["end_date"], datetime.datetime(2026, 9, 30, 23, 59, 59))
+
+        reconciler.last_scanned_smco_coupon_details = agg
+        sugg = reconciler.find_suggested_cp_for_discount(266.0, order_date="2026-09-29 10:18", expected_price=1234.0)
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "CP2609160013")
+        self.assertEqual(format_smart_datetime_str(sugg["start_date"]), "17/09/2026 00:00:01")
+        self.assertEqual(format_smart_datetime_str(sugg["end_date"]), "30/09/2026 23:59:59")
+        self.assertEqual(sugg["suggested_remark"], "Dynamic Sep Shp GI-790")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
