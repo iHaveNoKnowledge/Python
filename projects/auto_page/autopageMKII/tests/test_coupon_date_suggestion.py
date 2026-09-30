@@ -543,9 +543,57 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(format_smart_datetime_str(sugg["end_date"]), "30/09/2026 23:59:59")
         self.assertEqual(sugg["suggested_remark"], "Dynamic Sep Shp GI-790")
 
+    def test_canon_gi71_postman_remark_price_match(self):
+        """ทดสอบการ Suggest คูปอง Canon GI-71 (CP2609220007) จาก Remark 'Shp/TT เดือน ก.ย. ราคาเซ็ทละ 1449' ตรงตาม Postman"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler._session_ctx = {"emp_id": "9999", "branch_id": 180, "store_id": 208, "token": "dummy"}
+
+        sub_skus = ["SP2-001792", "SP2-001793", "SP2-001794", "SP2-001795"]
+        for sku in sub_skus:
+            resp = [
+                {
+                    "productId": 1002,
+                    "productCode": sku,
+                    "couponDetail": [
+                        {
+                            "couponId": 142727,
+                            "couponDetailId": 2417462,
+                            "startDate": "Sep 23, 2026 12:00:01 AM",
+                            "endDate": "Oct 9, 2026 11:59:59 PM",
+                            "couponCode": "CP2609220007",
+                            "couponDetailCash": 49.0,
+                            "couponDetailDisc": 68.0,
+                            "requirementFlag": False,
+                            "couponDetailRemark": "Shp/TT เดือน ก.ย. ราคาเซ็ทละ 1449",
+                            "couponDesc": "Promotion Canon Shp/Tiktok วันที่ 23 Sep - 9 Oct 2026 Addon Online SITS1,STIKTO",
+                            "couponType": 10520005,
+                            "usedFlag": False,
+                            "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 208}]
+                        }
+                    ]
+                }
+            ]
+            reconciler.record_product_master_response(sku, resp)
+
+        combo_sku = "SP2-001792+SP2-001793+SP2-001794+SP2-001795"
+        agg = reconciler.get_aggregated_combo_coupons(combo_sku)
+        self.assertEqual(len(agg), 1)
+        self.assertEqual(agg[0]["code"], "CP2609220007")
+        self.assertEqual(agg[0]["remark_target_price"], 1449.0)
+
+        reconciler.last_scanned_smco_coupon_details = agg
+        # ค้นหาคูปองสำหรับออเดอร์ราคาเป้าหมาย 1,449.0 บาท วันที่ 2026-09-28
+        sugg = reconciler.find_suggested_cp_for_discount(471.0, order_date="2026-09-28 08:48", expected_price=1449.0)
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "CP2609220007")
+        self.assertEqual(format_smart_datetime_str(sugg["start_date"]), "23/09/2026 00:00:01")
+        self.assertEqual(format_smart_datetime_str(sugg["end_date"]), "09/10/2026 23:59:59")
+        self.assertEqual(sugg["suggested_remark"], "Shp/TT เดือน ก.ย. ราคาเซ็ทละ 1449")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 
