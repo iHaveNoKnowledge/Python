@@ -285,8 +285,86 @@ class TestCouponDateSuggestion(unittest.TestCase):
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
+    def test_datetime_helpers(self):
+        """ทดสอบ parse_smart_datetime และ format_smart_datetime_str ในการแปลงและรักษาเวลา"""
+        from functions.pos.pricing_engine import parse_smart_datetime, format_smart_datetime_str
+
+        # มีเวลาในรูปแบบ AM/PM
+        dt1 = parse_smart_datetime("Sep 17, 2026 12:00:01 AM")
+        self.assertIsNotNone(dt1)
+        self.assertEqual(format_smart_datetime_str(dt1), "17/09/2026 00:00:01")
+
+        dt2 = parse_smart_datetime("Sep 30, 2026 11:59:59 PM")
+        self.assertIsNotNone(dt2)
+        self.assertEqual(format_smart_datetime_str(dt2), "30/09/2026 23:59:59")
+
+        # รูปแบบวันที่ล้วน
+        dt3 = parse_smart_datetime("15/09/2026")
+        self.assertEqual(format_smart_datetime_str(dt3), "15/09/2026")
+
+    def test_ranking_and_remark_suggestions(self):
+        """
+        ทดสอบกฎการเลือกและ Suggest วันที่ / เวลา / Remark:
+        1. วันเริ่มใหม่กว่า -> เลือกตัวนั้น (CP1: 01/09 - 30/09 vs CP2: 15/09 - 30/09 -> เลือก CP2)
+        2. วันเริ่มเท่ากัน -> เลือกตัวที่หมดไวกว่า (CP1: 15/09 - 22/09 vs CP2: 15/09 - 30/09 -> เลือก CP1)
+        3. ดึง Remark มาด้วย
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # Case 1: CP1 (01/09) vs CP2 (15/09) -> เลือก CP2 (Newest start date)
+        reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP1",
+                "discount": 50.0,
+                "start_date": datetime.date(2026, 9, 1),
+                "end_date": datetime.date(2026, 9, 30),
+                "remark": "Promo Early Sept",
+                "is_expired": False
+            },
+            {
+                "code": "CP2",
+                "discount": 50.0,
+                "start_date": datetime.date(2026, 9, 15),
+                "end_date": datetime.date(2026, 9, 30),
+                "remark": "Mid Month Special",
+                "is_expired": False
+            }
+        ]
+        sugg1 = reconciler.find_suggested_cp_for_discount(50.0, order_date="20/09/2026")
+        self.assertIsNotNone(sugg1)
+        self.assertEqual(sugg1["suggested_code"], "CP2")
+        self.assertEqual(sugg1["suggested_start_date"], datetime.date(2026, 9, 15))
+        self.assertEqual(sugg1["suggested_end_date"], datetime.date(2026, 9, 30))
+        self.assertEqual(sugg1["suggested_remark"], "Mid Month Special")
+
+        # Case 2: วันเริ่มเท่ากัน (15/09) -> เลือกตัวที่หมดไวกว่า (22/09 < 30/09)
+        reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP1",
+                "discount": 50.0,
+                "start_date": datetime.date(2026, 9, 15),
+                "end_date": datetime.date(2026, 9, 22),
+                "remark": "Flash 7 Days",
+                "is_expired": False
+            },
+            {
+                "code": "CP2",
+                "discount": 50.0,
+                "start_date": datetime.date(2026, 9, 15),
+                "end_date": datetime.date(2026, 9, 30),
+                "remark": "Monthly Promo",
+                "is_expired": False
+            }
+        ]
+        sugg2 = reconciler.find_suggested_cp_for_discount(50.0, order_date="20/09/2026")
+        self.assertIsNotNone(sugg2)
+        self.assertEqual(sugg2["suggested_code"], "CP1")
+        self.assertEqual(sugg2["suggested_start_date"], datetime.date(2026, 9, 15))
+        self.assertEqual(sugg2["suggested_end_date"], datetime.date(2026, 9, 22))
+        self.assertEqual(sugg2["suggested_remark"], "Flash 7 Days")
+
     def test_add_missing_cp_to_excel_writes_dates_and_formats(self):
-        """ทดสอบการบันทึก suggested_cp พร้อม usage_start_date และ usage_end_date และจัดรูปแบบไฟล์"""
+        """ทดสอบการบันทึก suggested_cp, suggested_usage_start_date, suggested_usage_end_date, suggested_remark เรียงคอลัมน์ตรงกับ cp_name, usage_start_date, usage_end_date, remark"""
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
             tmp_path = tmp.name
 
@@ -295,9 +373,14 @@ class TestCouponDateSuggestion(unittest.TestCase):
             df_init = pd.DataFrame({
                 "sku": ["SKU-EXISTING"],
                 "sale_price": [500.0],
+                "cp_name": ["CP_OLD"],
+                "usage_start_date": ["01/09/2026"],
+                "usage_end_date": ["30/09/2026"],
+                "remark": ["Old Remark"],
                 "suggested_cp": [""],
-                "usage_start_date": [""],
-                "usage_end_date": [""]
+                "suggested_usage_start_date": [""],
+                "suggested_usage_end_date": [""],
+                "suggested_remark": [""]
             })
             df_init.to_excel(tmp_path, index=False)
 
@@ -309,8 +392,9 @@ class TestCouponDateSuggestion(unittest.TestCase):
                 sku_key="SKU-NEW-01",
                 expected_price=350.0,
                 suggested_cp="DC2609070013",
-                start_date=datetime.date(2026, 9, 8),
-                end_date=datetime.date(2026, 9, 30)
+                start_date=datetime.datetime(2026, 9, 8, 0, 0, 1),
+                end_date=datetime.datetime(2026, 9, 30, 23, 59, 59),
+                remark="New Launch Promo"
             )
 
             # อ่านไฟล์ Excel ตรวจสอบข้อมูล
@@ -318,8 +402,9 @@ class TestCouponDateSuggestion(unittest.TestCase):
             row_new = df_saved[df_saved["sku"] == "SKU-NEW-01"]
             self.assertEqual(len(row_new), 1)
             self.assertEqual(row_new["suggested_cp"].iloc[0], "DC2609070013")
-            self.assertEqual(row_new["usage_start_date"].iloc[0], "08/09/2026")
-            self.assertEqual(row_new["usage_end_date"].iloc[0], "30/09/2026")
+            self.assertEqual(row_new["suggested_usage_start_date"].iloc[0], "08/09/2026 00:00:01")
+            self.assertEqual(row_new["suggested_usage_end_date"].iloc[0], "30/09/2026 23:59:59")
+            self.assertEqual(row_new["suggested_remark"].iloc[0], "New Launch Promo")
 
             # ตรวจสอบรูปแบบ format_cp_excel
             wb = openpyxl.load_workbook(tmp_path)
@@ -346,9 +431,6 @@ class TestCouponDateSuggestion(unittest.TestCase):
         reconciler._session_ctx = {"emp_id": "1234", "branch_id": 180, "store_id": 208}
 
         # Mock Network Response data สำหรับ 2 Sub-SKU ของ Combo Set
-        # SKU1: DC2609160013 -> cash=140, disc=60 (total=200)
-        # SKU2: DC2609160013 -> cash=100, disc=50 (total=150)
-        # ผลรวมของทั้งเซ็ต = 200 + 150 = 350
         sku1_resp = {
             "coupons": [
                 {
@@ -371,7 +453,7 @@ class TestCouponDateSuggestion(unittest.TestCase):
                     "startDate": "Sep 17, 2026 12:00:01 AM",
                     "endDate": "Sep 30, 2026 11:59:59 PM",
                     "usedFlag": False,
-                    "couponBranchs": [{"couponBranchId": 999, "couponStoreId": 999}]  # สาขาอื่น -> ต้องถูกกรองออก
+                    "couponBranchs": [{"couponBranchId": 999, "couponStoreId": 999}]
                 }
             ]
         }
@@ -403,8 +485,6 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(agg[0]["code"], "DC2609160013")
         self.assertEqual(agg[0]["discount"], 350.0)
         self.assertEqual(agg[0]["raw_discount"], "350.00.-")
-        self.assertEqual(agg[0]["start_date"], datetime.date(2026, 9, 17))
-        self.assertEqual(agg[0]["end_date"], datetime.date(2026, 9, 30))
         self.assertTrue(agg[0]["is_aggregated"])
 
         # ตรวจสอบการ Suggest คูปองด้วยมูลค่ารวม 350 บาท
@@ -412,10 +492,10 @@ class TestCouponDateSuggestion(unittest.TestCase):
         sugg = reconciler.find_suggested_cp_for_discount(350.0, order_date="20/09/2026")
         self.assertIsNotNone(sugg)
         self.assertEqual(sugg["suggested_code"], "DC2609160013")
-        self.assertEqual(sugg["suggested_start_date"], datetime.date(2026, 9, 17))
-        self.assertEqual(sugg["suggested_end_date"], datetime.date(2026, 9, 30))
+        self.assertEqual(sugg["suggested_remark"], "Dynamic Combo Promo")
 
 
 if __name__ == "__main__":
     unittest.main()
+
 

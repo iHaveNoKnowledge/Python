@@ -120,12 +120,23 @@
   - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
 
 ### [ver5.x.x] - 2026-09-30
+- [x] **[Suggested CP DateTime, Remark & 1-to-1 Column Alignment]** ปรับปรุงระบบบันทึกคูปองแนะนำ (`suggested_cp`) ให้รองรับการเก็บเวลา (Time), Remark และจัดลำดับคอลัมน์ตรงกับคอลัมน์ใช้งานจริง:
+  - เพิ่ม `parse_smart_datetime` และ `format_smart_datetime_str` รักษาข้อมูลเวลา (Time เช่น `17/09/2026 00:00:01`, `30/09/2026 23:59:59`) จาก SMCO API และข้อความคูปอง
+  - ปรับปรุงตรรกะการเลือกคูปองแนะนำ (`find_suggested_cp_for_discount`):
+    - หากมีหลายคูปอง ให้เลือกคูปองที่วันเริ่มใช้งานใหม่สุด (`max(start_date)`)
+    - หากวันเริ่มเท่ากัน ให้เลือกคูปองที่สิ้นสุด/หมดอายุไวกว่า (`min(end_date)`)
+    - ดึงข้อความ `couponDetailRemark` เก็บเข้า `suggested_remark`
+  - แยกและจัดลำดับคอลัมน์ใน `cp_data.xlsx` เป็น 4 คอลัมน์ติดกัน:
+    `suggested_cp` | `suggested_usage_start_date` | `suggested_usage_end_date` | `suggested_remark`
+    ตรงตามลำดับคอลัมน์ใช้งานจริง (`cp_name` | `usage_start_date` | `usage_end_date` | `remark`) เพื่อให้ผู้ใช้สามารถ Copy-Paste ทั้งบล็อก 4 คอลัมน์ได้ทันทีโดยไม่ต้องจัดเรียงใหม่
+  - เพิ่มชุดทดสอบอัตโนมัติใน [test_coupon_date_suggestion.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_coupon_date_suggestion.py) ครอบคลุมกฎการเลือกวันที่, เวลา, Remark และโครงสร้างคอลัมน์ ผ่าน 100%
 - [x] **[Network Interception & Multi-SKU Combo Coupon Mathematical Aggregation]** เพิ่มระบบดักจับข้อมูลคูปองจาก Network Response และรวมมูลค่าส่วนลดข้าม Sub-SKU ของสินค้าชุด (Combo Set) ทางคณิตศาสตร์:
   - บันทึก Response จาก Network API `/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm` เมื่อยิงสินค้าแต่ละ SKU ใน `functions/auto_add_product.py` ผ่าน `record_product_master_response`
   - เพิ่ม `get_smco_session_context` ใน `functions/pos/pricing_engine.py` สกัดข้อมูลผู้ใช้และสาขา (`emp_id`, `branch_id`, `store_id`) จาก JWT Token (`sub`) ใน Cookie/Storage อัตโนมัติ เพื่อใช้กรองคูปองเฉพาะสาขาที่ล็อกอิน (`couponBranchs`)
   - เพิ่ม `get_aggregated_combo_coupons` คำนวณผลรวมส่วนลดจริงของแต่ละ Coupon Code (`couponDetailCash + couponDetailDisc`) จากทุก Sub-SKU ในเซ็ต (เช่น `SP1-001420+SP1-001421+...`)
   - ผสานรายการคูปองที่คำนวณส่วนลดรวมแล้วเข้าสู่ `scan_matching_cp_candidates_on_smco` และ `find_suggested_cp_for_discount` ทำให้ระบบสามารถจับคู่และแนะนำ `suggested_cp` สำหรับสินค้าชุดได้แม่นยำ 100% แม้ใน Remark จะไม่ได้ระบุราคาเป้าหมายไว้
   - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านฉลุย 100%
+
 
 ### [ver5.x.x] - 2026-09-15
 

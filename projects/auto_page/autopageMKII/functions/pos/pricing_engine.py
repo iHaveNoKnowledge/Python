@@ -61,7 +61,88 @@ def parse_smart_date(val: Any) -> Optional[datetime.date]:
         return None
 
 
-def extract_coupon_date_range(text: str) -> tuple[Optional[datetime.date], Optional[datetime.date]]:
+def parse_smart_datetime(val: Any) -> Optional[Union[datetime.datetime, datetime.date]]:
+    """
+    แปลงค่าวันที่และเวลาหลากหลายรูปแบบให้กลายเป็น datetime.datetime หรือ datetime.date
+    หากมีเวลาระบุชัดเจนหรือเวลาไม่เท่ากับ 00:00:00 จะคืนค่า datetime.datetime
+    หากเป็นวันที่ล้วน (ไม่มีเวลาระบุ) จะคืนค่า datetime.date
+    """
+    if val is None or pd.isna(val):
+        return None
+    if isinstance(val, (datetime.datetime, pd.Timestamp)):
+        if val.hour != 0 or val.minute != 0 or val.second != 0:
+            return val.to_pydatetime() if hasattr(val, 'to_pydatetime') else val
+        return val.date() if hasattr(val, 'date') else val
+    if isinstance(val, datetime.date):
+        return val
+    s = str(val).strip()
+    if not s or s.lower() in ['nan', 'nat', 'none', '-']:
+        return None
+    try:
+        match_be = re.search(r'\b(25\d{2})\b', s)
+        if match_be:
+            be_year = int(match_be.group(1))
+            ce_year = be_year - 543
+            s = s[:match_be.start(1)] + str(ce_year) + s[match_be.end(1):]
+        
+        has_time = bool(re.search(r'\d{1,2}:\d{2}', s))
+        if re.match(r'^\d{4}[-/.]', s):
+            dt = parser.parse(s, yearfirst=True, dayfirst=False)
+        else:
+            dt = parser.parse(s, dayfirst=True)
+            
+        if has_time or (dt.hour != 0 or dt.minute != 0 or dt.second != 0):
+            return dt
+        return dt.date()
+    except Exception:
+        try:
+            p_dt = pd.to_datetime(s, format='mixed', dayfirst=True, errors='coerce')
+            if pd.notna(p_dt):
+                if p_dt.hour != 0 or p_dt.minute != 0 or p_dt.second != 0:
+                    return p_dt.to_pydatetime() if hasattr(p_dt, 'to_pydatetime') else p_dt
+                return p_dt.date() if hasattr(p_dt, 'date') else p_dt
+        except Exception:
+            pass
+    return None
+
+
+
+def format_smart_datetime_str(dt: Any) -> str:
+    """แปลง datetime/date เป็น string เช่น '17/09/2026 00:00:01' หรือ '17/09/2026'"""
+    if not dt:
+        return ""
+    if isinstance(dt, (datetime.datetime, pd.Timestamp)):
+        if dt.hour != 0 or dt.minute != 0 or dt.second != 0:
+            return dt.strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            return dt.strftime("%d/%m/%Y")
+    elif isinstance(dt, datetime.date):
+        return dt.strftime("%d/%m/%Y")
+    elif isinstance(dt, str):
+        parsed = parse_smart_datetime(dt)
+        if parsed:
+            return format_smart_datetime_str(parsed)
+        return dt
+    return str(dt)
+
+
+def to_comparable_datetime(val: Any) -> Optional[datetime.datetime]:
+    """แปลงค่า date หรือ datetime ให้เป็น datetime.datetime ที่เปรียบเทียบขนาดกันได้ปลอดภัย 100%"""
+    if val is None:
+        return None
+    if isinstance(val, datetime.datetime):
+        return val
+    if isinstance(val, datetime.date):
+        return datetime.datetime.combine(val, datetime.time.min)
+    p = parse_smart_datetime(val)
+    if isinstance(p, datetime.datetime):
+        return p
+    if isinstance(p, datetime.date):
+        return datetime.datetime.combine(p, datetime.time.min)
+    return None
+
+
+def extract_coupon_date_range(text: str) -> tuple[Optional[Union[datetime.datetime, datetime.date]], Optional[Union[datetime.datetime, datetime.date]]]:
     """
     ดึงวันเริ่มและวันสิ้นสุดของคูปองจากข้อความ เช่น '(01/09/2026 - 30/09/2026)', '01/09/26 - 30/09/26'
     คืนค่า (start_date, end_date)
@@ -69,13 +150,13 @@ def extract_coupon_date_range(text: str) -> tuple[Optional[datetime.date], Optio
     if not text:
         return None, None
     m = re.search(
-        r'\(?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\s*(?:-|to|ถึง|~)\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\s*\)?',
+        r'\(?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)?)\s*(?:-|to|ถึง|~)\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)?)\s*\)?',
         str(text),
         re.IGNORECASE
     )
     if m:
-        s_date = parse_smart_date(m.group(1))
-        e_date = parse_smart_date(m.group(2))
+        s_date = parse_smart_datetime(m.group(1)) or parse_smart_date(m.group(1))
+        e_date = parse_smart_datetime(m.group(2)) or parse_smart_date(m.group(2))
         return s_date, e_date
     return None, None
 
@@ -97,9 +178,9 @@ def extract_target_price_from_text(text: str) -> Optional[float]:
             pass
     return None
 
-def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[datetime.date], Optional[datetime.date]]:
+def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[Union[datetime.datetime, datetime.date]], Optional[Union[datetime.datetime, datetime.date]]]:
     """
-    ดึง start_date และ end_date ของคูปอง
+    ดึง start_date และ end_date ของคูปอง พร้อมรักษาเวลา (Time) ถ้ามี
     หากไม่มีค่าที่สแกนมา ให้ลอง parse จาก desc หรือรหัสคูปอง (fallback)
     """
     s_date = c.get("start_date")
@@ -143,11 +224,15 @@ def is_coupon_valid_for_order(c_dict: dict, order_date: Any = None) -> bool:
     e = c_dict.get("end_date")
     if not s and not e:
         s, e = extract_coupon_date_range(c_dict.get("desc", ""))
-    if s and parsed_order_date < s:
+    s_cmp = s.date() if isinstance(s, datetime.datetime) else s
+    e_cmp = e.date() if isinstance(e, datetime.datetime) else e
+    if s_cmp and parsed_order_date < s_cmp:
         return False
-    if e and parsed_order_date > e:
+    if e_cmp and parsed_order_date > e_cmp:
         return False
     return True
+
+
 
 def format_cp_excel(file_path: str) -> bool:
     """
@@ -521,8 +606,8 @@ class POSPricingReconciler:
         aggregated_details = []
         for code, data in coupon_agg.items():
             if data["sku_count"] == len(sub_skus):
-                s_dt = parse_smart_date(data["startDate"])
-                e_dt = parse_smart_date(data["endDate"])
+                s_dt = parse_smart_datetime(data["startDate"]) or parse_smart_date(data["startDate"])
+                e_dt = parse_smart_datetime(data["endDate"]) or parse_smart_date(data["endDate"])
                 aggregated_details.append({
                     "code": code,
                     "discount": round(data["total_discount"], 2),
@@ -538,6 +623,7 @@ class POSPricingReconciler:
                 })
 
         return aggregated_details
+
 
     def _track_adjustment(self, sku: str, method: str) -> None:
         """บันทึกประวัติการปรับราคาของ SKU (OC, DC, CP) ในรอบการทำงานปัจจุบัน"""
@@ -749,9 +835,15 @@ class POSPricingReconciler:
         expected_price: float,
         suggested_cp: str = "",
         start_date: Any = None,
-        end_date: Any = None
+        end_date: Any = None,
+        remark: str = ""
     ) -> None:
-        """บันทึก SKU และราคาที่ยังไม่มี CP ลงไฟล์ Excel เพื่อให้กรอกข้อมูลต่อได้ พร้อมระบุคูปองแนะนำ (suggested_cp) และวันที่ใช้งานถ้ามี"""
+        """
+        บันทึก SKU และราคาที่ยังไม่มี CP ลงไฟล์ Excel เพื่อให้กรอกข้อมูลต่อได้
+        พร้อมบันทึกคูปองแนะนำ วันที่ใช้งาน และ Remark แยกคอลัมน์ชัดเจน
+        โดยเรียงลำดับคอลัมน์: suggested_cp, suggested_usage_start_date, suggested_usage_end_date, suggested_remark
+        เพื่อให้ผู้ใช้สามารถ Copy ไปวางทับคอลัมน์ใช้งานจริง (cp_name, usage_start_date, usage_end_date, remark) ได้ทันที
+        """
         try:
             excel_path = getattr(self.app, 'cp_table_location', '')
             if not excel_path or str(excel_path).strip() == "":
@@ -767,14 +859,19 @@ class POSPricingReconciler:
                 print(f"[add_missing_cp_to_excel] Error reading excel: {read_err}")
                 return
 
-            col_name = 'suggested_cp'
-            if col_name not in df.columns:
-                df[col_name] = ""
+            suggested_cols = [
+                'suggested_cp',
+                'suggested_usage_start_date',
+                'suggested_usage_end_date',
+                'suggested_remark'
+            ]
+            for col in suggested_cols:
+                if col not in df.columns:
+                    df[col] = ""
 
-            start_date_val = parse_smart_date(start_date) if start_date else None
-            end_date_val = parse_smart_date(end_date) if end_date else None
-            start_str = start_date_val.strftime("%d/%m/%Y") if start_date_val else ""
-            end_str = end_date_val.strftime("%d/%m/%Y") if end_date_val else ""
+            start_str = format_smart_datetime_str(start_date) if start_date else ""
+            end_str = format_smart_datetime_str(end_date) if end_date else ""
+            remark_str = str(remark or "").strip()
 
             sku_clean = str(sku_key).strip().upper()
             mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - expected_price).abs() <= 0.05)
@@ -783,20 +880,25 @@ class POSPricingReconciler:
                 # มีแถวเดิมอยู่แล้ว: ดึงแถวเดิมออกมาอัปเดต และย้ายตำแหน่งไปต่อท้ายสุด (Move to Bottom)
                 existing_rows = df[mask].copy()
                 if suggested_cp:
-                    existing_rows[col_name] = suggested_cp
-                if start_str and 'usage_start_date' in df.columns:
-                    existing_rows['usage_start_date'] = start_str
-                if end_str and 'usage_end_date' in df.columns:
-                    existing_rows['usage_end_date'] = end_str
+                    existing_rows['suggested_cp'] = suggested_cp
+                if start_str:
+                    existing_rows['suggested_usage_start_date'] = start_str
+                if end_str:
+                    existing_rows['suggested_usage_end_date'] = end_str
+                if remark_str:
+                    existing_rows['suggested_remark'] = remark_str
                 
                 df_without_old = df[~mask]
                 df_combined = pd.concat([df_without_old, existing_rows], ignore_index=True)
             else:
-                new_row = {'sku': sku_key, 'sale_price': expected_price, col_name: suggested_cp}
-                if 'usage_start_date' in df.columns or start_str:
-                    new_row['usage_start_date'] = start_str
-                if 'usage_end_date' in df.columns or end_str:
-                    new_row['usage_end_date'] = end_str
+                new_row = {
+                    'sku': sku_key,
+                    'sale_price': expected_price,
+                    'suggested_cp': suggested_cp,
+                    'suggested_usage_start_date': start_str,
+                    'suggested_usage_end_date': end_str,
+                    'suggested_remark': remark_str
+                }
 
                 new_df = pd.DataFrame([new_row])
 
@@ -817,37 +919,32 @@ class POSPricingReconciler:
                     pass
 
             date_info = f" [{start_str} - {end_str}]" if (start_str or end_str) else ""
-            log_sugg = f" (แนะนำ: {suggested_cp}{date_info})" if suggested_cp else ""
+            rem_info = f" (Remark: {remark_str})" if remark_str else ""
+            log_sugg = f" (แนะนำ: {suggested_cp}{date_info}{rem_info})" if suggested_cp else ""
             self.app.update_log(
                 f"💾 บันทึก/ย้ายตำแหน่ง SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg} ไปไว้ท้ายตาราง CP Data เรียบร้อยแล้ว"
             )
 
             if self.app.cp_df is not None:
-                if 'suggested_cp' not in self.app.cp_df.columns:
-                    self.app.cp_df['suggested_cp'] = ""
-                if 'usage_start_date' not in self.app.cp_df.columns:
-                    self.app.cp_df['usage_start_date'] = ""
-                if 'usage_end_date' not in self.app.cp_df.columns:
-                    self.app.cp_df['usage_end_date'] = ""
+                for col in suggested_cols:
+                    if col not in self.app.cp_df.columns:
+                        self.app.cp_df[col] = ""
 
                 app_mask = (self.app.cp_df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((self.app.cp_df['sale_price'] - expected_price).abs() <= 0.05)
                 if app_mask.any():
                     app_rows = self.app.cp_df[app_mask].copy()
                     if suggested_cp:
-                        app_rows[col_name] = suggested_cp
-                    if start_date_val:
-                        app_rows['usage_start_date'] = start_date_val
-                    if end_date_val:
-                        app_rows['usage_end_date'] = end_date_val
+                        app_rows['suggested_cp'] = suggested_cp
+                    if start_str:
+                        app_rows['suggested_usage_start_date'] = start_str
+                    if end_str:
+                        app_rows['suggested_usage_end_date'] = end_str
+                    if remark_str:
+                        app_rows['suggested_remark'] = remark_str
                     self.app.cp_df = pd.concat([self.app.cp_df[~app_mask], app_rows], ignore_index=True)
                 else:
                     new_df_copy = new_df.copy()
-                    if 'usage_start_date' in new_df_copy.columns:
-                        new_df_copy['usage_start_date'] = new_df_copy['usage_start_date'].apply(parse_smart_date)
-                    if 'usage_end_date' in new_df_copy.columns:
-                        new_df_copy['usage_end_date'] = new_df_copy['usage_end_date'].apply(parse_smart_date)
                     self.app.cp_df = pd.concat([self.app.cp_df, new_df_copy], ignore_index=True)
-
 
             # ส่งข้อมูลขึ้น Google Sheet ในเบื้องหลัง (ถ้าเชื่อมต่อ GAS ไว้)
             try:
@@ -855,7 +952,10 @@ class POSPricingReconciler:
                     payload = {
                         "sku": sku_key,
                         "expected_price": expected_price,
-                        "suggested_cp": suggested_cp
+                        "suggested_cp": suggested_cp,
+                        "suggested_usage_start_date": start_str,
+                        "suggested_usage_end_date": end_str,
+                        "suggested_remark": remark_str
                     }
                     self._dual_cp_loader.push_record_to_gas(payload)
             except Exception as gas_err:
@@ -871,13 +971,17 @@ class POSPricingReconciler:
         suggested_cp_code: str = "",
         sugg_info: Optional[dict] = None
     ) -> None:
-        """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ ถ้ามีข้อมูล sugg_info"""
+        """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info"""
         kwargs = {"suggested_cp": suggested_cp_code}
-        if sugg_info and sugg_info.get("suggested_start_date"):
-            kwargs["start_date"] = sugg_info["suggested_start_date"]
-        if sugg_info and sugg_info.get("suggested_end_date"):
-            kwargs["end_date"] = sugg_info["suggested_end_date"]
+        if sugg_info:
+            if sugg_info.get("suggested_start_date"):
+                kwargs["start_date"] = sugg_info["suggested_start_date"]
+            if sugg_info.get("suggested_end_date"):
+                kwargs["end_date"] = sugg_info["suggested_end_date"]
+            if sugg_info.get("suggested_remark"):
+                kwargs["remark"] = sugg_info["suggested_remark"]
         self.add_missing_cp_to_excel(sku_key, expected_price, **kwargs)
+
 
     def scrape_pos_cart_items(self) -> List[Dict[str, Any]]:
         """
@@ -1303,8 +1407,10 @@ class POSPricingReconciler:
 
             if is_remark_price_match or is_discount_match:
                 s_dt, e_dt = get_coupon_start_and_end_dates(c)
-                s_val = s_dt.toordinal() if s_dt else 0
-                e_val = e_dt.toordinal() if e_dt else 9999999
+                s_cmp = to_comparable_datetime(s_dt)
+                e_cmp = to_comparable_datetime(e_dt)
+                s_val = s_cmp.timestamp() if s_cmp else 0
+                e_val = e_cmp.timestamp() if e_cmp else 9999999999
                 rec_score = get_coupon_recency_score(c.get('code', ''), c.get('desc', ''))
                 # ให้คะแนนพิเศษสูงมากกับคูปองที่ Remark ระบุราคาเป้าหมายตรงกับราคาออเดอร์พอดี
                 if is_remark_price_match:
@@ -1318,6 +1424,7 @@ class POSPricingReconciler:
                     "e_val": e_val,
                     "start_date": s_dt,
                     "end_date": e_dt,
+                    "remark": c.get("remark", ""),
                     "remark_price_matched": is_remark_price_match
                 })
 
@@ -1337,13 +1444,34 @@ class POSPricingReconciler:
                 if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
                     s1, e1 = get_coupon_start_and_end_dates(c1)
                     s2, e2 = get_coupon_start_and_end_dates(c2)
-                    combo_start = max(s1, s2) if (s1 and s2) else (s1 or s2)
-                    combo_end = min(e1, e2) if (e1 and e2) else (e1 or e2)
-                    combo_s_val = combo_start.toordinal() if combo_start else 0
-                    combo_e_val = combo_end.toordinal() if combo_end else 9999999
+                    s1_cmp = to_comparable_datetime(s1)
+                    s2_cmp = to_comparable_datetime(s2)
+                    e1_cmp = to_comparable_datetime(e1)
+                    e2_cmp = to_comparable_datetime(e2)
+
+                    if s1_cmp and s2_cmp:
+                        combo_start = s1 if s1_cmp >= s2_cmp else s2
+                    else:
+                        combo_start = s1 or s2
+
+                    if e1_cmp and e2_cmp:
+                        combo_end = e1 if e1_cmp <= e2_cmp else e2
+                    else:
+                        combo_end = e1 or e2
+
+                    combo_s_cmp = to_comparable_datetime(combo_start)
+                    combo_e_cmp = to_comparable_datetime(combo_end)
+                    combo_s_val = combo_s_cmp.timestamp() if combo_s_cmp else 0
+                    combo_e_val = combo_e_cmp.timestamp() if combo_e_cmp else 9999999999
+
                     rec1 = get_coupon_recency_score(c1.get('code', ''), c1.get('desc', ''))
                     rec2 = get_coupon_recency_score(c2.get('code', ''), c2.get('desc', ''))
                     combo_score = max(rec1, rec2)
+
+                    r1 = str(c1.get("remark", "") or "").strip()
+                    r2 = str(c2.get("remark", "") or "").strip()
+                    combo_remark = " / ".join([r for r in [r1, r2] if r]) if r1 != r2 else r1
+
                     matching_combos.append({
                         "suggested_code": f"{c1['code']} {c2['code']}",
                         "discount": total_disc,
@@ -1353,6 +1481,7 @@ class POSPricingReconciler:
                         "e_val": combo_e_val,
                         "start_date": combo_start,
                         "end_date": combo_end,
+                        "remark": combo_remark,
                     })
 
         best = None
@@ -1394,8 +1523,10 @@ class POSPricingReconciler:
             "discount": best["discount"],
             "type": best["type"],
             "suggested_start_date": best.get("start_date"),
-            "suggested_end_date": best.get("end_date")
+            "suggested_end_date": best.get("end_date"),
+            "suggested_remark": best.get("remark", "")
         }
+
 
 
     # ══════════════════════════════════════════════════════════════════════════
