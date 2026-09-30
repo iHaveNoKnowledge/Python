@@ -14,6 +14,7 @@ import pandas as pd
 from functions.pos.pricing_engine import (
     POSPricingReconciler,
     extract_coupon_date_range,
+    extract_target_price_from_text,
     format_cp_excel,
     get_coupon_start_and_end_dates,
     is_coupon_valid_for_order,
@@ -199,6 +200,54 @@ class TestCouponDateSuggestion(unittest.TestCase):
         # ช่วงวันที่ร่วม: เริ่ม 2026-09-05, สิ้นสุด 2026-09-20
         self.assertEqual(sugg["suggested_start_date"], datetime.date(2026, 9, 5))
         self.assertEqual(sugg["suggested_end_date"], datetime.date(2026, 9, 20))
+
+    def test_find_suggested_cp_from_remark_target_price(self):
+        """
+        ทดสอบการเลือกคูปองสำหรับสินค้า Multi-SKU Combo Set
+        ที่ส่วนลดรายชิ้น (321.-) ไม่เท่ากับส่วนต่างราคา (1827.-)
+        แต่ใน Remark ระบุราคาเป้าหมายของเซ็ตไว้ชัดเจน: 'Dynamic ก.ย. Shp ราคา 9673'
+        """
+        # ทดสอบการสกัดราคาเป้าหมายจากข้อความ
+        self.assertEqual(extract_target_price_from_text("Dynamic ก.ย. Shp ราคา 9673"), 9673.0)
+        self.assertEqual(extract_target_price_from_text("Remark: ราคา 9,673.-"), 9673.0)
+        self.assertEqual(extract_target_price_from_text("ราคาเป้าหมาย: 1861"), 1861.0)
+        self.assertIsNone(extract_target_price_from_text("ไม่มีราคาเป้าหมาย"))
+
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609090005",
+                "discount": 321.0,
+                "desc": "Promotion Printer BROTHER Dynamic Shp วันที่ 09 Sep - 08 Oct 26 Addon SITS1 Broth",
+                "remark": "Dynamic ก.ย. Shp ราคา 9673",
+                "remark_target_price": 9673.0,
+                "start_date": datetime.date(2026, 9, 9),
+                "end_date": datetime.date(2026, 10, 8),
+                "is_expired": False
+            },
+            {
+                "code": "DC2608310029",
+                "discount": 100.0,
+                "desc": "Discount 100",
+                "remark": "",
+                "remark_target_price": None,
+                "start_date": datetime.date(2026, 9, 1),
+                "end_date": datetime.date(2026, 9, 30),
+                "is_expired": False
+            }
+        ]
+
+        # เรียกค้นหาคูปองโดยส่ง target_discount=1827.0 และ expected_price=9673.0
+        sugg = reconciler.find_suggested_cp_for_discount(
+            target_discount=1827.0,
+            require_seller_voucher=False,
+            order_date="15/09/2026",
+            expected_price=9673.0
+        )
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "CP2609090005")
+        self.assertEqual(sugg["suggested_start_date"], datetime.date(2026, 9, 9))
+        self.assertEqual(sugg["suggested_end_date"], datetime.date(2026, 10, 8))
 
     def test_format_cp_excel(self):
         """ทดสอบฟังก์ชัน format_cp_excel: freeze row 1, auto-filter, column A width 32.0 (2.5 นิ้ว)"""

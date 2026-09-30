@@ -79,6 +79,24 @@ def extract_coupon_date_range(text: str) -> tuple[Optional[datetime.date], Optio
         return s_date, e_date
     return None, None
 
+
+def extract_target_price_from_text(text: str) -> Optional[float]:
+    """
+    ดึงราคาเป้าหมายของสินค้า/เซ็ตสินค้าจาก Remark หรือ Description ของคูปอง
+    เช่น 'Dynamic ก.ย. Shp ราคา 9673', 'ราคา 9,673.-', 'ราคา: 9673', 'เป้าหมาย 9673'
+    """
+    if not text:
+        return None
+    m = re.search(r'(?:ราคา(?:\s*ขาย|\s*เป้าหมาย)?|เป้าหมาย|จบที่)\s*[:=]?\s*([\d,]+(?:\.\d+)?)\s*(?:\.-|บาท)?', str(text))
+    if m:
+        try:
+            val = float(m.group(1).replace(',', ''))
+            if val > 0:
+                return val
+        except Exception:
+            pass
+    return None
+
 def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[datetime.date], Optional[datetime.date]]:
     """
     ดึง start_date และ end_date ของคูปอง
@@ -1055,20 +1073,21 @@ class POSPricingReconciler:
         self,
         target_discount: float,
         require_seller_voucher: bool = False,
-        order_date: Any = None
+        order_date: Any = None,
+        expected_price: Optional[float] = None
     ) -> Optional[dict]:
         """
         คำนวณหาคูปอง (ตัวเดียว หรือคู่ผสม) จากรายการคูปองที่สแกนได้บนหน้าเว็บ SMCO
-        ที่มีมูลค่าส่วนลดตรงกับ target_discount พอดี (ความคลาดเคลื่อน <= 0.05 บาท)
+        ที่มีมูลค่าส่วนลดตรงกับ target_discount หรือมี Remark ระบุราคาเป้าหมายตรงกับ expected_price (สำหรับสินค้า Combo Multi-SKU)
         หาก require_seller_voucher=True จะพิจารณาเฉพาะคูปองที่มีข้อความบ่งชี้ว่าเป็น Seller Voucher เท่านั้น
         โดยจะเปรียบเทียบตามกฎ:
         1. วันที่ของ Order ต้องอยู่ระหว่างวันเริ่มและวันสิ้นสุด (usage_start_date <= order_date <= usage_end_date)
         2. เลือกคูปองที่มีวันเริ่ม (start_date) ล่าสุด/ใหม่ที่สุด
         3. หากวันเริ่มเท่ากัน ให้เลือกอันที่สิ้นสุด (end_date) ไวที่สุด
-        4. หากสิ้นสุดเท่ากัน ให้เลือกตาม recency_score ล่าสุด
+        4. หากสิ้นสุดเท่ากัน ให้เลือกตาม recency_score ล่าสุด (คูปองที่ตรงตาม Remark ราคาเป้าหมายจะได้แต้มสูงสุด)
         """
         details = getattr(self, 'last_scanned_smco_coupon_details', [])
-        if not details or target_discount <= 0:
+        if not details or (target_discount <= 0 and expected_price is None):
             return None
 
         parsed_order_date = parse_smart_date(order_date) if order_date else None
@@ -1083,20 +1102,41 @@ class POSPricingReconciler:
                 continue
             if not is_coupon_valid(c):
                 continue
-            if abs(c['discount'] - target_discount) <= 0.05 and c['discount'] > 0:
+
+            # ตรวจสอบการจับคู่ราคา:
+            # 1.1 ตรวจสอบตรงกับราคาเป้าหมายใน Remark (เช่น 'Dynamic ก.ย. Shp ราคา 9673' สำหรับสินค้าเซ็ต)
+            remark_price = c.get("remark_target_price")
+            is_remark_price_match = (
+                expected_price is not None
+                and remark_price is not None
+                and abs(remark_price - float(expected_price)) <= 0.05
+            )
+
+            # 1.2 ตรวจสอบส่วนลดปกติ
+            is_discount_match = (
+                target_discount > 0
+                and abs(c.get('discount', 0.0) - target_discount) <= 0.05
+                and c.get('discount', 0.0) > 0
+            )
+
+            if is_remark_price_match or is_discount_match:
                 s_dt, e_dt = get_coupon_start_and_end_dates(c)
                 s_val = s_dt.toordinal() if s_dt else 0
                 e_val = e_dt.toordinal() if e_dt else 9999999
                 rec_score = get_coupon_recency_score(c.get('code', ''), c.get('desc', ''))
+                # ให้คะแนนพิเศษสูงมากกับคูปองที่ Remark ระบุราคาเป้าหมายตรงกับราคาออเดอร์พอดี
+                if is_remark_price_match:
+                    rec_score += 100000
                 matching_singles.append({
                     "suggested_code": c['code'],
-                    "discount": c['discount'],
+                    "discount": c.get('discount', 0.0),
                     "type": "single",
                     "score": rec_score,
                     "s_val": s_val,
                     "e_val": e_val,
                     "start_date": s_dt,
                     "end_date": e_dt,
+                    "remark_price_matched": is_remark_price_match
                 })
 
         # 2. ตรวจสอบคูปองคู่ผสม (Combination เช่น CP 1 ตัว + DC 1 ตัว หรือ CP 2 ตัว)
@@ -1111,7 +1151,7 @@ class POSPricingReconciler:
                         continue
                 if not is_coupon_valid(c1) or not is_coupon_valid(c2):
                     continue
-                total_disc = c1['discount'] + c2['discount']
+                total_disc = c1.get('discount', 0.0) + c2.get('discount', 0.0)
                 if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
                     s1, e1 = get_coupon_start_and_end_dates(c1)
                     s2, e2 = get_coupon_start_and_end_dates(c2)
@@ -1509,6 +1549,7 @@ class POSPricingReconciler:
 
                     # 2. ค้นหาคำอธิบาย, Remark, และช่วงวันที่ (Date Range)
                     c_desc = ""
+                    c_remark = ""
                     c_start_date = None
                     c_end_date = None
                     is_expired = False
@@ -1538,31 +1579,35 @@ class POSPricingReconciler:
                             if is_seller_voucher_desc(t):
                                 break
 
-                    # หากหา xpath แรกไม่เจอ หรือข้อความไม่ใช่ Seller Voucher ให้ตรวจที่ fallback xpath
-                    if not c_desc or not is_seller_voucher_desc(c_desc):
-                        fallback_desc_spans = item_el.find_elements(
-                            By.XPATH, ".//span[contains(@ng-show, 'couponDetailRemark') or contains(@class, 'font-color')]"
-                        )
-                        for fb_el in fallback_desc_spans:
-                            fb_text = fb_el.text.strip() if hasattr(fb_el, 'text') and isinstance(fb_el.text, str) else str(getattr(fb_el, 'text', ''))
-                            if fb_text:
-                                if not c_start_date or not c_end_date:
-                                    s_dt, e_dt = extract_coupon_date_range(fb_text)
-                                    if s_dt and e_dt:
-                                        c_start_date, c_end_date = s_dt, e_dt
-                                if "ส่วนลดหมดอายุ" in fb_text:
-                                    is_expired = True
-                                if not c_desc or is_seller_voucher_desc(fb_text):
-                                    c_desc = fb_text
-                                    if is_seller_voucher_desc(fb_text):
-                                        break
+                    # ค้นหา Remark จาก couponDetailRemark หรือ fallback spans
+                    fallback_desc_spans = item_el.find_elements(
+                        By.XPATH, ".//span[contains(@ng-show, 'couponDetailRemark') or contains(@class, 'font-color')]"
+                    )
+                    for fb_el in fallback_desc_spans:
+                        fb_text = fb_el.text.strip() if hasattr(fb_el, 'text') and isinstance(fb_el.text, str) else str(getattr(fb_el, 'text', ''))
+                        if fb_text:
+                            if not c_start_date or not c_end_date:
+                                s_dt, e_dt = extract_coupon_date_range(fb_text)
+                                if s_dt and e_dt:
+                                    c_start_date, c_end_date = s_dt, e_dt
+                            if "ส่วนลดหมดอายุ" in fb_text:
+                                is_expired = True
+                            if not c_remark and ("Remark" in fb_text or "ราคา" in fb_text or "Dynamic" in fb_text):
+                                c_remark = fb_text
+                            if not c_desc or is_seller_voucher_desc(fb_text):
+                                c_desc = fb_text
 
-                    # ตรวจสอบเพิ่มเติมจากบรรทัดทั้งหมดใน item_text_str (ดักจับคำว่า coupon voucher / seller voucher)
-                    if not is_seller_voucher_desc(c_desc) and item_text_str:
+                    # ตรวจสอบเพิ่มเติมจากบรรทัดทั้งหมดใน item_text_str (ดักจับคำว่า coupon voucher / seller voucher / remark)
+                    if item_text_str:
                         for line_t in item_text_str.split('\n'):
-                            if is_seller_voucher_desc(line_t):
-                                c_desc = line_t.strip()
-                                break
+                            line_clean = line_t.strip()
+                            if is_seller_voucher_desc(line_clean) and not is_seller_voucher_desc(c_desc):
+                                c_desc = line_clean
+                            if ("Remark" in line_clean or "ราคา" in line_clean or "Dynamic" in line_clean) and not c_remark:
+                                c_remark = line_clean
+
+                    # สกัดราคาเป้าหมายจาก Remark หรือ Description (เช่น 'Dynamic ก.ย. Shp ราคา 9673')
+                    remark_target_price = extract_target_price_from_text(f"{c_remark} {c_desc} {item_text_str}")
 
                     # 3. ค้นหามูลค่าส่วนลด (Discount Amount)
                     disc_val = 0.0
@@ -1673,6 +1718,8 @@ class POSPricingReconciler:
                             "code": c_name,
                             "discount": disc_val,
                             "desc": c_desc,
+                            "remark": c_remark,
+                            "remark_target_price": remark_target_price,
                             "raw_discount": disc_text,
                             "is_selected": is_sel,
                             "start_date": c_start_date,
@@ -2192,7 +2239,7 @@ class POSPricingReconciler:
 
                         if not sv_ok:
                             sugg_info = self.find_suggested_cp_for_discount(
-                                seller_voucher, require_seller_voucher=True, order_date=purchased_date
+                                seller_voucher, require_seller_voucher=True, order_date=purchased_date, expected_price=expected_price
                             )
                             suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ((sv_chosen.get("code") if sv_chosen else ""))
                             has_entry = len(cp_candidates) > 0
@@ -2301,7 +2348,7 @@ class POSPricingReconciler:
 
                         target_discount = abs(float(diff_val))
                         sugg_info = self.find_suggested_cp_for_discount(
-                            target_discount, require_seller_voucher=False, order_date=purchased_date
+                            target_discount, require_seller_voucher=False, order_date=purchased_date, expected_price=expected_price
                         )
                         suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
