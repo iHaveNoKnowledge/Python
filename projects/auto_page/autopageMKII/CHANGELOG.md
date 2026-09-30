@@ -136,6 +136,10 @@
   - ใน `find_suggested_cp_for_discount` คำนวณคูปองแนะนำใหม่แล้วนำมาเชื่อมคู่กับคูปองเริ่มต้น เช่น `'CP2608280058 CP2608310072'`
   - ใน `_raise_missing_cp_guide` แจ้งเตือนแจกแจงชัดเจนว่าสินค้ามีคูปองเริ่มต้นใด และต้องเพิ่มคูปองใด พร้อมบันทึกรหัสคู่ผสมลงในคอลัมน์ `suggested_cp` ของ `cp_data.xlsx` ทันที เพื่อให้ผู้ใช้คัดลอกไปใช้ใน `cp_name` ได้โดยไม่ต้องเปิดดูหน้าเว็บเอง
   - เพิ่มชุดทดสอบอัตโนมัติ 7 ข้อใน `tests/test_preselected_coupon_recommendation.py` ผ่านฉลุย 100%
+- [x] **[Dynamic Smart Wait & Flexible Regex for Coupon Suggestion]** ปรับปรุงระบบสแกนคูปองบน SMCO (`scan_matching_cp_candidates_on_smco`) และการแกะวันที่:
+  - อัปเกรดการรอเปิด Modal จากเดิม 0.4 วินาที (8 * 0.05s) เป็น **Dynamic Smart Wait สูงสุด 3.0 วินาที** (30 * 0.1s) เพื่อรองรับสินค้าชุดหลาย SKU (Combo Pack) ที่ AngularJS ใช้เวลาเรนเดอร์ Modal นานกว่าปกติ แก้ปัญหารายการคูปองว่างเปล่าจนไม่เกิด `suggested_cp`
+  - ปรับปรุง `extract_coupon_date_range` ให้รองรับรูปแบบวันที่หลากหลายทั้ง พ.ศ./ค.ศ., ปี 2 หลัก (`26`), ตัวคั่นขีด/ทับ/จุด (`/`, `-`, `.`) และคำเชื่อม (`-`, `to`, `ถึง`, `~`)
+  - อัปเดตชุดทดสอบ `tests/test_coupon_date_suggestion.py` ครอบคลุมรูปแบบวันที่ใหม่ทั้งหมด ผ่านฉลุย 100%
 
 ### [5.2.5] - 2026-09-09
 - [x] **[Seller Voucher CP Integration & SSOT Pricing Guard]** ปรับปรุงระบบคำนวณราคาเพื่อรองรับการเปลี่ยนผ่านของ Seller Voucher ไปเป็น Campaign Coupon (CP) บน SMCO POS:

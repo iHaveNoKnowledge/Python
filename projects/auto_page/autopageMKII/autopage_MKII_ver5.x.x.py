@@ -3883,10 +3883,6 @@ class MyApp:
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
 
-    #! สร้างไว้ไมวะ
-    # def get_dataframe(self):
-    #     print("เรียกหา dataframe")
-
 
 # สำหรับเลือกที่มาของแหล่งข้อมูล
 class DataSourceSelector:

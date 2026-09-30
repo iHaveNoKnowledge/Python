@@ -63,18 +63,21 @@ def parse_smart_date(val: Any) -> Optional[datetime.date]:
 
 def extract_coupon_date_range(text: str) -> tuple[Optional[datetime.date], Optional[datetime.date]]:
     """
-    ดึงวันเริ่มและวันสิ้นสุดของคูปองจากข้อความ เช่น '(01/09/2026 - 30/09/2026)'
+    ดึงวันเริ่มและวันสิ้นสุดของคูปองจากข้อความ เช่น '(01/09/2026 - 30/09/2026)', '01/09/26 - 30/09/26'
     คืนค่า (start_date, end_date)
     """
     if not text:
         return None, None
-    m = re.search(r'\(?\s*(\d{1,2}/\d{1,2}/\d{4})\s*-\s*(\d{1,2}/\d{1,2}/\d{4})\s*\)?', str(text))
+    m = re.search(
+        r'\(?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\s*(?:-|to|ถึง|~)\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\s*\)?',
+        str(text),
+        re.IGNORECASE
+    )
     if m:
         s_date = parse_smart_date(m.group(1))
         e_date = parse_smart_date(m.group(2))
         return s_date, e_date
     return None, None
-
 
 def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[datetime.date], Optional[datetime.date]]:
     """
@@ -109,7 +112,6 @@ def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[datetime.date], Op
 
     return s_date, e_date
 
-
 def is_coupon_valid_for_order(c_dict: dict, order_date: Any = None) -> bool:
     """
     ตรวจสอบว่าคูปองไม่หมดอายุ และครอบคลุมวันที่สั่งซื้อหรือไม่ (start_date <= order_date <= end_date)
@@ -128,7 +130,6 @@ def is_coupon_valid_for_order(c_dict: dict, order_date: Any = None) -> bool:
     if e and parsed_order_date > e:
         return False
     return True
-
 
 def format_cp_excel(file_path: str) -> bool:
     """
@@ -1427,9 +1428,11 @@ class POSPricingReconciler:
         item_idx = int(item_no) - 1
         demonic_ordered_items_list: list = self.app.correct_sku_pattern(self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
+
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
         cp_name_loc = "//div[@ng-show='posbook.data.cnFormPaymentId===undefined']//span[@class='text-primary price-sku-h1 ng-binding']"
         target_idx = None
+
         for idx, item in enumerate(demonic_ordered_items_list):
             try:
                 item_texts = self.driver.execute_script("""
@@ -1466,11 +1469,15 @@ class POSPricingReconciler:
                 pass
             scan_btn.click()
 
-            for _ in range(8):
+            # Dynamic Smart Wait สูงสุด 3.0 วินาที (30 * 0.1s) รองรับสินค้าเซ็ตหลาย SKU และ AngularJS render
+            for _ in range(30):
                 cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
                 if cp_name_elements and any(b.is_displayed() for b in cp_name_elements):
                     break
-                time.sleep(0.05)
+                modal_items = self.driver.find_elements(By.XPATH, "//div[contains(@class,'list-group-item')]")
+                if modal_items and any(m.is_displayed() for m in modal_items):
+                    break
+                time.sleep(0.1)
 
             cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
             smco_coupon_names = [el.text.replace(" ", "").upper() for el in cp_name_elements if el.text.strip()]
@@ -1657,6 +1664,7 @@ class POSPricingReconciler:
                                 if line_clean == "selected" or line_clean.startswith("selected") or line_clean == "auto":
                                     is_sel = True
                                     break
+                                
                     except Exception as ex_sel:
                         print(f"[scan_matching_cp_candidates_on_smco] Error checking is_selected: {ex_sel}")
 
@@ -1675,6 +1683,8 @@ class POSPricingReconciler:
                 print(f"[scan_matching_cp_candidates_on_smco] Error scraping coupon details: {e}")
 
             self.last_scanned_smco_coupon_details = scanned_details
+            if scanned_details:
+                logger.debug(f"[scan_matching_cp_candidates_on_smco] Scanned {len(scanned_details)} coupons on SMCO: {[c.get('code') for c in scanned_details]}")
             preselected = []
             for sc in scanned_details:
                 if sc.get("is_selected") and sc.get("code") and sc.get("code") not in preselected:

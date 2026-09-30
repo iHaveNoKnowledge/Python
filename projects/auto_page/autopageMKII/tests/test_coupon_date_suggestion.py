@@ -41,6 +41,22 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(s2, datetime.date(2026, 9, 4))
         self.assertEqual(e2, datetime.date(2026, 10, 8))
 
+        # ทดสอบรูปแบบปี 2 หลัก และคำเชื่อม 'ถึง', 'to'
+        text3 = 'Promotion 01/09/26 - 30/09/26'
+        s3, e3 = extract_coupon_date_range(text3)
+        self.assertEqual(s3, datetime.date(2026, 9, 1))
+        self.assertEqual(e3, datetime.date(2026, 9, 30))
+
+        text4 = '01-09-2026 to 30-09-2026'
+        s4, e4 = extract_coupon_date_range(text4)
+        self.assertEqual(s4, datetime.date(2026, 9, 1))
+        self.assertEqual(e4, datetime.date(2026, 9, 30))
+
+        text5 = '01/09/2026 ถึง 30/09/2026'
+        s5, e5 = extract_coupon_date_range(text5)
+        self.assertEqual(s5, datetime.date(2026, 9, 1))
+        self.assertEqual(e5, datetime.date(2026, 9, 30))
+
         s_none, e_none = extract_coupon_date_range("ไม่มีวันที่ระบุ")
         self.assertIsNone(s_none)
         self.assertIsNone(e_none)
