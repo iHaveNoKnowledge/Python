@@ -220,6 +220,13 @@ class AutoAddProduct:
                             except Exception as err:
                                 print(f"Cannot parse product: {err}")
                                 product_from_response = None
+
+                            # บันทึกข้อมูล Product Master Info (รวมถึงคูปอง) เข้าสู่ Pricing Reconciler
+                            try:
+                                if hasattr(self.bot, 'pricing_reconciler') and self.bot.pricing_reconciler:
+                                    self.bot.pricing_reconciler.record_product_master_response(sku or product_from_response, response_data)
+                            except Exception as ex_pm:
+                                print(f"Error caching product master response: {ex_pm}")
                         else:
                             print("No response received")
 

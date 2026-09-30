@@ -119,7 +119,16 @@
   - ปรับปรุงเงื่อนไขใน [payment_handler.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/payment_handler.py) และ [autopage_MKII_ver5.x.x.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py) (`record_failed_with_checkpoint`)
   - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
 
+### [ver5.x.x] - 2026-09-30
+- [x] **[Network Interception & Multi-SKU Combo Coupon Mathematical Aggregation]** เพิ่มระบบดักจับข้อมูลคูปองจาก Network Response และรวมมูลค่าส่วนลดข้าม Sub-SKU ของสินค้าชุด (Combo Set) ทางคณิตศาสตร์:
+  - บันทึก Response จาก Network API `/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm` เมื่อยิงสินค้าแต่ละ SKU ใน `functions/auto_add_product.py` ผ่าน `record_product_master_response`
+  - เพิ่ม `get_smco_session_context` ใน `functions/pos/pricing_engine.py` สกัดข้อมูลผู้ใช้และสาขา (`emp_id`, `branch_id`, `store_id`) จาก JWT Token (`sub`) ใน Cookie/Storage อัตโนมัติ เพื่อใช้กรองคูปองเฉพาะสาขาที่ล็อกอิน (`couponBranchs`)
+  - เพิ่ม `get_aggregated_combo_coupons` คำนวณผลรวมส่วนลดจริงของแต่ละ Coupon Code (`couponDetailCash + couponDetailDisc`) จากทุก Sub-SKU ในเซ็ต (เช่น `SP1-001420+SP1-001421+...`)
+  - ผสานรายการคูปองที่คำนวณส่วนลดรวมแล้วเข้าสู่ `scan_matching_cp_candidates_on_smco` และ `find_suggested_cp_for_discount` ทำให้ระบบสามารถจับคู่และแนะนำ `suggested_cp` สำหรับสินค้าชุดได้แม่นยำ 100% แม้ใน Remark จะไม่ได้ระบุราคาเป้าหมายไว้
+  - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านฉลุย 100%
+
 ### [ver5.x.x] - 2026-09-15
+
 - [x] **[Address Dropdown Exact Match Priority]** แก้ไขปัญหาการเลือก อำเภอ/เขต/จังหวัด ใน `select_li_from_dropdown` ผิดพลาดเมื่อคำค้นหาเป็นคำย่อยของคำอื่น (เช่น ค้นหา "วัฒนา" แต่ระบบไปเลือก "ทวีวัฒนา"):
   - ปรับปรุงตรรกะใน [autopage_MKII_ver5.x.x.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py) ให้ตรวจสอบและคลิกรายการที่เป็น Exact Match (`txt == th_val or txt == en_val`) ก่อนเสมอในรอบแรก เพื่อป้องกันปัญหา Substring Match ที่ทำให้คำค้นหาสั้นไปจับคู่โดนคำยาวที่อยู่ลำดับก่อนหน้า
   - หากไม่พบ Exact Match จะเลือกตาม Index จาก API (`matched_item_idx`) ซึ่งตรงกับลำดับรายการที่แสดงใน Select2 Dropdown ของ SMCO

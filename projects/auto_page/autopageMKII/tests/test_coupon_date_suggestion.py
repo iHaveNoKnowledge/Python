@@ -334,5 +334,88 @@ class TestCouponDateSuggestion(unittest.TestCase):
                 os.remove(tmp_path)
 
 
+    def test_record_and_aggregate_combo_coupons(self):
+        """
+        ทดสอบการบันทึก Network Response จาก getProductMasterInfoPOSV3.htm
+        และการรวบรวมส่วนลดข้าม Sub-SKU ของ Combo Set (couponDetailCash + couponDetailDisc)
+        พร้อมการตรวจสอบ JWT session context และ branch filtering
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+
+        # Mock JWT context: emp_id=1234, branch_id=180, store_id=208
+        reconciler._session_ctx = {"emp_id": "1234", "branch_id": 180, "store_id": 208}
+
+        # Mock Network Response data สำหรับ 2 Sub-SKU ของ Combo Set
+        # SKU1: DC2609160013 -> cash=140, disc=60 (total=200)
+        # SKU2: DC2609160013 -> cash=100, disc=50 (total=150)
+        # ผลรวมของทั้งเซ็ต = 200 + 150 = 350
+        sku1_resp = {
+            "coupons": [
+                {
+                    "couponId": 142599,
+                    "couponCode": "DC2609160013",
+                    "couponDetailCash": 140.0,
+                    "couponDetailDisc": 60.0,
+                    "startDate": "Sep 17, 2026 12:00:01 AM",
+                    "endDate": "Sep 30, 2026 11:59:59 PM",
+                    "couponDesc": "DC Combo Set Part 1",
+                    "couponDetailRemark": "Dynamic Combo Promo",
+                    "usedFlag": False,
+                    "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 208}]
+                },
+                {
+                    "couponId": 999999,
+                    "couponCode": "OTHER_BRANCH_CP",
+                    "couponDetailCash": 500.0,
+                    "couponDetailDisc": 0.0,
+                    "startDate": "Sep 17, 2026 12:00:01 AM",
+                    "endDate": "Sep 30, 2026 11:59:59 PM",
+                    "usedFlag": False,
+                    "couponBranchs": [{"couponBranchId": 999, "couponStoreId": 999}]  # สาขาอื่น -> ต้องถูกกรองออก
+                }
+            ]
+        }
+
+        sku2_resp = {
+            "coupons": [
+                {
+                    "couponId": 142600,
+                    "couponCode": "DC2609160013",
+                    "couponDetailCash": 100.0,
+                    "couponDetailDisc": 50.0,
+                    "startDate": "Sep 17, 2026 12:00:01 AM",
+                    "endDate": "Sep 30, 2026 11:59:59 PM",
+                    "couponDesc": "DC Combo Set Part 2",
+                    "couponDetailRemark": "Dynamic Combo Promo",
+                    "usedFlag": False,
+                    "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 208}]
+                }
+            ]
+        }
+
+        # บันทึก Network Response
+        reconciler.record_product_master_response("SKU-PART-A", sku1_resp)
+        reconciler.record_product_master_response("SKU-PART-B", sku2_resp)
+
+        # ตรวจสอบการ Aggregate ของ SKU-PART-A+SKU-PART-B
+        agg = reconciler.get_aggregated_combo_coupons("SKU-PART-A+SKU-PART-B")
+        self.assertEqual(len(agg), 1)
+        self.assertEqual(agg[0]["code"], "DC2609160013")
+        self.assertEqual(agg[0]["discount"], 350.0)
+        self.assertEqual(agg[0]["raw_discount"], "350.00.-")
+        self.assertEqual(agg[0]["start_date"], datetime.date(2026, 9, 17))
+        self.assertEqual(agg[0]["end_date"], datetime.date(2026, 9, 30))
+        self.assertTrue(agg[0]["is_aggregated"])
+
+        # ตรวจสอบการ Suggest คูปองด้วยมูลค่ารวม 350 บาท
+        reconciler.last_scanned_smco_coupon_details = agg
+        sugg = reconciler.find_suggested_cp_for_discount(350.0, order_date="20/09/2026")
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "DC2609160013")
+        self.assertEqual(sugg["suggested_start_date"], datetime.date(2026, 9, 17))
+        self.assertEqual(sugg["suggested_end_date"], datetime.date(2026, 9, 30))
+
+
 if __name__ == "__main__":
     unittest.main()
+

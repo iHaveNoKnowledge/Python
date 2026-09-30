@@ -355,10 +355,190 @@ class POSPricingReconciler:
         self._last_recorded_order_id: Optional[str] = None
         self.last_expected_prices: Dict[str, float] = {}
         self._applied_adjustments: Dict[str, Set[str]] = {}
+        self._product_master_cache: Dict[str, list] = {}
+        self._session_ctx: Optional[Dict[str, Any]] = None
 
     # ══════════════════════════════════════════════════════════════════════════
     # HELPER UTILITIES
     # ══════════════════════════════════════════════════════════════════════════
+    def record_product_master_response(self, sku: str, response_data: Union[list, dict]) -> None:
+        """
+        บันทึก JSON Response จาก /getProductMasterInfoPOSV3.htm สำหรับ SKU นั้นๆ
+        ใช้สำหรับรวมส่วนลดคูปองของสินค้าเซ็ต (Multi-SKU Combo Pack)
+        """
+        if not sku or not response_data:
+            return
+        sku_clean = str(sku).strip().upper()
+        if not hasattr(self, '_product_master_cache') or self._product_master_cache is None:
+            self._product_master_cache = {}
+        if isinstance(response_data, dict):
+            response_data = [response_data]
+        self._product_master_cache[sku_clean] = response_data
+        logger.debug(f"[record_product_master_response] Cached product master info for SKU: {sku_clean} ({len(response_data)} records)")
+
+    def get_smco_session_context(self) -> Dict[str, Any]:
+        """
+        ดึง JWT Token จาก Cookie/Storage ของ SMCO แล้วแกะ sub -> (emp_id, branch_id, store_id)
+        """
+        if hasattr(self, '_session_ctx') and self._session_ctx and any(v is not None for v in self._session_ctx.values()):
+            return self._session_ctx
+
+        ctx = {"emp_id": None, "branch_id": None, "store_id": None, "token": None}
+        if not self.driver:
+            return ctx
+        try:
+            import base64
+            import json
+            cookies = self.driver.get_cookies() if hasattr(self.driver, 'get_cookies') and callable(self.driver.get_cookies) else []
+            token_str = None
+            if isinstance(cookies, list):
+                for ck in cookies:
+                    if isinstance(ck, dict) and ck.get('name', '').upper() in ['JWT-TOKEN', 'TOKEN', 'AUTHORIZATION', 'ACCESS_TOKEN']:
+                        token_str = ck.get('value')
+                        break
+            if not token_str and hasattr(self.driver, 'execute_script') and callable(self.driver.execute_script):
+                res = self.driver.execute_script("return window.localStorage.getItem('JWT-TOKEN') || window.sessionStorage.getItem('JWT-TOKEN');")
+                if isinstance(res, str):
+                    token_str = res
+
+            if isinstance(token_str, str) and token_str:
+                ctx["token"] = token_str
+                parts = token_str.strip().split('.')
+                if len(parts) >= 2:
+                    payload_b64 = parts[1] + '=' * (-len(parts[1]) % 4)
+                    payload_bytes = base64.urlsafe_b64decode(payload_b64.encode('utf-8'))
+                    payload = json.loads(payload_bytes.decode('utf-8'))
+                    sub_str = str(payload.get("sub", "")).strip()
+                    if sub_str:
+                        sub_parts = [p.strip() for p in sub_str.split(',')]
+                        if len(sub_parts) >= 3:
+                            ctx["emp_id"] = sub_parts[0]
+                            ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+                            ctx["store_id"] = int(sub_parts[2]) if sub_parts[2].isdigit() else sub_parts[2]
+                        elif len(sub_parts) == 2:
+                            ctx["emp_id"] = sub_parts[0]
+                            ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+        except Exception as ex_jwt:
+            logger.debug(f"[get_smco_session_context] Error reading JWT session context: {ex_jwt}")
+        self._session_ctx = ctx
+        return ctx
+
+
+    def get_aggregated_combo_coupons(self, sku_input: Union[str, list], order_date: Any = None) -> list[dict]:
+        """
+        รวบรวมส่วนลดของแต่ละ Coupon Code จากทุก Sub-SKU ในสินค้าเซ็ต (Combo SKU เช่น SP1-001420+SP1-001421+...)
+        โดยนำค่า couponDetailCash + couponDetailDisc ของแต่ละ SKU มารวมกัน
+        คืนค่าเป็น list ของ coupon dict ที่มีมูลค่าส่วนลดรวมของทั้งเซ็ตตรงตามความเป็นจริง
+        """
+        if not hasattr(self, '_product_master_cache') or not self._product_master_cache:
+            return []
+
+        if isinstance(sku_input, list):
+            sub_skus = [str(s).strip().upper() for s in sku_input if str(s).strip()]
+        else:
+            sub_skus = [s.strip().upper() for s in str(sku_input).split('+') if s.strip()]
+
+        if not sub_skus:
+            return []
+
+        # ดึงข้อมูลจาก _product_master_cache
+        cached_records = {}
+        for s in sub_skus:
+            if s in self._product_master_cache:
+                cached_records[s] = self._product_master_cache[s]
+            else:
+                found = False
+                for k, v in self._product_master_cache.items():
+                    if k == s or s in k or k in s:
+                        cached_records[s] = v
+                        found = True
+                        break
+                if not found:
+                    return []
+
+        ctx = self.get_smco_session_context()
+        branch_id = ctx.get("branch_id")
+        store_id = ctx.get("store_id")
+
+        from collections import defaultdict
+        coupon_agg = defaultdict(lambda: {
+            "total_discount": 0.0,
+            "startDate": None,
+            "endDate": None,
+            "desc": "",
+            "remark": "",
+            "sku_count": 0
+        })
+
+        for s in sub_skus:
+            rec_list = cached_records[s]
+            seen_in_sku = set()
+            # สกัดรายการคูปองจาก Product Master Record
+            cp_list = []
+            if isinstance(rec_list, list):
+                for rec in rec_list:
+                    if isinstance(rec, dict):
+                        if "coupons" in rec and isinstance(rec["coupons"], list):
+                            cp_list.extend(rec["coupons"])
+                        elif "couponCode" in rec:
+                            cp_list.append(rec)
+            elif isinstance(rec_list, dict):
+                cp_list = rec_list.get("coupons", [])
+
+            for cp in cp_list:
+                if not isinstance(cp, dict) or cp.get("usedFlag") is True:
+                    continue
+
+                code = cp.get("couponCode")
+                if not code or code in seen_in_sku:
+                    continue
+
+                # ตรวจสอบสาขา / Store จาก JWT Context (ถ้ามีระบุใน couponBranchs)
+                branches = cp.get("couponBranchs", [])
+                if branches:
+                    matched_branch = any(
+                        (branch_id is None or b.get("couponBranchId") == branch_id) and
+                        (store_id is None or b.get("couponStoreId") == store_id)
+                        for b in branches if isinstance(b, dict)
+                    )
+                    if not matched_branch:
+                        continue
+
+                seen_in_sku.add(code)
+                disc = float(cp.get("couponDetailCash", 0.0)) + float(cp.get("couponDetailDisc", 0.0))
+                item = coupon_agg[code]
+                item["total_discount"] += disc
+                if not item["startDate"]:
+                    item["startDate"] = cp.get("startDate")
+                if not item["endDate"]:
+                    item["endDate"] = cp.get("endDate")
+                if not item["desc"]:
+                    item["desc"] = cp.get("couponDesc", "")
+                if not item["remark"]:
+                    item["remark"] = cp.get("couponDetailRemark", "")
+                item["sku_count"] += 1
+
+        aggregated_details = []
+        for code, data in coupon_agg.items():
+            if data["sku_count"] == len(sub_skus):
+                s_dt = parse_smart_date(data["startDate"])
+                e_dt = parse_smart_date(data["endDate"])
+                aggregated_details.append({
+                    "code": code,
+                    "discount": round(data["total_discount"], 2),
+                    "desc": data["desc"],
+                    "remark": data["remark"],
+                    "remark_target_price": extract_target_price_from_text(f"{data['remark']} {data['desc']}"),
+                    "raw_discount": f"{data['total_discount']:.2f}.-",
+                    "is_selected": False,
+                    "start_date": s_dt,
+                    "end_date": e_dt,
+                    "is_expired": False,
+                    "is_aggregated": True
+                })
+
+        return aggregated_details
+
     def _track_adjustment(self, sku: str, method: str) -> None:
         """บันทึกประวัติการปรับราคาของ SKU (OC, DC, CP) ในรอบการทำงานปัจจุบัน"""
         if not sku:
@@ -661,11 +841,13 @@ class POSPricingReconciler:
                         app_rows['usage_end_date'] = end_date_val
                     self.app.cp_df = pd.concat([self.app.cp_df[~app_mask], app_rows], ignore_index=True)
                 else:
-                    if 'usage_start_date' in new_df.columns:
-                        new_df['usage_start_date'] = new_df['usage_start_date'].apply(parse_smart_date)
-                    if 'usage_end_date' in new_df.columns:
-                        new_df['usage_end_date'] = new_df['usage_end_date'].apply(parse_smart_date)
-                    self.app.cp_df = pd.concat([self.app.cp_df, new_df], ignore_index=True)
+                    new_df_copy = new_df.copy()
+                    if 'usage_start_date' in new_df_copy.columns:
+                        new_df_copy['usage_start_date'] = new_df_copy['usage_start_date'].apply(parse_smart_date)
+                    if 'usage_end_date' in new_df_copy.columns:
+                        new_df_copy['usage_end_date'] = new_df_copy['usage_end_date'].apply(parse_smart_date)
+                    self.app.cp_df = pd.concat([self.app.cp_df, new_df_copy], ignore_index=True)
+
 
             # ส่งข้อมูลขึ้น Google Sheet ในเบื้องหลัง (ถ้าเชื่อมต่อ GAS ไว้)
             try:
@@ -1728,6 +1910,35 @@ class POSPricingReconciler:
                         })
             except Exception as e:
                 print(f"[scan_matching_cp_candidates_on_smco] Error scraping coupon details: {e}")
+
+            # ผสานข้อมูลส่วนลดรวมของคูปองข้าม Sub-SKU (Aggregated Combo Coupons) จาก Network Response
+            try:
+                raw_sku_ref = str(self.app.items[item_idx].get('เลขอ้างอิง SKU (SKU Reference No.)', ''))
+                agg_coupons = self.get_aggregated_combo_coupons(raw_sku_ref or demonic_ordered_items_list)
+                if agg_coupons:
+                    logger.info(f"[scan_matching_cp_candidates_on_smco] Merging {len(agg_coupons)} aggregated combo coupons for {raw_sku_ref}: {[c.get('code') for c in agg_coupons]}")
+                    agg_map = {c["code"]: c for c in agg_coupons}
+                    for sc in scanned_details:
+                        code = sc.get("code")
+                        if code in agg_map:
+                            sc["discount"] = agg_map[code]["discount"]
+                            sc["raw_discount"] = agg_map[code]["raw_discount"]
+                            sc["is_aggregated"] = True
+                            if agg_map[code].get("remark"):
+                                sc["remark"] = agg_map[code]["remark"]
+                            if agg_map[code].get("remark_target_price"):
+                                sc["remark_target_price"] = agg_map[code]["remark_target_price"]
+                            if agg_map[code].get("start_date") and not sc.get("start_date"):
+                                sc["start_date"] = agg_map[code]["start_date"]
+                            if agg_map[code].get("end_date") and not sc.get("end_date"):
+                                sc["end_date"] = agg_map[code]["end_date"]
+
+                    sc_codes = {sc.get("code") for sc in scanned_details}
+                    for code, agg_c in agg_map.items():
+                        if code not in sc_codes:
+                            scanned_details.append(agg_c)
+            except Exception as ex_merge:
+                logger.debug(f"[scan_matching_cp_candidates_on_smco] Error merging aggregated combo coupons: {ex_merge}")
 
             self.last_scanned_smco_coupon_details = scanned_details
             if scanned_details:
