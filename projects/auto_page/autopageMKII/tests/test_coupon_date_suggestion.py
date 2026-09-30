@@ -546,15 +546,27 @@ class TestCouponDateSuggestion(unittest.TestCase):
     def test_canon_gi71_postman_remark_price_match(self):
         """ทดสอบการ Suggest คูปอง Canon GI-71 (CP2609220007) จาก Remark 'Shp/TT เดือน ก.ย. ราคาเซ็ทละ 1449' ตรงตาม Postman"""
         reconciler = POSPricingReconciler(self.mock_bot)
-        reconciler._session_ctx = {"emp_id": "9999", "branch_id": 180, "store_id": 208, "token": "dummy"}
+        reconciler._session_ctx = {"emp_id": "62078", "branch_id": 180, "store_id": 208, "token": "dummy"}
 
-        sub_skus = ["SP2-001792", "SP2-001793", "SP2-001794", "SP2-001795"]
-        for sku in sub_skus:
+        # จำลอง Response จริงจาก /getProductMasterInfoPOSV3.htm ซึ่งมี key "productCouponDetail"
+        # และค่า couponDetailDisc ของแต่ละ Sub-SKU มีค่าต่างกัน (68.0 vs 69.0)
+        # SP2-001792: 49 + 68 = 117
+        # SP2-001793: 49 + 69 = 118
+        # SP2-001794: 49 + 68 = 117
+        # SP2-001795: 49 + 70 = 119
+        # รวมทั้ง 4 SKU = 117 + 118 + 117 + 119 = 471.0 บาท พอดีเป๊ะ
+        sub_sku_discs = {
+            "SP2-001792": 68.0,  # 49 + 68 = 117
+            "SP2-001793": 69.0,  # 49 + 69 = 118
+            "SP2-001794": 68.0,  # 49 + 68 = 117
+            "SP2-001795": 70.0,  # 49 + 70 = 119 -> Total = 471.0
+        }
+        for sku, disc_val in sub_sku_discs.items():
             resp = [
                 {
                     "productId": 1002,
                     "productCode": sku,
-                    "couponDetail": [
+                    "productCouponDetail": [
                         {
                             "couponId": 142727,
                             "couponDetailId": 2417462,
@@ -562,13 +574,16 @@ class TestCouponDateSuggestion(unittest.TestCase):
                             "endDate": "Oct 9, 2026 11:59:59 PM",
                             "couponCode": "CP2609220007",
                             "couponDetailCash": 49.0,
-                            "couponDetailDisc": 68.0,
+                            "couponDetailDisc": disc_val,
                             "requirementFlag": False,
                             "couponDetailRemark": "Shp/TT เดือน ก.ย. ราคาเซ็ทละ 1449",
                             "couponDesc": "Promotion Canon Shp/Tiktok วันที่ 23 Sep - 9 Oct 2026 Addon Online SITS1,STIKTO",
                             "couponType": 10520005,
                             "usedFlag": False,
-                            "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 208}]
+                            "couponBranchs": [
+                                {"couponBranchId": 180, "couponStoreId": 208},
+                                {"couponBranchId": 180, "couponStoreId": 642}
+                            ]
                         }
                     ]
                 }
@@ -579,11 +594,12 @@ class TestCouponDateSuggestion(unittest.TestCase):
         agg = reconciler.get_aggregated_combo_coupons(combo_sku)
         self.assertEqual(len(agg), 1)
         self.assertEqual(agg[0]["code"], "CP2609220007")
+        self.assertEqual(agg[0]["discount"], 471.0)  # ยอดรวมคูปองทั้ง 4 Sub-SKU = 471.0 บาท พอดีเป๊ะ
         self.assertEqual(agg[0]["remark_target_price"], 1449.0)
 
         reconciler.last_scanned_smco_coupon_details = agg
-        # ค้นหาคูปองสำหรับออเดอร์ราคาเป้าหมาย 1,449.0 บาท วันที่ 2026-09-28
-        sugg = reconciler.find_suggested_cp_for_discount(471.0, order_date="2026-09-28 08:48", expected_price=1449.0)
+        # ค้นหาคูปองสำหรับออเดอร์ส่วนต่าง 471.0 บาท (1920 - 1449 = 471)
+        sugg = reconciler.find_suggested_cp_for_discount(471.0, order_date="2026-09-28 08:48", expected_price=1449.0, sku=combo_sku)
         self.assertIsNotNone(sugg)
         self.assertEqual(sugg["suggested_code"], "CP2609220007")
         self.assertEqual(format_smart_datetime_str(sugg["start_date"]), "23/09/2026 00:00:01")

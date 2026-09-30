@@ -457,28 +457,38 @@ class POSPricingReconciler:
         """
         if not sku or not response_data:
             return
-        sku_clean = str(sku).strip().upper()
         if not hasattr(self, '_product_master_cache') or self._product_master_cache is None:
             self._product_master_cache = {}
         if isinstance(response_data, dict):
             response_data = [response_data]
+            
+        sku_clean = str(sku).strip().upper()
         self._product_master_cache[sku_clean] = response_data
+        
+        # บันทึกทั้งแบบ standard formatted และ productCode จาก response
+        fmt_sku = self.sku_formater(sku_clean).strip().upper()
+        if fmt_sku and fmt_sku != sku_clean:
+            self._product_master_cache[fmt_sku] = response_data
+            
+        for rec in response_data:
+            if isinstance(rec, dict) and rec.get("productCode"):
+                p_code = str(rec.get("productCode")).strip().upper()
+                if p_code not in self._product_master_cache:
+                    self._product_master_cache[p_code] = response_data
         logger.debug(f"[record_product_master_response] Cached product master info for SKU: {sku_clean} ({len(response_data)} records)")
 
     def get_smco_session_context(self) -> Dict[str, Any]:
         """
-        ดึง JWT Token จาก Cookie/Storage ของ SMCO แล้วแกะ sub -> (emp_id, branch_id, store_id)
+        ดึงข้อมูลผู้ใช้ สาขา (branch_id) และร้านค้า (store_id) จาก AngularJS scope ของหน้า SMCO
+        และ fallback ไปยัง JWT Token (sub) ใน Cookie/Storage หากจำเป็น
         """
         if hasattr(self, '_session_ctx') and self._session_ctx and any(v is not None for v in self._session_ctx.values()):
             return self._session_ctx
 
-        ctx = {"emp_id": None, "branch_id": None, "store_id": None, "token": None}
+        ctx = {"emp_id": None, "branch_id": None, "store_id": None, "store_code": None, "token": None}
         if not self.driver:
             return ctx
         try:
-            import base64
-            import json
-
             # สลับไปยังแท็บ SMCO หากจำเป็น
             orig_handle = None
             try:
@@ -490,35 +500,76 @@ class POSPricingReconciler:
             except Exception:
                 pass
 
-            cookies = self.driver.get_cookies() if hasattr(self.driver, 'get_cookies') and callable(self.driver.get_cookies) else []
-            token_str = None
-            if isinstance(cookies, list):
-                for ck in cookies:
-                    if isinstance(ck, dict) and ck.get('name', '').upper() in ['JWT-TOKEN', 'TOKEN', 'AUTHORIZATION', 'ACCESS_TOKEN']:
-                        token_str = ck.get('value')
-                        break
-            if not token_str and hasattr(self.driver, 'execute_script') and callable(self.driver.execute_script):
-                res = self.driver.execute_script("return window.localStorage.getItem('JWT-TOKEN') || window.sessionStorage.getItem('JWT-TOKEN');")
-                if isinstance(res, str):
-                    token_str = res
+            # 1. ดึงข้อมูลตรงจาก AngularJS scope ของ SMCO (แม่นยำที่สุด)
+            if hasattr(self.driver, 'execute_script') and callable(self.driver.execute_script):
+                try:
+                    scope_info = self.driver.execute_script("""
+                        try {
+                            let el = document.querySelector('[ng-app]') || document.querySelector('body');
+                            if (window.angular && el && angular.element(el).scope()) {
+                                let sc = angular.element(el).scope();
+                                let b_id = sc._branchXId || (sc.storeLogin && sc.storeLogin.branchCustom && sc.storeLogin.branchCustom.id) || (sc.storeCustomLogin && sc.storeCustomLogin.branchCustom && sc.storeCustomLogin.branchCustom.id);
+                                let s_id = (sc.storeLogin && sc.storeLogin.id) || (sc.storeCustomLogin && sc.storeCustomLogin.id);
+                                let s_code = (sc.storeLogin && sc.storeLogin.storeCode) || (sc.storeCustomLogin && sc.storeCustomLogin.storeCode);
+                                let e_id = (sc.empLogin && sc.empLogin[0] && sc.empLogin[0].employeeNo) || (sc._userLogin && sc._userLogin[0] && sc._userLogin[0].empId);
+                                return {
+                                    branch_id: b_id ? (isNaN(b_id) ? b_id : parseInt(b_id)) : null,
+                                    store_id: s_id ? (isNaN(s_id) ? s_id : parseInt(s_id)) : null,
+                                    store_code: s_code || null,
+                                    emp_id: e_id || null
+                                };
+                            }
+                        } catch (e) {
+                            return null;
+                        }
+                        return null;
+                    """)
+                    if isinstance(scope_info, dict):
+                        if scope_info.get("branch_id") is not None:
+                            ctx["branch_id"] = scope_info["branch_id"]
+                        if scope_info.get("store_id") is not None:
+                            ctx["store_id"] = scope_info["store_id"]
+                        if scope_info.get("store_code"):
+                            ctx["store_code"] = scope_info["store_code"]
+                        if scope_info.get("emp_id"):
+                            ctx["emp_id"] = scope_info["emp_id"]
+                except Exception as ex_sc:
+                    logger.debug(f"[get_smco_session_context] Error reading AngularJS scope: {ex_sc}")
 
-            if isinstance(token_str, str) and token_str:
-                ctx["token"] = token_str
-                parts = token_str.strip().split('.')
-                if len(parts) >= 2:
-                    payload_b64 = parts[1] + '=' * (-len(parts[1]) % 4)
-                    payload_bytes = base64.urlsafe_b64decode(payload_b64.encode('utf-8'))
-                    payload = json.loads(payload_bytes.decode('utf-8'))
-                    sub_str = str(payload.get("sub", "")).strip()
-                    if sub_str:
-                        sub_parts = [p.strip() for p in sub_str.split(',')]
-                        if len(sub_parts) >= 3:
-                            ctx["emp_id"] = sub_parts[0]
-                            ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
-                            ctx["store_id"] = int(sub_parts[2]) if sub_parts[2].isdigit() else sub_parts[2]
-                        elif len(sub_parts) == 2:
-                            ctx["emp_id"] = sub_parts[0]
-                            ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+            # 2. Fallback: ดึง JWT Token จาก Cookie/Storage ของ SMCO แล้วแกะ sub -> (emp_id, branch_id, store_id)
+            if ctx.get("branch_id") is None:
+                import base64
+                import json
+
+                cookies = self.driver.get_cookies() if hasattr(self.driver, 'get_cookies') and callable(self.driver.get_cookies) else []
+                token_str = None
+                if isinstance(cookies, list):
+                    for ck in cookies:
+                        if isinstance(ck, dict) and ck.get('name', '').upper() in ['JWT-TOKEN', 'TOKEN', 'AUTHORIZATION', 'ACCESS_TOKEN']:
+                            token_str = ck.get('value')
+                            break
+                if not token_str and hasattr(self.driver, 'execute_script') and callable(self.driver.execute_script):
+                    res = self.driver.execute_script("return window.localStorage.getItem('JWT-TOKEN') || window.sessionStorage.getItem('JWT-TOKEN');")
+                    if isinstance(res, str):
+                        token_str = res
+
+                if isinstance(token_str, str) and token_str:
+                    ctx["token"] = token_str
+                    parts = token_str.strip().split('.')
+                    if len(parts) >= 2:
+                        payload_b64 = parts[1] + '=' * (-len(parts[1]) % 4)
+                        payload_bytes = base64.urlsafe_b64decode(payload_b64.encode('utf-8'))
+                        payload = json.loads(payload_bytes.decode('utf-8'))
+                        sub_str = str(payload.get("sub", "")).strip()
+                        if sub_str:
+                            sub_parts = [p.strip() for p in sub_str.split(',')]
+                            if len(sub_parts) >= 3:
+                                ctx["emp_id"] = sub_parts[0]
+                                ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+                                ctx["store_id"] = int(sub_parts[2]) if sub_parts[2].isdigit() else sub_parts[2]
+                            elif len(sub_parts) == 2:
+                                ctx["emp_id"] = sub_parts[0]
+                                ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
 
             if orig_handle:
                 try:
@@ -526,7 +577,7 @@ class POSPricingReconciler:
                 except Exception:
                     pass
         except Exception as ex_jwt:
-            logger.debug(f"[get_smco_session_context] Error reading JWT session context: {ex_jwt}")
+            logger.debug(f"[get_smco_session_context] Error reading SMCO session context: {ex_jwt}")
             
         if any(v is not None for v in ctx.values()):
             self._session_ctx = ctx
@@ -539,9 +590,6 @@ class POSPricingReconciler:
         โดยนำค่า couponDetailCash + couponDetailDisc ของแต่ละ SKU มารวมกัน
         คืนค่าเป็น list ของ coupon dict ที่มีมูลค่าส่วนลดรวมของทั้งเซ็ตตรงตามความเป็นจริง
         """
-        if not hasattr(self, '_product_master_cache') or not self._product_master_cache:
-            return []
-
         if isinstance(sku_input, list):
             sub_skus = [str(s).strip().upper() for s in sku_input if str(s).strip()]
         else:
@@ -549,6 +597,52 @@ class POSPricingReconciler:
 
         if not sub_skus:
             return []
+
+        if not hasattr(self, '_product_master_cache') or self._product_master_cache is None:
+            self._product_master_cache = {}
+
+        # ตรวจสอบว่า sub_sku ใดที่ยังไม่อยู่ในแคช หากขาดหายไป ให้ดึงสดจาก SMCO ผ่าน driver ทันที
+        missing_skus = []
+        for s in sub_skus:
+            s_clean = s.strip().upper()
+            found = (s_clean in self._product_master_cache or
+                     self.sku_formater(s_clean).strip().upper() in self._product_master_cache or
+                     any(k == s_clean or s_clean in k or k in s_clean for k in self._product_master_cache.keys()))
+            if not found:
+                missing_skus.append(s)
+
+        if missing_skus and self.driver:
+            for ms in missing_skus:
+                try:
+                    js_fetch = """
+                    var callback = arguments[arguments.length - 1];
+                    var sku = arguments[0];
+                    var formData = new URLSearchParams();
+                    formData.append('activeFlag', 'true');
+                    formData.append('requestText', sku);
+                    formData.append('start', '1');
+                    formData.append('length', '1');
+                    formData.append('order[0][column]', '0');
+                    formData.append('order[0][dir]', 'asc');
+                    formData.append('modeScan', 'Y');
+                    formData.append('isIgnoreQty', 'false');
+                    formData.append('onlyProduct', 'false');
+
+                    fetch('/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                        body: formData.toString()
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { callback(d); })
+                    .catch(function(err) { callback(null); });
+                    """
+                    fetched_data = self.driver.execute_async_script(js_fetch, ms)
+                    if fetched_data:
+                        self.record_product_master_response(ms, fetched_data)
+                        logger.info(f"[get_aggregated_combo_coupons] Fetched missing sub-SKU '{ms}' from SMCO directly")
+                except Exception as ex_fetch:
+                    logger.debug(f"[get_aggregated_combo_coupons] Error fetching sub-SKU '{ms}': {ex_fetch}")
 
         # ดึงข้อมูลจาก _product_master_cache ด้วย flexible matching
         cached_records = {}
@@ -594,7 +688,7 @@ class POSPricingReconciler:
             elif isinstance(rec_data, dict):
                 if "couponCode" in rec_data or "couponId" in rec_data:
                     extracted.append(rec_data)
-                for key in ["coupons", "couponDetail", "couponDetails", "couponList", "productCoupons", "productCouponList", "listCoupon", "promotions"]:
+                for key in ["productCouponDetail", "coupons", "couponDetail", "couponDetails", "couponList", "productCoupons", "productCouponList", "listCoupon", "promotions"]:
                     val = rec_data.get(key)
                     if isinstance(val, list):
                         for item in val:
@@ -615,7 +709,8 @@ class POSPricingReconciler:
                 if not code or code in seen_in_sku:
                     continue
 
-                # ตรวจสอบสาขา / Store จาก JWT Context (ถ้ามีระบุใน couponBranchs)
+                # ตรวจสอบสาขา / Store จาก Session Context (ถ้ามีระบุใน couponBranchs)
+                # ต้องตรงกับสาขาที่ระบบเปิดการขายอยู่จริง มิเช่นนั้นบนเว็บ POS จะมองไม่เห็นคูปองนี้
                 branches = cp.get("couponBranchs", [])
                 if branches and isinstance(branches, list):
                     if branch_id is not None:
@@ -626,7 +721,10 @@ class POSPricingReconciler:
                             b_br = b.get("couponBranchId") if b.get("couponBranchId") is not None else b.get("branchId")
                             b_st = b.get("couponStoreId") if b.get("couponStoreId") is not None else b.get("storeId")
 
+                            # ตรวจสอบรหัสสาขา (Branch)
                             br_ok = (b_br is None) or (str(b_br).strip() == str(branch_id).strip())
+                            
+                            # ตรวจสอบรหัสร้านค้า (Store)
                             st_ok = True
                             if store_id is not None and b_st is not None and str(b_st).strip() not in ["", "0", "None"]:
                                 st_ok = (str(b_st).strip() == str(store_id).strip())
@@ -1410,7 +1508,8 @@ class POSPricingReconciler:
         target_discount: float,
         require_seller_voucher: bool = False,
         order_date: Any = None,
-        expected_price: Optional[float] = None
+        expected_price: Optional[float] = None,
+        sku: Optional[str] = None
     ) -> Optional[dict]:
         """
         คำนวณหาคูปอง (ตัวเดียว หรือคู่ผสม) จากรายการคูปองที่สแกนได้บนหน้าเว็บ SMCO
@@ -1422,7 +1521,32 @@ class POSPricingReconciler:
         3. หากวันเริ่มเท่ากัน ให้เลือกอันที่สิ้นสุด (end_date) ไวที่สุด
         4. หากสิ้นสุดเท่ากัน ให้เลือกตาม recency_score ล่าสุด (คูปองที่ตรงตาม Remark ราคาเป้าหมายจะได้แต้มสูงสุด)
         """
-        details = getattr(self, 'last_scanned_smco_coupon_details', [])
+        details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
+        
+        # หาก details ว่างเปล่า หรือกรณีสินค้าเซ็ต ให้ดึง/ผสานจาก get_aggregated_combo_coupons ร่วมด้วย
+        target_sku = sku or getattr(self, '_current_reconcile_sku', '')
+        if target_sku and ('+' in str(target_sku) or isinstance(target_sku, list)):
+            try:
+                agg = self.get_aggregated_combo_coupons(target_sku, order_date=order_date)
+                if agg:
+                    existing_codes = {d.get("code") for d in details}
+                    for a in agg:
+                        if a.get("code") not in existing_codes:
+                            details.append(a)
+                        else:
+                            for idx_d, d_item in enumerate(details):
+                                if d_item.get("code") == a.get("code"):
+                                    details[idx_d]["discount"] = a["discount"]
+                                    details[idx_d]["raw_discount"] = a["raw_discount"]
+                                    if a.get("remark"):
+                                        details[idx_d]["remark"] = a["remark"]
+                                    if a.get("start_date"):
+                                        details[idx_d]["start_date"] = a["start_date"]
+                                    if a.get("end_date"):
+                                        details[idx_d]["end_date"] = a["end_date"]
+            except Exception as ex_agg:
+                logger.debug(f"[find_suggested_cp_for_discount] Error aggregating for {target_sku}: {ex_agg}")
+
         if not details or (target_discount <= 0 and expected_price is None):
             return None
 
@@ -2645,7 +2769,7 @@ class POSPricingReconciler:
 
                         if not sv_ok:
                             sugg_info = self.find_suggested_cp_for_discount(
-                                seller_voucher, require_seller_voucher=True, order_date=purchased_date, expected_price=expected_price
+                                seller_voucher, require_seller_voucher=True, order_date=purchased_date, expected_price=expected_price, sku=sku_key
                             )
                             suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ((sv_chosen.get("code") if sv_chosen else ""))
                             has_entry = len(cp_candidates) > 0
@@ -2754,7 +2878,7 @@ class POSPricingReconciler:
 
                         target_discount = abs(float(diff_val))
                         sugg_info = self.find_suggested_cp_for_discount(
-                            target_discount, require_seller_voucher=False, order_date=purchased_date, expected_price=expected_price
+                            target_discount, require_seller_voucher=False, order_date=purchased_date, expected_price=expected_price, sku=sku_key
                         )
                         suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
