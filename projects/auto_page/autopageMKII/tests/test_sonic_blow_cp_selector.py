@@ -269,9 +269,9 @@ class TestSonicBlowCPSelector(unittest.TestCase):
         ]
         self.mock_app.cus_purchase_time.get.return_value = '2026-09-09 13:26'
 
-        # Mock find_all_cp_candidates_from_excel ให้จำลองแถว 382 (มีชื่อว่า 'ไม่มี cp dc จริง' แต่ไม่มี oc_amount)
+        # 1. กรณีระบุ oc_amount ใน cp_data.xlsx: ปรับราคาขึ้นตามที่ระบุ
         self.reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
-            {"cp_name": "ไม่มี cp dc จริง", "oc_amount": "", "dc_amount": ""}
+            {"cp_name": "CP_WITH_OC", "oc_amount": "57.0", "dc_amount": ""}
         ])
         self.reconciler.smco_set_overcharge_product = MagicMock()
 
@@ -287,8 +287,14 @@ class TestSonicBlowCPSelector(unittest.TestCase):
         }
 
         self.reconciler.process_price_mismatches(verification_result)
+        self.reconciler.smco_set_overcharge_product.assert_called_once_with('MNL-002265', '57.0')
 
-        # ต้องมีการเรียก smco_set_overcharge_product ด้วยยอดส่วนต่าง 57.0
+        # 2. กรณีไม่มีการระบุ oc_amount สำหรับออเดอร์ทั่วไป: ปรับราคาขึ้นตามส่วนต่าง diff (57.0) ทันที
+        self.reconciler.find_all_cp_candidates_from_excel = MagicMock(return_value=[
+            {"cp_name": "ไม่มี cp dc จริง", "oc_amount": "", "dc_amount": ""}
+        ])
+        self.reconciler.smco_set_overcharge_product = MagicMock()
+        self.reconciler.process_price_mismatches(verification_result)
         self.reconciler.smco_set_overcharge_product.assert_called_once_with('MNL-002265', '57.0')
 
 

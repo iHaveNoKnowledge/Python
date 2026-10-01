@@ -1017,6 +1017,11 @@ class POSPricingReconciler:
                 if col not in df.columns:
                     df[col] = ""
 
+            if 'last_updated' not in df.columns:
+                df['last_updated'] = ""
+
+            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             start_str = format_smart_datetime_str(start_date) if start_date else ""
             end_str = format_smart_datetime_str(end_date) if end_date else ""
             remark_str = str(remark or "").strip()
@@ -1035,6 +1040,7 @@ class POSPricingReconciler:
                     existing_rows['suggested_usage_end_date'] = end_str
                 if remark_str:
                     existing_rows['suggested_remark'] = remark_str
+                existing_rows['last_updated'] = now_str
                 
                 df_without_old = df[~mask]
                 df_combined = pd.concat([df_without_old, existing_rows], ignore_index=True)
@@ -1045,7 +1051,8 @@ class POSPricingReconciler:
                     'suggested_cp': suggested_cp,
                     'suggested_usage_start_date': start_str,
                     'suggested_usage_end_date': end_str,
-                    'suggested_remark': remark_str
+                    'suggested_remark': remark_str,
+                    'last_updated': now_str
                 }
 
                 new_df = pd.DataFrame([new_row])
@@ -1077,6 +1084,8 @@ class POSPricingReconciler:
                 for col in suggested_cols:
                     if col not in self.app.cp_df.columns:
                         self.app.cp_df[col] = ""
+                if 'last_updated' not in self.app.cp_df.columns:
+                    self.app.cp_df['last_updated'] = ""
 
                 app_mask = (self.app.cp_df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((self.app.cp_df['sale_price'] - expected_price).abs() <= 0.05)
                 if app_mask.any():
@@ -1089,6 +1098,7 @@ class POSPricingReconciler:
                         app_rows['suggested_usage_end_date'] = end_str
                     if remark_str:
                         app_rows['suggested_remark'] = remark_str
+                    app_rows['last_updated'] = now_str
                     self.app.cp_df = pd.concat([self.app.cp_df[~app_mask], app_rows], ignore_index=True)
                 else:
                     new_df_copy = new_df.copy()
@@ -1098,13 +1108,20 @@ class POSPricingReconciler:
             try:
                 if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
                     payload = {
-                        "sku": sku_key,
-                        "expected_price": expected_price,
-                        "suggested_cp": suggested_cp,
+                        "sku": sku_clean,
+                        "sale_price": float(expected_price),
+                        "expected_price": float(expected_price),
+                        "suggested_cp": str(suggested_cp or "").strip(),
                         "suggested_usage_start_date": start_str,
                         "suggested_usage_end_date": end_str,
-                        "suggested_remark": remark_str
+                        "suggested_remark": remark_str,
+                        "last_updated": now_str
                     }
+                    if mask.any():
+                        old_row = existing_rows.iloc[0]
+                        for c in ['cp_name', 'usage_start_date', 'usage_end_date', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc', 'last_order_id', 'last_used_cp', 'last_actual_price', 'last_adjustment_method']:
+                            if c in old_row and pd.notna(old_row[c]) and str(old_row[c]).strip():
+                                payload[c] = str(old_row[c]).strip()
                     self._dual_cp_loader.push_record_to_gas(payload)
             except Exception as gas_err:
                 print(f"[add_missing_cp_to_excel] Optional GAS push skipped: {gas_err}")
@@ -1480,21 +1497,29 @@ class POSPricingReconciler:
                         sku_c = str(it.get('sku', '')).strip().upper()
                         act_p = float(it.get('unit_net', 0.0))
                         
-                        row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c)
+                        row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c) & ((df['sale_price'] - act_p).abs() <= 0.05)
+                        if not row_m.any():
+                            row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c)
                         m_val = str(df.loc[row_m, 'last_adjustment_method'].iloc[0]) if (row_m.any() and 'last_adjustment_method' in df.columns) else ""
                         
-                        self._dual_cp_loader.push_record_to_gas({
+                        payload = {
                             "sku": sku_c,
                             "sale_price": act_p,
+                            "expected_price": act_p,
                             "cp_name": used_c,
-                            "suggested_cp": used_c,
                             "last_order_id": str(order_id),
                             "last_used_cp": used_c,
                             "last_adjustment_method": m_val,
                             "last_actual_price": act_p,
                             "last_updated": now_str,
                             "action": "AUTO_LEARN_SUCCESS"
-                        })
+                        }
+                        if row_m.any():
+                            m_row = df.loc[row_m].iloc[0]
+                            for col in ['usage_start_date', 'usage_end_date', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc']:
+                                if col in m_row and pd.notna(m_row[col]) and str(m_row[col]).strip():
+                                    payload[col] = str(m_row[col]).strip()
+                        self._dual_cp_loader.push_record_to_gas(payload)
             except Exception as gas_err:
                 logger.debug(f"[record_pos_cart_summary_to_excel] Google Sheet sync skipped: {gas_err}")
 
@@ -2851,7 +2876,7 @@ class POSPricingReconciler:
                                     f"ℹ️ ออเดอร์มี Seller Voucher แต่ไม่มีการระบุ oc_amount ใน cp_data.xlsx สำหรับ SKU: {sku_key} (ส่วนต่าง: +{diff_val:,.2f} บาท) -> ไม่ทำการ Overcharge อัตโนมัติ เพื่อความปลอดภัย"
                                 )
                             else:
-                                # กรณีออเดอร์ทั่วไปที่ไม่มี Seller Voucher: ปรับราคาขึ้นตามส่วนต่าง diff_val ทันที
+                                # กรณีออเดอร์ทั่วไปที่ราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0): ปรับราคาขึ้นตามส่วนต่าง diff_val ทันที
                                 self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
                                 self.smco_set_overcharge_product(sku_key, str(diff_val))
 

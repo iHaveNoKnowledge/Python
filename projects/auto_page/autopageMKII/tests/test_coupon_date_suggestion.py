@@ -407,6 +407,9 @@ class TestCouponDateSuggestion(unittest.TestCase):
             self.assertEqual(row_new["suggested_usage_start_date"].iloc[0], "08/09/2026 00:00:01")
             self.assertEqual(row_new["suggested_usage_end_date"].iloc[0], "30/09/2026 23:59:59")
             self.assertEqual(row_new["suggested_remark"].iloc[0], "New Launch Promo")
+            # ตรวจสอบคอลัมน์ last_updated
+            self.assertTrue(pd.notna(row_new["last_updated"].iloc[0]))
+            self.assertTrue(len(str(row_new["last_updated"].iloc[0])) > 10)
 
             # ตรวจสอบรูปแบบ format_cp_excel
             wb = openpyxl.load_workbook(tmp_path)
@@ -605,6 +608,80 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(format_smart_datetime_str(sugg["start_date"]), "23/09/2026 00:00:01")
         self.assertEqual(format_smart_datetime_str(sugg["end_date"]), "09/10/2026 23:59:59")
         self.assertEqual(sugg["suggested_remark"], "Shp/TT เดือน ก.ย. ราคาเซ็ทละ 1449")
+
+
+    def test_gas_payload_sync_and_deduplication(self):
+        """ทดสอบว่า payload ที่ส่งไปยัง GAS มีคอลัมน์ครบถ้วน (suggested_cp, dates, remark, last_updated) และ _is_exact_duplicate ไม่บล็อกข้อมูลใหม่"""
+        from functions.pos.cp_data_loader import DualSourceCPLoader
+        from unittest.mock import MagicMock
+
+        loader = DualSourceCPLoader(gas_url="https://mock-gas-url/exec")
+        loader._cached_df = pd.DataFrame([
+            {
+                "sku": "SP2-001792",
+                "sale_price": 350.0,
+                "cp_name": "",
+                "suggested_cp": "CP2609220007",
+                "suggested_usage_start_date": "",
+                "suggested_usage_end_date": "",
+                "suggested_remark": ""
+            }
+        ])
+
+        # กรณีที่ 1: ข้อมูลเดิมในแคชไม่มีวันที่ แต่ payload ใหม่มีวันที่ -> ต้องไม่ใช่ duplicate (ต้องส่งขึ้น GAS ได้)
+        new_payload = {
+            "sku": "SP2-001792",
+            "sale_price": 350.0,
+            "suggested_cp": "CP2609220007",
+            "suggested_usage_start_date": "23/09/2026 00:00:01",
+            "suggested_usage_end_date": "09/10/2026 23:59:59",
+            "suggested_remark": "Shp/TT Promo",
+            "last_updated": "01/10/2026 12:00:00"
+        }
+        self.assertFalse(loader._is_exact_duplicate(new_payload))
+
+        # กรณีที่ 2: อัปเดตแคชให้ตรงกับข้อมูลใหม่แล้ว -> คราวนี้ต้องถือเป็น duplicate
+        loader._cached_df = pd.DataFrame([new_payload])
+        self.assertTrue(loader._is_exact_duplicate(new_payload))
+
+        # กรณีที่ 3: ตรวจสอบการส่ง payload จาก add_missing_cp_to_excel ไปยัง push_record_to_gas
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            pd.DataFrame([{"sku": "SP2-001792", "sale_price": 350.0, "suggested_cp": ""}]).to_excel(tmp_path, index=False)
+            reconciler = POSPricingReconciler(self.mock_bot)
+            self.mock_app.cp_table_location = tmp_path
+            self.mock_app.cp_df = pd.DataFrame([{"sku": "SP2-001792", "sale_price": 350.0}])
+
+            mock_loader = MagicMock()
+            reconciler._dual_cp_loader = mock_loader
+
+            reconciler.add_missing_cp_to_excel(
+                sku_key="SP2-001792",
+                expected_price=350.0,
+                suggested_cp="CP2609220007",
+                start_date=datetime.datetime(2026, 9, 23, 0, 0, 1),
+                end_date=datetime.datetime(2026, 10, 9, 23, 59, 59),
+                remark="Canon GI-71 Set"
+            )
+
+            mock_loader.push_record_to_gas.assert_called_once()
+            called_payload = mock_loader.push_record_to_gas.call_args[0][0]
+
+            self.assertEqual(called_payload["sku"], "SP2-001792")
+            self.assertEqual(called_payload["sale_price"], 350.0)
+            self.assertEqual(called_payload["expected_price"], 350.0)
+            self.assertEqual(called_payload["suggested_cp"], "CP2609220007")
+            self.assertEqual(called_payload["suggested_usage_start_date"], "23/09/2026 00:00:01")
+            self.assertEqual(called_payload["suggested_usage_end_date"], "09/10/2026 23:59:59")
+            self.assertEqual(called_payload["suggested_remark"], "Canon GI-71 Set")
+            self.assertIn("last_updated", called_payload)
+            self.assertTrue(len(called_payload["last_updated"]) > 10)
+
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
 
 if __name__ == "__main__":

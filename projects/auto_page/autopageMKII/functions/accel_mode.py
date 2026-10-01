@@ -1764,12 +1764,12 @@ class AccelMode:
 
                 sn_cell_val = ", ".join(matched_sns)
                 new_rows_data.append({
+                    'timestamp': now_ts,
                     'tracking': str(trk),
                     'orders': order_str,
                     'bill_no': str(bill_no),
                     'price': str(price),
                     'pricing_detail': str(pricing_detail),
-                    'timestamp': now_ts,
                     'status': str(status),
                     'sn': sn_cell_val
                 })
@@ -1786,12 +1786,12 @@ class AccelMode:
             trk_val = tracking_list[0] if tracking_list else ""
             sn_val = ", ".join([p['sn'] for p in parsed_serials if p.get('sn')])
             new_rows_data.append({
+                'timestamp': now_ts,
                 'tracking': str(trk_val),
                 'orders': order_str,
                 'bill_no': str(bill_no),
                 'price': str(price),
                 'pricing_detail': str(pricing_detail),
-                'timestamp': now_ts,
                 'status': str(status),
                 'sn': sn_val
             })
@@ -1808,7 +1808,7 @@ class AccelMode:
                     f"Accel file {self.accel_file_dir} does not exist, cannot record completed order.")
                 return
 
-            _col_order = ['tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'timestamp', 'status', 'sn']
+            _col_order = ['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']
             completed_df = pd.DataFrame(columns=_col_order)
 
             try:

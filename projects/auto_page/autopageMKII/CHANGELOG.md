@@ -64,6 +64,21 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-10-01
+- [x] **[Accel Mode Completed_Orders Column Reordering]** ย้ายคอลัมน์ `timestamp` ไปไว้คอลัมน์แรกสุด (Column A / Index 0) ในชีท `Completed_Orders` เพื่อความสะดวกในการตรวจสอบประวัติและเรียงลำดับเวลาการทำงาน:
+  - ปรับลำดับคอลัมน์มาตรฐานเป็น `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']`
+  - ปรับปรุงฟังก์ชัน `record_completed_order()` ใน `functions/accel_mode.py` ให้บันทึกตามโครงสร้างใหม่
+  - อัปเดตและจัดโครงสร้างคอลัมน์ในไฟล์ Excel `tables/Accel_mode_uat.xlsx` รวมถึงไฟล์ชุดตัวอย่างใน `assets/tables/` ทั้งหมด
+- [x] **[Google Apps Script & CP Data Dual-Source Sync]** ปรับปรุงระบบซิงค์ข้อมูล CP ระหว่าง Local Excel (`cp_data.xlsx`) และ Google Apps Script Web App ให้รองรับโครงสร้าง 19 คอลัมน์อย่างสมบูรณ์:
+  - เพิ่มการส่งฟิลด์คำแนะนำคูปอง (`suggested_cp`, `suggested_usage_start_date`, `suggested_usage_end_date`, `suggested_remark`)
+  - อัปเดตคอลัมน์ `last_updated` ด้วยเวลาปัจจุบันเสมอทั้งกรณีเพิ่มแถวใหม่ (Insert) และแก้ไขแถวเดิม (Update)
+  - ปรับปรุง `_is_exact_duplicate()` ใน `DualSourceCPLoader` ให้ตรวจสอบทุกฟิลด์เพื่อป้องกันการ skip บันทึกเมื่อมีข้อมูล suggestion ใหม่
+- [x] **[Pricing Engine Two-Phase Reconciliation & Safety Verification]** ยืนยันและตรวจสอบความถูกต้องของระบบการปรับราคา (Overcharge / Discount) 2 ขั้นตอน:
+  - **Phase 1 (Seller Voucher)**: หากคำสั่งซื้อมีส่วนลดจากผู้ขาย ระบบจะหักยอดส่วนลดจากราคาสินค้าเป้าหมายก่อนเข้าสู่การจับคู่คูปอง
+  - **Phase 2 (Price Reconciliation)**:
+    - *กรณีราคาเริ่มต้นต่ำกว่าราคาซื้อ (`diff > 0`)*: ปรับเพิ่มราคา (Overcharge) ได้ทันทีตามส่วนต่าง
+    - *กรณีราคาเริ่มต้นสูงกว่าราคาซื้อ (`diff < 0`)*: บังคับค้นหาและเลือก Campaign Coupon (CP) พร้อมตรวจสอบ `oc_amount`/`dc_amount` อย่างเข้มงวด หากราคาหลังหักล้างยังไม่ตรงกับราคาเป้าหมาย ระบบจะปฏิเสธการแก้ราคาอัตโนมัติและแจ้งเตือนส่งต่อให้ทีม Production ทันทีเพื่อความถูกต้องของบัญชี
+
 ### [ver5.x.x] - 2026-09-24
 - [x] **[Accel Mode Multi-SKU Modal Two-Loop Refactoring]** ปรับปรุงโครงสร้างของ `_fill_multi_sku_modal()` ใน `accel_mode.py` ให้แยกเป็น 2 Loops อิสระอย่างชัดเจน (Loop กรอก และ Loop ตรวจสอบ/Reject):
   - **Loop 1 (ลูปการกรอก Serial)**: วนลูปกรอก SN ลงในช่องว่าง (`ng-empty`) จนกระทั่งไม่มีช่องว่างเหลือ (`if not empty_inputs: break`) โดยตัดการยุ่งเกี่ยวกับ Checkbox ออกจากกระบวนการกรอก เพื่อเตรียมพร้อมเข้าสู่ขั้นตอนตรวจสอบ

@@ -166,4 +166,5 @@ cython_debug/
 .codegpt
 B0183-*.pdf
 projects/auto_page/autopageMKII/B0183-*.pdf
+.~lock.*
 

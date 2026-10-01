@@ -63,8 +63,9 @@ class DualSourceCPLoader:
     def _is_exact_duplicate(self, record_dict: Dict[str, Any]) -> bool:
         """
         ตรวจสอบว่าข้อมูลใน record_dict มีอยู่ใน DataFrame แล้วทุกประการหรือไม่
-        (เปรียบเทียบ SKU, sale_price, cp_name, suggested_cp)
+        (เปรียบเทียบ SKU, sale_price และฟิลด์ข้อมูลสำคัญทั้งหมด เช่น cp_name, suggested_cp, วันที่, remark)
         หากข้อมูลเดิมเหมือนเดิม 100% จะส่งกลับ True เพื่อข้ามการยิง POST ซ้ำซ้อน
+        หากมีข้อมูลใหม่หรือมีการเปลี่ยนแปลงค่า จะส่งกลับ False เพื่อให้อัปเดตขึ้น Sheet
         """
         if self._cached_df is None or self._cached_df.empty:
             return False
@@ -98,19 +99,24 @@ class DualSourceCPLoader:
         if matched.empty:
             return False
 
-        # เช็คว่าฟิลด์สำคัญ (cp_name / suggested_cp) มีค่าตรงกันอยู่แล้วหรือไม่
-        target_cp = str(record_dict.get('cp_name', '')).strip()
-        target_sugg = str(record_dict.get('suggested_cp', '')).strip()
+        # ตรวจสอบฟิลด์สำคัญที่ส่งมา หากมีฟิลด์ใดที่มีค่าใหม่หรือค่าไม่ตรงกับในแถว ให้ถือว่าไม่ใช่ duplicate
+        fields_to_check = [
+            'cp_name', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date',
+            'suggested_remark', 'usage_start_date', 'usage_end_date', 'last_order_id',
+            'last_used_cp', 'last_adjustment_method', 'last_actual_price'
+        ]
 
         for _, row in matched.iterrows():
-            row_cp = str(row.get('cp_name', '')).strip() if pd.notna(row.get('cp_name')) else ""
-            row_sugg = str(row.get('suggested_cp', '')).strip() if pd.notna(row.get('suggested_cp')) else ""
-            
-            # ถ้าเป็น action AUTO_LEARN_SUCCESS และในตารางมี cp_name ตรงกันแล้ว
-            if target_cp and row_cp == target_cp:
-                return True
-            # ถ้าส่งมาเป็น SUGGEST และในตารางมี suggested_cp หรือ cp_name ตรงกันแล้ว
-            if target_sugg and (row_sugg == target_sugg or row_cp == target_sugg):
+            is_match = True
+            for field in fields_to_check:
+                val = record_dict.get(field)
+                if val is not None and str(val).strip() != "":
+                    val_str = str(val).strip()
+                    row_val = str(row.get(field, '')).strip() if pd.notna(row.get(field)) else ""
+                    if val_str != row_val:
+                        is_match = False
+                        break
+            if is_match:
                 return True
 
         return False
@@ -134,6 +140,8 @@ class DualSourceCPLoader:
                 res_data = resp.json()
                 if isinstance(res_data, dict) and res_data.get("status") in ("success", "skipped"):
                     print(f"[GAS CP Loader] Successfully synced record to Google Sheet: {record_dict.get('sku')}")
+                    # เคลียร์เวลา fetch แคช เพื่อให้รอบถัดไปดึงข้อมูลใหม่ที่เพิ่งซิงค์
+                    self._last_fetch_time = 0
                     return True
                 else:
                     print(f"[GAS CP Loader] GAS returned response: {res_data}")
