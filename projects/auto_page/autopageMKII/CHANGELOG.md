@@ -84,6 +84,10 @@
   - ปรับลำดับคอลัมน์มาตรฐานเป็น `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']`
   - ปรับปรุงฟังก์ชัน `record_completed_order()` ใน `functions/accel_mode.py` ให้บันทึกตามโครงสร้างใหม่
   - อัปเดตและจัดโครงสร้างคอลัมน์ในไฟล์ Excel `tables/Accel_mode_uat.xlsx` รวมถึงไฟล์ชุดตัวอย่างใน `assets/tables/` ทั้งหมด
+- [X] **[CP Date Auto-Correction & Timezone Normalization]** เพิ่มระบบ Auto-Correction สำหรับวันที่โปรโมชันใน `cp_data_loader.py` และ `pricing_engine.py`:
+  - ดักจับกรณี `usage_start_date > usage_end_date` จาก Google Sheets / Excel ที่ติด Locale US (`MM/DD/YYYY`) แล้วทำการ Auto-Swap วันกับเดือนกลับเป็นวันที่ถูกต้อง (เช่น 10 ก.ย. สลับกลับเป็น 9 ต.ค.) ให้อัตโนมัติ
+  - แปลงวันที่และเวลาในรูปแบบ ISO UTC (เช่น `"2026-09-10T16:59:59.000Z"`) ให้เป็นเวลาท้องถิ่น Bangkok (UTC+7: `23:59:59`) อัตโนมัติ ป้องกันวันที่ขยับผิดพลาด
+  - เพิ่มฟังก์ชัน `swap_day_month()` และ `correct_cp_date_range()` ใน `pricing_engine.py` ครอบคลุมทั้งฝั่ง Cloud GAS และ Local Excel
 - [X] **[Google Apps Script & CP Data Dual-Source Sync]** ปรับปรุงระบบซิงค์ข้อมูล CP ระหว่าง Local Excel (`cp_data.xlsx`) และ Google Apps Script Web App ให้รองรับโครงสร้าง 19 คอลัมน์อย่างสมบูรณ์:
   - เพิ่มการส่งฟิลด์คำแนะนำคูปอง (`suggested_cp`, `suggested_usage_start_date`, `suggested_usage_end_date`, `suggested_remark`)
   - อัปเดตคอลัมน์ `last_updated` ด้วยเวลาปัจจุบันเสมอทั้งกรณีเพิ่มแถวใหม่ (Insert) และแก้ไขแถวเดิม (Update)

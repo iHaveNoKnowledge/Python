@@ -142,6 +142,43 @@ def to_comparable_datetime(val: Any) -> Optional[datetime.datetime]:
     return None
 
 
+def swap_day_month(d: Any) -> Optional[datetime.date]:
+    """สลับวันและเดือนหากเลขวันและเดือนไม่เกิน 12 และไม่เท่ากัน (แก้ปัญหา US Locale MM/DD)"""
+    if d is None:
+        return None
+    try:
+        dt = parse_smart_date(d)
+        if dt and 1 <= dt.day <= 12 and 1 <= dt.month <= 12 and dt.day != dt.month:
+            return datetime.date(dt.year, dt.day, dt.month)
+    except Exception:
+        pass
+    return None
+
+
+def correct_cp_date_range(start_val: Any, end_val: Any) -> tuple[Optional[datetime.date], Optional[datetime.date]]:
+    """
+    ตรวจสอบและ Auto-Correct ช่วงวันโปรโมชัน CP
+    หากพบว่า start_date > end_date (เกิดจากการที่ Google Sheets หรือ GAS สลับ Day/Month)
+    ระบบจะทำการ Auto-Swap วันกับเดือนให้สอดคล้องกับความเป็นจริงอัตโนมัติ
+    """
+    start_date = parse_smart_date(start_val)
+    end_date = parse_smart_date(end_val)
+
+    if start_date and end_date and start_date > end_date:
+        end_swapped = swap_day_month(end_date)
+        start_swapped = swap_day_month(start_date)
+
+        if end_swapped and start_date <= end_swapped:
+            end_date = end_swapped
+        elif start_swapped and start_swapped <= end_date:
+            start_date = start_swapped
+        elif start_swapped and end_swapped and start_swapped <= end_swapped:
+            start_date = start_swapped
+            end_date = end_swapped
+
+    return start_date, end_date
+
+
 def extract_coupon_date_range(text: str) -> tuple[Optional[Union[datetime.datetime, datetime.date]], Optional[Union[datetime.datetime, datetime.date]]]:
     """
     ดึงวันเริ่มและวันสิ้นสุดของคูปองจากข้อความ เช่น '(01/09/2026 - 30/09/2026)', '01/09/26 - 30/09/26'
@@ -902,8 +939,7 @@ class POSPricingReconciler:
         date_rejected_reasons = []
         for idx, row in df_filtered.iterrows():
             try:
-                start_date = parse_smart_date(row.get('usage_start_date'))
-                end_date = parse_smart_date(row.get('usage_end_date'))
+                start_date, end_date = correct_cp_date_range(row.get('usage_start_date'), row.get('usage_end_date'))
 
                 in_range = True
                 if start_date and end_date:

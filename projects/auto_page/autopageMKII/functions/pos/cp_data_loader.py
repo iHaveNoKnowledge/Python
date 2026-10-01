@@ -213,20 +213,69 @@ class DualSourceCPLoader:
         return combined
 
     def _clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Clean dataframe columns and data types"""
+        """Clean dataframe columns, normalize prices, convert ISO/UTC dates to Bangkok time, and auto-correct inverted date pairs"""
         if df.empty:
             return df
 
+        df = df.copy()
         df.columns = [str(c).strip().lower() for c in df.columns]
 
         if 'expected_price' in df.columns and 'sale_price' not in df.columns:
             df['sale_price'] = df['expected_price']
 
-        for date_col in ['usage_start_date', 'usage_end_date']:
+        for date_col in ['usage_start_date', 'usage_end_date', 'suggested_usage_start_date', 'suggested_usage_end_date']:
             if date_col in df.columns:
-                df[date_col] = pd.to_datetime(df[date_col], format='mixed', dayfirst=True, errors='coerce')
+                def _parse_ts(val):
+                    if pd.isna(val) or val is None or str(val).strip() in ('', '-', 'None', 'nan', 'NaT'):
+                        return pd.NaT
+                    s = str(val).strip()
+                    try:
+                        # If ISO format with Z or timezone (e.g. from GAS Date object)
+                        if 't' in s.lower() and 'z' in s.lower():
+                            ts = pd.to_datetime(s, utc=True)
+                            # Convert UTC to Asia/Bangkok (+7) and remove timezone info
+                            ts = ts.tz_convert('Asia/Bangkok').tz_localize(None)
+                            return ts
+                        return pd.to_datetime(s, dayfirst=True, errors='coerce')
+                    except Exception:
+                        return pd.to_datetime(val, dayfirst=True, errors='coerce')
+
+                parsed_series = [_parse_ts(v) for v in df[date_col]]
+                df.loc[:, date_col] = parsed_series
+
+        # Auto-correct inverted date pairs if start > end (due to US locale MM/DD vs DD/MM swap)
+        def _swap_dt(dt_val):
+            if pd.isna(dt_val):
+                return dt_val
+            try:
+                if hasattr(dt_val, 'day') and hasattr(dt_val, 'month'):
+                    if 1 <= dt_val.day <= 12 and 1 <= dt_val.month <= 12 and dt_val.day != dt_val.month:
+                        return dt_val.replace(month=dt_val.day, day=dt_val.month)
+            except Exception:
+                pass
+            return dt_val
+
+        pair_cols = [
+            ('usage_start_date', 'usage_end_date'),
+            ('suggested_usage_start_date', 'suggested_usage_end_date')
+        ]
+        for s_col, e_col in pair_cols:
+            if s_col in df.columns and e_col in df.columns:
+                for idx in df.index:
+                    s_val = df.loc[idx, s_col]
+                    e_val = df.loc[idx, e_col]
+                    if pd.notna(s_val) and pd.notna(e_val) and s_val > e_val:
+                        e_swapped = _swap_dt(e_val)
+                        s_swapped = _swap_dt(s_val)
+                        if pd.notna(e_swapped) and s_val <= e_swapped:
+                            df.loc[idx, e_col] = e_swapped
+                        elif pd.notna(s_swapped) and s_swapped <= e_val:
+                            df.loc[idx, s_col] = s_swapped
+                        elif pd.notna(s_swapped) and pd.notna(e_swapped) and s_swapped <= e_swapped:
+                            df.loc[idx, s_col] = s_swapped
+                            df.loc[idx, e_col] = e_swapped
 
         if 'sku' in df.columns:
-            df['sku'] = df['sku'].astype(str).str.strip()
+            df.loc[:, 'sku'] = [str(v).strip() for v in df['sku']]
 
         return df
