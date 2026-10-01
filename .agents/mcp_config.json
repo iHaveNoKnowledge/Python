@@ -1,11 +1,13 @@
 {
   "mcpServers": {
-    "my-mcp-tool": {
-      "command": "node",
+    "postman": {
+      "command": "cmd.exe",
       "args": [
-        "/absolute/path/to/your/mcp-server/build/index.js"
-      ],
-      "env": {}
+        "/c",
+        "npx",
+        "-y",
+        "@postman/postman-mcp-server@latest"
+      ]
     },
     "selenium": {
       "command": "npx",
