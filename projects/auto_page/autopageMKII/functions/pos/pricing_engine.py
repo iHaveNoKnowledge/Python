@@ -972,7 +972,8 @@ class POSPricingReconciler:
 
         # 4. Filter by Price (sale_price == platform_price)
         price_tolerance = 0.05
-        df_price_matched = df_valid[(df_valid['sale_price'] - platform_price).abs() <= price_tolerance]
+        sale_prices_num = pd.to_numeric(df_valid['sale_price'], errors='coerce')
+        df_price_matched = df_valid[(sale_prices_num - float(platform_price)).abs() <= price_tolerance]
 
         if df_price_matched.empty:
             print(f"[CP Lookup] SKU {sku} date matched, but no matching sale_price for platform_price={platform_price}. Available prices in valid date range: {df_valid['sale_price'].tolist()}")

@@ -234,6 +234,9 @@ class AccelMode:
             order = order.get()
         order = str(order).strip()
         df = self.accel_df_state
+        if not isinstance(df, pd.DataFrame) or df.empty or not self.accel_file_dir:
+            return
+
         print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
         print("deduct_accel_file_data order: ", order)
 

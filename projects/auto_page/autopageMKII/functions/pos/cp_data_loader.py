@@ -223,6 +223,11 @@ class DualSourceCPLoader:
         if 'expected_price' in df.columns and 'sale_price' not in df.columns:
             df['sale_price'] = df['expected_price']
 
+        # Normalize numeric columns to float
+        for num_col in ['sale_price', 'expected_price', 'oc_amount', 'dc_amount', 'last_actual_price']:
+            if num_col in df.columns:
+                df.loc[:, num_col] = pd.to_numeric(df[num_col], errors='coerce')
+
         for date_col in ['usage_start_date', 'usage_end_date', 'suggested_usage_start_date', 'suggested_usage_end_date']:
             if date_col in df.columns:
                 def _parse_ts(val):
