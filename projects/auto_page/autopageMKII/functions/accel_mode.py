@@ -150,7 +150,7 @@ class AccelMode:
             wb = load_workbook(path, read_only=True)
             sheet_names = wb.sheetnames
             wb.close()
-            valid_sheets = [s for s in sheet_names if s not in ['Failed_Orders', 'Completed_Orders']]
+            valid_sheets = [s for s in sheet_names if s not in ['Failed_Orders', 'Completed_Orders', 'Processed_Logs']]
             if valid_sheets:
                 for s in valid_sheets:
                     if s.lower() == 'sheet1':
@@ -1487,10 +1487,14 @@ class AccelMode:
                             target_width = max(max_len + 4, 24)
                         elif header_val == 'timestamp':
                             target_width = max(max_len + 3, 20)
-                        elif header_val == 'failed_category':
+                        elif header_val in ('status', 'bill_no', 'price'):
+                            target_width = max(max_len + 4, 15)
+                        elif header_val in ('failed_category', 'error_category'):
                             target_width = max(max_len + 4, 18)
-                        elif header_val == 'failed_reason':
+                        elif header_val in ('failed_reason', 'remark', 'pricing_detail'):
                             target_width = min(max(max_len + 4, 25), 70)
+                        elif header_val in ('tracking', 'sn'):
+                            target_width = max(max_len + 4, 20)
                         else:
                             target_width = min(max(max_len + 3, 12), 50)
 
@@ -1539,8 +1543,50 @@ class AccelMode:
         if saved_successfully:
             self._apply_excel_formatting(self.accel_file_dir)
 
+    def _record_to_processed_logs(self, rows_data, order_str):
+        """บันทึกลงชีต Processed_Logs (ตารางผลลัพธ์รวม Completed และ Failed แบบ Single Source of Truth)
+
+        โครงสร้าง 9 คอลัมน์มาตรฐาน:
+        [timestamp, tracking, orders, status, bill_no, price, sn, error_category, remark]
+        """
+        if not self.accel_file_dir or not os.path.exists(self.accel_file_dir):
+            return
+
+        unified_cols = ['timestamp', 'tracking', 'orders', 'status', 'bill_no', 'price', 'sn', 'error_category', 'remark']
+        processed_df = pd.DataFrame(columns=unified_cols)
+
+        try:
+            try:
+                processed_df = pd.read_excel(
+                    self.accel_file_dir, sheet_name='Processed_Logs', dtype=str)
+            except Exception:
+                print("Processed_Logs sheet does not exist yet. Creating a new one.")
+
+            for c in unified_cols:
+                if c not in processed_df.columns:
+                    processed_df[c] = ""
+            processed_df = processed_df[unified_cols]
+
+            # ลบแถวเดิมของ order_str ออกก่อนเสมอ เพื่ออัปเดตสถานะล่าสุด (เช่น Retry จาก Failed -> Completed)
+            processed_df = processed_df[processed_df['orders'].astype(str).str.strip() != order_str]
+
+            new_df = pd.DataFrame(rows_data)
+            for c in unified_cols:
+                if c not in new_df.columns:
+                    new_df[c] = ""
+            new_df = new_df[unified_cols]
+
+            processed_df = pd.concat([processed_df, new_df], ignore_index=True)
+            processed_df = processed_df[unified_cols]
+
+            self._save_df_to_excel(processed_df, 'Processed_Logs')
+            print(f"Successfully recorded order {order_str} to Processed_Logs sheet.")
+        except Exception as e:
+            print(f"Error recording to Processed_Logs sheet: {e}")
+            logger.error(f"Error recording to Processed_Logs sheet: {e}")
+
     def record_failed_order(self, order, reason, category=None):
-        """Record failed order into Failed_Orders sheet in Accel Excel file.
+        """Record failed order into Processed_Logs and Failed_Orders sheet in Accel Excel file.
 
         Args:
             order: order object or string
@@ -1558,6 +1604,31 @@ class AccelMode:
             print("No accel file selected, cannot record failed order.")
             return
 
+        # สกัด Tracking ถ้ามีใน main_app
+        tracking_val = ""
+        if hasattr(self, 'main_app') and self.main_app:
+            if hasattr(self.main_app, 'tracking_from_data') and self.main_app.tracking_from_data:
+                trks = [str(t).strip() for t in self.main_app.tracking_from_data if str(t).strip() and str(t).strip().lower() != 'nan']
+                if trks:
+                    tracking_val = trks[0]
+
+        actual_category = str(category).strip() if category else classify_failed_reason(reason)
+
+        # 1. บันทึกลง Processed_Logs (Single Source of Truth)
+        unified_failed_row = [{
+            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+            'tracking': tracking_val,
+            'orders': order_str,
+            'status': "Failed",
+            'bill_no': "",
+            'price': "",
+            'sn': "",
+            'error_category': actual_category,
+            'remark': str(reason)
+        }]
+        self._record_to_processed_logs(unified_failed_row, order_str)
+
+        # 2. บันทึกลง Failed_Orders เดิม (Backward Compatibility)
         try:
             if not os.path.exists(self.accel_file_dir):
                 print(
@@ -1576,9 +1647,9 @@ class AccelMode:
             # Backward compatibility: ถ้าชีตเดิมไม่มี failed_category ให้คำนวณย้อนหลังจาก failed_reason
             if 'failed_category' not in failed_df.columns:
                 if 'failed_reason' in failed_df.columns:
-                    failed_df['failed_category'] = failed_df['failed_reason'].apply(classify_failed_reason)
+                    failed_df.loc[:, 'failed_category'] = failed_df['failed_reason'].apply(classify_failed_reason)
                 else:
-                    failed_df['failed_category'] = 'OTHER'
+                    failed_df.loc[:, 'failed_category'] = 'OTHER'
 
             if 'timestamp' not in failed_df.columns:
                 failed_df['timestamp'] = ''
@@ -1589,8 +1660,6 @@ class AccelMode:
 
             # จัดเรียงคอลัมน์เดิมให้ตรงโครงสร้างใหม่ [timestamp, failed_category, orders, failed_reason]
             failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
-
-            actual_category = str(category).strip() if category else classify_failed_reason(reason)
 
             new_row = pd.DataFrame([{
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1808,6 +1877,40 @@ class AccelMode:
                     f"Accel file {self.accel_file_dir} does not exist, cannot record completed order.")
                 return
 
+            # 1. บันทึกลง Processed_Logs (ตารางผลลัพธ์รวม Single Source of Truth)
+            unified_completed_rows = []
+            for r in new_rows_data:
+                unified_completed_rows.append({
+                    'timestamp': r.get('timestamp', now_ts),
+                    'tracking': r.get('tracking', ''),
+                    'orders': r.get('orders', order_str),
+                    'status': r.get('status', 'Completed'),
+                    'bill_no': r.get('bill_no', ''),
+                    'price': r.get('price', ''),
+                    'sn': r.get('sn', ''),
+                    'error_category': '',
+                    'remark': r.get('pricing_detail', '')
+                })
+            self._record_to_processed_logs(unified_completed_rows, order_str)
+
+            # 2. ลบออกจากชีต Failed_Orders เก่า (ถ้ามีอยู่) เพื่อตัดปัญหามีเลขออเดอร์ตกค้างใน Failed
+            try:
+                if os.path.exists(self.accel_file_dir):
+                    wb_chk = load_workbook(self.accel_file_dir, read_only=True)
+                    has_failed = 'Failed_Orders' in wb_chk.sheetnames
+                    wb_chk.close()
+                    if has_failed:
+                        f_df = pd.read_excel(self.accel_file_dir, sheet_name='Failed_Orders', dtype=str)
+                        if 'orders' in f_df.columns:
+                            m = f_df['orders'].astype(str).str.strip() == order_str
+                            if m.any():
+                                f_df = f_df[~m]
+                                self._save_df_to_excel(f_df, 'Failed_Orders')
+                                print(f"Cleared resolved order {order_str} from legacy Failed_Orders sheet.")
+            except Exception as ex_clean:
+                print(f"Notice: Could not clear order {order_str} from legacy Failed_Orders: {ex_clean}")
+
+            # 3. บันทึกลงชีต Completed_Orders เดิม (Backward Compatibility)
             _col_order = ['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']
             completed_df = pd.DataFrame(columns=_col_order)
 

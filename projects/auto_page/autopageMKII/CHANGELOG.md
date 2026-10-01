@@ -1,6 +1,7 @@
 # 📋 AutoPage MKII - Project Changelog & Dev Notes
 
 > **คู่มือการบันทึก**:
+>
 > - 📌 **ปัญหาที่เจอใหม่ / ฟีเจอร์ที่ต้องทำ**: เพิ่มในส่วน [1. งานที่ต้องทำและปัญหาที่รอแก้](#-1-งานที่ต้องทำและปัญหาที่รอแก้-active-backlog--issues)
 > - 💡 **เกร็ดความรู้ / ข้อจำกัดระบบ**: บันทึกในส่วน [2. ข้อควรระวังและ Reference ประจำระบบ](#-2-ข้อควรระวังและ-reference-ประจำระบบ-developer-notes)
 > - ✅ **เมื่อแก้เสร็จแล้ว**: ติ๊ก `[x]` และย้ายประวัติลงในส่วน [3. ประวัติการแก้ไขแต่ละเวอร์ชัน](#-3-ประวัติการแก้ไขแต่ละเวอร์ชัน-changelog)
@@ -10,15 +11,18 @@
 ## 📌 1. งานที่ต้องทำและปัญหาที่รอแก้ (Active Backlog & Issues)
 
 ### 🐛 บัค & การปรับปรุงที่กำลังติดตาม (In Progress / Issues)
+
 - [ ] **[Shopee]** เพิ่มตรรกะแยกเงื่อนไขระหว่าง Shopee ปกติ กับ Shopee Mobile ในหน้าท้าย (เลือกว่าจะจ่ายช่องทางไหนแยกกัน)
 - [ ] **[UI / Selenium]** Last pop-up มีตัวรอ event ที่เป็น `driver.wait` ทำให้รอนาน ให้เปลี่ยนเป็น `while loop` ดัก element เพื่อให้จบเร็วกว่า
 - [ ] **[Address / SMCO]** ตรวจสอบการเลือก อำเภอ/เขต จาก enum บน SMCO คำภาษาไทยบางคำไม่ตรงกับระบบ อาจนำ `PyThaiNLP` (Tokenize) มาใช้คู่กับ `FuzzyWuzzy`
-- [x] **[AccelMode / SN]** แก้ไขปัญหา SN เสียเมื่อ SKU มี QTY > 1: ปรับไปใช้ Red Serial Button + Modal Flow สำหรับ Multi-QTY, ทำ Combo Aggregation รวมจำนวนข้ามแถว, Dynamic Wait ตรวจสอบสถานะ, ลบเฉพาะ SN ที่เสียด้วย `_deleteInsertSerial` โดยไม่ลบแถวสินค้าบนตะกร้า และคืนสิทธิ์ SN ในหน่วยความจำหากออเดอร์ไม่สำเร็จ
-- [x] **[Logging]** ทำ Log Rotation ให้กับไฟล์ Log เพื่อไม่ให้ขนาดไฟล์ใหญ่เกินไป และสามารถเก็บย้อนหลังแยกรายวันได้
+- [X] **[AccelMode / SN]** แก้ไขปัญหา SN เสียเมื่อ SKU มี QTY > 1: ปรับไปใช้ Red Serial Button + Modal Flow สำหรับ Multi-QTY, ทำ Combo Aggregation รวมจำนวนข้ามแถว, Dynamic Wait ตรวจสอบสถานะ, ลบเฉพาะ SN ที่เสียด้วย `_deleteInsertSerial` โดยไม่ลบแถวสินค้าบนตะกร้า และคืนสิทธิ์ SN ในหน่วยความจำหากออเดอร์ไม่สำเร็จ
+- [X] **[Logging]** ทำ Log Rotation ให้กับไฟล์ Log เพื่อไม่ให้ขนาดไฟล์ใหญ่เกินไป และสามารถเก็บย้อนหลังแยกรายวันได้
 - [ ] **[Performance]** ปรับตัวดึง Tracking ให้ Dynamic ขึ้น เช่น ตอนเริ่มค้นหาออเดอร์ถ้ามี Tracking อยู่แล้ว ให้ดึงใส่ Stage ไว้ล่วงหน้าทันที
 - [ ] **[AccelMode / Modal Speed]** Modal Serial Number เปิดช้าในบางจังหวะ กำลังรอปรับปรุงความเร็วในการค้นหาปุ่มและเปิด Modal
+- [ ] [UI / TKINTER] ในโหมด manual (ไม่ใช้ auto_inv) ตอนจังหวะรอหน้าท้าย จะต้องเพิ่มการตัดสินใจว่า จะต้องกีดกัน user ไม่ให้ออกบิลเมื่อราคาที่ทำในหน้าแรกไม่ตรงกับราคาที่ต้องออกบิล จะแสดง pop-up แล้วย้อนกลับไหน้าแรกไปทำราคาให้ตรง เพราะuser อาจจะเผลอไม่ทันมองเล็กข้างล่างใน log บน tkinter ว่าราคาที่ควรออกคือไร
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
+
 - [ ] **[Auto CP SAGA]** ระบบตัดสินใจเลือกคูปองอัตโนมัติ (เปรียบเทียบราคา -> ดูช่วงเวลาโปรโมชั่น -> เลือกรุ่นที่ตรงที่สุดตาม Store)
 - [ ] **[Auto Export Data]** ระบบดึง Exported Data จาก Marketplace อัตโนมัติด้วย Automation Workflow
 - [ ] **[Price Memorizer]** ระบบจดจำ Pattern การตัดสินใจปรับราคา/คูปองของแต่ละ SKU เพื่อนำมาใช้อัตโนมัติในครั้งถัดไป
@@ -28,6 +32,7 @@
 ## 💡 2. ข้อควรระวังและ Reference ประจำระบบ (Developer Notes)
 
 ### 🏢 ข้อมูลระบบภาษี & ลูกค้า (Tax & Customer Rules)
+
 1. **การค้นหาข้อมูลนิติบุคคล**:
    - ค้นหาผ่าน DataForThai: `https://www.dataforthai.com/business/search/{เลข13หลัก}`
 2. **SMCO Interface กับใบกำกับภาษี**:
@@ -37,11 +42,13 @@
    - หลัง Edit ที่อยู่ลูกค้าในระบบ SMCO แล้ว ไม่จำเป็นต้องโหลดลูกค้าใหม่ ระบบจะดึงที่อยู่ล่าสุดมาลงบิลจริง
 
 ### 🖨️ ระบบการพิมพ์ & Background Worker (Printing & Subprocess)
+
 1. **SumatraPDF Silence Print**:
    - ต้องใช้ `subprocess.Popen` (Non-blocking) ห้ามใช้ `subprocess.run` แบบ Synchronous เพื่อป้องกัน Tkinter GUI ค้าง (Not Responding)
    - ใช้ Flag `-silent` เพื่อป้องกันหน้าต่าง Popup แจ้งเตือนของ SumatraPDF
 
 ### 🛡️ ความปลอดภัยของ State ข้อมูลคำสั่งซื้อ (Order State Isolation & Leak Prevention)
+
 1. **การรีเซ็ต State เมื่อเริ่มค้นหาออเดอร์ใหม่**:
    - ฟังก์ชัน `reset_all_display()` ต้องเคลียร์ `self.items = []`, `self.nondistortedData = {}`, `self.tracking_from_data = []` และ `self.financials.items = []` เสมอ ห้ามให้มีข้อมูลของออเดอร์ก่อนหน้าหลงเหลือ
 2. **กรณีค้นหาออเดอร์ไม่พบในไฟล์นำเข้า (Export File Not Found)**:
@@ -65,22 +72,31 @@
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
 ### [ver5.x.x] - 2026-10-01
+
+- [x] **[Accel Mode Unified Result Sheet - `Processed_Logs` & Retry Auto-Resolve]** ปรับปรุงโครงสร้างชีตผลลัพธ์ของ Accel Mode ให้ยุบรวม `Completed_Orders` และ `Failed_Orders` เข้าด้วยกันเป็นชีตเดียว `Processed_Logs` แบบ Single Source of Truth:
+  - กำหนด 9 คอลัมน์มาตรฐาน: `['timestamp', 'tracking', 'orders', 'status', 'bill_no', 'price', 'sn', 'error_category', 'remark']`
+  - แก้ไขปัญหาเลขออเดอร์ซ้ำซ้อนเวลาทำ Retry:
+    - เมื่อออเดอร์ไม่ผ่าน บันทึกสถานะเป็น `Failed` พร้อม `error_category` และข้อความ `remark`
+    - เมื่อนำออเดอร์กลับมารันใหม่จนผ่าน (`Completed`) ระบบจะอัปเดตแถวเดิมใน `Processed_Logs` จาก `Failed` เป็น `Completed` พร้อมใส่ `bill_no`, `price`, `sn` และแสตมป์เวลาล่าสุด โดยไม่สร้างแถวซ้ำ
+    - ลบเลขออเดอร์ที่สำเร็จแล้วออกจากชีต `Failed_Orders` เก่าอัตโนมัติ เพื่อไม่ให้มีรายการที่แก้ผ่านแล้วตกค้างในชีต Failed
+  - รักษา Backward Compatibility 100% กับชีต `Completed_Orders` และ `Failed_Orders` เดิม รวมถึงรองรับการปรับ AutoFilter, FreezePanes และ Column Widths ครบถ้วน
 - [x] **[Accel Mode Completed_Orders Column Reordering]** ย้ายคอลัมน์ `timestamp` ไปไว้คอลัมน์แรกสุด (Column A / Index 0) ในชีท `Completed_Orders` เพื่อความสะดวกในการตรวจสอบประวัติและเรียงลำดับเวลาการทำงาน:
   - ปรับลำดับคอลัมน์มาตรฐานเป็น `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']`
   - ปรับปรุงฟังก์ชัน `record_completed_order()` ใน `functions/accel_mode.py` ให้บันทึกตามโครงสร้างใหม่
   - อัปเดตและจัดโครงสร้างคอลัมน์ในไฟล์ Excel `tables/Accel_mode_uat.xlsx` รวมถึงไฟล์ชุดตัวอย่างใน `assets/tables/` ทั้งหมด
-- [x] **[Google Apps Script & CP Data Dual-Source Sync]** ปรับปรุงระบบซิงค์ข้อมูล CP ระหว่าง Local Excel (`cp_data.xlsx`) และ Google Apps Script Web App ให้รองรับโครงสร้าง 19 คอลัมน์อย่างสมบูรณ์:
+- [X] **[Google Apps Script & CP Data Dual-Source Sync]** ปรับปรุงระบบซิงค์ข้อมูล CP ระหว่าง Local Excel (`cp_data.xlsx`) และ Google Apps Script Web App ให้รองรับโครงสร้าง 19 คอลัมน์อย่างสมบูรณ์:
   - เพิ่มการส่งฟิลด์คำแนะนำคูปอง (`suggested_cp`, `suggested_usage_start_date`, `suggested_usage_end_date`, `suggested_remark`)
   - อัปเดตคอลัมน์ `last_updated` ด้วยเวลาปัจจุบันเสมอทั้งกรณีเพิ่มแถวใหม่ (Insert) และแก้ไขแถวเดิม (Update)
   - ปรับปรุง `_is_exact_duplicate()` ใน `DualSourceCPLoader` ให้ตรวจสอบทุกฟิลด์เพื่อป้องกันการ skip บันทึกเมื่อมีข้อมูล suggestion ใหม่
-- [x] **[Pricing Engine Two-Phase Reconciliation & Safety Verification]** ยืนยันและตรวจสอบความถูกต้องของระบบการปรับราคา (Overcharge / Discount) 2 ขั้นตอน:
+- [X] **[Pricing Engine Two-Phase Reconciliation & Safety Verification]** ยืนยันและตรวจสอบความถูกต้องของระบบการปรับราคา (Overcharge / Discount) 2 ขั้นตอน:
   - **Phase 1 (Seller Voucher)**: หากคำสั่งซื้อมีส่วนลดจากผู้ขาย ระบบจะหักยอดส่วนลดจากราคาสินค้าเป้าหมายก่อนเข้าสู่การจับคู่คูปอง
   - **Phase 2 (Price Reconciliation)**:
     - *กรณีราคาเริ่มต้นต่ำกว่าราคาซื้อ (`diff > 0`)*: ปรับเพิ่มราคา (Overcharge) ได้ทันทีตามส่วนต่าง
     - *กรณีราคาเริ่มต้นสูงกว่าราคาซื้อ (`diff < 0`)*: บังคับค้นหาและเลือก Campaign Coupon (CP) พร้อมตรวจสอบ `oc_amount`/`dc_amount` อย่างเข้มงวด หากราคาหลังหักล้างยังไม่ตรงกับราคาเป้าหมาย ระบบจะปฏิเสธการแก้ราคาอัตโนมัติและแจ้งเตือนส่งต่อให้ทีม Production ทันทีเพื่อความถูกต้องของบัญชี
 
 ### [ver5.x.x] - 2026-09-24
-- [x] **[Accel Mode Multi-SKU Modal Two-Loop Refactoring]** ปรับปรุงโครงสร้างของ `_fill_multi_sku_modal()` ใน `accel_mode.py` ให้แยกเป็น 2 Loops อิสระอย่างชัดเจน (Loop กรอก และ Loop ตรวจสอบ/Reject):
+
+- [X] **[Accel Mode Multi-SKU Modal Two-Loop Refactoring]** ปรับปรุงโครงสร้างของ `_fill_multi_sku_modal()` ใน `accel_mode.py` ให้แยกเป็น 2 Loops อิสระอย่างชัดเจน (Loop กรอก และ Loop ตรวจสอบ/Reject):
   - **Loop 1 (ลูปการกรอก Serial)**: วนลูปกรอก SN ลงในช่องว่าง (`ng-empty`) จนกระทั่งไม่มีช่องว่างเหลือ (`if not empty_inputs: break`) โดยตัดการยุ่งเกี่ยวกับ Checkbox ออกจากกระบวนการกรอก เพื่อเตรียมพร้อมเข้าสู่ขั้นตอนตรวจสอบ
   - **Loop 2 (ลูปตรวจสอบ ยืนยัน หรือ Reject/Void)**:
     - **Verify Trigger**: รอจนปุ่ม Verify (`_verifyInsertSerial`) หลุดจากสถานะ `disabled` แล้วกดคลิก
@@ -94,17 +110,19 @@
         - หน่วงเวลา 1.0 วินาที เพื่อให้ระบบเคลียร์แถวเสียและแสดงช่องว่างใหม่ แล้วหลุดจาก Loop 2 วนกลับไปเข้า **Loop 1** เพื่อกรอก SN ตัวใหม่แทนที่
 
 ### [ver5.x.x] - 2026-09-29
-- [x] **[Dual-Source CP Loader & Google Apps Script Sync]** เพิ่มโมดูล `DualSourceCPLoader` (`functions/pos/cp_data_loader.py`) รองรับการอ่านและเขียนข้อมูลคูปอง/ส่วนต่างราคาแบบ Real-time ระหว่าง Cloud Google Sheets (ผ่าน Google Apps Script Web App) และ Local Excel (`cp_data.xlsx`):
+
+- [X] **[Dual-Source CP Loader & Google Apps Script Sync]** เพิ่มโมดูล `DualSourceCPLoader` (`functions/pos/cp_data_loader.py`) รองรับการอ่านและเขียนข้อมูลคูปอง/ส่วนต่างราคาแบบ Real-time ระหว่าง Cloud Google Sheets (ผ่าน Google Apps Script Web App) และ Local Excel (`cp_data.xlsx`):
   - ระบบ In-Memory TTL Cache (120s) และ Fallback ใช้งาน Local Excel อัตโนมัติเมื่อ Offline
   - Client-side & Server-side Deduplication ป้องกันการส่งข้อมูลซ้ำซ้อน ช่วยประหยัดโควตาและลดความหน่วง
   - ระบบ Auto-Learn ส่งข้อมูลการออกบิลที่สำเร็จ (`AUTO_LEARN_SUCCESS`) พร้อมประวัติ `last_used_cp`, `last_order_id`, `last_adjustment_method`, `last_actual_price` ขึ้น Google Sheets ให้ทีมงานใช้งานร่วมกันได้ทันที
   - เพิ่มระบบ Action List "Move to Bottom" เลื่อนแถวที่ไม่มี CP หรือปรับราคาไม่ได้ไปไว้ล่างสุดของตาราง Excel เพื่อให้จัดการต่อง่าย
-- [x] **[Early SN Sufficiency Pre-Check]** เพิ่มฟังก์ชัน `check_sn_sufficiency()` ใน `functions/accel_mode.py` และ `autopage_MKII_ver5.x.x.py` ตรวจสอบความพร้อมของ Serial Number ล่วงหน้าก่อนเริ่มยิงข้อมูลเข้าระบบ SMCO POS:
+- [X] **[Early SN Sufficiency Pre-Check]** เพิ่มฟังก์ชัน `check_sn_sufficiency()` ใน `functions/accel_mode.py` และ `autopage_MKII_ver5.x.x.py` ตรวจสอบความพร้อมของ Serial Number ล่วงหน้าก่อนเริ่มยิงข้อมูลเข้าระบบ SMCO POS:
   - ตัดข้ามออเดอร์และบันทึกลง `Failed_Orders` ทันทีหากจำนวน SN ไม่เพียงพอกับ QTY ในคำสั่งซื้อ ประหยัดเวลาและป้องกันการค้างหน้า POS
-- [x] **[Accel Multi-QTY Modal Fill Loop Fix]** แก้ไขลูปการกรอก Serial Number ในหน้าต่าง Modal (`_fill_multi_sku_modal`) ให้วนกรอกครบทุกแถวจนถึง `target_qty` โดยกด `ENTER` ให้ AngularJS สร้างแถวใหม่อย่างต่อเนื่องก่อนเข้าสู่ลูปตรวจสอบสถานะความถูกต้อง (เขียว/แดง)
+- [X] **[Accel Multi-QTY Modal Fill Loop Fix]** แก้ไขลูปการกรอก Serial Number ในหน้าต่าง Modal (`_fill_multi_sku_modal`) ให้วนกรอกครบทุกแถวจนถึง `target_qty` โดยกด `ENTER` ให้ AngularJS สร้างแถวใหม่อย่างต่อเนื่องก่อนเข้าสู่ลูปตรวจสอบสถานะความถูกต้อง (เขียว/แดง)
 
 ### [ver5.x.x] - 2026-09-16
-- [x] **[Accel Mode Multi-QTY Serial Number Modal Flow & Combo Aggregation]** ปรับปรุงระบบกรอก Serial Number (SN) บน SMCO POS ใน Accel Mode ให้รองรับ SKU ที่มี QTY > 1 และสินค้าชุด Combo อย่างสมบูรณ์ แก้ไขปัญหา SN ถูกล้างทิ้งฟรีเมื่อมี SN เสีย:
+
+- [X] **[Accel Mode Multi-QTY Serial Number Modal Flow & Combo Aggregation]** ปรับปรุงระบบกรอก Serial Number (SN) บน SMCO POS ใน Accel Mode ให้รองรับ SKU ที่มี QTY > 1 และสินค้าชุด Combo อย่างสมบูรณ์ แก้ไขปัญหา SN ถูกล้างทิ้งฟรีเมื่อมี SN เสีย:
   - **ปัญหาเดิม**: เมื่อ SKU ต้องการกรอก SN มากกว่า 1 ตัว บอทใช้วิธียิง SN ทีละตัวผ่านช่องค้นหาบนหัวเว็บ SMCO หากตัวแรกผ่านแต่ตัวที่สองไม่ผ่าน กลไกจัดการข้อผิดพลาดเดิมจะไปกดปุ่มถังขยะสีแดง (`btn-danger`) บนตารางตะกร้าสินค้า ซึ่งลบสินค้าทั้งแถวทิ้ง ทำให้ SN ตัวแรกที่ถูกต้องถูกระบบ SMCO ล้างทิ้งไปด้วย และเสียโควตา SN ไปฟรี
   - **ตรรกะใหม่ Multi-QTY (QTY > 1)**:
     - เปลี่ยนไปใช้ **Red Serial Button (`btn-serial` / `ng-redalert`)** เพื่อเปิด Modal จัดการ SN ของสินค้านั้น
@@ -120,8 +138,8 @@
     - ใน `AccelMode._aggregate_order_skus`: รวมยอด QTY สุทธิของ SKU เดียวกันที่กระจายอยู่หลายบรรทัดหรือใน Combo ชุดต่างๆ ให้เป็นก้อนเดียว ก่อนส่งเข้ากระบวนการเติม SN เพื่อให้ยอดตรงกับแถวบนตะกร้า POS ของ SMCO
   - **Uncommitted Serial Restoration Guard**:
     - เพิ่ม `restore_uncommitted_serials()` ใน `AccelMode` และผูกเข้ากับ `record_failed_with_checkpoint` เพื่อคืน Serial Number ที่บอทดึงไปทดสอบแล้วแต่เกิดเหตุการณ์ Order ล้มเหลวกลางคัน ให้กลับมาอยู่ในคิวพร้อมใช้สำหรับออเดอร์ถัดไปเสมอ ไม่สูญหาย
-  - เพิ่มชุดทดสอบอัตโนมัติใน [test_accel_multi_qty_sn.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_accel_multi_qty_sn.py) ผ่านฉลุย 100% (6/6 tests)
-- [x] **[Tracking Error Handling: Manual vs Auto Inv Mode]** ปรับปรุงพฤติกรรมเมื่อไม่พบเลข Tracking หรือ Tracking ไม่ครบในขั้นตอน Phase 2 (Payment Page) ให้แยกการทำงานตามโหมดอย่างถูกต้อง:
+  - เพิ่มชุดทดสอบอัตโนมัติใน [test_accel_multi_qty_sn.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_accel_multi_qty_sn.py>) ผ่านฉลุย 100% (6/6 tests)
+- [X] **[Tracking Error Handling: Manual vs Auto Inv Mode]** ปรับปรุงพฤติกรรมเมื่อไม่พบเลข Tracking หรือ Tracking ไม่ครบในขั้นตอน Phase 2 (Payment Page) ให้แยกการทำงานตามโหมดอย่างถูกต้อง:
   - **โหมด Manual (ไม่มีการเปิด `auto_inv`)**:
     - หากหา Tracking ไม่พบ ไม่สั่งย้อนกลับไปหน้าแรก (`self.return_to_first_page()` ถูกยกเลิกสำหรับโหมด Manual)
     - คงสถานะหน้าจออยู่ที่ Phase 2 (หน้าชำระเงิน) ต่อไป โดยบอทจะกรอกข้อมูลส่วนที่เหลือให้ครบถ้วน (เลข Order ใน Remark, ช่องทางการชำระเงิน, PO No., ชื่อลูกค้า, ราคาสุทธิ)
@@ -131,11 +149,12 @@
     - บันทึกประวัติข้อผิดพลาดลงชีต `Failed_Orders` ในไฟล์ Excel (`.xlsx`) และตัดออเดอร์ออกจาก Sheet1
     - รายงานสถานะ `FAILED` ลง `report_manager`
     - กดย้อนกลับไปหน้าแรกและสั่งล้างตะกร้า POS (`clean_pos_cart`) ทันทีเพื่อเตรียมเริ่มรอบออเดอร์ถัดไปโดยอัตโนมัติ
-  - ปรับปรุงเงื่อนไขใน [payment_handler.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/payment_handler.py) และ [autopage_MKII_ver5.x.x.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py) (`record_failed_with_checkpoint`)
-  - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
+  - ปรับปรุงเงื่อนไขใน [payment_handler.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/payment_handler.py>) และ [autopage_MKII_ver5.x.x.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py>) (`record_failed_with_checkpoint`)
+  - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py>) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
 
 ### [ver5.x.x] - 2026-09-30
-- [x] **[Suggested CP DateTime, Remark & 1-to-1 Column Alignment]** ปรับปรุงระบบบันทึกคูปองแนะนำ (`suggested_cp`) ให้รองรับการเก็บเวลา (Time), Remark และจัดลำดับคอลัมน์ตรงกับคอลัมน์ใช้งานจริง:
+
+- [X] **[Suggested CP DateTime, Remark & 1-to-1 Column Alignment]** ปรับปรุงระบบบันทึกคูปองแนะนำ (`suggested_cp`) ให้รองรับการเก็บเวลา (Time), Remark และจัดลำดับคอลัมน์ตรงกับคอลัมน์ใช้งานจริง:
   - เพิ่ม `parse_smart_datetime` และ `format_smart_datetime_str` รักษาข้อมูลเวลา (Time เช่น `17/09/2026 00:00:01`, `30/09/2026 23:59:59`) จาก SMCO API และข้อความคูปอง
   - ปรับปรุงตรรกะการเลือกคูปองแนะนำ (`find_suggested_cp_for_discount`):
     - หากมีหลายคูปอง ให้เลือกคูปองที่วันเริ่มใช้งานใหม่สุด (`max(start_date)`)
@@ -145,104 +164,116 @@
     `suggested_cp` | `suggested_usage_start_date` | `suggested_usage_end_date` | `suggested_remark`
     ตรงตามลำดับคอลัมน์ใช้งานจริง (`cp_name` | `usage_start_date` | `usage_end_date` | `remark`) เพื่อให้ผู้ใช้สามารถ Copy-Paste ทั้งบล็อก 4 คอลัมน์ได้ทันทีโดยไม่ต้องจัดเรียงใหม่
   - เพิ่มชุดทดสอบอัตโนมัติใน [test_coupon_date_suggestion.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_coupon_date_suggestion.py) ครอบคลุมกฎการเลือกวันที่, เวลา, Remark และโครงสร้างคอลัมน์ ผ่าน 100%
-- [x] **[Network Interception & Multi-SKU Combo Coupon Mathematical Aggregation]** เพิ่มระบบดักจับข้อมูลคูปองจาก Network Response และรวมมูลค่าส่วนลดข้าม Sub-SKU ของสินค้าชุด (Combo Set) ทางคณิตศาสตร์:
+- [X] **[Network Interception & Multi-SKU Combo Coupon Mathematical Aggregation]** เพิ่มระบบดักจับข้อมูลคูปองจาก Network Response และรวมมูลค่าส่วนลดข้าม Sub-SKU ของสินค้าชุด (Combo Set) ทางคณิตศาสตร์:
   - บันทึก Response จาก Network API `/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm` เมื่อยิงสินค้าแต่ละ SKU ใน `functions/auto_add_product.py` ผ่าน `record_product_master_response`
   - เพิ่ม `get_smco_session_context` ใน `functions/pos/pricing_engine.py` สกัดข้อมูลผู้ใช้และสาขา (`emp_id`, `branch_id`, `store_id`) จาก JWT Token (`sub`) ใน Cookie/Storage อัตโนมัติ เพื่อใช้กรองคูปองเฉพาะสาขาที่ล็อกอิน (`couponBranchs`)
   - เพิ่ม `get_aggregated_combo_coupons` คำนวณผลรวมส่วนลดจริงของแต่ละ Coupon Code (`couponDetailCash + couponDetailDisc`) จากทุก Sub-SKU ในเซ็ต (เช่น `SP1-001420+SP1-001421+...`)
   - ผสานรายการคูปองที่คำนวณส่วนลดรวมแล้วเข้าสู่ `scan_matching_cp_candidates_on_smco` และ `find_suggested_cp_for_discount` ทำให้ระบบสามารถจับคู่และแนะนำ `suggested_cp` สำหรับสินค้าชุดได้แม่นยำ 100% แม้ใน Remark จะไม่ได้ระบุราคาเป้าหมายไว้
   - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านฉลุย 100%
 
-
 ### [ver5.x.x] - 2026-09-15
 
-- [x] **[Address Dropdown Exact Match Priority]** แก้ไขปัญหาการเลือก อำเภอ/เขต/จังหวัด ใน `select_li_from_dropdown` ผิดพลาดเมื่อคำค้นหาเป็นคำย่อยของคำอื่น (เช่น ค้นหา "วัฒนา" แต่ระบบไปเลือก "ทวีวัฒนา"):
-  - ปรับปรุงตรรกะใน [autopage_MKII_ver5.x.x.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py) ให้ตรวจสอบและคลิกรายการที่เป็น Exact Match (`txt == th_val or txt == en_val`) ก่อนเสมอในรอบแรก เพื่อป้องกันปัญหา Substring Match ที่ทำให้คำค้นหาสั้นไปจับคู่โดนคำยาวที่อยู่ลำดับก่อนหน้า
+- [X] **[Address Dropdown Exact Match Priority]** แก้ไขปัญหาการเลือก อำเภอ/เขต/จังหวัด ใน `select_li_from_dropdown` ผิดพลาดเมื่อคำค้นหาเป็นคำย่อยของคำอื่น (เช่น ค้นหา "วัฒนา" แต่ระบบไปเลือก "ทวีวัฒนา"):
+  - ปรับปรุงตรรกะใน [autopage_MKII_ver5.x.x.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py>) ให้ตรวจสอบและคลิกรายการที่เป็น Exact Match (`txt == th_val or txt == en_val`) ก่อนเสมอในรอบแรก เพื่อป้องกันปัญหา Substring Match ที่ทำให้คำค้นหาสั้นไปจับคู่โดนคำยาวที่อยู่ลำดับก่อนหน้า
   - หากไม่พบ Exact Match จะเลือกตาม Index จาก API (`matched_item_idx`) ซึ่งตรงกับลำดับรายการที่แสดงใน Select2 Dropdown ของ SMCO
   - คง Fallback ด้วย Partial Match และ `Keys.ENTER` ไว้เฉพาะกรณีที่ Index เกินขอบเขตของตัวเลือกใน DOM
 
 ### [ver5.x.x] - 2026-09-11
-- [x] **[Test Mode Accel Auto-Advance on Pass]** เพิ่มระบบข้ามไปออเดอร์ถัดไปอัตโนมัติใน Test Mode เมื่อเปิดรันคู่กับ Accel Mode + Auto Invoice:
+
+- [X] **[Test Mode Accel Auto-Advance on Pass]** เพิ่มระบบข้ามไปออเดอร์ถัดไปอัตโนมัติใน Test Mode เมื่อเปิดรันคู่กับ Accel Mode + Auto Invoice:
   - หาก `is_testing == True` และรันบน `is_accel_mode == True` คู่กับ `is_auto_invoice_mode == True`:
     - **กรณี Test ผ่าน (All OK)**: บันทึกข้อมูลออเดอร์ที่ทดสอบสำเร็จลงไฟล์ Accel (`deduct_accel_file_data`, `record_completed_order`), รายงานผลลง `report_manager.finish_order("SUCCESS")`, กดย้อนกลับไปหน้าแรก (`return_to_first_page`), ล้างตะกร้าสินค้า (`clean_pos_cart`), และส่งสัญญาณให้คิวของ Accel Mode ดำเนินการออเดอร์ถัดไปได้ทันทีอย่างต่อเนื่องโดยไม่ติดค้างที่หน้าจอ
     - **กรณี Test ไม่ผ่าน (Fail)**: บอทจะหยุดการทำงานทันที, ปิด Accel Mode (`is_accel_mode_activated = False`), ปรับสถานะป้ายเป็น `Bot Status: Your Turn (Test Failed)` และค้างหน้าจอไว้เพื่อให้ผู้ใช้เข้ามาตรวจสอบสาเหตุได้อย่างแม่นยำ
     - **กรณีทดสอบแบบ Manual ออเดอร์เดี่ยว (ไม่ใช่ Accel Mode)**: คงพฤติกรรมเดิมไว้ทุกประการ โดยบอทจะหยุดที่ Checkpoint ตามที่เลือกเพื่อให้ผู้ใช้ตรวจสอบและดำเนินการต่อเอง
-- [x] **[Pre-selected Default CP Pairing Recommendation]** เพิ่มระบบแนะนำคูปองแบบคู่ผสม (คูปองเริ่มต้น + คูปองที่ต้องเพิ่ม) เมื่อตรวจพบคูปองที่ถูกเลือกเป็นค่าเริ่มต้น (`btn-primary`) บนหน้าต่างคูปองของ SMCO:
+- [X] **[Pre-selected Default CP Pairing Recommendation]** เพิ่มระบบแนะนำคูปองแบบคู่ผสม (คูปองเริ่มต้น + คูปองที่ต้องเพิ่ม) เมื่อตรวจพบคูปองที่ถูกเลือกเป็นค่าเริ่มต้น (`btn-primary`) บนหน้าต่างคูปองของ SMCO:
   - ใน `scan_matching_cp_candidates_on_smco` ตรวจสอบสถานะปุ่ม `btn-primary` เพื่อดึงรหัสคูปองที่ถูกเลือกอยู่แล้ว (รวมทั้ง Default CP และ Seller Voucher) เก็บเข้า `last_preselected_smco_coupons`
   - ใน `find_suggested_cp_for_discount` คำนวณคูปองแนะนำใหม่แล้วนำมาเชื่อมคู่กับคูปองเริ่มต้น เช่น `'CP2608280058 CP2608310072'`
   - ใน `_raise_missing_cp_guide` แจ้งเตือนแจกแจงชัดเจนว่าสินค้ามีคูปองเริ่มต้นใด และต้องเพิ่มคูปองใด พร้อมบันทึกรหัสคู่ผสมลงในคอลัมน์ `suggested_cp` ของ `cp_data.xlsx` ทันที เพื่อให้ผู้ใช้คัดลอกไปใช้ใน `cp_name` ได้โดยไม่ต้องเปิดดูหน้าเว็บเอง
   - เพิ่มชุดทดสอบอัตโนมัติ 7 ข้อใน `tests/test_preselected_coupon_recommendation.py` ผ่านฉลุย 100%
-- [x] **[Dynamic Smart Wait & Flexible Regex for Coupon Suggestion]** ปรับปรุงระบบสแกนคูปองบน SMCO (`scan_matching_cp_candidates_on_smco`) และการแกะวันที่:
+- [X] **[Dynamic Smart Wait & Flexible Regex for Coupon Suggestion]** ปรับปรุงระบบสแกนคูปองบน SMCO (`scan_matching_cp_candidates_on_smco`) และการแกะวันที่:
   - อัปเกรดการรอเปิด Modal จากเดิม 0.4 วินาที (8 * 0.05s) เป็น **Dynamic Smart Wait สูงสุด 3.0 วินาที** (30 * 0.1s) เพื่อรองรับสินค้าชุดหลาย SKU (Combo Pack) ที่ AngularJS ใช้เวลาเรนเดอร์ Modal นานกว่าปกติ แก้ปัญหารายการคูปองว่างเปล่าจนไม่เกิด `suggested_cp`
   - ปรับปรุง `extract_coupon_date_range` ให้รองรับรูปแบบวันที่หลากหลายทั้ง พ.ศ./ค.ศ., ปี 2 หลัก (`26`), ตัวคั่นขีด/ทับ/จุด (`/`, `-`, `.`) และคำเชื่อม (`-`, `to`, `ถึง`, `~`)
   - อัปเดตชุดทดสอบ `tests/test_coupon_date_suggestion.py` ครอบคลุมรูปแบบวันที่ใหม่ทั้งหมด ผ่านฉลุย 100%
-- [x] **[Multi-SKU Combo Set Remark Target Price Suggestion]** เพิ่มระบบตรวจจับราคาเป้าหมายจาก Remark ของคูปองสำหรับสินค้าเซ็ต (1 รายการ มีหลาย SKU):
+- [X] **[Multi-SKU Combo Set Remark Target Price Suggestion]** เพิ่มระบบตรวจจับราคาเป้าหมายจาก Remark ของคูปองสำหรับสินค้าเซ็ต (1 รายการ มีหลาย SKU):
   - สำหรับสินค้าที่เป็นเซ็ตหลาย SKU บนหน้า POS จะถูกแยกเป็นหลายแถว ทำให้ส่วนลดรายชิ้นที่แสดงใน Popup (เช่น `321.-`) ไม่ตรงกับส่วนต่างราคารวมของทั้งชุด (เช่น `1,827.-`)
   - เพิ่มฟังก์ชัน `extract_target_price_from_text` ดึงราคาเป้าหมายจากช่อง `couponDetailRemark` และ Description ของคูปอง เช่น `'Dynamic ก.ย. Shp ราคา 9673'` -> ได้ราคาเป้าหมาย `9673.0`
   - ปรับปรุง `find_suggested_cp_for_discount` ให้รับพารามิเตอร์ `expected_price` และจับคู่คูปองจากราคาใน Remark ร่วมกับการตรวจวันที่ ทำให้ระบบสามารถแนะนำ `suggested_cp` (เช่น `CP2609090005`) ให้กับสินค้าเซ็ตได้อย่างแม่นยำ 100% แม้ส่วนลดต่อชิ้นจะไม่ตรงกับส่วนต่างราคารวม
   - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านฉลุย 100%
 
 ### [5.2.5] - 2026-09-09
-- [x] **[Seller Voucher CP Integration & SSOT Pricing Guard]** ปรับปรุงระบบคำนวณราคาเพื่อรองรับการเปลี่ยนผ่านของ Seller Voucher ไปเป็น Campaign Coupon (CP) บน SMCO POS:
+
+- [X] **[Seller Voucher CP Integration & SSOT Pricing Guard]** ปรับปรุงระบบคำนวณราคาเพื่อรองรับการเปลี่ยนผ่านของ Seller Voucher ไปเป็น Campaign Coupon (CP) บน SMCO POS:
   - ปรับปรุง `OrderFinancials.recalculate()` ใน `functions/pos/pricing_engine.py` ให้อ่านค่า `โค้ดส่วนลดชำระโดยผู้ขาย` / `ส่วนลดจากร้านค้า` ทั้งในระดับแถวสินค้าและระดับออเดอร์ นำไปหักออกจากราคาคาดหวัง (`item_expected_prices`) ของ SKU เป้าหมาย เพื่อให้บอทค้นหาและเลือก CP ใน `cp_data.xlsx` ที่มีมูลค่าส่วนลดตรงกับ Seller Voucher
   - ปรับปรุง `ProductManager.verify_item_price()` และ `verify_total_price()` ใน `functions/product_manager.py` ให้ใช้ `OrderFinancials` เป็น Single Source of Truth (SSOT) ในการเปรียบเทียบราคาต่อชิ้นและยอดรวมตะกร้าสินค้าบน POS แทนการคำนวณราคาแบบเดิม
   - ป้องกันข้อผิดพลาด `KeyError: 'เลขอ้างอิง SKU'` ใน `verify_item_price()` เมื่อมีค่าจัดส่งหรือไม่มีคอลัมน์ SKU ในแถวเสริม
   - เพิ่มชุดทดสอบอัตโนมัติ `tests/test_seller_voucher_pricing.py` ครอบคลุมการคำนวณของ OrderFinancials, การจับคู่ CP ของ PricingReconciler และการตรวจราคาของ ProductManager ผ่านฉลุย 100%
-- [x] **[Accel Mode Queue Skipping & Shifting Fix]** แก้ไขปัญหา Accel Mode ข้ามออเดอร์เว้นออเดอร์ (1 -> 3 -> 5) ที่เกิดจากการลบแถวออเดอร์ที่สำเร็จออกจาก Excel แล้ว Index ของแถวที่เหลือถอยร่นขึ้นมา 1 ตำแหน่งแต่ตัวนับวนลูปส่งค่า `count + 1` โดยเปลี่ยนสถาปัตยกรรมลูปเป็น **Processed Queue Tracker** ตรวจจับและหยิบออเดอร์แรกในรายการที่ยังไม่ถูกเริ่มรันในรอบนั้นเสมอ (`processed_orders`) พร้อมรองรับกรณีออเดอร์ Failed หรือถูกข้าม (ไม่ลบแถวออกจาก Sheet1 แต่ไม่วนซ้ำออเดอร์เดิม) และเพิ่มชุดทดสอบอัตโนมัติ 3 เคสใน `tests/test_accel_mode_queue.py`
-- [x] **[CP Sonic Blow Multi-Item Modal Fix]** แก้ไขปัญหา `Demonic CP Bot inner Exception Error: Message: element not interactable` ใน `functions/pos/pricing_engine.py` (`cp_sonic_blow_process` และ `scan_matching_cp_candidates_on_smco`) ซึ่งทำให้บอทเลือกคูปองได้ไม่ครบทุก SKU เมื่อมีหลายรายการ:
+- [X] **[Accel Mode Queue Skipping & Shifting Fix]** แก้ไขปัญหา Accel Mode ข้ามออเดอร์เว้นออเดอร์ (1 -> 3 -> 5) ที่เกิดจากการลบแถวออเดอร์ที่สำเร็จออกจาก Excel แล้ว Index ของแถวที่เหลือถอยร่นขึ้นมา 1 ตำแหน่งแต่ตัวนับวนลูปส่งค่า `count + 1` โดยเปลี่ยนสถาปัตยกรรมลูปเป็น **Processed Queue Tracker** ตรวจจับและหยิบออเดอร์แรกในรายการที่ยังไม่ถูกเริ่มรันในรอบนั้นเสมอ (`processed_orders`) พร้อมรองรับกรณีออเดอร์ Failed หรือถูกข้าม (ไม่ลบแถวออกจาก Sheet1 แต่ไม่วนซ้ำออเดอร์เดิม) และเพิ่มชุดทดสอบอัตโนมัติ 3 เคสใน `tests/test_accel_mode_queue.py`
+- [X] **[CP Sonic Blow Multi-Item Modal Fix]** แก้ไขปัญหา `Demonic CP Bot inner Exception Error: Message: element not interactable` ใน `functions/pos/pricing_engine.py` (`cp_sonic_blow_process` และ `scan_matching_cp_candidates_on_smco`) ซึ่งทำให้บอทเลือกคูปองได้ไม่ครบทุก SKU เมื่อมีหลายรายการ:
   - เพิ่มระบบตรวจเช็คและรอให้ modal backdrop (`.modal-backdrop`, `.modal.in`) ปิดสนิทก่อนคลิกปุ่มคูปองของ SKU ถัดไป
   - เพิ่ม `scrollIntoView` เลื่อนปุ่มคูปองให้อยู่กึ่งกลางหน้าจอก่อนคลิก
   - ใช้การคลิกด้วย Selenium ปกติ (`.click()`) ร่วมกับจังหวะพักรอ (`0.35s`) ให้ AngularJS digest cycle และ DOM เรนเดอร์เสร็จสมบูรณ์ เพื่อเลี่ยงการถูกตรวจจับจากการคลิกด้วย JavaScript
-- [x] **[POS Fast Cart Clear Optimization]** ปรับปรุงระบบล้างสินค้าตกค้างบนตะกร้า POS (`Cart Sanitation Guard`) ก่อนเริ่มออเดอร์ใหม่ ให้ใช้ Fast Clear โดยคลิกปุ่มเคลียร์ `//span[@id='select2-memberSearch-container']//span[@class='select2-selection__clear']` พร้อมตรวจจับและกดยืนยัน Pop-up SweetAlert2 (`OK`/`ตกลง`) อัตโนมัติ แทนการรีโหลดหน้า `posmainv3.htm` แบบเดิม ช่วยลดเวลาการทำงานได้อย่างมาก พร้อมคง Fallback รีโหลดหน้าเว็บหากไม่พบปุ่มเคลียร์
-- [x] **[Final Page Payment Loop]** ปรับปรุงลูป `process_final_payment()` ใน `functions/pos/payment_handler.py` ไม่ให้ข้ามหรือหลุดการทำงานก่อนเวลา โดยสั่งกรอกข้อมูลหน้าท้าย (PO No, Customer Name, Cash, CN Remark) ให้ครบถ้วน แล้วรอในลูปจนกว่าบอทจะชำระเงินสำเร็จ (ตรวจพบหน้าต่างปิดลง) หรือผู้ใช้กดย้อนกลับไปหน้าที่ 1
-- [x] **[Accel Mode Excel Integrity & Sheet Isolation]** แก้ไขปัญหาไฟล์ Accel Excel เสียหายและชีตหาย รวมถึงบัค `ValueError: ไม่พบออเดอร์ ... ในไฟล์นำเข้า` ใน `functions/accel_mode.py`:
+- [X] **[POS Fast Cart Clear Optimization]** ปรับปรุงระบบล้างสินค้าตกค้างบนตะกร้า POS (`Cart Sanitation Guard`) ก่อนเริ่มออเดอร์ใหม่ ให้ใช้ Fast Clear โดยคลิกปุ่มเคลียร์ `//span[@id='select2-memberSearch-container']//span[@class='select2-selection__clear']` พร้อมตรวจจับและกดยืนยัน Pop-up SweetAlert2 (`OK`/`ตกลง`) อัตโนมัติ แทนการรีโหลดหน้า `posmainv3.htm` แบบเดิม ช่วยลดเวลาการทำงานได้อย่างมาก พร้อมคง Fallback รีโหลดหน้าเว็บหากไม่พบปุ่มเคลียร์
+- [X] **[Final Page Payment Loop]** ปรับปรุงลูป `process_final_payment()` ใน `functions/pos/payment_handler.py` ไม่ให้ข้ามหรือหลุดการทำงานก่อนเวลา โดยสั่งกรอกข้อมูลหน้าท้าย (PO No, Customer Name, Cash, CN Remark) ให้ครบถ้วน แล้วรอในลูปจนกว่าบอทจะชำระเงินสำเร็จ (ตรวจพบหน้าต่างปิดลง) หรือผู้ใช้กดย้อนกลับไปหน้าที่ 1
+- [X] **[Accel Mode Excel Integrity & Sheet Isolation]** แก้ไขปัญหาไฟล์ Accel Excel เสียหายและชีตหาย รวมถึงบัค `ValueError: ไม่พบออเดอร์ ... ในไฟล์นำเข้า` ใน `functions/accel_mode.py`:
   - เพิ่ม `_get_main_sheet_name()` ตรวจหาชีตข้อมูลหลักอัตโนมัติ (ไม่หยิบชีต `Completed_Orders` หรือ `Failed_Orders`)
   - บังคับระบุ `sheet_name` ในการอ่าน `pd.read_excel()` ให้ตรงกับชีตหลักทุกจุด
   - ปรับปรุง `_save_df_to_excel()` ให้บันทึกข้อมูลแบบแยกชีตด้วย `openpyxl` โดยไม่ลบชีตอื่นทิ้ง
   - ป้องกัน `KeyError: 'cp'` กรณีไฟล์ Excel นำเข้าไม่มีคอลัมน์ `cp`
-- [x] **[Address Tokenization]** นำ `PyThaiNLP` (`word_tokenize`) และ `RapidFuzz` เข้ามาช่วยตัดคำและทำความสะอาดที่อยู่ (`clean_address`) รองรับที่อยู่ที่พิมพ์ติดกันเป็นพรืดและคำย่อการปกครองซ้ำซ้อน
-- [x] **[Test / Batch Report System]** เพิ่มโมดูล `TestReportManager` (`functions/utils/report_manager.py`) บันทึกและสรุปสถานะการสร้างลูกค้า (`customer_status`) และการแก้ไขที่อยู่ (`address_status`) พร้อมระบบ Export รายงานออกมาเป็นไฟล์ Excel อัตโนมัติในโฟลเดอร์ `reports/`
-- [x] **[Final Page Element Verification Guard]** เพิ่มฟังก์ชัน `verify_final_page_elements()` และระบบ Auto-recovery ใน `functions/pos/payment_handler.py` ตรวจสอบความครบถ้วนของ PO No. (`#textbox81037000102`), Customer Name (`#textbox81037000101`), ยอดเงิน Cash (`#ripCash00`), หมายเหตุ (`cnRemark`) และยอดคงเหลือ (`wrimagecard-lightGray == 0.00`) ก่อนกดปุ่มเขียว (`#btnPayment`) พร้อมชุดทดสอบอัตโนมัติ 6 ข้อใน `tests/test_final_page_validator.py`
-- [x] **[Test Mode Segmented Checkpoints]** เพิ่มระบบเลือกจุดหยุดใน Test Mode (`test_mode_frame`) ด้วย `CTkOptionMenu` แบบไดนามิก (แสดงเฉพาะเมื่อกด `Ctrl+Alt+T`) รองรับ 5 ระดับจุดหยุด: [1] หลังเลือกลูกค้า [2] หลังตรวจที่อยู่ [3] หลังยิงสินค้า/คูปองหน้าแรก [4] หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว) [5] ไม่หยุด-รันจนจบวงรอบ พร้อมระบบส่งมอบหน้าจอ (`Your Turn`) และชุดทดสอบใน `tests/test_test_mode_checkpoints.py`
-- [x] **[Add Customer Test Shortcut & Validation System]** เพิ่มโมดูล `CustomerModalTestHandler` (`functions/pos/customer_test_handler.py`) พร้อมปุ่มลัด `[🧪 Test Add Customer]` บน UI (และคีย์ลัด `Ctrl+Alt+C`) สำหรับทดสอบเปิดหน้าต่างสร้างลูกค้า กรอก `memNameTh`/`memNameEn` (ค่าเดียวกันเสมอ), `identity` (Tax ID), `addressCustomer` และตรวจสอบ dropdowns 4 ตัว (Province, District, SubDistrict, Zip) ทั้งภาษาไทย/อังกฤษ และตรวจสอบสถานะปุ่ม `//button[@ng-click='saveNewMember()']` ว่า attribute `disabled="disabled"` หลุดหายไปเมื่อกรอกครบ พร้อมระบบบันทึกรายงานผลการทดสอบลงไฟล์ Excel ในโฟลเดอร์ `reports/` อัตโนมัติ และชุดทดสอบครบ 5 เคสใน `tests/test_customer_modal_test_handler.py`
+- [X] **[Address Tokenization]** นำ `PyThaiNLP` (`word_tokenize`) และ `RapidFuzz` เข้ามาช่วยตัดคำและทำความสะอาดที่อยู่ (`clean_address`) รองรับที่อยู่ที่พิมพ์ติดกันเป็นพรืดและคำย่อการปกครองซ้ำซ้อน
+- [X] **[Test / Batch Report System]** เพิ่มโมดูล `TestReportManager` (`functions/utils/report_manager.py`) บันทึกและสรุปสถานะการสร้างลูกค้า (`customer_status`) และการแก้ไขที่อยู่ (`address_status`) พร้อมระบบ Export รายงานออกมาเป็นไฟล์ Excel อัตโนมัติในโฟลเดอร์ `reports/`
+- [X] **[Final Page Element Verification Guard]** เพิ่มฟังก์ชัน `verify_final_page_elements()` และระบบ Auto-recovery ใน `functions/pos/payment_handler.py` ตรวจสอบความครบถ้วนของ PO No. (`#textbox81037000102`), Customer Name (`#textbox81037000101`), ยอดเงิน Cash (`#ripCash00`), หมายเหตุ (`cnRemark`) และยอดคงเหลือ (`wrimagecard-lightGray == 0.00`) ก่อนกดปุ่มเขียว (`#btnPayment`) พร้อมชุดทดสอบอัตโนมัติ 6 ข้อใน `tests/test_final_page_validator.py`
+- [X] **[Test Mode Segmented Checkpoints]** เพิ่มระบบเลือกจุดหยุดใน Test Mode (`test_mode_frame`) ด้วย `CTkOptionMenu` แบบไดนามิก (แสดงเฉพาะเมื่อกด `Ctrl+Alt+T`) รองรับ 5 ระดับจุดหยุด: [1] หลังเลือกลูกค้า [2] หลังตรวจที่อยู่ [3] หลังยิงสินค้า/คูปองหน้าแรก [4] หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว) [5] ไม่หยุด-รันจนจบวงรอบ พร้อมระบบส่งมอบหน้าจอ (`Your Turn`) และชุดทดสอบใน `tests/test_test_mode_checkpoints.py`
+- [X] **[Add Customer Test Shortcut & Validation System]** เพิ่มโมดูล `CustomerModalTestHandler` (`functions/pos/customer_test_handler.py`) พร้อมปุ่มลัด `[🧪 Test Add Customer]` บน UI (และคีย์ลัด `Ctrl+Alt+C`) สำหรับทดสอบเปิดหน้าต่างสร้างลูกค้า กรอก `memNameTh`/`memNameEn` (ค่าเดียวกันเสมอ), `identity` (Tax ID), `addressCustomer` และตรวจสอบ dropdowns 4 ตัว (Province, District, SubDistrict, Zip) ทั้งภาษาไทย/อังกฤษ และตรวจสอบสถานะปุ่ม `//button[@ng-click='saveNewMember()']` ว่า attribute `disabled="disabled"` หลุดหายไปเมื่อกรอกครบ พร้อมระบบบันทึกรายงานผลการทดสอบลงไฟล์ Excel ในโฟลเดอร์ `reports/` อัตโนมัติ และชุดทดสอบครบ 5 เคสใน `tests/test_customer_modal_test_handler.py`
+
 ### [5.2.4LITE / 5.2.5] - 2026-08-27
+
 #### Fixed & Improved
-- [x] **[Print]** ปรับ `print_pdf_silence_sumatra` ในทั้ง `ver5.x.x.py` และ `ver5.2.4LITE.py` เป็นแบบ Non-blocking (`subprocess.Popen`) แก้ปัญหา Tkinter Not Responding
-- [x] **[Payment]** ปรับปรุง XPath ปุ่มชำระเงินเป็น `//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']` พร้อมระบบ Retry และแก้ปัญหา Popup LockAcquisitionException
-- [x] **[Pricing Engine]** แยกโมดูล `functions/pos/pricing_engine.py` (OrderFinancials & POSPricingReconciler) เป็น Single Source of Truth ป้องกันคำนวณซ้ำซ้อน
-- [x] **[Safety Net]** เพิ่มระบบ Auto-retry กดปุ่มชำระเงินซ้ำอัตโนมัติทุก 3 วินาที หากค้างหน้าชำระเงินโดยไม่มี Popup
-- [x] **[Tracking]** เพิ่มระบบตรวจเช็ค Package Card และ Tracking Number ก่อนออกบิล หากไม่ครบจะยกเลิกออเดอร์เข้า Failed_Orders ทันที
-- [x] **[CP/DC Multi-Candidate]** เพิ่มระบบ Ambiguity Guard หากพบคูปองตรงกันมากกว่า 1 ตัวบน SMCO จะหยุดปรับราคาและแจ้งเตือน User เพื่อความปลอดภัย
-- [x] **[Logging / Error Handling]** ปรับปรุง order_search ให้บันทึกเลข Order, ประเภท Exception, ข้อความ Error และ Stacktrace ลง Log พร้อมบันทึกลง Failed_Orders ของ Accel file
-- [x] **[Log Rotation & Retention]** ตั้งค่า Loguru จำกัดขนาดไฟล์ Log ที่ 10 MB พร้อมหมุนไฟล์อัตโนมัติ (Rotation), บีบอัดไฟล์เก่าเป็น .zip (Compression), เก็บย้อนหลัง 15 วัน (Retention) และบังคับ UTF-8
-- [x] **[Completed_Orders Multi-Tracking]** ปรับ `record_completed_order` ใน Accel mode ให้แยกบันทึก 1 Row ต่อ 1 Tracking Number พร้อมจับคู่ SKU และ SN ของแต่ละ Tracking อัตโนมัติ
-- [x] **[Cancelled Order SN Guard]** ป้องกันค่า SN ตกค้างใน Order ที่ถูกยกเลิก/ข้าม โดยล้าง `used_serials` ก่อนเริ่มรอบค้นหาและหลังบันทึกทุกครั้ง พร้อมบล็อกไม่ให้เขียน SN ลงแถวที่ถูกยกเลิก
-- [x] **[In-Memory SN Recovery]** แก้ปัญหา SN หายจาก Memory เมื่อรอบก่อนหน้า Abort/Fail กลางคัน (เช่น ติดปรับราคา) โดยสั่งซิงค์ `obj_data_from_accel_file` จาก `accel_df_state` ก่อนเริ่มยิง SN ทุกครั้ง ทำให้สามารถยิง SN ได้ตามปกติเมื่อวนกลับมารันใหม่
-- [x] **[Order State Leak Guard]** ป้องกันการนำข้อมูลสินค้าของออเดอร์ก่อนหน้ามาออกบิลซ้ำ เมื่อค้นหาออเดอร์ใหม่ไม่พบในไฟล์นำเข้า โดยรีเซ็ต `self.items = []`, สั่งตัดการทำงานของ `operation_thread` ทันที, บันทึกลง `Failed_Orders`, และเพิ่ม Safeguard บล็อกไม่ให้เริ่มรันถ้า `self.items` ว่างเปล่า
-- [x] **[Real-time Self-Verification & Cart Sanitation]** เพิ่มระบบตรวจสอบตัวเองแบบ Real-Time (1) เช็คความถูกต้องกับตาราง Marketplace โดยตรงใน `verify_item_qty` (2) ตรวจสอบแบบสองทิศทาง (Bidirectional Check) ดักจับสินค้าแปลกปลอม/สินค้าตกค้างบน POS ทันที (3) ระบบ Cart Sanitation รีโหลดหน้า POS อัตโนมัติหากพบสินค้าตกค้างบนตะกร้าก่อนเริ่มออเดอร์ใหม่ พร้อมชุด Automated Test 7 ข้อ
-- [x] **[Sonic Blow CP Selector Optimization]** ปรับปรุง Locator ปุ่ม Coupon บน SMCO POS เป็น XPath `//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]` ทั้งใน `sonic_blow_cp_selector` และ `scan_matching_cp_candidates_on_smco` แก้ปัญหาตรวจพบ element แฝง (8 elements แทนที่จะเป็น 4) ซึ่งทำให้เกิดข้อผิดพลาด `element not interactable` สลับเว้นตัว พร้อมทั้งตัด Delays ที่หน่วงเวลาออก คืนความเร็วในการทำงานสูงสุดโดยยังคง Retry และ Backdrop Clearance Logic ไว้อย่างสมบูรณ์
+
+- [X] **[Print]** ปรับ `print_pdf_silence_sumatra` ในทั้ง `ver5.x.x.py` และ `ver5.2.4LITE.py` เป็นแบบ Non-blocking (`subprocess.Popen`) แก้ปัญหา Tkinter Not Responding
+- [X] **[Payment]** ปรับปรุง XPath ปุ่มชำระเงินเป็น `//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']` พร้อมระบบ Retry และแก้ปัญหา Popup LockAcquisitionException
+- [X] **[Pricing Engine]** แยกโมดูล `functions/pos/pricing_engine.py` (OrderFinancials & POSPricingReconciler) เป็น Single Source of Truth ป้องกันคำนวณซ้ำซ้อน
+- [X] **[Safety Net]** เพิ่มระบบ Auto-retry กดปุ่มชำระเงินซ้ำอัตโนมัติทุก 3 วินาที หากค้างหน้าชำระเงินโดยไม่มี Popup
+- [X] **[Tracking]** เพิ่มระบบตรวจเช็ค Package Card และ Tracking Number ก่อนออกบิล หากไม่ครบจะยกเลิกออเดอร์เข้า Failed_Orders ทันที
+- [X] **[CP/DC Multi-Candidate]** เพิ่มระบบ Ambiguity Guard หากพบคูปองตรงกันมากกว่า 1 ตัวบน SMCO จะหยุดปรับราคาและแจ้งเตือน User เพื่อความปลอดภัย
+- [X] **[Logging / Error Handling]** ปรับปรุง order_search ให้บันทึกเลข Order, ประเภท Exception, ข้อความ Error และ Stacktrace ลง Log พร้อมบันทึกลง Failed_Orders ของ Accel file
+- [X] **[Log Rotation & Retention]** ตั้งค่า Loguru จำกัดขนาดไฟล์ Log ที่ 10 MB พร้อมหมุนไฟล์อัตโนมัติ (Rotation), บีบอัดไฟล์เก่าเป็น .zip (Compression), เก็บย้อนหลัง 15 วัน (Retention) และบังคับ UTF-8
+- [X] **[Completed_Orders Multi-Tracking]** ปรับ `record_completed_order` ใน Accel mode ให้แยกบันทึก 1 Row ต่อ 1 Tracking Number พร้อมจับคู่ SKU และ SN ของแต่ละ Tracking อัตโนมัติ
+- [X] **[Cancelled Order SN Guard]** ป้องกันค่า SN ตกค้างใน Order ที่ถูกยกเลิก/ข้าม โดยล้าง `used_serials` ก่อนเริ่มรอบค้นหาและหลังบันทึกทุกครั้ง พร้อมบล็อกไม่ให้เขียน SN ลงแถวที่ถูกยกเลิก
+- [X] **[In-Memory SN Recovery]** แก้ปัญหา SN หายจาก Memory เมื่อรอบก่อนหน้า Abort/Fail กลางคัน (เช่น ติดปรับราคา) โดยสั่งซิงค์ `obj_data_from_accel_file` จาก `accel_df_state` ก่อนเริ่มยิง SN ทุกครั้ง ทำให้สามารถยิง SN ได้ตามปกติเมื่อวนกลับมารันใหม่
+- [X] **[Order State Leak Guard]** ป้องกันการนำข้อมูลสินค้าของออเดอร์ก่อนหน้ามาออกบิลซ้ำ เมื่อค้นหาออเดอร์ใหม่ไม่พบในไฟล์นำเข้า โดยรีเซ็ต `self.items = []`, สั่งตัดการทำงานของ `operation_thread` ทันที, บันทึกลง `Failed_Orders`, และเพิ่ม Safeguard บล็อกไม่ให้เริ่มรันถ้า `self.items` ว่างเปล่า
+- [X] **[Real-time Self-Verification & Cart Sanitation]** เพิ่มระบบตรวจสอบตัวเองแบบ Real-Time (1) เช็คความถูกต้องกับตาราง Marketplace โดยตรงใน `verify_item_qty` (2) ตรวจสอบแบบสองทิศทาง (Bidirectional Check) ดักจับสินค้าแปลกปลอม/สินค้าตกค้างบน POS ทันที (3) ระบบ Cart Sanitation รีโหลดหน้า POS อัตโนมัติหากพบสินค้าตกค้างบนตะกร้าก่อนเริ่มออเดอร์ใหม่ พร้อมชุด Automated Test 7 ข้อ
+- [X] **[Sonic Blow CP Selector Optimization]** ปรับปรุง Locator ปุ่ม Coupon บน SMCO POS เป็น XPath `//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]` ทั้งใน `sonic_blow_cp_selector` และ `scan_matching_cp_candidates_on_smco` แก้ปัญหาตรวจพบ element แฝง (8 elements แทนที่จะเป็น 4) ซึ่งทำให้เกิดข้อผิดพลาด `element not interactable` สลับเว้นตัว พร้อมทั้งตัด Delays ที่หน่วงเวลาออก คืนความเร็วในการทำงานสูงสุดโดยยังคง Retry และ Backdrop Clearance Logic ไว้อย่างสมบูรณ์
 
 ### [5.2.0LITE - 5.2.3LITE]
+
 #### Added & Fixed
-- [x] **[CP Data Sync]** เพิ่มระบบ `scan_and_sync_missing_cp_data()` ซิงค์ราคาที่ต้องออกบิลได้ทันทีที่อัปเดตไฟล์ `cp_data.xlsx`
-- [x] **[Accel Mode]** ย้าย Order ที่สำเร็จเข้าชีต `Completed_Orders` และตัด Serial ที่ใช้แล้วออกจากไฟล์ Excel ทันที
-- [x] **[SN Modal Support]** รองรับการกรอก Serial Number ผ่าน Modal กรณีปุ่ม Checkbox ปกติไม่แสดง
-- [x] **[Hotkeys]** เพิ่มคีย์ลัด `Ctrl + Alt + T` สำหรับเปิด Test Mode
+
+- [X] **[CP Data Sync]** เพิ่มระบบ `scan_and_sync_missing_cp_data()` ซิงค์ราคาที่ต้องออกบิลได้ทันทีที่อัปเดตไฟล์ `cp_data.xlsx`
+- [X] **[Accel Mode]** ย้าย Order ที่สำเร็จเข้าชีต `Completed_Orders` และตัด Serial ที่ใช้แล้วออกจากไฟล์ Excel ทันที
+- [X] **[SN Modal Support]** รองรับการกรอก Serial Number ผ่าน Modal กรณีปุ่ม Checkbox ปกติไม่แสดง
+- [X] **[Hotkeys]** เพิ่มคีย์ลัด `Ctrl + Alt + T` สำหรับเปิด Test Mode
 
 ### [5.0.0LITE - 5.1.5LITE]
+
 #### Added & Fixed
-- [x] **[CustomTkinter]** ย้าย UI มาใช้ `customtkinter` เพื่อให้รองรับ Responsive Scaling ตามความละเอียดหน้าจอ
-- [x] **[Address Corrector]** ปรับปรุงการตรวจสอบ Address รองรับภาษาไทย-อังกฤษ และตัดอักขระพิเศษ (เช่น `\u200B`, `\u00A0`, `·`)
-- [x] **[Tax Name Formatter]** จัดมาตรฐานชื่อนิติบุคคล แปลงคำย่อ (บมจ., หจก., สนญ.) ให้อยู่ในฟอร์แมตที่ถูกต้อง
-- [x] **[Auto Inv Mode]** เพิ่มโหมดกรอกสินค้าและคำนวณส่วนต่างราคาอัตโนมัติ
+
+- [X] **[CustomTkinter]** ย้าย UI มาใช้ `customtkinter` เพื่อให้รองรับ Responsive Scaling ตามความละเอียดหน้าจอ
+- [X] **[Address Corrector]** ปรับปรุงการตรวจสอบ Address รองรับภาษาไทย-อังกฤษ และตัดอักขระพิเศษ (เช่น `\u200B`, `\u00A0`, `·`)
+- [X] **[Tax Name Formatter]** จัดมาตรฐานชื่อนิติบุคคล แปลงคำย่อ (บมจ., หจก., สนญ.) ให้อยู่ในฟอร์แมตที่ถูกต้อง
+- [X] **[Auto Inv Mode]** เพิ่มโหมดกรอกสินค้าและคำนวณส่วนต่างราคาอัตโนมัติ
 
 ### [4.0.0 - 4.2.2]
+
 #### Added & Fixed
-- [x] **[SMCO v8.0]** ปรับปรุง Locator XPath ให้รองรับระบบ Smart Core เวอร์ชันใหม่
-- [x] **[Finish Button]** เพิ่มปุ่ม Finish (ปุ่มซิ่ง) สำหรับปิดจ็อบออเดอร์อย่างรวดเร็ว
-- [x] **[Pricing Logic]** เพิ่มฟังก์ชัน Overcharge (OC) และ Discount (DC)
+
+- [X] **[SMCO v8.0]** ปรับปรุง Locator XPath ให้รองรับระบบ Smart Core เวอร์ชันใหม่
+- [X] **[Finish Button]** เพิ่มปุ่ม Finish (ปุ่มซิ่ง) สำหรับปิดจ็อบออเดอร์อย่างรวดเร็ว
+- [X] **[Pricing Logic]** เพิ่มฟังก์ชัน Overcharge (OC) และ Discount (DC)
 
 ### [3.0.0 - 3.2.2]
+
 #### Added & Fixed
-- [x] **[SumatraPDF]** เริ่มใช้งาน SumatraPDF สำหรับ Silent Printing
-- [x] **[Stop Button]** เพิ่มปุ่มหยุดการทำงาน (Stop Button) รองรับการขัดจังหวะในลูป
-- [x] **[Serial State]** ปรับปรุง State การตัด Serial Number ป้องกันการดึงเลขเดิมซ้ำ
+
+- [X] **[SumatraPDF]** เริ่มใช้งาน SumatraPDF สำหรับ Silent Printing
+- [X] **[Stop Button]** เพิ่มปุ่มหยุดการทำงาน (Stop Button) รองรับการขัดจังหวะในลูป
+- [X] **[Serial State]** ปรับปรุง State การตัด Serial Number ป้องกันการดึงเลขเดิมซ้ำ
