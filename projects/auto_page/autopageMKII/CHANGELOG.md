@@ -74,6 +74,10 @@
 
 ### [ver5.x.x] - 2026-10-02
 
+- [x] **[Accel Mode Failed_Orders Append-Only History Log]** ปรับปรุงชีต `Failed_Orders` ให้ทำหน้าที่เป็น Timeline Audit History อย่างแท้จริง:
+  - ยกเลิกการลบแถวออกจากชีต `Failed_Orders` เมื่อออเดอร์ถูก Retry จนสำเร็จ เพื่อให้ผู้ใช้สามารถย้อนดูประวัติข้อผิดพลาดในอดีตได้ครบถ้วน 100% แม้ทุกออเดอร์จะเสร็จสิ้นแล้ว
+  - ปรับการบันทึกใน `record_failed_order()` ให้เป็นแบบ Append-Only เก็บทุกครั้งที่เกิดข้อผิดพลาดโดยไม่ทับของเดิม
+  - ให้ชีต `Processed_Logs` รับหน้าที่เป็น Current State ล่าสุด (อัปเดตสถานะ Failed -> Completed เพียงแถวเดียว) อย่างชัดเจน
 - [x] **[Pricing Engine Scoped CP Button & Scanned State Leak Isolation]** แก้ไขปัญหา Index Mismatch ในการเปิด Modal คูปอง และล้าง State ตกค้างข้ามคำสั่งซื้อ:
   - ปรับการค้นหาปุ่มเปิดคูปอง (`btn-coupon`) ใน `scan_matching_cp_candidates_on_smco()` และ `cp_sonic_blow_process()` ให้ค้นหาแบบ Scoped ภายใน DOM Panel ของ SKU นั้นโดยตรง (`target_panel.find_elements(...)`) แทนการใช้ Global Button Array Index ซึ่งอาจหยิบปุ่มผิดตัวหากมีสินค้าบางรายการไม่มีปุ่มคูปอง
   - เพิ่มการล้างค่า `self.last_scanned_smco_coupons = []` และ `self.last_scanned_smco_coupon_details = []` ใน `reconcile_and_verify()` และ `reset_all_display()` ป้องกันข้อมูลคูปองจาก SKU ของออเดอร์ก่อนหน้าหลุดมารายงานใน Remark ของออเดอร์ถัดไป

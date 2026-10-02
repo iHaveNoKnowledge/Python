@@ -1686,7 +1686,7 @@ class AccelMode:
                 'failed_reason': str(reason)
             }])
 
-            failed_df = failed_df[failed_df['orders'] != order_str]
+            # บันทึกเป็น Append-Only Log ใน Failed_Orders เพื่อเก็บประวัติทุกรอบที่เกิดข้อผิดพลาด
             failed_df = pd.concat([failed_df, new_row], ignore_index=True)
             failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
 
@@ -1911,24 +1911,7 @@ class AccelMode:
                 })
             self._record_to_processed_logs(unified_completed_rows, order_str)
 
-            # 2. ลบออกจากชีต Failed_Orders เก่า (ถ้ามีอยู่) เพื่อตัดปัญหามีเลขออเดอร์ตกค้างใน Failed
-            try:
-                if os.path.exists(self.accel_file_dir):
-                    wb_chk = load_workbook(self.accel_file_dir, read_only=True)
-                    has_failed = 'Failed_Orders' in wb_chk.sheetnames
-                    wb_chk.close()
-                    if has_failed:
-                        f_df = pd.read_excel(self.accel_file_dir, sheet_name='Failed_Orders', dtype=str)
-                        if 'orders' in f_df.columns:
-                            m = f_df['orders'].astype(str).str.strip() == order_str
-                            if m.any():
-                                f_df = f_df[~m]
-                                self._save_df_to_excel(f_df, 'Failed_Orders')
-                                print(f"Cleared resolved order {order_str} from legacy Failed_Orders sheet.")
-            except Exception as ex_clean:
-                print(f"Notice: Could not clear order {order_str} from legacy Failed_Orders: {ex_clean}")
-
-            # 3. บันทึกลงชีต Completed_Orders เดิม (Lean Execution / Audit Summary: timestamp, orders, status)
+            # 2. บันทึกลงชีต Completed_Orders (Lean Execution / Audit Summary: timestamp, orders, status)
             _col_order = ['timestamp', 'orders', 'status']
             completed_df = pd.DataFrame(columns=_col_order)
 

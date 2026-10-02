@@ -128,8 +128,9 @@ class TestAccelUnifiedProcessedLogs(unittest.TestCase):
         self.assertEqual(row['bill_no'], 'B0183-RETRY-01')
         self.assertEqual(row['sn'], 'SN_RETRY_888')
 
-        # Failed_Orders ต้องถูกเคลียร์ออก ไม่เหลือออเดอร์นี้
-        self.assertEqual(len(df_failed), 0)
+        # Failed_Orders ยังคงบันทึกประวัติข้อผิดพลาดเดิมไว้ (Append-only Audit History)
+        self.assertEqual(len(df_failed), 1)
+        self.assertEqual(df_failed.iloc[0]['orders'], 'ORD_RETRY_1')
 
         # Completed_Orders ต้องมีออเดอร์นี้ และมีเฉพาะคอลัมน์ ['timestamp', 'orders', 'status']
         self.assertEqual(len(df_comp), 1)
