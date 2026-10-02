@@ -1403,7 +1403,66 @@ class POSPricingReconciler:
 
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            for item in cart_items:
+            # รวบรวมรายการสินค้าที่จะบันทึก โดยอิงตาม Order SKU (self.app.items) เป็นหลัก
+            # หากเป็น Combo SKU ให้รวมราคาสุทธิและคูปองของ SKU ย่อยทั้งหมดเข้าด้วยกัน
+            order_items = getattr(self.app, 'items', []) or []
+            summary_items = []
+
+            if order_items:
+                for ord_it in order_items:
+                    raw_sku = str(ord_it.get('เลขอ้างอิง SKU (SKU Reference No.)') or ord_it.get('sellerSku') or '').strip()
+                    if not raw_sku:
+                        continue
+                    # ข้าม SKU ค่าจัดส่ง (เช่น SV0-000101) ไม่บันทึกลง cp_data
+                    if raw_sku.upper().startswith('SV0-') or raw_sku.upper() == 'SV0-000101':
+                        continue
+
+                    # หา SKU ย่อยในชุด
+                    if hasattr(self.app, 'correct_sku_pattern'):
+                        sub_skus = self.app.correct_sku_pattern(raw_sku)
+                    else:
+                        sub_skus = [s.strip() for s in raw_sku.replace(' ', '').split('+') if s.strip()]
+
+                    sub_skus_clean = [s.strip().upper() for s in sub_skus]
+                    matched_cart = [
+                        it for it in cart_items
+                        if str(it.get('sku', '')).strip().upper() in sub_skus_clean
+                    ]
+
+                    if matched_cart:
+                        act_price = sum(float(it.get('unit_net', 0.0)) for it in matched_cart)
+                        used_cps = []
+                        for it in matched_cart:
+                            for cp in str(it.get('coupons', '')).split():
+                                cp_str = cp.strip()
+                                if cp_str and cp_str not in used_cps:
+                                    used_cps.append(cp_str)
+                        used_cp = " ".join(used_cps)
+                    else:
+                        try:
+                            act_price = float(str(ord_it.get('ราคาขายสุทธิ') or ord_it.get('ราคาขาย') or 0).replace(',', ''))
+                        except Exception:
+                            act_price = 0.0
+                        used_cp = ""
+
+                    summary_items.append({
+                        "sku": raw_sku,
+                        "unit_net": act_price,
+                        "coupons": used_cp
+                    })
+            else:
+                # Fallback กรณีไม่มี self.app.items: ใช้ cart_items แต่กรองค่าจัดส่งออก
+                for it in cart_items:
+                    sku_clean = str(it.get('sku', '')).strip().upper()
+                    if sku_clean.startswith('SV0-') or sku_clean == 'SV0-000101':
+                        continue
+                    summary_items.append(it)
+
+            if not summary_items:
+                logger.info("[record_pos_cart_summary_to_excel] ไม่มีรายการสินค้าที่ต้องบันทึก (ข้ามค่าจัดส่งแล้ว)")
+                return
+
+            for item in summary_items:
                 sku_raw = item.get("sku", "")
                 sku_clean = str(sku_raw).strip().upper()
                 used_cp = str(item.get("coupons", "")).strip()
@@ -1512,9 +1571,9 @@ class POSPricingReconciler:
             self._last_recorded_order_id = str(order_id)
 
             self.app.update_log(
-                f"📝 [บันทึกประวัติออเดอร์] บันทึกข้อมูลคูปองและราคาขายลงใน CP Data เรียบร้อย ({len(cart_items)} รายการ)"
+                f"📝 [บันทึกประวัติออเดอร์] บันทึกข้อมูลคูปองและราคาขายลงใน CP Data เรียบร้อย ({len(summary_items)} รายการ)"
             )
-            for it in cart_items:
+            for it in summary_items:
                 cp_display = it['coupons'] if it['coupons'] else "(ไม่มีคูปอง)"
                 sku_clean = str(it.get('sku', '')).strip().upper()
                 row_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean)
@@ -1529,7 +1588,7 @@ class POSPricingReconciler:
             # ส่งข้อมูลสรุปการออกบิลและคูปองที่สำเร็จขึ้น Google Sheet (Pattern เดียวกับ Local cp_data.xlsx)
             try:
                 if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
-                    for it in cart_items:
+                    for it in summary_items:
                         used_c = it.get('coupons', '').strip()
                         sku_c = str(it.get('sku', '')).strip().upper()
                         act_p = float(it.get('unit_net', 0.0))
