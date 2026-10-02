@@ -1928,8 +1928,8 @@ class AccelMode:
             except Exception as ex_clean:
                 print(f"Notice: Could not clear order {order_str} from legacy Failed_Orders: {ex_clean}")
 
-            # 3. บันทึกลงชีต Completed_Orders เดิม (Backward Compatibility)
-            _col_order = ['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']
+            # 3. บันทึกลงชีต Completed_Orders เดิม (Lean Execution / Audit Summary: timestamp, orders, status)
+            _col_order = ['timestamp', 'orders', 'status']
             completed_df = pd.DataFrame(columns=_col_order)
 
             try:
@@ -1944,16 +1944,16 @@ class AccelMode:
                     completed_df[_col] = ""
             completed_df = completed_df[_col_order]
 
-            # ลบแถวเก่าของ order นี้ออก (ป้องกันการซ้ำซ้อน) แล้วเพิ่มแถวใหม่
+            # ลบแถวเก่าของ order นี้ออก (ป้องกันการซ้ำซ้อน) แล้วเพิ่มแถวใหม่ (1 แถวต่อ 1 Order)
             completed_df = completed_df[completed_df['orders'].astype(str).str.strip() != order_str]
-            new_rows_df = pd.DataFrame(new_rows_data)
+            new_comp_entry = [{'timestamp': now_ts, 'orders': order_str, 'status': str(status)}]
             completed_df = pd.concat(
-                [completed_df, new_rows_df], ignore_index=True)
+                [completed_df, pd.DataFrame(new_comp_entry)], ignore_index=True)
             completed_df = completed_df[_col_order]
 
             self._save_df_to_excel(completed_df, 'Completed_Orders')
             print(
-                f"Successfully recorded {len(new_rows_data)} row(s) for completed order {order_str} to Completed_Orders sheet.")
+                f"Successfully recorded completed order {order_str} to Completed_Orders sheet.")
             # ล้าง used_serials เมื่อจบการบันทึก order เพื่อไม่ให้ค้างไปปนกับ order ถัดไป
             self.used_serials = []
             self.sn_shortage = []

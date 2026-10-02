@@ -74,6 +74,9 @@
 
 ### [ver5.x.x] - 2026-10-02
 
+- [x] **[Accel Mode Completed_Orders Lean Execution Audit Columns]** ปรับลดคอลัมน์ในชีต `Completed_Orders` ให้เหลือเฉพาะ Execution Checklist:
+  - กำหนด 3 คอลัมน์หลัก: `['timestamp', 'orders', 'status']` บันทึก 1 แถวต่อ 1 Order อย่างกระชับ สะอาดตา และไม่ซ้ำซ้อนกับ `Processed_Logs`
+  - ย้ายรายละเอียดธุรกรรมทั้งหมด (Tracking, บิล, ราคา, Serial Number, รายละเอียดส่วนลด/การปรับราคา) ไปไว้ในชีต `Processed_Logs` ซึ่งทำหน้าที่เป็น Full Transaction Ledger แทน
 - [x] **[Accel Mode Processed_Logs Column Reordering & Orders Column Freeze]** ปรับลำดับคอลัมน์ในชีต `Processed_Logs` และตรึงแนว (Freeze Panes) อัตโนมัติ:
   - จัดเรียงลำดับคอลัมน์ใหม่ตามข้อกำหนด: `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'sn', 'status', 'error_category', 'remark']`
   - ตรึงแนว (Freeze Panes) ไว้ที่คอลัมน์ `orders` (เซลล์ `D2` ตรึง Header และคอลัมน์ A, B, C: `timestamp`, `tracking`, `orders`) ทุกครั้งที่มีการเปิด/อ่านไฟล์ Excel เข้าสู่ State (`_read_accel_file_to_state`) และทุกครั้งที่มีการบันทึกผลลัพธ์

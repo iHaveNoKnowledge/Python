@@ -131,9 +131,11 @@ class TestAccelUnifiedProcessedLogs(unittest.TestCase):
         # Failed_Orders ต้องถูกเคลียร์ออก ไม่เหลือออเดอร์นี้
         self.assertEqual(len(df_failed), 0)
 
-        # Completed_Orders ต้องมีออเดอร์นี้
+        # Completed_Orders ต้องมีออเดอร์นี้ และมีเฉพาะคอลัมน์ ['timestamp', 'orders', 'status']
         self.assertEqual(len(df_comp), 1)
+        self.assertEqual(list(df_comp.columns), ['timestamp', 'orders', 'status'])
         self.assertEqual(df_comp.iloc[0]['orders'], 'ORD_RETRY_1')
+        self.assertEqual(df_comp.iloc[0]['status'], 'Completed')
 
 
 if __name__ == '__main__':
