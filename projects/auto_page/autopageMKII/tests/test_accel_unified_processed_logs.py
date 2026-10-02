@@ -41,9 +41,15 @@ class TestAccelUnifiedProcessedLogs(unittest.TestCase):
             self.assertIn("Processed_Logs", xl.sheet_names)
             df_proc = xl.parse("Processed_Logs")
 
-        expected_cols = ['timestamp', 'tracking', 'orders', 'status', 'bill_no', 'price', 'sn', 'error_category', 'remark']
+        expected_cols = ['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'sn', 'status', 'error_category', 'remark']
         self.assertEqual(list(df_proc.columns), expected_cols)
         self.assertEqual(len(df_proc), 1)
+
+        # ตรวจสอบ freeze_panes ที่คอลัมน์ orders (D2)
+        wb = load_workbook(self.test_excel)
+        ws_proc = wb["Processed_Logs"]
+        self.assertEqual(ws_proc.freeze_panes, "D2")
+        wb.close()
 
         row = df_proc.iloc[0]
         self.assertEqual(row['orders'], 'ORD101')

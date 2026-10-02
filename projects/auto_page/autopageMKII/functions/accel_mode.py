@@ -187,6 +187,7 @@ class AccelMode:
         self.CP_list = self.accel_df_state['cp'].dropna().tolist() if 'cp' in self.accel_df_state.columns else []
         if os.path.exists(self.accel_file_dir):
             try:
+                self._apply_excel_formatting(self.accel_file_dir)
                 self._accel_last_mtime = os.path.getmtime(self.accel_file_dir)
             except Exception:
                 self._accel_last_mtime = 0
@@ -1460,7 +1461,7 @@ class AccelMode:
             raise ValueError(err_msg)
 
     def _apply_excel_formatting(self, file_path):
-        """กำหนด AutoFilter, Freeze Row 1 (A2) และปรับความกว้างคอลัมน์ให้พอดีกับข้อมูลทุก sheet"""
+        """กำหนด AutoFilter, Freeze Row 1 + Column 'orders' (เช่น D2) และปรับความกว้างคอลัมน์ให้พอดีกับข้อมูลทุก sheet"""
         if not file_path or not os.path.exists(file_path):
             return
         try:
@@ -1468,7 +1469,21 @@ class AccelMode:
             for ws in wb.worksheets:
                 if ws.max_row > 0 and ws.max_column > 0:
                     ws.auto_filter.ref = ws.dimensions
-                    ws.freeze_panes = "A2"
+
+                    # ค้นหาคอลัมน์ 'orders' เพื่อทำการ Freeze panes ที่คอลัมน์ orders
+                    # ถ้าพบคอลัมน์ 'orders' ในแถวที่ 1 ให้ freeze ไว้ที่คอลัมน์ถัดไป (เช่น orders อยู่ Col C (3) -> Freeze D2)
+                    orders_col_idx = None
+                    for col_idx in range(1, ws.max_column + 1):
+                        val = str(ws.cell(row=1, column=col_idx).value or '').strip().lower()
+                        if val == 'orders':
+                            orders_col_idx = col_idx
+                            break
+
+                    if orders_col_idx is not None and orders_col_idx < ws.max_column:
+                        freeze_col_letter = get_column_letter(orders_col_idx + 1)
+                        ws.freeze_panes = f"{freeze_col_letter}2"
+                    else:
+                        ws.freeze_panes = "A2"
 
                     # ปรับความกว้างคอลัมน์ให้อ่านง่ายพอดีข้อความ
                     for col in ws.columns:
@@ -1476,7 +1491,7 @@ class AccelMode:
                         if not col_cell or col_cell.column is None:
                             continue
                         col_letter = get_column_letter(col_cell.column)
-                        header_val = str(col_cell.value or '').strip()
+                        header_val = str(col_cell.value or '').strip().lower()
 
                         max_len = 0
                         for cell in col:
@@ -1550,12 +1565,12 @@ class AccelMode:
         """บันทึกลงชีต Processed_Logs (ตารางผลลัพธ์รวม Completed และ Failed แบบ Single Source of Truth)
 
         โครงสร้าง 9 คอลัมน์มาตรฐาน:
-        [timestamp, tracking, orders, status, bill_no, price, sn, error_category, remark]
+        [timestamp, tracking, orders, bill_no, price, sn, status, error_category, remark]
         """
         if not self.accel_file_dir or not os.path.exists(self.accel_file_dir):
             return
 
-        unified_cols = ['timestamp', 'tracking', 'orders', 'status', 'bill_no', 'price', 'sn', 'error_category', 'remark']
+        unified_cols = ['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'sn', 'status', 'error_category', 'remark']
         processed_df = pd.DataFrame(columns=unified_cols)
 
         try:

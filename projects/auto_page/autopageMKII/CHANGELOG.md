@@ -72,6 +72,13 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-10-02
+
+- [x] **[Accel Mode Processed_Logs Column Reordering & Orders Column Freeze]** ปรับลำดับคอลัมน์ในชีต `Processed_Logs` และตรึงแนว (Freeze Panes) อัตโนมัติ:
+  - จัดเรียงลำดับคอลัมน์ใหม่ตามข้อกำหนด: `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'sn', 'status', 'error_category', 'remark']`
+  - ตรึงแนว (Freeze Panes) ไว้ที่คอลัมน์ `orders` (เซลล์ `D2` ตรึง Header และคอลัมน์ A, B, C: `timestamp`, `tracking`, `orders`) ทุกครั้งที่มีการเปิด/อ่านไฟล์ Excel เข้าสู่ State (`_read_accel_file_to_state`) และทุกครั้งที่มีการบันทึกผลลัพธ์
+  - ปรับปรุงฟังก์ชัน `_apply_excel_formatting()` ให้คำนวณตำแหน่งคอลัมน์ `orders` แบบ Dynamic และเซ็ต `freeze_panes` อย่างแม่นยำ
+
 ### [ver5.x.x] - 2026-10-01
 
 - [x] **[Accel Mode Unified Result Sheet - `Processed_Logs` & Retry Auto-Resolve]** ปรับปรุงโครงสร้างชีตผลลัพธ์ของ Accel Mode ให้ยุบรวม `Completed_Orders` และ `Failed_Orders` เข้าด้วยกันเป็นชีตเดียว `Processed_Logs` แบบ Single Source of Truth:
