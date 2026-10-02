@@ -1469,6 +1469,17 @@ class POSPricingReconciler:
                 act_price = float(item.get("unit_net", 0.0))
 
                 # ตรวจสอบวิธีการปรับราคา (last_adjustment_method):
+                is_auto_inv = False
+                try:
+                    if hasattr(self.app, 'is_auto_invoice_mode') and hasattr(self.app.is_auto_invoice_mode, 'get'):
+                        v = self.app.is_auto_invoice_mode.get()
+                        is_auto_inv = bool(v) if isinstance(v, (bool, int)) else False
+                    elif hasattr(self, 'main_app') and hasattr(self.main_app, 'is_auto_invoice_mode') and hasattr(self.main_app.is_auto_invoice_mode, 'get'):
+                        v = self.main_app.is_auto_invoice_mode.get()
+                        is_auto_inv = bool(v) if isinstance(v, (bool, int)) else False
+                except Exception:
+                    is_auto_inv = False
+
                 bot_methods = set()
                 if hasattr(self, '_applied_adjustments') and self._applied_adjustments:
                     bot_methods = self._applied_adjustments.get(sku_clean, set())
@@ -1495,7 +1506,7 @@ class POSPricingReconciler:
                     else:
                         method_val = "NONE"
                 else:
-                    # บอทไม่ได้เป็นผู้สั่งปรับราคา: ตรวจสอบว่าผู้ใช้ปรับเองบนหน้าเว็บ (MANUAL) หรือราคาตรงอยู่แล้ว (NONE)
+                    # บอทไม่ได้เป็นผู้สั่งปรับราคา:
                     has_any_coupon = bool(used_cp and used_cp.strip() != "")
                     matched_base_prices = df[df['sku'].astype(str).str.strip().str.upper() == sku_clean]['sale_price'].tolist()
                     is_price_changed = False
@@ -1505,10 +1516,19 @@ class POSPricingReconciler:
                             for bp in matched_base_prices
                             if isinstance(bp, (int, float)) and not pd.isna(bp)
                         )
-                    if has_any_coupon or is_price_changed:
-                        method_val = "MANUAL"
+
+                    if is_auto_inv:
+                        # ในโหมด Auto Invoice: หากมีคูปองติดมาอัตโนมัติจาก SMCO ให้ถือเป็น CP
+                        if has_any_coupon:
+                            method_val = "CP"
+                        else:
+                            method_val = "NONE"
                     else:
-                        method_val = "NONE"
+                        # ในโหมด Manual: หากมีคูปองหรือราคาเปลี่ยนให้บันทึกเป็น MANUAL
+                        if has_any_coupon or is_price_changed:
+                            method_val = "MANUAL"
+                        else:
+                            method_val = "NONE"
 
                 # จับคู่แถวเดิม:
                 # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)

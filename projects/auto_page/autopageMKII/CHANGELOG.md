@@ -74,6 +74,9 @@
 
 ### [ver5.x.x] - 2026-10-02
 
+- [x] **[CP Data Auto-Learn `last_adjustment_method` Auto Invoice Fix]** ปรับปรุงเงื่อนไขการบันทึก `last_adjustment_method` ใน `record_pos_cart_summary_to_excel()`:
+  - ในโหมด Auto Invoice (`is_auto_invoice_mode == True`): หากในตะกร้า POS มีคูปองติดมาโดยอัตโนมัติจากระบบ SMCO ให้บันทึกเป็น `CP` แทนที่จะเป็น `MANUAL`
+  - บันทึกเป็น `MANUAL` เฉพาะเมื่อรันในโหมด Manual ที่ผู้ใช้เป็นผู้ปรับราคาหรือเลือกคูปองด้วยตนเองบนหน้าเว็บ
 - [x] **[Accel Mode Failed_Orders Append-Only History Log]** ปรับปรุงชีต `Failed_Orders` ให้ทำหน้าที่เป็น Timeline Audit History อย่างแท้จริง:
   - ยกเลิกการลบแถวออกจากชีต `Failed_Orders` เมื่อออเดอร์ถูก Retry จนสำเร็จ เพื่อให้ผู้ใช้สามารถย้อนดูประวัติข้อผิดพลาดในอดีตได้ครบถ้วน 100% แม้ทุกออเดอร์จะเสร็จสิ้นแล้ว
   - ปรับการบันทึกใน `record_failed_order()` ให้เป็นแบบ Append-Only เก็บทุกครั้งที่เกิดข้อผิดพลาดโดยไม่ทับของเดิม
