@@ -1714,6 +1714,9 @@ class MyApp:
         if hasattr(self, 'financials') and self.financials is not None:
             self.financials.items = []
             self.financials.recalculate()
+        if hasattr(self, 'pricing_engine') and self.pricing_engine is not None:
+            self.pricing_engine.last_scanned_smco_coupons = []
+            self.pricing_engine.last_scanned_smco_coupon_details = []
         self.is_tax_required.set(False)
         self.tax_num.set("")
         self.cus_email.set("")

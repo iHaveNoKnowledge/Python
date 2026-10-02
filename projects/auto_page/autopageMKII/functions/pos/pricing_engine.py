@@ -1900,14 +1900,31 @@ class POSPricingReconciler:
                 modal_opened = False
                 for attempt in range(2):
                     try:
-                        item_list_cp_btn_elements = self.driver.find_elements(
-                            By.XPATH, "//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
-                        )
-                        if target_idx >= len(item_list_cp_btn_elements):
-                            print(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (index เกินรายการ)")
+                        panels = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+                        target_panel = panels[target_idx] if (0 <= target_idx < len(panels)) else None
+                        cp_btn_xpath = None
+
+                        if target_panel is not None:
+                            scoped_btns = target_panel.find_elements(
+                                By.XPATH, ".//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
+                            )
+                            if not scoped_btns:
+                                scoped_btns = target_panel.find_elements(By.XPATH, ".//button[contains(@class,'btn-coupon')]")
+                            if scoped_btns:
+                                cp_btn_xpath = scoped_btns[0]
+
+                        # Fallback สำหรับกรณีโครงสร้าง DOM พิเศษ
+                        if cp_btn_xpath is None:
+                            item_list_cp_btn_elements = self.driver.find_elements(
+                                By.XPATH, "//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
+                            )
+                            if target_idx < len(item_list_cp_btn_elements):
+                                cp_btn_xpath = item_list_cp_btn_elements[target_idx]
+
+                        if cp_btn_xpath is None:
+                            print(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (ไม่พบคอนเทนเนอร์ปุ่ม)")
                             break
 
-                        cp_btn_xpath = item_list_cp_btn_elements[target_idx]
                         try:
                             self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", cp_btn_xpath)
                         except Exception:
@@ -2106,14 +2123,30 @@ class POSPricingReconciler:
             # ดึงรหัสคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel บน POS Cart ก่อนเปิด Modal
             panel_codes = self.get_existing_panel_coupons(item_no)
 
-            item_list_cp_btn_elements = self.driver.find_elements(
-                By.XPATH, "//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
-            )
-            if target_idx >= len(item_list_cp_btn_elements):
+            panels = self.driver.find_elements(By.CSS_SELECTOR, '.col-sm-12.panel.panel-default.ng-scope')
+            target_panel = panels[target_idx] if (0 <= target_idx < len(panels)) else None
+
+            scan_btn = None
+            if target_panel is not None:
+                scoped_cp_btns = target_panel.find_elements(
+                    By.XPATH, ".//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
+                )
+                if not scoped_cp_btns:
+                    scoped_cp_btns = target_panel.find_elements(By.XPATH, ".//button[contains(@class,'btn-coupon')]")
+                if scoped_cp_btns:
+                    scan_btn = scoped_cp_btns[0]
+
+            if scan_btn is None:
+                item_list_cp_btn_elements = self.driver.find_elements(
+                    By.XPATH, "//button[contains(@class,'btn-coupon') and contains(@ng-click,'display')]"
+                )
+                if target_idx < len(item_list_cp_btn_elements):
+                    scan_btn = item_list_cp_btn_elements[target_idx]
+
+            if scan_btn is None:
                 return []
 
             #/ เปิด Modal ดูรายการคูปองที่มีบนหน้าเว็บ ###########################################################################################################
-            scan_btn = item_list_cp_btn_elements[target_idx]
             try:
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", scan_btn)
             except Exception:
@@ -2499,9 +2532,10 @@ class POSPricingReconciler:
             status สามารถเป็น: 'APPLIED', 'NOT_FOUND', 'UNCONFIGURED', 'ERROR'
         """
         try:
-            # สแกนคูปองบน SMCO เพื่อดึงรายละเอียดลง self.last_scanned_smco_coupon_details
-            self.scan_matching_cp_candidates_on_smco(item_no, [], required_seller_voucher=0.0)
             details = getattr(self, 'last_scanned_smco_coupon_details', [])
+            if not details:
+                self.scan_matching_cp_candidates_on_smco(item_no, [], required_seller_voucher=0.0)
+                details = getattr(self, 'last_scanned_smco_coupon_details', [])
             print(f"[find_and_apply_seller_voucher_on_smco] Scanned {len(details)} coupons: {details}")
 
             matching_sv = []
@@ -3262,6 +3296,8 @@ class POSPricingReconciler:
         try:
             if hasattr(self, '_applied_adjustments') and self._applied_adjustments is not None:
                 self._applied_adjustments.clear()
+            self.last_scanned_smco_coupons = []
+            self.last_scanned_smco_coupon_details = []
             self.bot.ProductManager.auto_add_all_items()
             self.bot.current_checkpoint = "กรอกสินค้าลง POS สำเร็จ"
 

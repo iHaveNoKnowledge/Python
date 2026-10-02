@@ -74,6 +74,9 @@
 
 ### [ver5.x.x] - 2026-10-02
 
+- [x] **[Pricing Engine Scoped CP Button & Scanned State Leak Isolation]** แก้ไขปัญหา Index Mismatch ในการเปิด Modal คูปอง และล้าง State ตกค้างข้ามคำสั่งซื้อ:
+  - ปรับการค้นหาปุ่มเปิดคูปอง (`btn-coupon`) ใน `scan_matching_cp_candidates_on_smco()` และ `cp_sonic_blow_process()` ให้ค้นหาแบบ Scoped ภายใน DOM Panel ของ SKU นั้นโดยตรง (`target_panel.find_elements(...)`) แทนการใช้ Global Button Array Index ซึ่งอาจหยิบปุ่มผิดตัวหากมีสินค้าบางรายการไม่มีปุ่มคูปอง
+  - เพิ่มการล้างค่า `self.last_scanned_smco_coupons = []` และ `self.last_scanned_smco_coupon_details = []` ใน `reconcile_and_verify()` และ `reset_all_display()` ป้องกันข้อมูลคูปองจาก SKU ของออเดอร์ก่อนหน้าหลุดมารายงานใน Remark ของออเดอร์ถัดไป
 - [x] **[Accel Mode Completed_Orders Lean Execution Audit Columns]** ปรับลดคอลัมน์ในชีต `Completed_Orders` ให้เหลือเฉพาะ Execution Checklist:
   - กำหนด 3 คอลัมน์หลัก: `['timestamp', 'orders', 'status']` บันทึก 1 แถวต่อ 1 Order อย่างกระชับ สะอาดตา และไม่ซ้ำซ้อนกับ `Processed_Logs`
   - ย้ายรายละเอียดธุรกรรมทั้งหมด (Tracking, บิล, ราคา, Serial Number, รายละเอียดส่วนลด/การปรับราคา) ไปไว้ในชีต `Processed_Logs` ซึ่งทำหน้าที่เป็น Full Transaction Ledger แทน
