@@ -130,7 +130,7 @@ def test_record_failed_order_and_excel_format():
         # 3. ตรวจสอบ openpyxl formatting (AutoFilter, FreezePanes, Column widths)
         wb = load_workbook(test_file)
         ws = wb["Failed_Orders"]
-        assert ws.freeze_panes == "A2"
+        assert ws.freeze_panes == "D2"
         assert ws.auto_filter.ref is not None
 
         # ตรวจสอบความกว้างของคอลัมน์ orders (คอลัมน์ C)

@@ -240,6 +240,62 @@ class TestFinalPageValidator(unittest.TestCase):
         # ต้องมีการเรียก js_input_value 4 ครั้งสำหรับ 4 fields ที่ ok=False
         self.assertEqual(self.mock_bot.js_input_value.call_count, 4)
 
+    def test_check_and_prompt_price_mismatch_ignored_in_auto_inv(self):
+        """ในโหมด Auto Invoice Mode ต้องไม่แสดง popup เตือน manual price mismatch"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.handler.get_remaining_balance = MagicMock(return_value=150.0)
+        self.handler.prompt_price_mismatch_dialog = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
+        self.assertFalse(res)
+        self.handler.prompt_price_mismatch_dialog.assert_not_called()
+
+    def test_check_and_prompt_price_mismatch_ignored_when_balance_is_zero(self):
+        """เมื่อยอด balance เป็น 0.00 (ราคาตรงกัน) ต้องไม่แสดง popup"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = False
+        self.handler.get_remaining_balance = MagicMock(return_value=0.0)
+        self.handler.prompt_price_mismatch_dialog = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
+        self.assertFalse(res)
+        self.handler.prompt_price_mismatch_dialog.assert_not_called()
+
+    def test_check_and_prompt_price_mismatch_returns_to_page1_when_user_confirms(self):
+        """เมื่อราคาไม่ตรง และ user ยืนยันย้อนกลับ (Yes) -> ต้องเรียก return_to_first_page และคืนค่า True"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = False
+        self.handler.get_remaining_balance = MagicMock(return_value=100.0)  # ยอดเกินมา 100
+        self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
+        self.handler.return_to_first_page = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
+
+        self.assertTrue(res)
+        self.handler.prompt_price_mismatch_dialog.assert_called_once_with(
+            target_price=1250.0,
+            pos_price=1350.0,
+            diff=100.0,
+        )
+        self.handler.return_to_first_page.assert_called_once()
+        self.assertIsNone(self.handler.last_page)
+
+    def test_check_and_prompt_price_mismatch_stays_when_user_declines(self):
+        """เมื่อราคาไม่ตรง และ user ปฏิเสธ (No) -> ต้องไม่เรียก return_to_first_page และคืนค่า False"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = False
+        self.handler.get_remaining_balance = MagicMock(return_value=-50.0)  # ยอดขาดไป 50
+        self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
+        self.handler.return_to_first_page = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
+
+        self.assertFalse(res)
+        self.handler.prompt_price_mismatch_dialog.assert_called_once_with(
+            target_price=1250.0,
+            pos_price=1200.0,
+            diff=-50.0,
+        )
+        self.handler.return_to_first_page.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
+

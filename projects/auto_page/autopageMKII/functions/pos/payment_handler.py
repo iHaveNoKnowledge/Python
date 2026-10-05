@@ -1,5 +1,6 @@
 import gc
 import re
+import threading
 import time
 from typing import Any, Optional
 
@@ -266,6 +267,12 @@ class POSPaymentHandler:
                     except Exception as e:
                         print("auto_final_price broken:", e)
 
+                    # 7.1 Check price mismatch in Manual Mode (not auto_inv)
+                    if not is_auto_inv:
+                        returned = self.check_and_prompt_price_mismatch(final_price)
+                        if returned:
+                            continue
+
                     self.app.is_bot_browser_busy.set(False)
                     print("กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มเขียว หรือกดย้อนกลับไปหน้าที่ 1")
                     if not self.bot.tracking_manager.trackings:
@@ -460,6 +467,19 @@ class POSPaymentHandler:
                                     is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
                                     if is_auto_inv:
                                         return self._handle_auto_inv_accel_abort(err_msg, category="VERIFICATION_FAILED")
+                                    elif "balance" in failed_fields:
+                                        bal_val = verification.get("balance", {}).get("value")
+                                        if bal_val is None:
+                                            bal_val = self.get_remaining_balance()
+                                        pos_price = round(final_price + bal_val, 2)
+                                        diff = round(bal_val, 2)
+                                        should_return = self.prompt_price_mismatch_dialog(
+                                            target_price=final_price, pos_price=pos_price, diff=diff
+                                        )
+                                        if should_return:
+                                            self.return_to_first_page()
+                                            self.last_page = None
+                                            break
                             except Exception as e:
                                 print(f"Verification and payment submission failed: {e}")
                                 logger.error(f"Verification and payment error: {e}")
@@ -933,5 +953,134 @@ class POSPaymentHandler:
             self.app.is_finish_order_triggered.set(False)
 
         return False
+
+    def get_remaining_balance(self) -> float:
+        """
+        อ่านค่ายอดคงเหลือ (Remaining Balance) จาก wrimagecard-lightGray บนหน้าชำระเงิน
+        """
+        balance_el = None
+        try:
+            balance_el = self.driver.find_element(
+                By.XPATH, "//div[contains(@class, 'wrimagecard-lightGray')]"
+            )
+        except Exception:
+            balance_el = self.driver.find_element(
+                By.XPATH,
+                "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']",
+            )
+        balance_text = (balance_el.text or "").strip().replace(",", "")
+        return float(balance_text) if balance_text else 0.0
+
+    def prompt_price_mismatch_dialog(
+        self, target_price: float, pos_price: float, diff: float
+    ) -> bool:
+        """
+        แสดง Pop-up แจ้งเตือนยอดเงินไม่ตรง และถามว่าต้องการย้อนกลับไปหน้าแรกหรือไม่
+        """
+        title = "⚠️ ยอดเงินไม่ตรงกับราคาที่ต้องออกบิล!"
+        diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
+        message = (
+            "⚠️ ตรวจพบยอดเงินไม่ตรงกับคำสั่งซื้อ!\n\n"
+            f"• ราคาที่ต้องออกบิล (ลูกค้าจ่าย):  {target_price:,.2f} บาท\n"
+            f"• ราคาที่ทำมาจากหน้าแรก (POS):    {pos_price:,.2f} บาท\n"
+            f"• ส่วนต่าง:                      {diff_sign} บาท\n\n"
+            "ต้องการให้บอทย้อนกลับไปหน้าแรก (Page 1) เพื่อแก้ไขราคาให้ถูกต้องหรือไม่?"
+        )
+
+        result_holder = [False]
+        done_event = threading.Event()
+
+        def _show():
+            try:
+                from tkinter import messagebox
+                parent = getattr(self.app, 'root', None)
+                if parent and hasattr(parent, 'winfo_exists') and parent.winfo_exists():
+                    res = messagebox.askyesno(
+                        title=title,
+                        message=message,
+                        parent=parent,
+                        icon=messagebox.WARNING,
+                    )
+                else:
+                    res = messagebox.askyesno(
+                        title=title,
+                        message=message,
+                        icon=messagebox.WARNING,
+                    )
+                result_holder[0] = bool(res)
+            except Exception as e:
+                print(f"Error displaying price mismatch dialog: {e}")
+                result_holder[0] = False
+            finally:
+                done_event.set()
+
+        parent = getattr(self.app, 'root', None)
+        if parent and hasattr(parent, 'after') and hasattr(parent, 'winfo_exists') and parent.winfo_exists():
+            parent.after(0, _show)
+            for _ in range(240):
+                if done_event.wait(timeout=0.5):
+                    break
+                if hasattr(self.bot, 'operation_thread') and self.bot.operation_thread.is_set():
+                    break
+        else:
+            _show()
+
+        return result_holder[0]
+
+    def check_and_prompt_price_mismatch(self, final_price: float) -> bool:
+        """
+        ตรวจสอบยอดเงินในโหมด Manual หากไม่ตรงกับยอดที่ต้องออกบิล จะแสดง Pop-up แจ้งเตือน
+        และให้ทางเลือกย้อนกลับไปหน้าแรก (Page 1) เพื่อแก้ไขราคา
+        """
+        is_auto_inv = bool(
+            hasattr(self.app, 'is_auto_invoice_mode')
+            and self.app.is_auto_invoice_mode.get()
+        )
+        if is_auto_inv:
+            return False
+
+        try:
+            time.sleep(0.3)
+            balance_val = self.get_remaining_balance()
+        except Exception as b_err:
+            print("Cannot read remaining balance:", b_err)
+            return False
+
+        if abs(balance_val) < 0.01:
+            return False
+
+        target_price = float(final_price)
+        pos_price = round(target_price + balance_val, 2)
+        diff = round(balance_val, 2)
+        diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
+
+        warn_log = (
+            f"⚠️ [Price Mismatch] ยอดเงินไม่ตรง! "
+            f"ต้องออกบิล: {target_price:,.2f} บ. | "
+            f"บน POS (หน้าแรก): {pos_price:,.2f} บ. | "
+            f"ส่วนต่าง: {diff_sign} บ."
+        )
+        print(warn_log)
+        self.app.update_log(warn_log)
+        logger.warning(f"Order: {self.cus_order} - {warn_log}")
+
+        should_return = self.prompt_price_mismatch_dialog(
+            target_price=target_price, pos_price=pos_price, diff=diff
+        )
+
+        if should_return:
+            self.app.update_log("🔙 ผู้ใช้เลือกย้อนกลับไปหน้าแรกเพื่อแก้ไขราคา...")
+            logger.info(
+                f"Order: {self.cus_order} - User confirmed returning to page 1 to fix price mismatch."
+            )
+            self.return_to_first_page()
+            self.last_page = None
+            return True
+        else:
+            self.app.update_log(
+                "⚠️ ผู้ใช้เลือกไม่ออกบิล/อยู่หน้าชำระเงินต่อ โปรดตรวจสอบราคาก่อนกดชำระเงิน"
+            )
+            return False
+
 
 
