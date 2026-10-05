@@ -74,6 +74,13 @@
 
 ### [ver5.x.x] - 2026-10-05
 
+- [x] **[Persistent 1-Hour Local Session & Logout Feature]** พัฒนาระบบบันทึก Session การ Login แบบ Local ชั่วคราว 1 ชั่วโมง และเพิ่มปุ่ม Logout:
+  - `AccountManager` ใน `functions/utils/crypto.py`: บันทึก Credential (`user_id`, `password`) พร้อม Epoch Timestamp ลงระบบจัดเก็บข้อมูลความปลอดภัย (Keyring)
+  - เมื่อเปิดโปรแกรมใหม่ หาก Session ยังไม่หมดอายุ (< 1 ชั่วโมง / 3600 วินาที) ระบบจะ Restore สถานะ Login อัตโนมัติ (`self.user_id`, `self.user_pw`, ปุ่มสถานะ `Logged in !! ID : {user_id}` และเปิดการแสดงผล Checkbox ของ Accel Mode) โดยไม่ต้องให้ผู้ใช้กรอกรหัสผ่านซ้ำ
+  - หาก Session หมดอายุ (> 1 ชั่วโมง) ระบบจะล้าง Session ทิ้งอัตโนมัติและตั้งค่ากลับเป็นโหมดปกติ (Login)
+  - เพิ่มปุ่ม **Logout** สีแดง (`#D32F2F`) ในหน้าต่าง `UserAccount` ให้ผู้ใช้สามารถกดออกจากระบบเพื่อสลับบัญชีได้ทันทีโดยไม่ต้องรอให้หมดเวลา 1 ชั่วโมง
+  - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน `tests/test_crypto_session.py` (ผ่าน 100%)
+
 - [x] **[Manual Mode Final Page Price Mismatch Pop-up Warning & Return-to-Page-1 Guard]** เพิ่มระบบ Pop-up แจ้งเตือนและป้องกันการออกบิลผิดพลาดในโหมด Manual (`not is_auto_invoice_mode`):
   - เมื่อเข้าสู่หน้าชำระเงิน (Payment Page) และกรอกยอดเงินลงใน `#ripCash00` ระบบจะตรวจสอบยอดคงเหลือ (`wrimagecard-lightGray`)
   - หากพบว่าราคาที่ทำมาจากหน้าแรก (POS Cart) ไม่ตรงกับราคาที่ลูกค้าต้องจ่ายจริง (`abs(balance_val) >= 0.01`):

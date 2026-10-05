@@ -335,9 +335,15 @@ class MyApp:
         self.dev_account = ["62078", "61651", "62302"]
         self.is_bot_running = BooleanVar(value=False)
         # self.validate_input_variable = self.root.register(self.validate_input)
-        self.user_id = StringVar(
-            value=self.account_manager.get_last_username())
-        self.user_pw = StringVar(value="")
+        active_session = self.account_manager.get_active_session(max_age_seconds=3600)
+        if active_session:
+            saved_user, saved_pass = active_session
+            self.user_id = StringVar(value=saved_user)
+            self.user_pw = StringVar(value=saved_pass)
+        else:
+            self.user_id = StringVar(
+                value=self.account_manager.get_last_username() or "")
+            self.user_pw = StringVar(value="")
         self.result = ""
         self.is_accel_mode = BooleanVar()
         self.is_accel_mode_activated = BooleanVar(value=False)
@@ -1307,15 +1313,15 @@ class MyApp:
 
         # * > Log in button component
         # * >> A BTN to display the User_account
-        self.btn_display = f"ID:{self.user_id.get()}" if self.user_id.get(
-        ) and self.user_pw.get() else "Login"
+        is_logged_in = bool(self.user_id.get() and self.user_pw.get())
+        self.btn_display = f"Logged in !! ID : {self.user_id.get()}" if is_logged_in else "Login"
         self.display_acc_btn = CTkButton(
             self.entry_frame,
             text=self.btn_display,
             command=lambda: UserAccount(self.root, self),
             width=28,
             height=25,
-            font=self.font
+            font=CTkFont(family="bazooka", size=9) if is_logged_in else self.font
         )
 
         # * > Accel mode
@@ -1326,6 +1332,8 @@ class MyApp:
             variable=self.is_accel_mode,
             command=self.accelmode_toggle
         )
+        if is_logged_in:
+            self.accel_mode_checkbox.grid(row=0, column=0, padx=5)
 
         # ! __wip not ready
         # * > Auto Invoice Mode
@@ -4073,7 +4081,7 @@ class UserAccount:
     def create_subwindow(self, title: str = "Untitled"):
         self.subwindow = CTkToplevel(self.parent)
         self.subwindow.transient(self.parent)
-        self.subwindow.geometry("250x180+650+400")
+        self.subwindow.geometry("260x225+650+400")
         self.subwindow.title(title)
         self.subwindow.grab_set()
         self.subwindow.resizable(False, False)
@@ -4116,12 +4124,17 @@ class UserAccount:
         self.chk_bx_show_pw = CTkCheckBox(
             self.subwin_frame, text="Show Pass", font=('bazooka', 9),
             command=self.show_and_hide)
-        self.chk_bx_show_pw.pack()
+        self.chk_bx_show_pw.pack(pady=(2, 2))
 
         # * Submit Button
         self.submit_btn = CTkButton(
             self.subwin_frame, text="Submit", command=self.update_btn)
-        self.submit_btn.pack(fill='x', expand=True)
+        self.submit_btn.pack(fill='x', expand=True, pady=(2, 2))
+
+        # * Logout Button
+        self.logout_btn = CTkButton(
+            self.subwin_frame, text="Logout", fg_color="#D32F2F", hover_color="#B71C1C", command=self.logout)
+        self.logout_btn.pack(fill='x', expand=True, pady=(2, 2))
 
     def login(self):
         # * ใช้ SmcoApiClient แทน global session โดยตรง
@@ -4193,10 +4206,21 @@ class UserAccount:
                     print(self.app.user_id.get())
                     # print(self.app.dev_account)
 
-                self.app.account_manager.set_last_username(
-                    self.app.user_id.get())
+                self.app.account_manager.save_session(
+                    self.app.user_id.get(), self.app.user_pw.get())
 
                 return self.display_btn_txt
+
+    def logout(self):
+        self.app.account_manager.clear_session()
+        self.app.user_pw.set("")
+        self.app.display_acc_btn.configure(
+            text="Login", font=self.app.font)
+        if hasattr(self.app, "accel_mode_checkbox"):
+            self.app.accel_mode_checkbox.grid_remove()
+            self.app.is_accel_mode.set(False)
+            self.app.is_accel_mode_activated.set(False)
+        self.subwindow.destroy()
 
     def show_and_hide(self):
         # สำหรับ CTkEntry ใช้ .configure(show="") หรือ .configure(show="*")
