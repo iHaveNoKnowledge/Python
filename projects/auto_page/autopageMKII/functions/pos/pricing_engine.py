@@ -265,13 +265,14 @@ def is_coupon_valid_for_order(c_dict: dict, order_date: Any = None) -> bool:
     e = c_dict.get("end_date")
     if not s and not e:
         s, e = extract_coupon_date_range(c_dict.get("desc", ""))
-    s_cmp = s.date() if isinstance(s, datetime.datetime) else s
-    e_cmp = e.date() if isinstance(e, datetime.datetime) else e
+    s_cmp = parse_smart_date(s)
+    e_cmp = parse_smart_date(e)
     if s_cmp and parsed_order_date < s_cmp:
         return False
     if e_cmp and parsed_order_date > e_cmp:
         return False
     return True
+
 
 
 
@@ -1812,8 +1813,12 @@ class POSPricingReconciler:
             return None
 
         # ตรวจสอบคูปองที่เป็นค่าเริ่มต้น (Pre-selected coupons บน SMCO)
-        preselected = getattr(self, 'last_preselected_smco_coupons', None)
-        if preselected is None:
+        # ต้องเป็นคูปองที่มีอยู่ในรายการคูปองของ SKU นี้ (details) จริงๆ เท่านั้น ป้องกันคูปองจาก SKU อื่นรั่วไหล
+        valid_detail_codes = {d.get("code") for d in details if d.get("code")}
+        raw_preselected = getattr(self, 'last_preselected_smco_coupons', None)
+        preselected = [p for p in (raw_preselected or []) if p in valid_detail_codes]
+
+        if not preselected:
             preselected = []
             for c in details:
                 if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
@@ -1822,7 +1827,7 @@ class POSPricingReconciler:
         # ดึงรหัส preselected ที่มีอยู่เดิมบนหน้าเว็บ (เช่น Default CP หรือ DC) โดยไม่ใส่ซ้ำกับคูปองใหม่ที่แนะนำ
         if preselected:
             new_tokens = [tok.strip().upper() for tok in best["suggested_code"].split()]
-            pre_codes = [p for p in preselected if p.strip().upper() not in new_tokens]
+            pre_codes = [p for p in preselected if p.strip().upper() not in new_tokens and p in valid_detail_codes]
             if pre_codes:
                 final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
             else:
@@ -1844,6 +1849,133 @@ class POSPricingReconciler:
             "suggested_end_date": best.get("end_date"),
             "suggested_remark": best.get("remark", "")
         }
+
+    def find_all_matching_coupons_on_smco(
+        self,
+        target_discount: float,
+        expected_price: Optional[float] = None,
+        order_date: Any = None,
+        sku: Optional[str] = None,
+        require_seller_voucher: bool = False
+    ) -> list[dict]:
+        """
+        สแกนหาคูปองทั้งหมด (ทั้งเดี่ยวและคู่ผสม) บนหน้าเว็บ SMCO ที่ตรงกับเงื่อนไข:
+        1. วันที่ครอบคลุม order_date
+        2. มีมูลค่าส่วนลดตรงกับ target_discount หรือมี Remark ระบุราคาเป้าหมายตรงกับ expected_price
+        ส่งกลับเป็น list of candidate dict
+        """
+        details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
+
+        target_sku = sku or getattr(self, '_current_reconcile_sku', '')
+        if target_sku and ('+' in str(target_sku) or isinstance(target_sku, list)):
+            try:
+                agg = self.get_aggregated_combo_coupons(target_sku, order_date=order_date)
+                if agg:
+                    existing_codes = {d.get("code") for d in details}
+                    for a in agg:
+                        if a.get("code") not in existing_codes:
+                            details.append(a)
+                        else:
+                            for idx_d, d_item in enumerate(details):
+                                if d_item.get("code") == a.get("code"):
+                                    details[idx_d]["discount"] = a["discount"]
+                                    details[idx_d]["raw_discount"] = a["raw_discount"]
+                                    if a.get("remark"):
+                                        details[idx_d]["remark"] = a["remark"]
+                                    if a.get("start_date"):
+                                        details[idx_d]["start_date"] = a["start_date"]
+                                    if a.get("end_date"):
+                                        details[idx_d]["end_date"] = a["end_date"]
+            except Exception as ex_agg:
+                logger.debug(f"[find_all_matching_coupons_on_smco] Error aggregating for {target_sku}: {ex_agg}")
+
+        if not details or (target_discount <= 0 and expected_price is None):
+            return []
+
+        parsed_order_date = parse_smart_date(order_date) if order_date else None
+
+        def is_coupon_valid(c_dict: dict) -> bool:
+            return is_coupon_valid_for_order(c_dict, parsed_order_date)
+
+        results = []
+        seen_codes = set()
+
+        # 1. Singles
+        for c in details:
+            if require_seller_voucher and not is_seller_voucher_desc(c.get("desc", "")):
+                continue
+            if not is_coupon_valid(c):
+                continue
+
+            remark_price = c.get("remark_target_price")
+            is_remark_price_match = (
+                expected_price is not None
+                and remark_price is not None
+                and abs(remark_price - float(expected_price)) <= 0.05
+            )
+            is_discount_match = (
+                target_discount > 0
+                and abs(c.get('discount', 0.0) - target_discount) <= 0.05
+                and c.get('discount', 0.0) > 0
+            )
+
+            if is_remark_price_match or is_discount_match:
+                code = c.get('code', '').strip().upper()
+                if code and code not in seen_codes:
+                    seen_codes.add(code)
+                    s_dt, e_dt = get_coupon_start_and_end_dates(c)
+                    results.append({
+                        "cp_name": code,
+                        "oc_amount": "",
+                        "dc_amount": "",
+                        "start_date": s_dt,
+                        "end_date": e_dt,
+                        "remark": c.get("remark", ""),
+                        "source": "SMCO"
+                    })
+
+        # 2. Combos
+        for i in range(len(details)):
+            for j in range(i + 1, len(details)):
+                c1 = details[i]
+                c2 = details[j]
+                if require_seller_voucher:
+                    if not (is_seller_voucher_desc(c1.get("desc", "")) or is_seller_voucher_desc(c2.get("desc", ""))):
+                        continue
+                if not is_coupon_valid(c1) or not is_coupon_valid(c2):
+                    continue
+                total_disc = c1.get('discount', 0.0) + c2.get('discount', 0.0)
+                if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
+                    code1 = c1.get('code', '').strip().upper()
+                    code2 = c2.get('code', '').strip().upper()
+                    combo_code = f"{code1} {code2}"
+                    if combo_code not in seen_codes:
+                        seen_codes.add(combo_code)
+                        s1, e1 = get_coupon_start_and_end_dates(c1)
+                        s2, e2 = get_coupon_start_and_end_dates(c2)
+                        s1_cmp = to_comparable_datetime(s1)
+                        s2_cmp = to_comparable_datetime(s2)
+                        combo_start = s1 if (s1_cmp and s2_cmp and s1_cmp >= s2_cmp) else (s1 or s2)
+                        e1_cmp = to_comparable_datetime(e1)
+                        e2_cmp = to_comparable_datetime(e2)
+                        combo_end = e1 if (e1_cmp and e2_cmp and e1_cmp <= e2_cmp) else (e1 or e2)
+
+                        r1 = str(c1.get("remark", "") or "").strip()
+                        r2 = str(c2.get("remark", "") or "").strip()
+                        combo_remark = " / ".join([r for r in [r1, r2] if r]) if r1 != r2 else r1
+
+                        results.append({
+                            "cp_name": combo_code,
+                            "oc_amount": "",
+                            "dc_amount": "",
+                            "start_date": combo_start,
+                            "end_date": combo_end,
+                            "remark": combo_remark,
+                            "source": "SMCO"
+                        })
+
+        return results
+
 
 
 
@@ -2097,12 +2229,17 @@ class POSPricingReconciler:
                         if m not in found_codes:
                             found_codes.append(m)
 
-                # 2. จากข้อความทั้งหมดใน panel ที่มี pattern CP/DC
-                panel_text = target_panel.text or ""
-                matches = re.findall(r'\b((?:CP|DC)\d+)\b', panel_text.upper())
-                for m in matches:
-                    if m not in found_codes:
-                        found_codes.append(m)
+                # 2. จาก coupon label / badge elements เฉพาะ (ไม่ค้นหาจาก text ทั้ง panel ป้องกันดึงข้อความขยะ/SKU อื่น)
+                badge_elements = target_panel.find_elements(
+                    By.XPATH,
+                    ".//span[contains(@class, 'label')] | .//span[contains(@class, 'badge')] | .//span[contains(@class, 'coupon')] | .//a[contains(@class, 'coupon')]"
+                )
+                for b_el in badge_elements:
+                    b_text = (b_el.text or "").upper()
+                    matches = re.findall(r'\b((?:CP|DC)\d+)\b', b_text)
+                    for m in matches:
+                        if m not in found_codes:
+                            found_codes.append(m)
         except Exception as e:
             print(f"[get_existing_panel_coupons] Error: {e}")
         return found_codes
@@ -2113,6 +2250,7 @@ class POSPricingReconciler:
         ส่งกลับ list ของ candidate ที่พบคูปองบนหน้าเว็บ SMCO จริง (หรือ candidate ที่ไม่จำเป็นต้องใช้ CP)
         หากระบุ required_seller_voucher > 0 จะบังคับว่า candidate นั้นต้องมีคูปอง Seller Voucher ที่มีมูลค่าตรงกันพอดี
         """
+        self.last_preselected_smco_coupons = []
         item_idx = int(item_no) - 1
         demonic_ordered_items_list: list = self.app.correct_sku_pattern(self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)'])
         self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
@@ -2441,9 +2579,10 @@ class POSPricingReconciler:
                 if sc.get("is_selected") and sc.get("code") and sc.get("code") not in preselected:
                     preselected.append(sc.get("code"))
 
-            # รวมคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel ของสินค้าบนหน้า POS Cart
+            # รวมคูปองเริ่มต้น (Default CP/DC) ที่ติดอยู่บน Item Panel ของสินค้าบนหน้า POS Cart (ต้องมีอยู่จริงใน scanned_details)
+            scanned_code_set = {sc.get("code") for sc in scanned_details if sc.get("code")}
             for pc in panel_codes:
-                if pc and pc not in preselected:
+                if pc and pc in scanned_code_set and pc not in preselected:
                     preselected.append(pc)
 
             self.last_preselected_smco_coupons = preselected
@@ -3046,7 +3185,7 @@ class POSPricingReconciler:
                     elif diff_val < 0:
                         self.app.update_log(f"🔍 กำลังหาคูปองลดราคาสำหรับ SKU: {sku_key} (พบ {len(cp_candidates)} รูปแบบใน CP Data)")
 
-                        # สแกนดูว่าในบรรดา candidates ทั้งหมด มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง
+                        # สแกนดูว่าในบรรดา candidates จากตาราง มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง
                         available_candidates = self.scan_matching_cp_candidates_on_smco(
                             item_no_1indexed, cp_candidates or [], required_seller_voucher=0.0
                         )
@@ -3057,8 +3196,32 @@ class POSPricingReconciler:
                         )
                         suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
+                        # สแกนหาคูปองตรงทั้งหมดที่ปรากฏบน SMCO ขณะนี้ (Realtime SMCO candidate discovery)
+                        direct_smco_candidates = self.find_all_matching_coupons_on_smco(
+                            target_discount, expected_price=expected_price, order_date=purchased_date, sku=sku_key, require_seller_voucher=False
+                        )
+
+                        # รวมชุดตัวเลือกทั้งหมด (จากตาราง CP Data + คูปองใหม่ที่พบสดๆ บน SMCO)
+                        unified_candidates = list(available_candidates)
+
+                        def candidate_matches_direct(table_cand: dict, direct_cand: dict) -> bool:
+                            t_cp = str(table_cand.get("cp_name", "")).strip().upper()
+                            d_cp = str(direct_cand.get("cp_name", "")).strip().upper()
+                            t_tokens = set(t_cp.split())
+                            d_tokens = set(d_cp.split())
+                            has_adj = is_valid_adjustment(table_cand.get("oc_amount")) or is_valid_adjustment(table_cand.get("dc_amount"))
+                            # ถ้าตารางมีปรับราคา OC/DC ร่วมด้วย ถือว่าเป็นคนละสูตรกับคูปองลดตรงๆ บน SMCO
+                            if has_adj:
+                                return False
+                            return t_tokens == d_tokens
+
+                        for dc in direct_smco_candidates:
+                            already_in_table = any(candidate_matches_direct(tc, dc) for tc in available_candidates)
+                            if not already_in_table:
+                                unified_candidates.append(dc)
+
                         # ─── CASE 0: ไม่พบชุดใดที่ใช้ได้บน SMCO เลย ───
-                        if len(available_candidates) == 0:
+                        if len(unified_candidates) == 0:
                             has_entry = len(cp_candidates) > 0
                             self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
                             log_msg = f"❌ ไม่พบชุด CP/DC ใดที่ตรงกับในระบบ SMCO สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออก: {expected_price}) -> หยุดปรับราคาและสร้างคำถาม"
@@ -3068,8 +3231,16 @@ class POSPricingReconciler:
                             self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=has_entry, cp_candidates=cp_candidates, suggested_cp_info=sugg_info)
 
                         # ─── CASE 1: พบชุดที่ตรงบน SMCO พอดี 1 ชุด ───
-                        elif len(available_candidates) == 1:
-                            chosen_cand = available_candidates[0]
+                        elif len(unified_candidates) == 1:
+                            # หาก 1 ชุดนี้เป็นคูปองใหม่ที่พบเฉพาะบน SMCO แต่ยังไม่เคยระบุในตาราง cp_data.xlsx
+                            if unified_candidates[0].get("source") == "SMCO" and len(available_candidates) == 0:
+                                self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                                log_msg = f"ℹ️ พบคูปองแนะนำ [{suggested_cp_code}] บน SMCO สำหรับ SKU: {sku_key} แต่ยังไม่ได้บันทึกใน cp_data.xlsx -> หยุดเพื่อให้ตรวจสอบก่อน"
+                                logger.info(log_msg)
+                                self.app.update_log(log_msg)
+                                self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=False, suggested_cp_info=sugg_info)
+
+                            chosen_cand = unified_candidates[0]
                             cp_name = chosen_cand.get("cp_name", "")
                             oc_amount_str = chosen_cand.get("oc_amount", "")
                             dc_amount_str = chosen_cand.get("dc_amount", "")
@@ -3124,45 +3295,23 @@ class POSPricingReconciler:
                         # ─── CASE 2: พบชุดที่ตรงบน SMCO มากกว่า 1 ชุด (Ambiguity Detected!) ───
                         else:
                             ambiguous_details = []
-                            for idx_a, ac in enumerate(available_candidates, start=1):
-                                desc = f"ชุดที่ {idx_a}: CP='{ac.get('cp_name')}', OC='{ac.get('oc_amount')}', DC='{ac.get('dc_amount')}'"
+                            for idx_a, ac in enumerate(unified_candidates, start=1):
+                                src = " (คูปองใหม่บน SMCO)" if ac.get("source") == "SMCO" else " (จากตาราง CP Data)"
+                                desc = f"ชุดที่ {idx_a}: CP='{ac.get('cp_name')}', OC='{ac.get('oc_amount') or '-'}', DC='{ac.get('dc_amount') or '-'}'{src}"
                                 ambiguous_details.append(desc)
 
                             ambiguity_str = "\n".join(f"  • {d}" for d in ambiguous_details)
                             log_warn = (
-                                f"⚠️ [Ambiguity Alert] พบชุด CP/DC ที่ตรงเงื่อนไขบนหน้าเว็บ SMCO มากกว่า 1 ชุด ({len(available_candidates)} ชุด) สำหรับ SKU: {sku_key}\n"
+                                f"⚠️ [Ambiguity Alert] พบชุด CP/DC ที่ตรงเงื่อนไขบนหน้าเว็บ SMCO มากกว่า 1 ชุด ({len(unified_candidates)} ชุด) สำหรับ SKU: {sku_key}\n"
                                 f"{ambiguity_str}\n"
                                 f"ระบบจะหยุดการปรับราคาอัตโนมัติเพื่อป้องกันการเลือกผิดพลาด (Option B: Strict Safety)"
                             )
                             logger.warning(log_warn)
                             self.app.update_log(log_warn)
 
-                            # -------------------------------------------------------------
-                            # [OPTION A] Auto-Resolve by Newest Date (Commented out)
-                            # หากต้องการเปลี่ยนไปใช้ Option A ในอนาคต ให้ uncomment ส่วนนี้:
-                            # -------------------------------------------------------------
-                            # chosen_cand = available_candidates[0]  # เรียงตาม usage_start_date ล่าสุดไว้แล้ว
-                            # cp_name = chosen_cand.get("cp_name", "")
-                            # oc_amount_str = chosen_cand.get("oc_amount", "")
-                            # dc_amount_str = chosen_cand.get("dc_amount", "")
-                            # self.app.update_log(f"⚡ [Option A] เลือกใช้ชุดโปรโมชั่นล่าสุดอัตโนมัติ: CP='{cp_name}'")
-                            # if cp_name and cp_name.strip():
-                            #     self.cp_sonic_blow_process(item_no_1indexed, cp_name)
-                            #     time.sleep(0.5)
-                            # if is_valid_adjustment(oc_amount_str):
-                            #     self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
-                            #     time.sleep(0.5)
-                            # if is_valid_adjustment(dc_amount_str):
-                            #     item_qty = int(item.get('จำนวน', 1))
-                            #     self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=item_qty)
-                            #     time.sleep(0.5)
-                            # self.app.update_log(f"✅ [Option A] ปรับราคาตามโปรล่าสุดเรียบร้อยแล้ว")
-                            # -------------------------------------------------------------
-
-                            # [OPTION B] Strict Safety: ไม่เลือกสุ่มสี่สุ่มห้า หยุดปรับราคา และสร้างคำถามพร้อมแจ้งรายละเอียดชุดที่พบ
                             if suggested_cp_code:
                                 self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
-                            self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, available_candidates, suggested_cp_info=sugg_info)
+                            self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, unified_candidates, suggested_cp_info=sugg_info)
 
     def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list, suggested_cp_info: Optional[dict] = None) -> None:
         """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อพบคูปองที่ตรงเงื่อนไขซ้ำซ้อนกันมากกว่า 1 ชุด"""
@@ -3186,7 +3335,9 @@ class POSPricingReconciler:
             cp = c.get('cp_name') or '-'
             oc = c.get('oc_amount') or '-'
             dc = c.get('dc_amount') or '-'
-            cand_lines.append(f"  {idx}) CP: {cp} | OC: {oc} | DC: {dc}")
+            src = " (พบคูปองใหม่บน SMCO)" if c.get("source") == "SMCO" else " (จากตาราง CP Data)"
+            rem = f" [Remark: {c.get('remark')}]" if c.get('remark') else ""
+            cand_lines.append(f"  {idx}) CP: {cp} | OC: {oc} | DC: {dc}{src}{rem}")
 
         cand_str = "\n".join(cand_lines)
 
@@ -3318,6 +3469,10 @@ class POSPricingReconciler:
                 self._applied_adjustments.clear()
             self.last_scanned_smco_coupons = []
             self.last_scanned_smco_coupon_details = []
+            self.last_preselected_smco_coupons = []
+            if hasattr(self, 'app') and self.app:
+                self.app.last_pricing_status = ""
+                self.app.last_pricing_detail = ""
             self.bot.ProductManager.auto_add_all_items()
             self.bot.current_checkpoint = "กรอกสินค้าลง POS สำเร็จ"
 
@@ -3411,7 +3566,6 @@ class POSPricingReconciler:
                 self.app.update_log("⚠️ Reconnected. Please check the items manually.")
             else:
                 logger.error(f"Error occurred while verifying items: {err}")
-                self.bot.record_failed_with_checkpoint(str(err))
                 raise err
 
     def _check_missing_serial_popups(self) -> None:

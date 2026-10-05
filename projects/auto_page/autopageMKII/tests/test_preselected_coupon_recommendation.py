@@ -231,6 +231,26 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
         self.assertEqual(res["preselected_codes"], ["DC2410010001", "DC2507220036"])
         self.assertEqual(res["new_code"], "CP2609100001")
 
+    def test_stale_preselected_coupon_not_in_sku_details_is_ignored(self):
+        """ทดสอบว่าคูปองตกค้างจาก SKU อื่น (เช่น CP2609290081) ที่ไม่มีอยู่ใน details ของ SKU ปัจจุบัน จะถูกตัดทิ้ง ไม่ถูกนำมาแนะนำเป็น preselected"""
+        # มีคูปองตกค้างใน state
+        self.reconciler.last_preselected_smco_coupons = ["CP2609290081"]
+
+        # แต่ SKU ปัจจุบัน (SP2-001748) มีเฉพาะ 4 DC
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {"code": "DC2609140009", "discount": 100.0, "desc": "Promo 1", "is_selected": False},
+            {"code": "DC2609170011", "discount": 150.0, "desc": "Promo 2", "is_selected": False},
+            {"code": "DC2609220003", "discount": 200.0, "desc": "Promo 3", "is_selected": False},
+            {"code": "DC2609290042", "discount": 250.0, "desc": "Promo 4", "is_selected": False},
+        ]
+
+        # ต้องการส่วนลด 250 บาท -> ต้องเลือก DC2609290042 ตัวเดียวเพียวๆ โดยไม่มี CP2609290081 ติดมา
+        res = self.reconciler.find_suggested_cp_for_discount(250.0)
+        self.assertIsNotNone(res)
+        self.assertEqual(res["suggested_code"], "DC2609290042")
+        self.assertEqual(res["preselected_codes"], [])
+        self.assertEqual(res["new_code"], "DC2609290042")
+
 
 if __name__ == "__main__":
     unittest.main()

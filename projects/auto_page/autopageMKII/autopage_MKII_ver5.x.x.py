@@ -1725,6 +1725,8 @@ class MyApp:
         if hasattr(self, 'pricing_engine') and self.pricing_engine is not None:
             self.pricing_engine.last_scanned_smco_coupons = []
             self.pricing_engine.last_scanned_smco_coupon_details = []
+        self.last_pricing_status = ""
+        self.last_pricing_detail = ""
         self.is_tax_required.set(False)
         self.tax_num.set("")
         self.cus_email.set("")
@@ -9054,6 +9056,13 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error during cleanup: {e}")
         finally:
+            # อัปเดตเวลา Session ตอนปิดโปรแกรม เพื่อเริ่มนับเวลาหมดอายุ 1 ชั่วโมงจากวินาทีที่ปิดบอท
+            if hasattr(app, 'account_manager') and app.account_manager:
+                try:
+                    app.account_manager.touch_session()
+                except Exception as s_err:
+                    print(f"Error updating session time on exit: {s_err}")
+
             # Destroy all popup windows
             PopUp.destroy_all()
             # Destroy the main window

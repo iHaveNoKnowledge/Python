@@ -28,7 +28,7 @@ class AccountManager:
 
     def save_session(self, user_id: str, password: str) -> None:
         """
-        Saves user credentials with current epoch timestamp to create a 1-hour session.
+        Saves user credentials with current epoch timestamp to create a session.
         """
         try:
             now_ts = str(time.time())
@@ -38,6 +38,20 @@ class AccountManager:
             self.set_last_username(user_id)
         except Exception as e:
             print(f"Error saving session to keyring: {e}")
+
+    def touch_session(self) -> None:
+        """
+        Updates session timestamp to the current epoch time.
+        Called on exit or active usage so that the 1-hour expiration countdown
+        only starts from the moment the bot is closed.
+        """
+        try:
+            session_user = keyring.get_password(self.service_name, "session_user")
+            session_pass = keyring.get_password(self.service_name, "session_pass")
+            if session_user and session_pass:
+                keyring.set_password(self.service_name, "session_time", str(time.time()))
+        except Exception as e:
+            print(f"Error touching session timestamp in keyring: {e}")
 
     def get_active_session(self, max_age_seconds: int = 3600) -> Optional[Tuple[str, str]]:
         """

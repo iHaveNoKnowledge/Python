@@ -223,10 +223,24 @@ class DualSourceCPLoader:
         if 'expected_price' in df.columns and 'sale_price' not in df.columns:
             df['sale_price'] = df['expected_price']
 
-        # Normalize numeric columns to float
-        for num_col in ['sale_price', 'expected_price', 'oc_amount', 'dc_amount', 'last_actual_price']:
+        # Normalize numeric columns to float (เฉพาะคอลัมน์ที่เป็นตัวเลขเดี่ยวเสมอ)
+        for num_col in ['sale_price', 'expected_price', 'last_actual_price']:
             if num_col in df.columns:
                 df.loc[:, num_col] = pd.to_numeric(df[num_col], errors='coerce')
+
+        # Clean adjustment columns (oc_amount, dc_amount) as strings preserving space-separated amounts (e.g. '5 4')
+        for adj_col in ['oc_amount', 'dc_amount']:
+            if adj_col in df.columns:
+                def _clean_adj(v):
+                    if pd.isna(v) or v is None:
+                        return ""
+                    s = str(v).strip()
+                    if s.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        return ""
+                    if s.endswith('.0') and s[:-2].isdigit():
+                        return s[:-2]
+                    return s
+                df.loc[:, adj_col] = [_clean_adj(v) for v in df[adj_col]]
 
         for date_col in ['usage_start_date', 'usage_end_date', 'suggested_usage_start_date', 'suggested_usage_end_date']:
             if date_col in df.columns:

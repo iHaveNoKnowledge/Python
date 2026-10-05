@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import datetime
 from tkinter import filedialog
 from typing import Any, Dict, List, Optional, Union
 
@@ -116,6 +117,7 @@ class AccelMode:
         self.used_serials = []
         self.sn_shortage = []
         self._accel_last_mtime = 0
+        self._last_failed_record = (None, 0)
 
     def select_accel_file(self):
         self.accel_file_dir = filedialog.askopenfilename(
@@ -238,8 +240,8 @@ class AccelMode:
         if not isinstance(df, pd.DataFrame) or df.empty or not self.accel_file_dir:
             return
 
-        print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
-        print("deduct_accel_file_data order: ", order)
+        # print("deduct_accel_file_data df มีมาก่อนเหรอ: ", df)
+        # print("deduct_accel_file_data order: ", order)
 
         if remove_order and 'orders' in df.columns:
             mask_order = df['orders'].astype(str).str.strip() == order
@@ -248,7 +250,7 @@ class AccelMode:
                 print(f'remove {order} from state df')
                 df.loc[mask_order, 'orders'] = pd.NA
 
-        print("deduct_accel_file_data sku_serials: ", sku_serials)
+        # print("deduct_accel_file_data sku_serials: ", sku_serials)
         if sku_serials:
             for sn in sku_serials:
                 target_sku = str(sn.get('sku', '')).strip()
@@ -271,9 +273,8 @@ class AccelMode:
                 else:
                     print(f"Warning: ไม่พบ คอลัมน์ SKU {target_sku} ใน DataFrame ของ Excel")
 
-        print("form state df to new excel")
-        print(
-            f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
+        # print("form state df to new excel")
+        # print(f"Check if accel file is accesible {os.access(self.accel_file_dir, os.W_OK)}")
 
         try:
             main_sheet = getattr(self, 'main_sheet_name', None) or self._get_main_sheet_name(self.accel_file_dir)
@@ -1470,22 +1471,22 @@ class AccelMode:
                 if ws.max_row > 0 and ws.max_column > 0:
                     ws.auto_filter.ref = ws.dimensions
 
-                    # ค้นหาคอลัมน์ 'orders' เพื่อทำการ Freeze panes ที่คอลัมน์ orders
-                    # ถ้าพบคอลัมน์ 'orders' ในแถวที่ 1 ให้ freeze ไว้ที่คอลัมน์ถัดไป (เช่น orders อยู่ Col C (3) -> Freeze D2)
+                    #/ ค้นหาคอลัมน์ 'orders' เพื่อทำการ Freeze panes ที่คอลัมน์ orders
+                    #/ ถ้าพบคอลัมน์ 'orders' ในแถวที่ 1 ให้ freeze ไว้ที่คอลัมน์ถัดไป (เช่น orders อยู่ Col C (3) -> Freeze D2)
                     orders_col_idx = None
                     for col_idx in range(1, ws.max_column + 1):
                         val = str(ws.cell(row=1, column=col_idx).value or '').strip().lower()
                         if val == 'orders':
                             orders_col_idx = col_idx
                             break
-
+                    
                     if orders_col_idx is not None and orders_col_idx < ws.max_column:
                         freeze_col_letter = get_column_letter(orders_col_idx + 1)
                         ws.freeze_panes = f"{freeze_col_letter}2"
                     else:
                         ws.freeze_panes = "A2"
 
-                    # ปรับความกว้างคอลัมน์ให้อ่านง่ายพอดีข้อความ
+                    #/ ปรับความกว้างคอลัมน์ให้อ่านง่ายพอดีข้อความ
                     for col in ws.columns:
                         col_cell = col[0]
                         if not col_cell or col_cell.column is None:
@@ -1517,6 +1518,25 @@ class AccelMode:
                             target_width = min(max(max_len + 3, 12), 50)
 
                         ws.column_dimensions[col_letter].width = target_width
+                    
+                    #/ ถ้าเป็นชีต Processed_Logs ให้ซ่อนแถวที่อยู่นอกเหนือจากวันที่ปัจจุบัน (datetime.datetime.now().strftime("%Y-%m-%d"))
+                    if ws.title == 'Processed_Logs':
+                        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+                        ts_col_idx = None
+                        for col_idx in range(1, ws.max_column + 1):
+                            val = str(ws.cell(row=1, column=col_idx).value or '').strip().lower()
+                            if val == 'timestamp':
+                                ts_col_idx = col_idx
+                                break
+
+                        if ts_col_idx is not None:
+                            for r_idx in range(2, ws.max_row + 1):
+                                cell_val = str(ws.cell(row=r_idx, column=ts_col_idx).value or '').strip()
+                                # ซ่อนแถวที่ timestamp มีค่าแต่ไม่ตรงกับวันปัจจุบัน
+                                if cell_val and not cell_val.startswith(today_str):
+                                    ws.row_dimensions[r_idx].hidden = True
+                                else:
+                                    ws.row_dimensions[r_idx].hidden = False
 
             wb.save(file_path)
             wb.close()
@@ -1615,6 +1635,14 @@ class AccelMode:
             order_str = order.get()
         else:
             order_str = str(order)
+
+        now_ts = time.time()
+        last_order, last_time = getattr(self, '_last_failed_record', (None, 0))
+        if last_order == order_str and (now_ts - last_time) < 4.0:
+            print(f"Skipping duplicate record_failed_order for {order_str} (recorded {now_ts - last_time:.2f}s ago)")
+            logger.info(f"Skipping duplicate record_failed_order for {order_str} within debounce interval")
+            return
+        self._last_failed_record = (order_str, now_ts)
 
         print(f"Recording failed order: {order_str} due to: {reason}")
 

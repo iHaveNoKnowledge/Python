@@ -139,5 +139,47 @@ class TestAccelUnifiedProcessedLogs(unittest.TestCase):
         self.assertEqual(df_comp.iloc[0]['status'], 'Completed')
 
 
+    def test_processed_logs_hides_past_dates(self):
+        """ทดสอบว่า Processed_Logs ซ่อนแถวที่อยู่นอกเหนือจากวันที่ของวันนี้ (row.hidden = True) และแสดงเฉพาะแถวของวันนี้"""
+        # บันทึก row ของวันนี้
+        self.accel.record_failed_order("ORD_TODAY", "ข้อผิดพลาดวันนี้")
+
+        # จำลองการใส่แถวของวันก่อนหน้าลงไปในชีต Processed_Logs
+        wb = load_workbook(self.test_excel)
+        ws = wb["Processed_Logs"]
+        ws.append(["2026-01-01 10:00:00", "TH_OLD", "ORD_OLD", "B01", "100", "SN01", "Completed", "", ""])
+        wb.save(self.test_excel)
+        wb.close()
+
+        # trigger formatting
+        self.accel._apply_excel_formatting(self.test_excel)
+
+        wb_check = load_workbook(self.test_excel)
+        ws_check = wb_check["Processed_Logs"]
+
+        # Row 1: Header
+        self.assertFalse(ws_check.row_dimensions[1].hidden)
+
+        # Row 2: Today (ORD_TODAY) -> hidden = False
+        self.assertFalse(ws_check.row_dimensions[2].hidden)
+
+        # Row 3: Past Date (2026-01-01) -> hidden = True
+        self.assertTrue(ws_check.row_dimensions[3].hidden)
+        wb_check.close()
+
+    def test_record_failed_order_debounces_rapid_duplicate_calls(self):
+        """ทดสอบว่าการเรียก record_failed_order ติดๆ กันภายใน debounce window จะไม่บันทึกซ้ำซ้อนสองแถว"""
+        self.accel.record_failed_order("ORD_DEBOUNCE", "ข้อผิดพลาดรอบแรก")
+        # เรียกซ้ำทันที
+        self.accel.record_failed_order("ORD_DEBOUNCE", "ข้อผิดพลาดรอบสอง")
+
+        failed_df = pd.read_excel(self.test_excel, sheet_name='Failed_Orders')
+        # ต้องมีเพียง 1 แถวเท่านั้น
+        self.assertEqual(len(failed_df[failed_df['orders'] == 'ORD_DEBOUNCE']), 1)
+
+        proc_df = pd.read_excel(self.test_excel, sheet_name='Processed_Logs')
+        self.assertEqual(len(proc_df[proc_df['orders'] == 'ORD_DEBOUNCE']), 1)
+
+
 if __name__ == '__main__':
     unittest.main()

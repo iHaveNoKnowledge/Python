@@ -104,3 +104,40 @@ class TestCPDateAutoCorrection:
         # Should not throw AttributeError: 'dict' object has no attribute 'columns'
         accel.deduct_accel_file_data("2609287HFYKV3U")
 
+    def test_space_separated_oc_amount_preserved_and_matched(self):
+        """ทดสอบว่า oc_amount ที่มีช่องว่าง เช่น '5 4' จะไม่ถูก coerce เป็น NaN และถูกส่งต่อไปยัง candidate ถูกต้อง"""
+        loader = DualSourceCPLoader(gas_url="", local_excel_path=None)
+        raw_df = pd.DataFrame([
+            {
+                "sku": "SP2-001753+SP2-001755",
+                "sale_price": "993",
+                "cp_name": "CP2609140012",
+                "usage_start_date": "14/09/2026",
+                "usage_end_date": "09/10/2026",
+                "oc_amount": "5 4",
+                "dc_amount": ""
+            }
+        ])
+        cleaned_df = loader._clean_dataframe(raw_df)
+        assert cleaned_df.loc[0, "oc_amount"] == "5 4"
+        assert cleaned_df.loc[0, "sale_price"] == 993.0
+
+        mock_app = MagicMock()
+        mock_app.cp_df = cleaned_df
+        mock_app.correct_sku_pattern = lambda s: [s]
+        mock_bot = MagicMock()
+        mock_bot.app = mock_app
+        from functions.pos.pricing_engine import POSPricingReconciler
+        reconciler = POSPricingReconciler(mock_bot)
+        reconciler.reload_cp_if_modified = MagicMock()
+
+        candidates = reconciler.find_all_cp_candidates_from_excel(
+            sku="SP2-001753+SP2-001755",
+            platform_price=993.0,
+            purchased_date_str="2026-10-03 14:00"
+        )
+        assert len(candidates) == 1
+        assert candidates[0]["cp_name"] == "CP2609140012"
+        assert candidates[0]["oc_amount"] == "5 4"
+
+

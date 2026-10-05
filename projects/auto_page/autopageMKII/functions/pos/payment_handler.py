@@ -976,6 +976,7 @@ class POSPaymentHandler:
     ) -> bool:
         """
         แสดง Pop-up แจ้งเตือนยอดเงินไม่ตรง และถามว่าต้องการย้อนกลับไปหน้าแรกหรือไม่
+        ดึงหน้าต่างขึ้นมาแทรกด้านหน้าสุด (Topmost & Focus Force) เพื่อไม่ให้โดนโปรแกรมอื่นบัง
         """
         title = "⚠️ ยอดเงินไม่ตรงกับราคาที่ต้องออกบิล!"
         diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
@@ -991,9 +992,36 @@ class POSPaymentHandler:
         done_event = threading.Event()
 
         def _show():
+            parent = getattr(self.app, 'root', None)
+            prev_topmost = False
             try:
+                # ส่งเสียงแจ้งเตือนระบบ
+                try:
+                    import winsound
+                    winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+                except Exception:
+                    pass
+
+                # ดึงหน้าต่างหลักขึ้นมาแทรกหน้าสุดทันที (Topmost & Focus Force)
+                if parent and hasattr(parent, 'winfo_exists') and parent.winfo_exists():
+                    try:
+                        prev_topmost = bool(parent.attributes('-topmost'))
+                    except Exception:
+                        prev_topmost = False
+                    parent.attributes('-topmost', True)
+                    parent.lift()
+                    parent.focus_force()
+
+                    # Force Windows Foreground Window
+                    try:
+                        import ctypes
+                        hwnd = parent.winfo_id()
+                        ctypes.windll.user32.SetForegroundWindow(hwnd)
+                        ctypes.windll.user32.BringWindowToTop(hwnd)
+                    except Exception:
+                        pass
+
                 from tkinter import messagebox
-                parent = getattr(self.app, 'root', None)
                 if parent and hasattr(parent, 'winfo_exists') and parent.winfo_exists():
                     res = messagebox.askyesno(
                         title=title,
@@ -1012,6 +1040,12 @@ class POSPaymentHandler:
                 print(f"Error displaying price mismatch dialog: {e}")
                 result_holder[0] = False
             finally:
+                # คืนค่าสถานะ topmost เดิมหลังจากผู้ใช้ตอบกลับแล้ว
+                if parent and hasattr(parent, 'winfo_exists') and parent.winfo_exists():
+                    try:
+                        parent.attributes('-topmost', prev_topmost)
+                    except Exception:
+                        pass
                 done_event.set()
 
         parent = getattr(self.app, 'root', None)

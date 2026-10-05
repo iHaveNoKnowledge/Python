@@ -82,3 +82,29 @@ def test_last_username_persists_after_logout(mock_keyring):
 
     # last_username should still remain remembered even after session is logged out
     assert manager.get_last_username() == "62078"
+
+
+def test_touch_session_resets_expiration_timer(mock_keyring):
+    manager = AccountManager("TestService")
+    initial_time = 100000.0
+
+    with patch("time.time", return_value=initial_time):
+        manager.save_session("62078", "Secret123")
+
+    # บอทถูกเปิดใช้งานต่อเนื่อง 2 ชั่วโมง (7200s) แต่มีการ touch_session() ตอนปิดบอท
+    close_time = initial_time + 7200.0
+    with patch("time.time", return_value=close_time):
+        manager.touch_session()
+
+    # เมื่อเปิดบอทใหม่หลังจากปิดไปแล้ว 30 นาที (1800s) -> ยังไม่เกิน 1 ชม. นับจากตอนปิด
+    reopen_time = close_time + 1800.0
+    with patch("time.time", return_value=reopen_time):
+        session = manager.get_active_session(max_age_seconds=3600)
+        assert session == ("62078", "Secret123")
+
+    # แต่ถ้าปิดทิ้งไว้นานเกิน 1 ชม. (3601s นับจาก close_time) -> หมดอายุ
+    reopen_expired_time = close_time + 3601.0
+    with patch("time.time", return_value=reopen_expired_time):
+        session = manager.get_active_session(max_age_seconds=3600)
+        assert session is None
+
