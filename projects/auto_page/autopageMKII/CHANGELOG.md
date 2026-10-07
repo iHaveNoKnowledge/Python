@@ -14,19 +14,19 @@
 
 - [ ] **[Shopee]** เพิ่มตรรกะแยกเงื่อนไขระหว่าง Shopee ปกติ กับ Shopee Mobile ในหน้าท้าย (เลือกว่าจะจ่ายช่องทางไหนแยกกัน)
 - [ ] **[UI / Selenium]** Last pop-up มีตัวรอ event ที่เป็น `driver.wait` ทำให้รอนาน ให้เปลี่ยนเป็น `while loop` ดัก element เพื่อให้จบเร็วกว่า
-- [ ] **[Address / SMCO]** ตรวจสอบการเลือก อำเภอ/เขต จาก enum บน SMCO คำภาษาไทยบางคำไม่ตรงกับระบบ อาจนำ `PyThaiNLP` (Tokenize) มาใช้คู่กับ `FuzzyWuzzy`
+- [X] **[Address / SMCO]** ตรวจสอบการเลือก อำเภอ/เขต จาก enum บน SMCO คำภาษาไทยบางคำไม่ตรงกับระบบ อาจนำ `PyThaiNLP` (Tokenize) มาใช้คู่กับ `FuzzyWuzzy`
 - [X] **[AccelMode / SN]** แก้ไขปัญหา SN เสียเมื่อ SKU มี QTY > 1: ปรับไปใช้ Red Serial Button + Modal Flow สำหรับ Multi-QTY, ทำ Combo Aggregation รวมจำนวนข้ามแถว, Dynamic Wait ตรวจสอบสถานะ, ลบเฉพาะ SN ที่เสียด้วย `_deleteInsertSerial` โดยไม่ลบแถวสินค้าบนตะกร้า และคืนสิทธิ์ SN ในหน่วยความจำหากออเดอร์ไม่สำเร็จ
 - [X] **[Logging]** ทำ Log Rotation ให้กับไฟล์ Log เพื่อไม่ให้ขนาดไฟล์ใหญ่เกินไป และสามารถเก็บย้อนหลังแยกรายวันได้
-- [ ] **[Performance]** ปรับตัวดึง Tracking ให้ Dynamic ขึ้น เช่น ตอนเริ่มค้นหาออเดอร์ถ้ามี Tracking อยู่แล้ว ให้ดึงใส่ Stage ไว้ล่วงหน้าทันที
-- [ ] **[AccelMode / Modal Speed]** Modal Serial Number เปิดช้าในบางจังหวะ กำลังรอปรับปรุงความเร็วในการค้นหาปุ่มและเปิด Modal
+- [X] **[Performance]** ปรับตัวดึง Tracking ให้ Dynamic ขึ้น เช่น ตอนเริ่มค้นหาออเดอร์ถ้ามี Tracking อยู่แล้ว ให้ดึงใส่ Stage ไว้ล่วงหน้าทันที
+- [X] **[AccelMode / Modal Speed]** Modal Serial Number เปิดช้าในบางจังหวะ กำลังรอปรับปรุงความเร็วในการค้นหาปุ่มและเปิด Modal
 - [X] **[UI / TKINTER]** ในโหมด manual (ไม่ใช้ auto_inv) ตอนจังหวะรอหน้าท้าย เพิ่มระบบ Pop-up แจ้งเตือนเมื่อราคาที่ทำจากหน้าแรกไม่ตรงกับยอดที่ลูกค้าต้องจ่าย พร้อมระบุราคาที่ต้องออกบิล, ราคาบน POS และส่วนต่างอย่างชัดเจน พร้อมปุ่มยืนยันย้อนกลับไปหน้าแรกเพื่อแก้ไขราคา
-- [ ] **[Auto_inv / CP_data]** หลังจากจัดการเพิ่ม SN ของ order ที่เป็น 1 รายการหลาย sku มันก็ควรบันทึกเป็น 1 รายการหลาย sku แต่นี้มันบันทึก หลายรายการต่อ 1 sku แทน (เอาชุดมา ซอยย่อยแล้วเติม CP ซึ่งมันผิด!!)
+- [X] **[Auto_inv / CP_data]** หลังจากจัดการเพิ่ม SN ของ order ที่เป็น 1 รายการหลาย sku มันก็ควรบันทึกเป็น 1 รายการหลาย sku แต่นี้มันบันทึก หลายรายการต่อ 1 sku แทน (เอาชุดมา ซอยย่อยแล้วเติม CP ซึ่งมันผิด!!)
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
 
-- [ ] **[Auto CP SAGA]** ระบบตัดสินใจเลือกคูปองอัตโนมัติ (เปรียบเทียบราคา -> ดูช่วงเวลาโปรโมชั่น -> เลือกรุ่นที่ตรงที่สุดตาม Store)
+- [X] **[Auto CP SAGA]** ระบบตัดสินใจเลือกคูปองอัตโนมัติ (เปรียบเทียบราคา -> ดูช่วงเวลาโปรโมชั่น -> เลือกรุ่นที่ตรงที่สุดตาม Store)
 - [ ] **[Auto Export Data]** ระบบดึง Exported Data จาก Marketplace อัตโนมัติด้วย Automation Workflow
-- [ ] **[Price Memorizer]** ระบบจดจำ Pattern การตัดสินใจปรับราคา/คูปองของแต่ละ SKU เพื่อนำมาใช้อัตโนมัติในครั้งถัดไป
+- [X] **[Price Memorizer]** ระบบจดจำ Pattern การตัดสินใจปรับราคา/คูปองของแต่ละ SKU เพื่อนำมาใช้อัตโนมัติในครั้งถัดไป
 
 ---
 
@@ -74,24 +74,26 @@
 
 ### [ver5.x.x] - 2026-10-05
 
-- [x] **[Pricing Engine Real-Time SMCO Candidate Discovery & Multi-Recipe Ambiguity Protection (Strict Safety)]** เพิ่มระบบตรวจจับโปรโมชั่น/คูปองใหม่บนเว็บ SMCO แบบ Real-time และระบบป้องกันความคลุมเครือของสูตรคูปอง:
+- [X] **[Pricing Engine Real-Time SMCO Candidate Discovery & Multi-Recipe Ambiguity Protection (Strict Safety)]** เพิ่มระบบตรวจจับโปรโมชั่น/คูปองใหม่บนเว็บ SMCO แบบ Real-time และระบบป้องกันความคลุมเครือของสูตรคูปอง:
   - พัฒนาระบบ `find_all_matching_coupons_on_smco()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) สแกนหาคูปอง/คอมโบใหม่ที่เปิดใช้งานสดๆ บนหน้าเว็บ SMCO (เช่น คูปองเดี่ยวตัวใหม่ `CP2610050027` ที่ตรงกับราคาสุทธิของเซ็ตสินค้า เช่น 993) แม้ใน `cp_data.xlsx` จะเคยมีสูตรผสมเดิมบันทึกไว้ (เช่น `CP2609140012 + OC 5 4`)
   - **Real-time Ambiguity Guard (Strict Safety)**: เมื่อพบว่ามีทางเลือกคูปอง/สูตรผสมที่ทำราคาได้ตรงเป้าหมายมากกว่า 1 ทางเลือก (ทั้งจากตารางและจากหน้าเว็บสด) บอทจะหยุดทำงานทันที ไม่สุ่มเลือก เพื่อความปลอดภัยสูงสุด:
     1. ยกเลิกออเดอร์พร้อมส่งคำเตือน `_raise_ambiguous_cp_guide`
     2. รวบรวมสูตรคูปองที่เป็นไปได้ทั้งหมดบันทึกลงในคอลัมน์ `suggested_cp` ของชีต `Processed_Logs`
     3. ระบุข้อความชัดเจนเพื่อให้ Admin ตัดสินใจและอัปเดตตาราง Master Data
   - ปรับปรุง `is_coupon_valid_for_order()` ให้แปลงวันที่ด้วย `parse_smart_date()` ป้องกันข้อผิดพลาด `TypeError` ระหว่าง `str` และ `datetime.date`
-- [x] **[Payment Handler Foreground & Focus-Force Price Mismatch Alert Dialog]** ปรับปรุงหน้าต่าง Pop-up แจ้งเตือนยอดเงินไม่ตรงกันในโหมด Manual ให้แสดงแทรกหน้าจอและส่งเสียงเตือน:
+- [X] **[Payment Handler Foreground & Focus-Force Price Mismatch Alert Dialog]** ปรับปรุงหน้าต่าง Pop-up แจ้งเตือนยอดเงินไม่ตรงกันในโหมด Manual ให้แสดงแทรกหน้าจอและส่งเสียงเตือน:
   - เพิ่ม `winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)` เพื่อส่งเสียงเตือนระดับ System Alert ของ Windows
   - บังคับให้หน้าต่าง Dialog โผล่ขึ้นมาหน้าสุดของ Desktop เสมอ ไม่โดนโปรแกรมอื่น (เช่น Google Chrome หรือ Excel) บดบัง โดยใช้ `parent.attributes('-topmost', True)`, `parent.lift()`, `parent.focus_force()` ร่วมกับ Windows Win32 API (`ctypes.windll.user32.SetForegroundWindow` และ `BringWindowToTop`)
-- [x] **[Persistent 1-Hour Local Session & Logout Feature]** พัฒนาระบบบันทึก Session การ Login แบบ Local ชั่วคราว 1 ชั่วโมง และเพิ่มปุ่ม Logout:
-  - `AccountManager` ใน `functions/utils/crypto.py`: บันทึก Credential (`user_id`, `password`) พร้อม Epoch Timestamp ลงระบบจัดเก็บข้อมูลความปลอดภัย (Keyring)
-  - **Session Expiration on Exit**: ปรับปรุงให้การนับเวลาหมดอายุ 1 ชั่วโมง (3600 วินาที) เริ่มนับถอยหลังจาก **วินาทีที่ปิดโปรแกรม (App Closed)** โดยเพิ่มฟังก์ชัน `touch_session()` ใน `AccountManager` และเรียกใช้งานใน `on_closing` เมื่อผู้ใช้ปิดหน้าต่างบอท
-  - ขณะที่เปิดบอทใช้งานอยู่ Session จะไม่หมดอายุ และเมื่อปิดบอท หากเปิดกลับมาใช้งานใหม่ภายใน 1 ชั่วโมง ระบบจะเข้าสู่ระบบให้อัตโนมัติทันที
-  - หาก Session หมดอายุ (> 1 ชั่วโมงนับจากตอนปิดบอท) ระบบจะล้าง Session ทิ้งอัตโนมัติและตั้งค่ากลับเป็นโหมดปกติ (Login)
-  - เพิ่มปุ่ม **Logout** สีแดง (`#D32F2F`) ในหน้าต่าง `UserAccount` ให้ผู้ใช้สามารถกดออกจากระบบเพื่อสลับบัญชีได้ทันทีโดยไม่ต้องรอให้หมดเวลา 1 ชั่วโมง
+- [X] **[Persistent 1-Hour Local Session, Path Memory & Dynamic Login/Logout UI]** พัฒนาระบบบันทึก Session การ Login แบบ Local ชั่วคราว 1 ชั่วโมง จดจำพาธไฟล์สำคัญ และปรับหน้าต่างบัญชีผู้ใช้:
+  - `AccountManager` ใน `functions/utils/crypto.py`: บันทึก Credential (`user_id`, `password`) รวมถึงพาธโฟลเดอร์ Accel (`accel_file_dir`) และพาธไฟล์คูปอง CP (`cp_table_location`) ลงใน Keyring
+  - **Sliding Session Heartbeat**: เพิ่มตัวนับเวลา Heartbeat ทุก 5 นาทีขณะบอทเปิดทำงาน และเรียก `touch_session()` ตอนปิดโปรแกรม เพื่อเริ่มนับเวลาหมดอายุ 1 ชั่วโมงจากวินาทีที่ปิดบอทจริง ๆ ป้องกันปัญหารหัสผ่านหายระหว่างการใช้งานต่อเนื่อง
+  - **Auto-Restore & Startup Non-Intrusive**: ตอนเปิดโปรแกรม หากมี Active Session อยู่ จะโหลด Credential, โหลดข้อมูล Accel File และโหลด CP Data File ขึ้นมาพร้อมทำงานทันที โดยไม่เด้งหน้าต่าง Login ขึ้นมาขวาง
+  - **Dynamic UserAccount Window**:
+    - หากยังไม่ Login: แสดงปุ่ม **Submit** ปุ่มเดียว (ซ่อนปุ่ม Logout)
+    - หาก Login อยู่แล้ว: แสดง 2 ปุ่มคู่ **Submit** (สำหรับแก้ไขข้อมูล) และ **Logout** (สีแดง สำหรับล้าง Session และเคลียร์พาธทั้งหมด)
+    - รองรับการปิดหน้าต่างด้วยปุ่ม `[X]` โดยไม่กระทบ Session ที่ใช้งานอยู่
   - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน `tests/test_crypto_session.py` (ผ่าน 100%)
-- [x] **[Manual Mode Final Page Price Mismatch Pop-up Warning & Return-to-Page-1 Guard]** เพิ่มระบบ Pop-up แจ้งเตือนและป้องกันการออกบิลผิดพลาดในโหมด Manual (`not is_auto_invoice_mode`):
+- [X] **[Manual Mode Final Page Price Mismatch Pop-up Warning & Return-to-Page-1 Guard]** เพิ่มระบบ Pop-up แจ้งเตือนและป้องกันการออกบิลผิดพลาดในโหมด Manual (`not is_auto_invoice_mode`):
   - เมื่อเข้าสู่หน้าชำระเงิน (Payment Page) และกรอกยอดเงินลงใน `#ripCash00` ระบบจะตรวจสอบยอดคงเหลือ (`wrimagecard-lightGray`)
   - หากพบว่าราคาที่ทำมาจากหน้าแรก (POS Cart) ไม่ตรงกับราคาที่ลูกค้าต้องจ่ายจริง (`abs(balance_val) >= 0.01`):
     - แสดง Pop-up Dialog แจ้งรายละเอียดราคาที่ต้องออกบิล, ราคาบน POS, และส่วนต่าง พร้อมถามความประสงค์ว่าจะย้อนกลับไปหน้าแรกเพื่อแก้ไขราคาหรือไม่
@@ -101,51 +103,51 @@
 
 ### [ver5.x.x] - 2026-10-02
 
-- [x] **[Pricing Engine Preselected Coupon Isolation & Panel Scrape Guard]** แก้ไขปัญหาคูปองจาก SKU อื่นหรือออเดอร์ก่อนหน้า (เช่น `CP2609290081`) หลุดมารายงานเป็น "คูปองเริ่มต้นที่ติดมากับสินค้า" และติดไปในคำแนะนำ `suggested_cp`:
+- [X] **[Pricing Engine Preselected Coupon Isolation & Panel Scrape Guard]** แก้ไขปัญหาคูปองจาก SKU อื่นหรือออเดอร์ก่อนหน้า (เช่น `CP2609290081`) หลุดมารายงานเป็น "คูปองเริ่มต้นที่ติดมากับสินค้า" และติดไปในคำแนะนำ `suggested_cp`:
   - ปรับปรุง `find_suggested_cp_for_discount()` ให้ตรวจสอบและกรอง `preselected_codes` เทียบกับ `valid_detail_codes` ของ SKU ปัจจุบันเสมอ หากคูปองไม่ได้มีอยู่ในรายการของ SKU นั้นจริง จะถูกตัดทิ้งทันที
   - ปรับปรุง `get_existing_panel_coupons()` ให้ค้นหาเฉพาะจาก Element ที่เป็น Badge/Label/Tooltip ของคูปองโดยตรง แทนการค้นหาจากข้อความรวมทั้ง Panel ซึ่งอาจเผลอหยิบรหัสคูปองจากข้อความอื่น
   - เพิ่มการล้างค่า `self.last_preselected_smco_coupons = []` ใน `reconcile_and_verify()` และตอนเริ่ม `scan_matching_cp_candidates_on_smco()` เพื่อป้องกัน State คูปองตกค้างข้าม SKU หรือข้ามออเดอร์
   - เพิ่ม Unit Test `test_stale_preselected_coupon_not_in_sku_details_is_ignored` ใน `tests/test_preselected_coupon_recommendation.py` (ผ่าน 100%)
-- [x] **[DualSourceCPLoader `oc_amount` & `dc_amount` Multi-Value String Preservation]** แก้ไขปัญหาบอทดึงข้อมูล `oc_amount` และ `dc_amount` ที่มีหลายค่า (เช่น `"5 4"` สำหรับสินค้าเซ็ต Multi-SKU Combo) จาก Google Sheets แล้วกลายเป็น `NaN`:
+- [X] **[DualSourceCPLoader `oc_amount` & `dc_amount` Multi-Value String Preservation]** แก้ไขปัญหาบอทดึงข้อมูล `oc_amount` และ `dc_amount` ที่มีหลายค่า (เช่น `"5 4"` สำหรับสินค้าเซ็ต Multi-SKU Combo) จาก Google Sheets แล้วกลายเป็น `NaN`:
   - ปรับปรุงฟังก์ชัน `_clean_dataframe()` ใน [functions/pos/cp_data_loader.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/cp_data_loader.py) โดยแยกการแปลง `pd.to_numeric` เฉพาะคอลัมน์ที่เป็นตัวเลขเดี่ยว (`sale_price`, `expected_price`, `last_actual_price`)
   - สำหรับ `oc_amount` และ `dc_amount` ให้คงสถานะเป็น `str` เพื่อรักษาค่าที่คั่นด้วยช่องว่าง (เช่น `"5 4"`, `"10 20"`) ไม่ให้ถูกแปลงเป็น `NaN`
   - ทำให้ `POSPricingReconciler` และ `smco_set_overcharge_product` สามารถแยกตัวเลขแต่ละตัวไปปรับราคา Overcharge/Discount ให้กับแต่ละ SKU ในชุดสินค้าได้อย่างแม่นยำ 100%
   - เพิ่ม Unit Test `test_space_separated_oc_amount_preserved_and_matched` ใน `tests/test_cp_date_auto_correction.py` (ผ่าน 100%)
-- [x] **[Accel Mode & Pricing Engine Duplicate Failed Orders Fix]** แก้ไขปัญหาชีต `Failed_Orders` บันทึกรายการล้มเหลวเบิ้ล 2 แถวติดกันสำหรับออเดอร์เดียวกัน:
+- [X] **[Accel Mode & Pricing Engine Duplicate Failed Orders Fix]** แก้ไขปัญหาชีต `Failed_Orders` บันทึกรายการล้มเหลวเบิ้ล 2 แถวติดกันสำหรับออเดอร์เดียวกัน:
   - นำการเรียก `record_failed_with_checkpoint` ซ้ำซ้อนก่อนคำสั่ง `raise err` ออกจาก `reconcile_and_verify()` ใน `functions/pos/pricing_engine.py` เพื่อให้ Exception ถูกจัดการและบันทึกเพียงจุดเดียวที่ลูปหลัก `operation_task_thread`
   - เพิ่มกลไก Debounce Guard (4 วินาที) ใน `record_failed_order()` ที่ `functions/accel_mode.py` ป้องกันการบันทึกซ้ำซ้อนในกรณีที่มีการเรียกฟังก์ชันติดต่อกันอย่างรวดเร็ว
   - เพิ่มชุดทดสอบ Unit Test `test_record_failed_order_debounces_rapid_duplicate_calls` ใน `tests/test_accel_unified_processed_logs.py`
-- [x] **[CP Data Auto-Learn `last_adjustment_method` Auto Invoice Fix]** ปรับปรุงเงื่อนไขการบันทึก `last_adjustment_method` ใน `record_pos_cart_summary_to_excel()`:
+- [X] **[CP Data Auto-Learn `last_adjustment_method` Auto Invoice Fix]** ปรับปรุงเงื่อนไขการบันทึก `last_adjustment_method` ใน `record_pos_cart_summary_to_excel()`:
   - ในโหมด Auto Invoice (`is_auto_invoice_mode == True`): หากในตะกร้า POS มีคูปองติดมาโดยอัตโนมัติจากระบบ SMCO ให้บันทึกเป็น `CP` แทนที่จะเป็น `MANUAL`
   - บันทึกเป็น `MANUAL` เฉพาะเมื่อรันในโหมด Manual ที่ผู้ใช้เป็นผู้ปรับราคาหรือเลือกคูปองด้วยตนเองบนหน้าเว็บ
-- [x] **[Accel Mode Processed_Logs Auto-Hide Past Date Rows]** เพิ่มการซ่อนแถวที่อยู่นอกเหนือจากวันที่ปัจจุบัน (`datetime.datetime.now().strftime("%Y-%m-%d")`) ในชีต `Processed_Logs` อัตโนมัติ:
+- [X] **[Accel Mode Processed_Logs Auto-Hide Past Date Rows]** เพิ่มการซ่อนแถวที่อยู่นอกเหนือจากวันที่ปัจจุบัน (`datetime.datetime.now().strftime("%Y-%m-%d")`) ในชีต `Processed_Logs` อัตโนมัติ:
   - ในฟังก์ชัน `_apply_excel_formatting()` ตรวจสอบค่าคอลัมน์ `timestamp` ในชีต `Processed_Logs` และตั้งค่า `ws.row_dimensions[row].hidden = True` สำหรับแถวของวันก่อนหน้า
   - เมื่อผู้ใช้เปิดไฟล์ Excel ขึ้นมาอ่าน จะมองเห็นเฉพาะข้อมูลของวันปัจจุบันทันทีโดยไม่ต้องเสียเวลากด Filter วันที่เอง โดยที่ข้อมูลในอดีตทั้งหมดยังคงถูกบันทึกไว้อย่างครบถ้วน 100%
-- [x] **[Accel Mode Failed_Orders Append-Only History Log]** ปรับปรุงชีต `Failed_Orders` ให้ทำหน้าที่เป็น Timeline Audit History อย่างแท้จริง:
+- [X] **[Accel Mode Failed_Orders Append-Only History Log]** ปรับปรุงชีต `Failed_Orders` ให้ทำหน้าที่เป็น Timeline Audit History อย่างแท้จริง:
   - ยกเลิกการลบแถวออกจากชีต `Failed_Orders` เมื่อออเดอร์ถูก Retry จนสำเร็จ เพื่อให้ผู้ใช้สามารถย้อนดูประวัติข้อผิดพลาดในอดีตได้ครบถ้วน 100% แม้ทุกออเดอร์จะเสร็จสิ้นแล้ว
   - ปรับการบันทึกใน `record_failed_order()` ให้เป็นแบบ Append-Only เก็บทุกครั้งที่เกิดข้อผิดพลาดโดยไม่ทับของเดิม
   - ให้ชีต `Processed_Logs` รับหน้าที่เป็น Current State ล่าสุด (อัปเดตสถานะ Failed -> Completed เพียงแถวเดียว) อย่างชัดเจน
-- [x] **[Pricing Engine Scoped CP Button & Scanned State Leak Isolation]** แก้ไขปัญหา Index Mismatch ในการเปิด Modal คูปอง และล้าง State ตกค้างข้ามคำสั่งซื้อ:
+- [X] **[Pricing Engine Scoped CP Button & Scanned State Leak Isolation]** แก้ไขปัญหา Index Mismatch ในการเปิด Modal คูปอง และล้าง State ตกค้างข้ามคำสั่งซื้อ:
   - ปรับการค้นหาปุ่มเปิดคูปอง (`btn-coupon`) ใน `scan_matching_cp_candidates_on_smco()` และ `cp_sonic_blow_process()` ให้ค้นหาแบบ Scoped ภายใน DOM Panel ของ SKU นั้นโดยตรง (`target_panel.find_elements(...)`) แทนการใช้ Global Button Array Index ซึ่งอาจหยิบปุ่มผิดตัวหากมีสินค้าบางรายการไม่มีปุ่มคูปอง
   - เพิ่มการล้างค่า `self.last_scanned_smco_coupons = []` และ `self.last_scanned_smco_coupon_details = []` ใน `reconcile_and_verify()` และ `reset_all_display()` ป้องกันข้อมูลคูปองจาก SKU ของออเดอร์ก่อนหน้าหลุดมารายงานใน Remark ของออเดอร์ถัดไป
-- [x] **[Accel Mode Completed_Orders Lean Execution Audit Columns]** ปรับลดคอลัมน์ในชีต `Completed_Orders` ให้เหลือเฉพาะ Execution Checklist:
+- [X] **[Accel Mode Completed_Orders Lean Execution Audit Columns]** ปรับลดคอลัมน์ในชีต `Completed_Orders` ให้เหลือเฉพาะ Execution Checklist:
   - กำหนด 3 คอลัมน์หลัก: `['timestamp', 'orders', 'status']` บันทึก 1 แถวต่อ 1 Order อย่างกระชับ สะอาดตา และไม่ซ้ำซ้อนกับ `Processed_Logs`
   - ย้ายรายละเอียดธุรกรรมทั้งหมด (Tracking, บิล, ราคา, Serial Number, รายละเอียดส่วนลด/การปรับราคา) ไปไว้ในชีต `Processed_Logs` ซึ่งทำหน้าที่เป็น Full Transaction Ledger แทน
-- [x] **[Accel Mode Processed_Logs Column Reordering & Orders Column Freeze]** ปรับลำดับคอลัมน์ในชีต `Processed_Logs` และตรึงแนว (Freeze Panes) อัตโนมัติ:
+- [X] **[Accel Mode Processed_Logs Column Reordering & Orders Column Freeze]** ปรับลำดับคอลัมน์ในชีต `Processed_Logs` และตรึงแนว (Freeze Panes) อัตโนมัติ:
   - จัดเรียงลำดับคอลัมน์ใหม่ตามข้อกำหนด: `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'sn', 'status', 'error_category', 'remark']`
   - ตรึงแนว (Freeze Panes) ไว้ที่คอลัมน์ `orders` (เซลล์ `D2` ตรึง Header และคอลัมน์ A, B, C: `timestamp`, `tracking`, `orders`) ทุกครั้งที่มีการเปิด/อ่านไฟล์ Excel เข้าสู่ State (`_read_accel_file_to_state`) และทุกครั้งที่มีการบันทึกผลลัพธ์
   - ปรับปรุงฟังก์ชัน `_apply_excel_formatting()` ให้คำนวณตำแหน่งคอลัมน์ `orders` แบบ Dynamic และเซ็ต `freeze_panes` อย่างแม่นยำ
 
 ### [ver5.x.x] - 2026-10-01
 
-- [x] **[Accel Mode Unified Result Sheet - `Processed_Logs` & Retry Auto-Resolve]** ปรับปรุงโครงสร้างชีตผลลัพธ์ของ Accel Mode ให้ยุบรวม `Completed_Orders` และ `Failed_Orders` เข้าด้วยกันเป็นชีตเดียว `Processed_Logs` แบบ Single Source of Truth:
+- [X] **[Accel Mode Unified Result Sheet - `Processed_Logs` & Retry Auto-Resolve]** ปรับปรุงโครงสร้างชีตผลลัพธ์ของ Accel Mode ให้ยุบรวม `Completed_Orders` และ `Failed_Orders` เข้าด้วยกันเป็นชีตเดียว `Processed_Logs` แบบ Single Source of Truth:
   - กำหนด 9 คอลัมน์มาตรฐาน: `['timestamp', 'tracking', 'orders', 'status', 'bill_no', 'price', 'sn', 'error_category', 'remark']`
   - แก้ไขปัญหาเลขออเดอร์ซ้ำซ้อนเวลาทำ Retry:
     - เมื่อออเดอร์ไม่ผ่าน บันทึกสถานะเป็น `Failed` พร้อม `error_category` และข้อความ `remark`
     - เมื่อนำออเดอร์กลับมารันใหม่จนผ่าน (`Completed`) ระบบจะอัปเดตแถวเดิมใน `Processed_Logs` จาก `Failed` เป็น `Completed` พร้อมใส่ `bill_no`, `price`, `sn` และแสตมป์เวลาล่าสุด โดยไม่สร้างแถวซ้ำ
     - ลบเลขออเดอร์ที่สำเร็จแล้วออกจากชีต `Failed_Orders` เก่าอัตโนมัติ เพื่อไม่ให้มีรายการที่แก้ผ่านแล้วตกค้างในชีต Failed
   - รักษา Backward Compatibility 100% กับชีต `Completed_Orders` และ `Failed_Orders` เดิม รวมถึงรองรับการปรับ AutoFilter, FreezePanes และ Column Widths ครบถ้วน
-- [x] **[Accel Mode Completed_Orders Column Reordering]** ย้ายคอลัมน์ `timestamp` ไปไว้คอลัมน์แรกสุด (Column A / Index 0) ในชีท `Completed_Orders` เพื่อความสะดวกในการตรวจสอบประวัติและเรียงลำดับเวลาการทำงาน:
+- [X] **[Accel Mode Completed_Orders Column Reordering]** ย้ายคอลัมน์ `timestamp` ไปไว้คอลัมน์แรกสุด (Column A / Index 0) ในชีท `Completed_Orders` เพื่อความสะดวกในการตรวจสอบประวัติและเรียงลำดับเวลาการทำงาน:
   - ปรับลำดับคอลัมน์มาตรฐานเป็น `['timestamp', 'tracking', 'orders', 'bill_no', 'price', 'pricing_detail', 'status', 'sn']`
   - ปรับปรุงฟังก์ชัน `record_completed_order()` ใน `functions/accel_mode.py` ให้บันทึกตามโครงสร้างใหม่
   - อัปเดตและจัดโครงสร้างคอลัมน์ในไฟล์ Excel `tables/Accel_mode_uat.xlsx` รวมถึงไฟล์ชุดตัวอย่างใน `assets/tables/` ทั้งหมด

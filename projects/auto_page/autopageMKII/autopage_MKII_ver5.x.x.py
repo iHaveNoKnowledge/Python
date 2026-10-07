@@ -342,29 +342,38 @@ class MyApp:
         self.root = root
         self.dev_account = ["62078", "61651", "62302"]
         self.is_bot_running = BooleanVar(value=False)
-        # self.validate_input_variable = self.root.register(self.validate_input)
-        active_session = self.account_manager.get_active_session(max_age_seconds=3600)
-        if active_session:
-            saved_user, saved_pass = active_session
-            self.user_id = StringVar(value=saved_user)
-            self.user_pw = StringVar(value=saved_pass)
+        session_data = self.account_manager.get_session_data(max_age_seconds=3600)
+        if session_data:
+            self.user_id = StringVar(value=session_data.get("user_id") or "")
+            self.user_pw = StringVar(value=session_data.get("password") or "")
+            saved_accel = session_data.get("accel_file_dir")
+            self._saved_accel_dir = saved_accel if (saved_accel and os.path.exists(saved_accel)) else ""
+            saved_cp = session_data.get("cp_table_location")
+            self.cp_table_location = saved_cp if (saved_cp and os.path.exists(saved_cp)) else ""
         else:
             self.user_id = StringVar(
                 value=self.account_manager.get_last_username() or "")
             self.user_pw = StringVar(value="")
+            self._saved_accel_dir = ""
+            self.cp_table_location = ""
         self.result = ""
         self.is_accel_mode = BooleanVar()
         self.is_accel_mode_activated = BooleanVar(value=False)
         self.is_seller_voucher_popup = BooleanVar(value=False)
         self.is_auto_invoice_mode = BooleanVar(value=False)
         self.table_location = ""
-        self.cp_table_location = ""
         self.lazada_output_path = ""
         self.cp_df = None
         self._cp_last_mtime = 0
 
         # * Initialize AccelMode instance
         self.accel_mode = AccelMode(self)
+        if hasattr(self, '_saved_accel_dir') and self._saved_accel_dir:
+            try:
+                self.accel_mode.accel_file_dir = self._saved_accel_dir
+                self.accel_mode._read_accel_file_to_state(self._saved_accel_dir)
+            except Exception as e:
+                print(f"Error restoring saved accel file state: {e}")
         # * ตัวนับ generation ของรอบค้นหา ใช้ยกเลิก thread/callback รอบเก่าเมื่อเริ่มรอบใหม่
         self._cycle_generation = 0
         self.marketplace_target = StringVar(value="MarketPlace")
@@ -1222,9 +1231,10 @@ class MyApp:
             self.entry_frame, text=f"Accel File Dir ")
 
         # * >> FileName Display on Button
+        accel_btn_txt = os.path.basename(self._saved_accel_dir) if (hasattr(self, '_saved_accel_dir') and self._saved_accel_dir) else "ยังไม่เลือก Accel File"
         self.accl_dir_namedisplay_on_btn = CTkButton(
             self.entry_frame,
-            text=f"ยังไม่เลือก Accel File",
+            text=accel_btn_txt,
             command=self.accel_mode.select_accel_file,
             fg_color="#969696"
         )
@@ -1463,8 +1473,9 @@ class MyApp:
             self.cp_file_frame, text=f"CP Data: ")
         self.display_cp_location_label.grid(row=0, column=0, padx=(5, 0))
 
+        cp_btn_txt = os.path.basename(self.cp_table_location) if (hasattr(self, 'cp_table_location') and self.cp_table_location) else "ยังไม่เลือก CP Data File"
         self.display_cp_location_btn = CTkButton(
-            self.cp_file_frame, text=f"ยังไม่เลือก CP Data File", command=self.select_cp_excel, fg_color="#969696")
+            self.cp_file_frame, text=cp_btn_txt, command=self.select_cp_excel, fg_color="#969696")
         self.display_cp_location_btn.grid(row=0, column=1, padx=(0, 2))
 
         self.open_cp_file_btn = CTkButton(
@@ -1705,8 +1716,27 @@ class MyApp:
 
         ## * Create DataSourceSelector instance ###########
         self.data_source_selector = DataSourceSelector(self.root, self)
-        self.user_account = UserAccount(self.root, self)
+        if not (self.user_id.get() and self.user_pw.get()):
+            self.user_account = UserAccount(self.root, self)
+        else:
+            self.user_account = None
+            if self.cp_table_location and os.path.exists(self.cp_table_location):
+                try:
+                    self.reload_cp_df_if_modified()
+                except Exception as cp_err:
+                    print(f"Error loading saved CP Data: {cp_err}")
         self.accelmode_toggle()
+        self._schedule_session_heartbeat()
+
+    def _schedule_session_heartbeat(self):
+        try:
+            if hasattr(self, 'account_manager') and self.account_manager:
+                if self.user_id.get() and self.user_pw.get():
+                    self.account_manager.touch_session()
+        except Exception as e:
+            print(f"Error in session heartbeat: {e}")
+        # Repeat every 5 minutes (300,000 ms)
+        self.root.after(300000, self._schedule_session_heartbeat)
 
     def reset_all_display(self):
         self.result = ""
@@ -1931,6 +1961,8 @@ class MyApp:
         if self.cp_table_location:
             self.display_cp_location_btn.configure(
                 text=f"{os.path.basename(self.cp_table_location)}")
+            if hasattr(self, 'account_manager') and self.account_manager:
+                self.account_manager.save_session_paths(cp_table_location=self.cp_table_location)
             try:
                 self.cp_df = None
                 self._cp_last_mtime = 0
@@ -4087,7 +4119,9 @@ class UserAccount:
     def __init__(self, parent, app={}):
         self.parent = parent
         self.app = app
-        self.create_subwindow("Loginปลอม")
+        is_logged_in = bool(self.app.user_id.get() and self.app.user_pw.get())
+        win_title = "User Account" if is_logged_in else "Login"
+        self.create_subwindow(win_title)
         self.POP_UP = app.POP_UP
 
     def create_subwindow(self, title: str = "Untitled"):
@@ -4121,7 +4155,7 @@ class UserAccount:
         self.id_input.focus()
 
         self.pass_label = CTkLabel(self.subwin_frame, text="SMCO Password",
-                                   font=CTkFont(family="bazooka", size=9), anchor="w")
+            font=CTkFont(family="bazooka", size=9), anchor="w")
         self.pass_label.pack(fill='x', expand=True)
         # self.pass_input = Entry(
         #     self.subwin_frame, textvariable=self.app.user_pw, show="*", validate="key", validatecommand=(self.app.validate_input_variable, '%P'))
@@ -4138,15 +4172,18 @@ class UserAccount:
             command=self.show_and_hide)
         self.chk_bx_show_pw.pack(pady=(2, 2))
 
+        is_logged_in = bool(self.app.user_id.get() and self.app.user_pw.get())
+
         # * Submit Button
         self.submit_btn = CTkButton(
             self.subwin_frame, text="Submit", command=self.update_btn)
         self.submit_btn.pack(fill='x', expand=True, pady=(2, 2))
 
-        # * Logout Button
+        # * Logout Button (Only visible if currently logged in)
         self.logout_btn = CTkButton(
             self.subwin_frame, text="Logout", fg_color="#D32F2F", hover_color="#B71C1C", command=self.logout)
-        self.logout_btn.pack(fill='x', expand=True, pady=(2, 2))
+        if is_logged_in:
+            self.logout_btn.pack(fill='x', expand=True, pady=(2, 2))
 
     def login(self):
         # * ใช้ SmcoApiClient แทน global session โดยตรง
@@ -4218,8 +4255,14 @@ class UserAccount:
                     print(self.app.user_id.get())
                     # print(self.app.dev_account)
 
+                accel_dir = getattr(self.app.accel_mode, 'accel_file_dir', None) if hasattr(self.app, 'accel_mode') else None
+                cp_path = getattr(self.app, 'cp_table_location', None)
                 self.app.account_manager.save_session(
-                    self.app.user_id.get(), self.app.user_pw.get())
+                    self.app.user_id.get(),
+                    self.app.user_pw.get(),
+                    accel_file_dir=accel_dir,
+                    cp_table_location=cp_path
+                )
 
                 return self.display_btn_txt
 
@@ -4232,6 +4275,15 @@ class UserAccount:
             self.app.accel_mode_checkbox.grid_remove()
             self.app.is_accel_mode.set(False)
             self.app.is_accel_mode_activated.set(False)
+        if hasattr(self.app, "accel_mode"):
+            self.app.accel_mode.accel_file_dir = ""
+            self.app.accel_mode.accel_df_state = None
+        if hasattr(self.app, "accl_dir_namedisplay_on_btn"):
+            self.app.accl_dir_namedisplay_on_btn.configure(text="ยังไม่เลือก Accel File")
+        self.app.cp_table_location = ""
+        self.app.cp_df = None
+        if hasattr(self.app, "display_cp_location_btn"):
+            self.app.display_cp_location_btn.configure(text="ยังไม่เลือก CP Data File")
         self.subwindow.destroy()
 
     def show_and_hide(self):

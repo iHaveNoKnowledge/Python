@@ -125,6 +125,8 @@ class AccelMode:
         if self.accel_file_dir:
             self.main_app.accl_dir_namedisplay_on_btn.configure(
                 text=f"{os.path.basename(self.accel_file_dir)}")
+            if hasattr(self.main_app, 'account_manager') and self.main_app.account_manager:
+                self.main_app.account_manager.save_session_paths(accel_file_dir=self.accel_file_dir)
         else:
             self.main_app.accl_dir_namedisplay_on_btn.configure(
                 text=f"ยังไม่เลือก Accel File")

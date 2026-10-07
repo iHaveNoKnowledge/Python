@@ -108,3 +108,32 @@ def test_touch_session_resets_expiration_timer(mock_keyring):
         session = manager.get_active_session(max_age_seconds=3600)
         assert session is None
 
+
+def test_session_paths_persistence(mock_keyring):
+    manager = AccountManager("TestService")
+    manager.save_session(
+        "62078",
+        "Secret123",
+        accel_file_dir="C:/path/to/accel.xlsx",
+        cp_table_location="C:/path/to/CP_data.xlsx",
+    )
+
+    data = manager.get_session_data()
+    assert data is not None
+    assert data["user_id"] == "62078"
+    assert data["password"] == "Secret123"
+    assert data["accel_file_dir"] == "C:/path/to/accel.xlsx"
+    assert data["cp_table_location"] == "C:/path/to/CP_data.xlsx"
+
+    # Test update paths
+    manager.save_session_paths(accel_file_dir="C:/new/path/accel.xlsx")
+    data2 = manager.get_session_data()
+    assert data2["accel_file_dir"] == "C:/new/path/accel.xlsx"
+    assert data2["cp_table_location"] == "C:/path/to/CP_data.xlsx"
+
+    # Logout clears paths as well
+    manager.clear_session()
+    assert manager.get_session_data() is None
+    assert ("TestService", "session_accel_dir") not in mock_keyring.store
+    assert ("TestService", "session_cp_path") not in mock_keyring.store
+

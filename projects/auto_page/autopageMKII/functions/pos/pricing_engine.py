@@ -1715,11 +1715,16 @@ class POSPricingReconciler:
             )
 
             # 1.2 ตรวจสอบส่วนลดปกติ
-            is_discount_match = (
-                target_discount > 0
-                and abs(c.get('discount', 0.0) - target_discount) <= 0.05
-                and c.get('discount', 0.0) > 0
-            )
+            # หากคูปองมี remark_target_price ระบุราคาชัดเจน แต่ไม่ตรงกับ expected_price (เช่น ระบุ 'ราคา 409' แต่ expected_price = 993 หรือ 1056)
+            # แสดงว่าเป็นคูปองของ SKU ตัวอื่น ไม่ควรนำมาแนะนำ
+            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0:
+                is_discount_match = False
+            else:
+                is_discount_match = (
+                    target_discount > 0
+                    and abs(c.get('discount', 0.0) - target_discount) <= 0.05
+                    and c.get('discount', 0.0) > 0
+                )
 
             if is_remark_price_match or is_discount_match:
                 s_dt, e_dt = get_coupon_start_and_end_dates(c)
@@ -1913,11 +1918,15 @@ class POSPricingReconciler:
                 and remark_price is not None
                 and abs(remark_price - float(expected_price)) <= 0.05
             )
-            is_discount_match = (
-                target_discount > 0
-                and abs(c.get('discount', 0.0) - target_discount) <= 0.05
-                and c.get('discount', 0.0) > 0
-            )
+            # 1.2 ตรวจสอบส่วนลดปกติ
+            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0:
+                is_discount_match = False
+            else:
+                is_discount_match = (
+                    target_discount > 0
+                    and abs(c.get('discount', 0.0) - target_discount) <= 0.05
+                    and c.get('discount', 0.0) > 0
+                )
 
             if is_remark_price_match or is_discount_match:
                 code = c.get('code', '').strip().upper()
@@ -3049,6 +3058,7 @@ class POSPricingReconciler:
             if not sku_key or sku_key in processed_skus:
                 continue
             processed_skus.add(sku_key)
+            self._current_reconcile_sku = sku_key
 
             if sku_key in price_result:
                 item_price_info = price_result[sku_key]
@@ -3309,8 +3319,8 @@ class POSPricingReconciler:
                             logger.warning(log_warn)
                             self.app.update_log(log_warn)
 
-                            if suggested_cp_code:
-                                self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                            cand_code_to_record = suggested_cp_code or (unified_candidates[0].get("cp_name") if unified_candidates else "")
+                            self._record_missing_cp_with_dates(sku_key, expected_price, cand_code_to_record, sugg_info)
                             self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, unified_candidates, suggested_cp_info=sugg_info)
 
     def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list, suggested_cp_info: Optional[dict] = None) -> None:
