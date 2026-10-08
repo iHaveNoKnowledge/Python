@@ -4607,8 +4607,8 @@ class Bot_POS:
     def process_price_mismatches(self, verification_result: dict) -> None:
         return self.pricing_reconciler.process_price_mismatches(verification_result)
 
-    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float, suggested_cp: str = "", start_date: Any = None, end_date: Any = None, remark: str = ""):
-        return self.pricing_reconciler.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp, start_date=start_date, end_date=end_date, remark=remark)
+    def add_missing_cp_to_excel(self, sku_key: str, expected_price: float, suggested_cp: str = "", start_date: Any = None, end_date: Any = None, remark: str = "", **kwargs):
+        return self.pricing_reconciler.add_missing_cp_to_excel(sku_key, expected_price, suggested_cp=suggested_cp, start_date=start_date, end_date=end_date, remark=remark, **kwargs)
 
 
     def smco_pos_item_list_srp_bringer(self, sku: str):

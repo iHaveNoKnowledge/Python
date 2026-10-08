@@ -103,7 +103,8 @@ class DualSourceCPLoader:
         fields_to_check = [
             'cp_name', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date',
             'suggested_remark', 'usage_start_date', 'usage_end_date', 'last_order_id',
-            'last_used_cp', 'last_adjustment_method', 'last_actual_price'
+            'last_used_cp', 'last_adjustment_method', 'last_actual_price',
+            'oc_amount', 'dc_amount', 'addtion_cp'
         ]
 
         for _, row in matched.iterrows():
@@ -227,12 +228,30 @@ class DualSourceCPLoader:
         if 'sku' in combined.columns:
             combined = combined[combined['sku'].astype(str).str.strip() != ""]
             
+            # Normalize pattern columns so drop_duplicates compares cleaned values
+            for col in ['cp_name', 'suggested_cp', 'oc_amount', 'dc_amount', 'addtion_cp']:
+                if col in combined.columns:
+                    def _norm_pat(v):
+                        if pd.isna(v) or v is None:
+                            return ""
+                        s = str(v).strip()
+                        if s.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            return ""
+                        if s.endswith('.0') and s[:-2].isdigit():
+                            return s[:-2]
+                        return s
+                    combined.loc[:, col] = [_norm_pat(v) for v in combined[col]]
+
             dedup_subset = ['sku']
             if 'sale_price' in combined.columns:
                 dedup_subset.append('sale_price')
             elif 'expected_price' in combined.columns:
                 dedup_subset.append('expected_price')
             
+            for col in ['cp_name', 'suggested_cp', 'oc_amount', 'dc_amount']:
+                if col in combined.columns:
+                    dedup_subset.append(col)
+
             combined = combined.drop_duplicates(subset=dedup_subset, keep='first')
 
         return combined
@@ -267,8 +286,8 @@ class DualSourceCPLoader:
                     return s
                 df.loc[:, adj_col] = [_clean_adj(v) for v in df[adj_col]]
 
-        # Clean string remark columns (แปลง '-' หรือ 'nan' จาก GAS ให้เป็นค่าว่าง)
-        for str_col in ['suggested_remark', 'remark']:
+        # Clean string columns (แปลง '-' หรือ 'nan' จาก GAS ให้เป็นค่าว่าง)
+        for str_col in ['cp_name', 'suggested_cp', 'suggested_remark', 'remark']:
             if str_col in df.columns:
                 def _clean_str(v):
                     if pd.isna(v) or v is None:

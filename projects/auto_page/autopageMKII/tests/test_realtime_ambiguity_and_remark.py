@@ -262,6 +262,150 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         # ต้องไม่ใช่ duplicate (is_exact_duplicate = False) เพื่อให้ส่ง POST ไปอัปเดตบน Google Sheet ได้
         self.assertFalse(loader._is_exact_duplicate(payload))
 
+    def test_add_missing_cp_to_excel_separates_distinct_patterns_and_prevents_oc_leak(self):
+        """
+        ทดสอบว่า add_missing_cp_to_excel เมื่อมี Pattern เดิม (เช่น CP2609140012 + OC 5 4)
+        แล้วมี Pattern ใหม่เข้ามา (เช่น CP2610050027 ที่ไม่มี OC/DC):
+        1. ต้องแยกบันทึกเป็นคนละแถว ไม่เขียนทับแถวเดิม
+        2. ค่า oc_amount ของแถวเดิมต้องไม่รั่วไหล (leak) ไปยัง Pattern ใหม่
+        3. payload ที่ส่งให้ GAS ต้องไม่มี oc_amount ของแถวเดิม
+        """
+        import os
+        import tempfile
+        import pandas as pd
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # เริ่มต้นด้วยตารางที่มีเฉพาะ Pattern เดิม (CP2609140012 + OC '5 4')
+            df_init = pd.DataFrame([{
+                "sku": "SP2-001753+SP2-001755",
+                "sale_price": 993.0,
+                "cp_name": "CP2609140012",
+                "usage_start_date": "2026-09-14 00:00:01",
+                "usage_end_date": "2026-10-09 00:00:00",
+                "oc_amount": "5 4",
+                "dc_amount": "",
+                "suggested_cp": "",
+                "suggested_remark": ""
+            }])
+            df_init.to_excel(tmp_path, index=False)
+
+            self.mock_app.cp_table_location = tmp_path
+            self.mock_app.cp_df = df_init.copy()
+            mock_gas_loader = MagicMock()
+            self.reconciler._dual_cp_loader = mock_gas_loader
+
+            # บันทึก Candidate สูตรใหม่ CP2610050027 (ไม่มีการปรับราคา OC หรือ DC)
+            self.reconciler.add_missing_cp_to_excel(
+                sku_key="SP2-001753+SP2-001755",
+                expected_price=993.0,
+                suggested_cp="CP2610050027",
+                start_date="2026-10-05 00:00:01",
+                end_date="2026-10-20 23:59:59",
+                remark="FS Shp ถูกชัวร์ ราคาเซ็ทละ 993",
+                oc_amount="",
+                dc_amount=""
+            )
+
+            # ตรวจสอบไฟล์ Excel ต้องมี 2 แถวสำหรับ SKU และราคานี้
+            df_saved = pd.read_excel(tmp_path)
+            rows = df_saved[df_saved["sku"] == "SP2-001753+SP2-001755"]
+            self.assertEqual(len(rows), 2, "ต้องมี 2 แถวแยกกันสำหรับ 2 Pattern ที่ต่างกัน")
+
+            # แถวเดิม: ต้องคงสภาพเดิม ไม่ถูกเขียนทับ
+            row_old = rows[rows["cp_name"] == "CP2609140012"].iloc[0]
+            self.assertEqual(str(row_old["oc_amount"]).strip(), "5 4")
+            self.assertTrue(pd.isna(row_old["suggested_cp"]) or str(row_old["suggested_cp"]).strip() in ("", "-"))
+
+            # แถวใหม่: ต้องมี suggested_cp='CP2610050027' และ oc_amount ต้องว่าง (ห้ามเอา 5 4 จากแถวเดิมมาใช้!)
+            row_new = rows[rows["suggested_cp"] == "CP2610050027"].iloc[0]
+            self.assertEqual(row_new["suggested_remark"], "FS Shp ถูกชัวร์ ราคาเซ็ทละ 993")
+            self.assertTrue(pd.isna(row_new["oc_amount"]) or str(row_new["oc_amount"]).strip() in ("", "-"))
+
+            # ตรวจสอบ payload ที่ส่งให้ GAS: ต้องไม่นำ oc_amount ของแถวเดิมติดมาด้วย
+            mock_gas_loader.push_record_to_gas.assert_called_once()
+            gas_payload = mock_gas_loader.push_record_to_gas.call_args[0][0]
+            self.assertEqual(gas_payload["suggested_cp"], "CP2610050027")
+            self.assertEqual(gas_payload["suggested_remark"], "FS Shp ถูกชัวร์ ราคาเซ็ทละ 993")
+            self.assertEqual(gas_payload["oc_amount"], "", "GAS payload ต้องไม่มี oc_amount ที่ตกค้างจาก pattern เก่า")
+            self.assertNotIn("cp_name", gas_payload)  # ห้ามส่ง cp_name ของแถวเดิม
+
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_dual_cp_loader_merge_preserves_distinct_recipes_same_sku_price(self):
+        """
+        ทดสอบว่า DualSourceCPLoader._merge_dfs จะไม่ drop แถวที่เป็นคนละสูตร (คนละคูปอง หรือคนละ OC/DC)
+        แม้จะเป็น SKU เดียวกันและราคาขายเดียวกัน
+        """
+        import pandas as pd
+        from functions.pos.cp_data_loader import DualSourceCPLoader
+
+        loader = DualSourceCPLoader(gas_url="", local_excel_path=None)
+
+        df_gas = pd.DataFrame([{
+            "sku": "SP2-001753+SP2-001755",
+            "sale_price": 993.0,
+            "cp_name": "CP2609140012",
+            "oc_amount": "5 4",
+            "dc_amount": "",
+            "suggested_cp": ""
+        }])
+
+        df_local = pd.DataFrame([
+            {
+                "sku": "SP2-001753+SP2-001755",
+                "sale_price": 993.0,
+                "cp_name": "CP2609140012",
+                "oc_amount": "5 4",
+                "dc_amount": "",
+                "suggested_cp": ""
+            },
+            {
+                "sku": "SP2-001753+SP2-001755",
+                "sale_price": 993.0,
+                "cp_name": "CP2610050027",
+                "oc_amount": "",
+                "dc_amount": "",
+                "suggested_cp": "CP2610050027"
+            }
+        ])
+
+        merged = loader._merge_dfs(df_gas, df_local)
+        sku_rows = merged[merged["sku"] == "SP2-001753+SP2-001755"]
+        self.assertEqual(len(sku_rows), 2, "ต้องเก็บรักษาทั้ง 2 สูตร (Pattern) ไม่ตัดแถวใดแถวหนึ่งทิ้ง")
+
+    def test_is_exact_duplicate_differentiates_adjustments(self):
+        """
+        ทดสอบว่า _is_exact_duplicate จะแยกความแตกต่างของ oc_amount / dc_amount
+        ไม่มองว่าข้อมูลที่มี oc_amount ต่างกันเป็น duplicate
+        """
+        import pandas as pd
+        from functions.pos.cp_data_loader import DualSourceCPLoader
+
+        loader = DualSourceCPLoader(gas_url="", local_excel_path=None)
+        loader._cached_df = pd.DataFrame([{
+            "sku": "SP2-001753+SP2-001755",
+            "sale_price": 993.0,
+            "cp_name": "CP2609140012",
+            "oc_amount": "5 4",
+            "dc_amount": ""
+        }])
+
+        # เมื่อส่งข้อมูลสูตรใหม่ที่ไม่มี oc_amount
+        payload = {
+            "sku": "SP2-001753+SP2-001755",
+            "sale_price": 993.0,
+            "suggested_cp": "CP2610050027",
+            "oc_amount": "",
+            "dc_amount": ""
+        }
+        self.assertFalse(loader._is_exact_duplicate(payload))
+
 
 if __name__ == "__main__":
     unittest.main()
+

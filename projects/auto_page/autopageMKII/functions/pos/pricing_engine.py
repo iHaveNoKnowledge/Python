@@ -1043,13 +1043,16 @@ class POSPricingReconciler:
         suggested_cp: str = "",
         start_date: Any = None,
         end_date: Any = None,
-        remark: str = ""
+        remark: str = "",
+        oc_amount: str = "",
+        dc_amount: str = "",
+        cp_name: str = "",
+        **kwargs
     ) -> None:
         """
-        บันทึก SKU และราคาที่ยังไม่มี CP ลงไฟล์ Excel เพื่อให้กรอกข้อมูลต่อได้
-        พร้อมบันทึกคูปองแนะนำ วันที่ใช้งาน และ Remark แยกคอลัมน์ชัดเจน
-        โดยเรียงลำดับคอลัมน์: suggested_cp, suggested_usage_start_date, suggested_usage_end_date, suggested_remark
-        เพื่อให้ผู้ใช้สามารถ Copy ไปวางทับคอลัมน์ใช้งานจริง (cp_name, usage_start_date, usage_end_date, remark) ได้ทันที
+        บันทึก SKU และราคาที่ยังไม่มี CP หรือเป็นสูตร Pattern ใหม่ลงไฟล์ Excel
+        โดยแยก Pattern แต่ละสูตร (คูปองต่างกัน หรือ OC/DC ต่างกัน) ออกเป็นคนละแถวอย่างชัดเจน
+        ไม่เขียนทับแถวเดิมที่มีคูปองหรือการปรับราคาคนละแบบ และไม่นำค่า oc_amount/dc_amount ของสูตรเดิมมาปนเปื้อน
         """
         try:
             excel_path = getattr(self.app, 'cp_table_location', '')
@@ -1096,8 +1099,9 @@ class POSPricingReconciler:
                 if col not in df.columns:
                     df[col] = ""
 
-            if 'last_updated' not in df.columns:
-                df['last_updated'] = ""
+            for col in ['oc_amount', 'dc_amount', 'cp_name', 'last_updated']:
+                if col not in df.columns:
+                    df[col] = ""
 
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1111,39 +1115,84 @@ class POSPricingReconciler:
                 remark_str = ""
 
             sku_clean = str(sku_key).strip().upper()
-            mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - expected_price).abs() <= 0.05)
+            target_cp = str(suggested_cp or cp_name or "").strip().upper()
+            target_oc = str(oc_amount or "").strip()
+            if target_oc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                target_oc = ""
+            target_dc = str(dc_amount or "").strip()
+            if target_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                target_dc = ""
 
-            if mask.any():
-                # มีแถวเดิมอยู่แล้ว: ดึงแถวเดิมออกมาอัปเดต และย้ายตำแหน่งไปต่อท้ายสุด (Move to Bottom)
-                existing_rows = df[mask].copy()
+            # หาแถวที่ตรงกับ SKU และ Sale Price เดียวกัน
+            sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((pd.to_numeric(df['sale_price'], errors='coerce') - expected_price).abs() <= 0.05)
+            
+            # ตรวจสอบว่าในบรรดาแถวที่ตรง SKU และราคา มีแถวใดที่เป็น Recipe Pattern เดียวกันหรือไม่
+            pattern_match_idx = None
+            if sku_price_mask.any():
+                for idx in df[sku_price_mask].index:
+                    row = df.loc[idx]
+                    r_cp = str(row.get('cp_name', '') or '').strip().upper()
+                    if r_cp.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        r_cp = ""
+                    r_sugg_cp = str(row.get('suggested_cp', '') or '').strip().upper()
+                    if r_sugg_cp.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        r_sugg_cp = ""
+                    r_oc = str(row.get('oc_amount', '') or '').strip()
+                    if r_oc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        r_oc = ""
+                    if r_oc.endswith('.0') and r_oc[:-2].isdigit():
+                        r_oc = r_oc[:-2]
+                    r_dc = str(row.get('dc_amount', '') or '').strip()
+                    if r_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        r_dc = ""
+                    if r_dc.endswith('.0') and r_dc[:-2].isdigit():
+                        r_dc = r_dc[:-2]
+
+                    # กรณีที่ 1: แถวเดิมเป็น Placeholder เปล่า (ไม่มีทั้ง cp_name, suggested_cp, oc_amount, dc_amount)
+                    is_placeholder = (not r_cp and not r_sugg_cp and not r_oc and not r_dc)
+                    
+                    # กรณีที่ 2: เป็น Recipe Pattern เดียวกัน (คูปองตรงกัน และการปรับราคา OC/DC ตรงกัน)
+                    is_same_cp = bool(target_cp and (r_cp == target_cp or r_sugg_cp == target_cp))
+                    is_same_adj = (r_oc == target_oc and r_dc == target_dc)
+
+                    if is_placeholder or (is_same_cp and is_same_adj):
+                        pattern_match_idx = idx
+                        break
+
+            if pattern_match_idx is not None:
+                # พบแถวที่เป็น Pattern เดียวกัน: อัปเดตแถวนี้และย้ายไปต่อท้ายสุด (Move to Bottom)
+                matched_row = df.loc[[pattern_match_idx]].copy()
                 if suggested_cp:
-                    existing_rows['suggested_cp'] = suggested_cp
+                    matched_row['suggested_cp'] = suggested_cp
                 if start_str:
-                    existing_rows['suggested_usage_start_date'] = start_str
+                    matched_row['suggested_usage_start_date'] = start_str
                 if end_str:
-                    existing_rows['suggested_usage_end_date'] = end_str
+                    matched_row['suggested_usage_end_date'] = end_str
                 
-                existing_rem = str(existing_rows['suggested_remark'].iloc[0] or "").strip()
+                existing_rem = str(matched_row['suggested_remark'].iloc[0] or "").strip()
                 existing_rem_price = extract_target_price_from_text(existing_rem)
                 if remark_str:
-                    existing_rows['suggested_remark'] = remark_str
+                    matched_row['suggested_remark'] = remark_str
                 elif existing_rem_price is not None and abs(existing_rem_price - float(expected_price)) > 1.0:
-                    existing_rows['suggested_remark'] = ""
-                existing_rows['last_updated'] = now_str
+                    matched_row['suggested_remark'] = ""
+                matched_row['last_updated'] = now_str
                 
-                df_without_old = df[~mask]
-                df_combined = pd.concat([df_without_old, existing_rows], ignore_index=True)
+                df_without_old = df.drop(index=pattern_match_idx)
+                df_combined = pd.concat([df_without_old, matched_row], ignore_index=True)
             else:
+                # เป็น Recipe Pattern ใหม่ (คนละคูปอง หรือคนละ OC/DC): แยกบันทึกเป็นแถวใหม่ชัดเจน ไม่เขียนทับแถวเดิม
                 new_row = {
                     'sku': sku_key,
                     'sale_price': expected_price,
+                    'cp_name': cp_name,
                     'suggested_cp': suggested_cp,
                     'suggested_usage_start_date': start_str,
                     'suggested_usage_end_date': end_str,
                     'suggested_remark': remark_str,
+                    'oc_amount': target_oc,
+                    'dc_amount': target_dc,
                     'last_updated': now_str
                 }
-
                 new_df = pd.DataFrame([new_row]).reindex(columns=df.columns, fill_value="")
                 df_combined = pd.concat([df, new_df], ignore_index=True)
 
@@ -1159,20 +1208,51 @@ class POSPricingReconciler:
             date_info = f" [{start_str} - {end_str}]" if (start_str or end_str) else ""
             rem_info = f" (Remark: {remark_str})" if remark_str else ""
             log_sugg = f" (แนะนำ: {suggested_cp}{date_info}{rem_info})" if suggested_cp else ""
+            adj_info = f" (OC: {target_oc})" if target_oc else (f" (DC: {target_dc})" if target_dc else "")
+            action_label = "อัปเดต" if pattern_match_idx is not None else "เพิ่ม Pattern ใหม่"
             self.app.update_log(
-                f"💾 บันทึก/ย้ายตำแหน่ง SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg} ไปไว้ท้ายตาราง CP Data เรียบร้อยแล้ว"
+                f"💾 {action_label} SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg}{adj_info} ใน CP Data เรียบร้อยแล้ว"
             )
 
             if self.app.cp_df is not None:
                 for col in suggested_cols:
                     if col not in self.app.cp_df.columns:
                         self.app.cp_df[col] = ""
-                if 'last_updated' not in self.app.cp_df.columns:
-                    self.app.cp_df['last_updated'] = ""
+                for col in ['oc_amount', 'dc_amount', 'cp_name', 'last_updated']:
+                    if col not in self.app.cp_df.columns:
+                        self.app.cp_df[col] = ""
 
-                app_mask = (self.app.cp_df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((self.app.cp_df['sale_price'] - expected_price).abs() <= 0.05)
-                if app_mask.any():
-                    app_rows = self.app.cp_df[app_mask].copy()
+                app_sku_price_mask = (self.app.cp_df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((pd.to_numeric(self.app.cp_df['sale_price'], errors='coerce') - expected_price).abs() <= 0.05)
+                app_pattern_match_idx = None
+                if app_sku_price_mask.any():
+                    for idx in self.app.cp_df[app_sku_price_mask].index:
+                        row = self.app.cp_df.loc[idx]
+                        r_cp = str(row.get('cp_name', '') or '').strip().upper()
+                        if r_cp.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            r_cp = ""
+                        r_sugg_cp = str(row.get('suggested_cp', '') or '').strip().upper()
+                        if r_sugg_cp.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            r_sugg_cp = ""
+                        r_oc = str(row.get('oc_amount', '') or '').strip()
+                        if r_oc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            r_oc = ""
+                        if r_oc.endswith('.0') and r_oc[:-2].isdigit():
+                            r_oc = r_oc[:-2]
+                        r_dc = str(row.get('dc_amount', '') or '').strip()
+                        if r_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            r_dc = ""
+                        if r_dc.endswith('.0') and r_dc[:-2].isdigit():
+                            r_dc = r_dc[:-2]
+
+                        is_placeholder = (not r_cp and not r_sugg_cp and not r_oc and not r_dc)
+                        is_same_cp = bool(target_cp and (r_cp == target_cp or r_sugg_cp == target_cp))
+                        is_same_adj = (r_oc == target_oc and r_dc == target_dc)
+                        if is_placeholder or (is_same_cp and is_same_adj):
+                            app_pattern_match_idx = idx
+                            break
+
+                if app_pattern_match_idx is not None:
+                    app_rows = self.app.cp_df.loc[[app_pattern_match_idx]].copy()
                     if suggested_cp:
                         app_rows['suggested_cp'] = suggested_cp
                     if start_str:
@@ -1186,9 +1266,20 @@ class POSPricingReconciler:
                     elif app_rem_price is not None and abs(app_rem_price - float(expected_price)) > 1.0:
                         app_rows['suggested_remark'] = ""
                     app_rows['last_updated'] = now_str
-                    self.app.cp_df = pd.concat([self.app.cp_df[~app_mask], app_rows], ignore_index=True)
+                    self.app.cp_df = pd.concat([self.app.cp_df.drop(index=app_pattern_match_idx), app_rows], ignore_index=True)
                 else:
-                    new_df_copy = new_df.copy()
+                    new_df_copy = pd.DataFrame([{
+                        'sku': sku_key,
+                        'sale_price': expected_price,
+                        'cp_name': cp_name,
+                        'suggested_cp': suggested_cp,
+                        'suggested_usage_start_date': start_str,
+                        'suggested_usage_end_date': end_str,
+                        'suggested_remark': remark_str,
+                        'oc_amount': target_oc,
+                        'dc_amount': target_dc,
+                        'last_updated': now_str
+                    }]).reindex(columns=self.app.cp_df.columns, fill_value="")
                     self.app.cp_df = pd.concat([self.app.cp_df, new_df_copy], ignore_index=True)
 
             # ส่งข้อมูลขึ้น Google Sheet ในเบื้องหลัง (ถ้าเชื่อมต่อ GAS ไว้)
@@ -1198,15 +1289,15 @@ class POSPricingReconciler:
                     cur_start = start_str
                     cur_end = end_str
                     cur_rem = remark_str
-                    if mask.any() and 'existing_rows' in locals():
-                        if not cur_sugg_cp and 'suggested_cp' in existing_rows.columns:
-                            cur_sugg_cp = str(existing_rows['suggested_cp'].iloc[0] or "").strip()
-                        if not cur_start and 'suggested_usage_start_date' in existing_rows.columns and pd.notna(existing_rows['suggested_usage_start_date'].iloc[0]):
-                            cur_start = str(existing_rows['suggested_usage_start_date'].iloc[0]).strip()
-                        if not cur_end and 'suggested_usage_end_date' in existing_rows.columns and pd.notna(existing_rows['suggested_usage_end_date'].iloc[0]):
-                            cur_end = str(existing_rows['suggested_usage_end_date'].iloc[0]).strip()
-                        if 'suggested_remark' in existing_rows.columns:
-                            cur_rem = str(existing_rows['suggested_remark'].iloc[0] or "").strip()
+                    if pattern_match_idx is not None and 'matched_row' in locals():
+                        if not cur_sugg_cp and 'suggested_cp' in matched_row.columns:
+                            cur_sugg_cp = str(matched_row['suggested_cp'].iloc[0] or "").strip()
+                        if not cur_start and 'suggested_usage_start_date' in matched_row.columns and pd.notna(matched_row['suggested_usage_start_date'].iloc[0]):
+                            cur_start = str(matched_row['suggested_usage_start_date'].iloc[0]).strip()
+                        if not cur_end and 'suggested_usage_end_date' in matched_row.columns and pd.notna(matched_row['suggested_usage_end_date'].iloc[0]):
+                            cur_end = str(matched_row['suggested_usage_end_date'].iloc[0]).strip()
+                        if 'suggested_remark' in matched_row.columns:
+                            cur_rem = str(matched_row['suggested_remark'].iloc[0] or "").strip()
 
                     gas_remark = cur_rem if cur_rem else "-"
                     payload = {
@@ -1217,12 +1308,17 @@ class POSPricingReconciler:
                         "suggested_usage_start_date": cur_start,
                         "suggested_usage_end_date": cur_end,
                         "suggested_remark": gas_remark,
+                        "oc_amount": target_oc,
+                        "dc_amount": target_dc,
                         "last_updated": now_str
                     }
-                    if mask.any() and 'existing_rows' in locals():
-                        old_row = existing_rows.iloc[0]
-                        for c in ['cp_name', 'usage_start_date', 'usage_end_date', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc', 'last_order_id', 'last_used_cp', 'last_actual_price', 'last_adjustment_method']:
-                            if c in old_row and pd.notna(old_row[c]) and str(old_row[c]).strip():
+                    if cp_name:
+                        payload["cp_name"] = str(cp_name).strip()
+
+                    if pattern_match_idx is not None and 'matched_row' in locals():
+                        old_row = matched_row.iloc[0]
+                        for c in ['cp_name', 'usage_start_date', 'usage_end_date', 'addtion_cp', 'couponDetailCash', 'couponDetailDisc', 'last_order_id', 'last_used_cp', 'last_actual_price', 'last_adjustment_method']:
+                            if c in old_row and pd.notna(old_row[c]) and str(old_row[c]).strip() and c not in payload:
                                 payload[c] = str(old_row[c]).strip()
                     self._dual_cp_loader.push_record_to_gas(payload)
             except Exception as gas_err:
@@ -1236,10 +1332,18 @@ class POSPricingReconciler:
         sku_key: str,
         expected_price: float,
         suggested_cp_code: str = "",
-        sugg_info: Optional[dict] = None
+        sugg_info: Optional[dict] = None,
+        oc_amount: str = "",
+        dc_amount: str = "",
+        cp_name: str = ""
     ) -> None:
-        """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info"""
-        kwargs = {"suggested_cp": suggested_cp_code}
+        """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info โดยรักษาความถูกต้องของแต่ละ Pattern"""
+        kwargs = {
+            "suggested_cp": suggested_cp_code,
+            "oc_amount": oc_amount,
+            "dc_amount": dc_amount,
+            "cp_name": cp_name
+        }
         if sugg_info:
             if sugg_info.get("suggested_start_date"):
                 kwargs["start_date"] = sugg_info["suggested_start_date"]
@@ -1247,6 +1351,10 @@ class POSPricingReconciler:
                 kwargs["end_date"] = sugg_info["suggested_end_date"]
             if sugg_info.get("suggested_remark"):
                 kwargs["remark"] = sugg_info["suggested_remark"]
+            if sugg_info.get("oc_amount") and not oc_amount:
+                kwargs["oc_amount"] = sugg_info["oc_amount"]
+            if sugg_info.get("dc_amount") and not dc_amount:
+                kwargs["dc_amount"] = sugg_info["dc_amount"]
         self.add_missing_cp_to_excel(sku_key, expected_price, **kwargs)
 
 

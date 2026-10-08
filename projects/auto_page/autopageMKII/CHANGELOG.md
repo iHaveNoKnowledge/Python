@@ -74,6 +74,12 @@
 
 ### [ver5.x.x] - 2026-10-08
 
+- [X] **[CP/DC Distinct Recipe Pattern Separation & Cross-Contamination Prevention]** ป้องกันการเขียนทับสูตรคูปองและแยกแถวสำหรับแต่ละ Pattern อย่างเด็ดขาด:
+  - **Recipe Pattern Identity Separation**: ปรับปรุง `add_missing_cp_to_excel()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ให้แยกแยะเอกลักษณ์ของแต่ละสูตร (Pattern Identity) จากทั้ง `sku`, `sale_price`, `cp_name`, `suggested_cp`, `oc_amount`, และ `dc_amount` โดยจะไม่อัปเดตทับแถวเดิมหากเป็นคนละคูปอง หรือมีการปรับราคาต่างกัน (เช่น สูตรเดิม `CP2609140012 + OC 5 4` กับสูตรใหม่ `CP2610050027` ที่ไม่มี OC) แต่จะแยกบันทึกเป็นอีกแถวหนึ่งอย่างชัดเจน
+  - **Zero OC/DC Contamination**: ป้องกันค่า `oc_amount` หรือ `dc_amount` จากสูตรเดิมรั่วไหลมาติดกับสูตรคูปองใหม่ โดยรับค่าและส่งต่อค่า adjustments เฉพาะของสูตรนั้นๆ ทั้งใน Local Excel และ Payload ไปยัง Google Sheets
+  - **Multi-Recipe Loader Deduplication Fix**: ปรับปรุง `_merge_dfs()` และ `_is_exact_duplicate()` ใน [cp_data_loader.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/cp_data_loader.py) ให้รวมคอลัมน์คูปองและการปรับราคาลงใน Subset การ Deduplicate เพื่อไม่ให้สูตรทางเลือกที่สองใน SKU และราคาเดียวกันถูกตัดทิ้ง ทำให้ทั้งสองสูตรคงอยู่ใน Memory และทำงานร่วมกับ Ambiguity Detection ได้อย่างสมบูรณ์
+  - **Data Separation & Cleanup**: ทำการแยกแถวใน `tables/cp_data.xlsx` และปรับปรุงข้อมูลแถวเดิมบน Google Sheets ให้ทั้งสูตรเดิม (`CP2609140012 + OC 5 4`) และสูตรใหม่ (`CP2610050027` ไม่ปรับราคา) แยกกันอย่างถูกต้อง
+
 - [X] **[DualSource CP Loader Real-Time Google Sheet & Local Sync & Remark Conflict Sanitization]** แก้ไขปัญหาคอลัมน์ `suggested_remark` และ `suggested_cp` ไม่อัปเดตบน Google Sheets และ local `cp_data.xlsx`:
   - **Local Path Fallback & Guaranteed Loader**: เพิ่มการค้นหาพาธสำรอง `tables/cp_data.xlsx` ใน `POSPricingReconciler.__init__`, `add_missing_cp_to_excel()` และ `record_pos_cart_summary_to_excel()` ป้องกันการหยุดทำงานเมื่อ `cp_table_location` ยังไม่ได้ถูกเซ็ตใน Session
   - **Remark Conflict Sanitization**: ตรวจสอบความสอดคล้องระหว่างราคาที่ระบุในข้อความ Remark กับราคาขายจริง (`act_price` / `expected_price`) เช่น กรณีสินค้าเซ็ต 1,056 บาท แต่ Remark ติดข้อความ "ราคา 409" มาจาก SKU ย่อย ระบบจะเคลียร์ค่าใน Local Excel เป็นค่าว่าง และส่ง `"-"` ไปยัง Google Apps Script เพื่อบังคับเขียนทับลบค่าเดิมทิ้งทันที
