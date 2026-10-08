@@ -445,7 +445,68 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         self.assertEqual(direct_matches[0]["cp_name"], "CP2609300040")
         self.assertEqual(direct_matches[0]["remark"], "Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056")
 
+    def test_multi_coupon_comma_separated_remark_and_date_rules(self):
+        """
+        ทดสอบกรณี SKU มีคูปองหลายตัว (เช่น Combo หรือมีทั้ง CP และ DC):
+        1. suggested_remark ต้องนำ remark มาต่อกันตามลำดับของ cp/dc คั่นด้วย ', '
+        2. เวลา: คูปองที่มี start_date ใหม่กว่าจะได้รับการเลือก
+        3. หาก start_date เท่ากัน คูปองที่มี end_date สั้นกว่าจะได้รับการเลือก
+        """
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609010001",
+                "discount": 50.0,
+                "remark": "Remark คูปอง CP ตัวแรก",
+                "desc": "Promo CP",
+                "start_date": datetime.date(2026, 9, 1),
+                "end_date": datetime.date(2026, 9, 30),
+                "is_expired": False
+            },
+            {
+                "code": "DC2609100002",
+                "discount": 50.0,
+                "remark": "Remark ส่วนลด DC ตัวที่สอง",
+                "desc": "Promo DC",
+                "start_date": datetime.date(2026, 9, 10),
+                "end_date": datetime.date(2026, 9, 25),
+                "is_expired": False
+            }
+        ]
+
+        # 1. ทดสอบ start_date ใหม่กว่า (Sep 10 > Sep 1)
+        rem, s_dt, e_dt = self.reconciler.resolve_multi_coupon_info("CP2609010001 DC2609100002")
+        self.assertEqual(rem, "Remark คูปอง CP ตัวแรก, Remark ส่วนลด DC ตัวที่สอง")
+        self.assertEqual(s_dt, datetime.date(2026, 9, 10))
+        self.assertEqual(e_dt, datetime.date(2026, 9, 25))
+
+        # 2. ทดสอบกรณี start_date เท่ากัน ให้เลือก end_date ที่สั้นกว่า
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609100001",
+                "discount": 50.0,
+                "remark": "CP ตัวแรก",
+                "desc": "Promo CP",
+                "start_date": datetime.date(2026, 9, 10),
+                "end_date": datetime.date(2026, 9, 30),  # ยาวกว่า
+                "is_expired": False
+            },
+            {
+                "code": "DC2609100002",
+                "discount": 50.0,
+                "remark": "DC ตัวสอง",
+                "desc": "Promo DC",
+                "start_date": datetime.date(2026, 9, 10),  # เท่ากัน
+                "end_date": datetime.date(2026, 9, 20),  # สั้นกว่า
+                "is_expired": False
+            }
+        ]
+        rem2, s_dt2, e_dt2 = self.reconciler.resolve_multi_coupon_info("CP2609100001 DC2609100002")
+        self.assertEqual(rem2, "CP ตัวแรก, DC ตัวสอง")
+        self.assertEqual(s_dt2, datetime.date(2026, 9, 10))
+        self.assertEqual(e_dt2, datetime.date(2026, 9, 20))
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

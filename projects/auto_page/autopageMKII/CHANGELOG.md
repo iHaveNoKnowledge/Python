@@ -74,6 +74,14 @@
 
 ### [ver5.x.x] - 2026-10-08
 
+- [X] **[Auto-Record Ambiguous Recipe Patterns & Multi-CP/DC Comma-Separated Remark & Date Hierarchy Rules]** บันทึกสูตร Pattern อัตโนมัติเมื่อพบความคลุมเครือ พร้อมจัดรูปแบบ Remark และลำดับความสำคัญของวันที่สำหรับ Multi-CP/DC:
+  - **Auto-Record Patterns on Ambiguity Alert**: เมื่อระบบตรวจพบทางเลือก CP/DC มากกว่า 1 ชุดบนหน้าเว็บ SMCO (Ambiguity Alert) และหยุดข้ามออเดอร์ (`Order skipped, multiple ambiguous CP/DC options found`) ระบบจะใช้โอกาสนี้บันทึกข้อมูลทุกชุด Pattern ที่ตรวจพบ (โดยเฉพาะสูตร/คูปองใหม่ที่พบบน SMCO) ลงใน `cp_data.xlsx` และซิงค์ไปยัง Google Sheet พร้อมข้อมูลข้อเสนอแนะ (`suggested_cp`, `suggested_usage_start_date`, `suggested_usage_end_date`, `suggested_remark`) โดยไม่ทับสูตรเดิมที่มีอยู่ เพื่อให้ Admin ตรวจสอบและเลือกใช้ได้ทันที
+  - **Multi-Coupon Comma-Separated Remark Order**: กรณี SKU มีการใช้ CP/DC หลายตัว (เช่น Combo หรือมีทั้งคูปองและส่วนลด) ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ฟังก์ชัน `resolve_multi_coupon_info()` จะรวบรวมข้อความ Remark ของคูปองแต่ละตัวมาเรียงต่อกันตามลำดับของรหัส CP/DC และคั่นด้วยเครื่องหมาย `", "` ในคอลัมน์ `suggested_remark` เดียวกัน
+  - **Smart Date Preference Hierarchy**: สำหรับช่วงเวลาการใช้งานของชุดคูปองหลายตัว:
+    1. เปรียบเทียบ `suggested_usage_start_date`: เลือกคูปองที่มีวันเริ่มต้นใหม่กว่า (ล่าสุดกว่า)
+    2. หากวันเริ่มต้นเท่ากัน: เลือกคูปองที่มี `suggested_usage_end_date` สั้นกว่า (หมดอายุไวกว่า) เพื่อความถูกต้องและปลอดภัยของระยะเวลาโปรโมชั่น
+  - เพิ่มการทดสอบครอบคลุมใน `tests/test_realtime_ambiguity_and_remark.py` (ผ่าน 100%)
+
 - [X] **[Combo Coupon Description Preference & Remark Conflict Resolution]** แก้ไขปัญหาคูปองสินค้าเซ็ต (Combo SKU) ที่ Remark ถูกเคลียร์เป็น `"-"` หรือค่าว่างเนื่องจากความขัดแย้งของราคาย่อย:
   - **Campaign Description Prioritization**: สำหรับสินค้าประเภทเซ็ต (เช่น `SP2-001753+SP2-001755`) คูปองแคมเปญระดับเซ็ต เช่น `CP2609300040` มักมีรายละเอียดแคมเปญ (`desc`) ระบุราคาเซ็ตไว้ชัดเจน (เช่น `"Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056"`) แต่ SKU ย่อย (เช่น `SP2-001753`) อาจส่ง Remark ย่อยของตัวเองเข้ามาแทน (เช่น `"Shp/TT เดือน ต.ค. ราคา 409"`) ทำให้เดิมถูกระบบตรวจจับว่าราคา 409 ไม่ตรงกับ 1,056 บาท แล้วทำการล้างค่าทิ้งเป็น `""` / `"-"`
   - **Dynamic Price-Matching Remark Selection**: ปรับปรุง `get_aggregated_combo_coupons()`, `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ให้ตรวจสอบและให้ลำดับความสำคัญสูงสุดแก่ข้อความ (ไม่ว่าจะเป็น `desc` หรือ `remark`) ที่ระบุราคาเป้าหมายตรงกับราคาขายของเซ็ต (`expected_price` = 1,056 บาท) ช่วยให้ดึงข้อความ `"Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056"` มาใช้งานได้อย่างแม่นยำ ไม่ถูกตัดสิทธิ์หรือถูกเคลียร์ทิ้ง

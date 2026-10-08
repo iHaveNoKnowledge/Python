@@ -1118,9 +1118,22 @@ class POSPricingReconciler:
             remark_str = str(remark or "").strip()
 
             # Sanitize remark: if remark contains target price contradicting expected_price, discard/clear it
-            rem_price = extract_target_price_from_text(remark_str)
-            if rem_price is not None and expected_price is not None and abs(rem_price - float(expected_price)) > 1.0:
-                remark_str = ""
+            if remark_str and expected_price is not None:
+                if "," in remark_str:
+                    parts = [p.strip() for p in remark_str.split(",") if p.strip()]
+                    has_match = any(
+                        extract_target_price_from_text(p) is not None
+                        and abs(extract_target_price_from_text(p) - float(expected_price)) <= 0.05
+                        for p in parts
+                    )
+                    has_any_price = any(extract_target_price_from_text(p) is not None for p in parts)
+                    if has_any_price and not has_match:
+                        kept = [p for p in parts if extract_target_price_from_text(p) is None or abs(extract_target_price_from_text(p) - float(expected_price)) <= 0.05]
+                        remark_str = ", ".join(kept)
+                else:
+                    rem_price = extract_target_price_from_text(remark_str)
+                    if rem_price is not None and abs(rem_price - float(expected_price)) > 1.0:
+                        remark_str = ""
 
             sku_clean = str(sku_key).strip().upper()
             target_cp = str(suggested_cp or cp_name or "").strip().upper()
@@ -1343,27 +1356,133 @@ class POSPricingReconciler:
         sugg_info: Optional[dict] = None,
         oc_amount: str = "",
         dc_amount: str = "",
-        cp_name: str = ""
+        cp_name: str = "",
+        start_date: Any = None,
+        end_date: Any = None,
+        remark: str = ""
     ) -> None:
         """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info โดยรักษาความถูกต้องของแต่ละ Pattern"""
-        kwargs = {
-            "suggested_cp": suggested_cp_code,
-            "oc_amount": oc_amount,
-            "dc_amount": dc_amount,
-            "cp_name": cp_name
-        }
+        kwargs = {"suggested_cp": suggested_cp_code}
+        if oc_amount:
+            kwargs["oc_amount"] = oc_amount
+        if dc_amount:
+            kwargs["dc_amount"] = dc_amount
+        if cp_name:
+            kwargs["cp_name"] = cp_name
         if sugg_info:
-            if sugg_info.get("suggested_start_date"):
-                kwargs["start_date"] = sugg_info["suggested_start_date"]
-            if sugg_info.get("suggested_end_date"):
-                kwargs["end_date"] = sugg_info["suggested_end_date"]
-            if sugg_info.get("suggested_remark"):
-                kwargs["remark"] = sugg_info["suggested_remark"]
+            if sugg_info.get("suggested_start_date") or sugg_info.get("start_date"):
+                kwargs["start_date"] = sugg_info.get("suggested_start_date") or sugg_info.get("start_date")
+            if sugg_info.get("suggested_end_date") or sugg_info.get("end_date"):
+                kwargs["end_date"] = sugg_info.get("suggested_end_date") or sugg_info.get("end_date")
+            if sugg_info.get("suggested_remark") or sugg_info.get("remark"):
+                kwargs["remark"] = sugg_info.get("suggested_remark") or sugg_info.get("remark")
             if sugg_info.get("oc_amount") and not oc_amount:
                 kwargs["oc_amount"] = sugg_info["oc_amount"]
             if sugg_info.get("dc_amount") and not dc_amount:
                 kwargs["dc_amount"] = sugg_info["dc_amount"]
+        if start_date and "start_date" not in kwargs:
+            kwargs["start_date"] = start_date
+        if end_date and "end_date" not in kwargs:
+            kwargs["end_date"] = end_date
+        if remark and "remark" not in kwargs:
+            kwargs["remark"] = remark
         self.add_missing_cp_to_excel(sku_key, expected_price, **kwargs)
+
+    def resolve_multi_coupon_info(
+        self,
+        coupon_str: str,
+        expected_price: Optional[float] = None,
+        default_remark: str = "",
+        default_start: Any = None,
+        default_end: Any = None
+    ) -> tuple[str, Any, Any]:
+        """
+        สำหรับกรณี SKU ที่มีค่า CP/DC หลายตัว (เช่น 'CP... DC...' หรือหลายรหัส):
+        1. suggested_remark: ดึง remark ของทุก CP/DC ตามลำดับ คั่นด้วย ', '
+        2. เวลา: ดูว่าตัวไหนมี suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันให้เอา suggested_usage_end_date ที่สั้นกว่า
+        """
+        tokens = [t.strip().upper() for t in str(coupon_str or "").replace(',', ' ').split() if t.strip()]
+        if not tokens:
+            return default_remark, default_start, default_end
+
+        # ค้นหาข้อมูลคูปองแต่ละตัวจาก last_scanned_smco_coupon_details
+        details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
+        token_c_map = {}
+        for d in details:
+            code = str(d.get("code", "")).strip().upper()
+            if code and code not in token_c_map:
+                token_c_map[code] = d
+
+        remarks = []
+        found_coupons = []
+        for t in tokens:
+            c = token_c_map.get(t)
+            if c:
+                found_coupons.append(c)
+                rem_val = str(c.get("remark", "") or "").strip()
+                desc_val = str(c.get("desc", "") or "").strip()
+                chosen = rem_val
+                if expected_price is not None:
+                    desc_p = extract_target_price_from_text(desc_val)
+                    rem_p = extract_target_price_from_text(rem_val)
+                    if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
+                        chosen = desc_val
+                    elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
+                        chosen = rem_val
+                    elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val and extract_target_price_from_text(desc_val) is not None:
+                        chosen = desc_val
+                if chosen:
+                    remarks.append(chosen)
+
+        # 1. suggested_remark: รวมตามลำดับ คั่นด้วย ", "
+        if remarks:
+            final_remark = ", ".join(remarks)
+        else:
+            final_remark = default_remark
+
+        # 2. เวลา: หาตัวที่มี suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันเอา suggested_usage_end_date ที่สั้นกว่า
+        if found_coupons:
+            best_c = None
+            best_s_cmp = None
+            best_e_cmp = None
+            for c in found_coupons:
+                s_dt, e_dt = get_coupon_start_and_end_dates(c)
+                s_cmp = to_comparable_datetime(s_dt)
+                e_cmp = to_comparable_datetime(e_dt)
+                if best_c is None:
+                    best_c = c
+                    best_s_cmp = s_cmp
+                    best_e_cmp = e_cmp
+                else:
+                    is_better = False
+                    if s_cmp and best_s_cmp:
+                        if s_cmp > best_s_cmp:
+                            is_better = True
+                        elif s_cmp == best_s_cmp:
+                            if e_cmp and best_e_cmp:
+                                if e_cmp < best_e_cmp:
+                                    is_better = True
+                            elif e_cmp and not best_e_cmp:
+                                is_better = True
+                    elif s_cmp and not best_s_cmp:
+                        is_better = True
+                    elif not s_cmp and not best_s_cmp:
+                        if e_cmp and best_e_cmp and e_cmp < best_e_cmp:
+                            is_better = True
+
+                    if is_better:
+                        best_c = c
+                        best_s_cmp = s_cmp
+                        best_e_cmp = e_cmp
+
+            best_s, best_e = get_coupon_start_and_end_dates(best_c)
+            final_start = best_s or default_start
+            final_end = best_e or default_end
+        else:
+            final_start = default_start
+            final_end = default_end
+
+        return final_remark, final_start, final_end
 
 
     def scrape_pos_cart_items(self) -> List[Dict[str, Any]]:
@@ -1956,12 +2075,8 @@ class POSPricingReconciler:
                         chosen_rem = desc_val
                     elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
                         chosen_rem = rem_val
-                    elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val:
+                    elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
                         chosen_rem = desc_val
-                    elif not chosen_rem:
-                        chosen_rem = desc_val
-                elif not chosen_rem:
-                    chosen_rem = desc_val
 
                 matching_singles.append({
                     "suggested_code": c['code'],
@@ -1997,14 +2112,20 @@ class POSPricingReconciler:
                     e1_cmp = to_comparable_datetime(e1)
                     e2_cmp = to_comparable_datetime(e2)
 
+                    # ดูว่าอันไหนมีวัน suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันก็เอา suggested_usage_end_date ที่สั้นกว่า
                     if s1_cmp and s2_cmp:
-                        combo_start = s1 if s1_cmp >= s2_cmp else s2
+                        if s1_cmp > s2_cmp:
+                            combo_start, combo_end = s1, e1
+                        elif s2_cmp > s1_cmp:
+                            combo_start, combo_end = s2, e2
+                        else:
+                            combo_start = s1
+                            if e1_cmp and e2_cmp:
+                                combo_end = e1 if e1_cmp <= e2_cmp else e2
+                            else:
+                                combo_end = e1 or e2
                     else:
                         combo_start = s1 or s2
-
-                    if e1_cmp and e2_cmp:
-                        combo_end = e1 if e1_cmp <= e2_cmp else e2
-                    else:
                         combo_end = e1 or e2
 
                     combo_s_cmp = to_comparable_datetime(combo_start)
@@ -2018,7 +2139,7 @@ class POSPricingReconciler:
 
                     r1 = str(c1.get("remark", "") or "").strip()
                     r2 = str(c2.get("remark", "") or "").strip()
-                    combo_remark = " / ".join([r for r in [r1, r2] if r]) if r1 != r2 else r1
+                    combo_remark = ", ".join([r for r in [r1, r2] if r])
 
                     matching_combos.append({
                         "suggested_code": f"{c1['code']} {c2['code']}",
@@ -2068,18 +2189,29 @@ class POSPricingReconciler:
             final_code = best["suggested_code"]
             pre_codes = []
 
+        # สำหรับกรณี SKU ที่มีค่า CP/DC หลายตัว (multi-code):
+        # 1. suggested_remark: ดึง remark ของทุก CP/DC ตามลำดับ คั่นด้วย ", "
+        # 2. เวลา: ดูว่าตัวไหนมี suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันให้เอา suggested_usage_end_date ที่สั้นกว่า
+        final_remark, final_start, final_end = self.resolve_multi_coupon_info(
+            final_code,
+            expected_price=expected_price,
+            default_remark=best.get("remark", ""),
+            default_start=best.get("start_date"),
+            default_end=best.get("end_date")
+        )
+
         return {
             "suggested_code": final_code,
             "preselected_codes": pre_codes,
             "new_code": best["suggested_code"],
             "discount": best["discount"],
             "type": best["type"],
-            "start_date": best.get("start_date"),
-            "end_date": best.get("end_date"),
-            "remark": best.get("remark", ""),
-            "suggested_start_date": best.get("start_date"),
-            "suggested_end_date": best.get("end_date"),
-            "suggested_remark": best.get("remark", "")
+            "start_date": final_start,
+            "end_date": final_end,
+            "remark": final_remark,
+            "suggested_start_date": final_start,
+            "suggested_end_date": final_end,
+            "suggested_remark": final_remark
         }
 
     def find_all_matching_coupons_on_smco(
@@ -2179,12 +2311,8 @@ class POSPricingReconciler:
                             chosen_rem = desc_val
                         elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
                             chosen_rem = rem_val
-                        elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val:
+                        elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
                             chosen_rem = desc_val
-                        elif not chosen_rem:
-                            chosen_rem = desc_val
-                    elif not chosen_rem:
-                        chosen_rem = desc_val
 
                     results.append({
                         "cp_name": code,
@@ -2217,14 +2345,27 @@ class POSPricingReconciler:
                         s2, e2 = get_coupon_start_and_end_dates(c2)
                         s1_cmp = to_comparable_datetime(s1)
                         s2_cmp = to_comparable_datetime(s2)
-                        combo_start = s1 if (s1_cmp and s2_cmp and s1_cmp >= s2_cmp) else (s1 or s2)
                         e1_cmp = to_comparable_datetime(e1)
                         e2_cmp = to_comparable_datetime(e2)
-                        combo_end = e1 if (e1_cmp and e2_cmp and e1_cmp <= e2_cmp) else (e1 or e2)
+                        # ดูว่าอันไหนมีวัน suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันก็เอา suggested_usage_end_date ที่สั้นกว่า
+                        if s1_cmp and s2_cmp:
+                            if s1_cmp > s2_cmp:
+                                combo_start, combo_end = s1, e1
+                            elif s2_cmp > s1_cmp:
+                                combo_start, combo_end = s2, e2
+                            else:
+                                combo_start = s1
+                                if e1_cmp and e2_cmp:
+                                    combo_end = e1 if e1_cmp <= e2_cmp else e2
+                                else:
+                                    combo_end = e1 or e2
+                        else:
+                            combo_start = s1 or s2
+                            combo_end = e1 or e2
 
                         r1 = str(c1.get("remark", "") or "").strip()
                         r2 = str(c2.get("remark", "") or "").strip()
-                        combo_remark = " / ".join([r for r in [r1, r2] if r]) if r1 != r2 else r1
+                        combo_remark = ", ".join([r for r in [r1, r2] if r])
 
                         results.append({
                             "cp_name": combo_code,
@@ -3572,8 +3713,42 @@ class POSPricingReconciler:
                             logger.warning(log_warn)
                             self.app.update_log(log_warn)
 
-                            cand_code_to_record = suggested_cp_code or (unified_candidates[0].get("cp_name") if unified_candidates else "")
-                            self._record_missing_cp_with_dates(sku_key, expected_price, cand_code_to_record, sugg_info)
+                            # บันทึกทุกชุด Pattern ที่พบ (โดยเฉพาะ pattern ใหม่ที่พบบน SMCO) พร้อมข้อมูลคำแนะนำ (suggested_cp, dates, remark)
+                            for cand in unified_candidates:
+                                c_cp = str(cand.get("cp_name", "") or "").strip()
+                                c_oc = str(cand.get("oc_amount", "") or "").strip()
+                                c_dc = str(cand.get("dc_amount", "") or "").strip()
+                                c_src = cand.get("source", "")
+
+                                cand_sugg_info = None
+                                if sugg_info and sugg_info.get("suggested_code") == c_cp:
+                                    cand_sugg_info = sugg_info
+
+                                cand_rem = cand.get("remark", "")
+                                cand_start = cand.get("start_date") or cand.get("usage_start_date") or cand.get("suggested_usage_start_date")
+                                cand_end = cand.get("end_date") or cand.get("usage_end_date") or cand.get("suggested_usage_end_date")
+
+                                resolved_rem, resolved_start, resolved_end = self.resolve_multi_coupon_info(
+                                    c_cp,
+                                    expected_price=expected_price,
+                                    default_remark=cand_rem,
+                                    default_start=cand_start,
+                                    default_end=cand_end
+                                )
+
+                                self._record_missing_cp_with_dates(
+                                    sku_key=sku_key,
+                                    expected_price=expected_price,
+                                    suggested_cp_code=c_cp,
+                                    sugg_info=cand_sugg_info,
+                                    oc_amount=c_oc,
+                                    dc_amount=c_dc,
+                                    cp_name=c_cp if c_src == "SMCO" else (cand.get("cp_name") or ""),
+                                    start_date=resolved_start,
+                                    end_date=resolved_end,
+                                    remark=resolved_rem
+                                )
+
                             self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, unified_candidates, suggested_cp_info=sugg_info)
 
     def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list, suggested_cp_info: Optional[dict] = None) -> None:
