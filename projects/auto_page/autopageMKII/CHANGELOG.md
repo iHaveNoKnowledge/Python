@@ -74,6 +74,11 @@
 
 ### [ver5.x.x] - 2026-10-08
 
+- [X] **[Combo Coupon Description Preference & Remark Conflict Resolution]** แก้ไขปัญหาคูปองสินค้าเซ็ต (Combo SKU) ที่ Remark ถูกเคลียร์เป็น `"-"` หรือค่าว่างเนื่องจากความขัดแย้งของราคาย่อย:
+  - **Campaign Description Prioritization**: สำหรับสินค้าประเภทเซ็ต (เช่น `SP2-001753+SP2-001755`) คูปองแคมเปญระดับเซ็ต เช่น `CP2609300040` มักมีรายละเอียดแคมเปญ (`desc`) ระบุราคาเซ็ตไว้ชัดเจน (เช่น `"Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056"`) แต่ SKU ย่อย (เช่น `SP2-001753`) อาจส่ง Remark ย่อยของตัวเองเข้ามาแทน (เช่น `"Shp/TT เดือน ต.ค. ราคา 409"`) ทำให้เดิมถูกระบบตรวจจับว่าราคา 409 ไม่ตรงกับ 1,056 บาท แล้วทำการล้างค่าทิ้งเป็น `""` / `"-"`
+  - **Dynamic Price-Matching Remark Selection**: ปรับปรุง `get_aggregated_combo_coupons()`, `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ให้ตรวจสอบและให้ลำดับความสำคัญสูงสุดแก่ข้อความ (ไม่ว่าจะเป็น `desc` หรือ `remark`) ที่ระบุราคาเป้าหมายตรงกับราคาขายของเซ็ต (`expected_price` = 1,056 บาท) ช่วยให้ดึงข้อความ `"Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056"` มาใช้งานได้อย่างแม่นยำ ไม่ถูกตัดสิทธิ์หรือถูกเคลียร์ทิ้ง
+  - อัปเดตข้อมูลบน Google Sheets และ local `tables/cp_data.xlsx` ให้แถว 1,056 บาท มี `suggested_remark = "Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056"` เรียบร้อย
+
 - [X] **[CP/DC Distinct Recipe Pattern Separation & Cross-Contamination Prevention]** ป้องกันการเขียนทับสูตรคูปองและแยกแถวสำหรับแต่ละ Pattern อย่างเด็ดขาด:
   - **Recipe Pattern Identity Separation**: ปรับปรุง `add_missing_cp_to_excel()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ให้แยกแยะเอกลักษณ์ของแต่ละสูตร (Pattern Identity) จากทั้ง `sku`, `sale_price`, `cp_name`, `suggested_cp`, `oc_amount`, และ `dc_amount` โดยจะไม่อัปเดตทับแถวเดิมหากเป็นคนละคูปอง หรือมีการปรับราคาต่างกัน (เช่น สูตรเดิม `CP2609140012 + OC 5 4` กับสูตรใหม่ `CP2610050027` ที่ไม่มี OC) แต่จะแยกบันทึกเป็นอีกแถวหนึ่งอย่างชัดเจน
   - **Zero OC/DC Contamination**: ป้องกันค่า `oc_amount` หรือ `dc_amount` จากสูตรเดิมรั่วไหลมาติดกับสูตรคูปองใหม่ โดยรับค่าและส่งต่อค่า adjustments เฉพาะของสูตรนั้นๆ ทั้งใน Local Excel และ Payload ไปยัง Google Sheets

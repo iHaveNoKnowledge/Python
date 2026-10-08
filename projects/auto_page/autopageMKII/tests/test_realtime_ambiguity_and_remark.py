@@ -405,6 +405,46 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         }
         self.assertFalse(loader._is_exact_duplicate(payload))
 
+    def test_find_suggested_cp_prefers_campaign_desc_when_detail_remark_conflicts(self):
+        """
+        ทดสอบกรณี SKU เซ็ท (Combo) ที่คูปองมี desc ระบุราคาเซ็ท 1056
+        แต่ sub-SKU มี detail remark ระบุราคาแยกชิ้น 409
+        ระบบจะต้องเลือก desc ที่ตรงกับ expected_price (1056) และไม่ตัดคูปองทิ้ง
+        """
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609300040",
+                "discount": 63.0,
+                "remark": "Shp/TT เดือน ต.ค. ราคา 409",
+                "remark_target_price": 409.0,
+                "desc": "Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056",
+                "start_date": datetime.date(2026, 10, 1),
+                "end_date": datetime.date(2026, 10, 31),
+                "is_expired": False
+            }
+        ]
+
+        # Target discount 63 บาท สำหรับ expected_price 1056
+        res = self.reconciler.find_suggested_cp_for_discount(
+            target_discount=63.0,
+            expected_price=1056.0,
+            order_date="2026-10-03",
+            sku="SP2-001753+SP2-001755"
+        )
+        self.assertIsNotNone(res)
+        self.assertEqual(res["suggested_code"], "CP2609300040")
+        self.assertEqual(res["remark"], "Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056")
+
+        direct_matches = self.reconciler.find_all_matching_coupons_on_smco(
+            target_discount=63.0,
+            expected_price=1056.0,
+            order_date="2026-10-03",
+            sku="SP2-001753+SP2-001755"
+        )
+        self.assertEqual(len(direct_matches), 1)
+        self.assertEqual(direct_matches[0]["cp_name"], "CP2609300040")
+        self.assertEqual(direct_matches[0]["remark"], "Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056")
+
 
 if __name__ == "__main__":
     unittest.main()

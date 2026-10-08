@@ -803,10 +803,14 @@ class POSPricingReconciler:
                     item["startDate"] = cp.get("startDate")
                 if not item["endDate"]:
                     item["endDate"] = cp.get("endDate")
-                if not item["desc"]:
-                    item["desc"] = cp.get("couponDesc", "")
-                if not item["remark"]:
-                    item["remark"] = cp.get("couponDetailRemark", "") or cp.get("remark", "")
+                c_desc = str(cp.get("couponDesc", "") or "").strip()
+                c_rem = str(cp.get("couponDetailRemark", "") or cp.get("remark", "") or "").strip()
+                if c_desc and (not item["desc"] or ("ราคา" in c_desc and "ราคา" not in str(item["desc"]))):
+                    item["desc"] = c_desc
+                if c_rem and not item["remark"]:
+                    item["remark"] = c_rem
+                if not item["remark"] and c_desc:
+                    item["remark"] = c_desc
                 item["sku_count"] += 1
 
         aggregated_details = []
@@ -814,12 +818,16 @@ class POSPricingReconciler:
             if data["sku_count"] == len(sub_skus):
                 s_dt = parse_smart_datetime(data["startDate"]) or parse_smart_date(data["startDate"])
                 e_dt = parse_smart_datetime(data["endDate"]) or parse_smart_date(data["endDate"])
+                best_rem = data["remark"]
+                desc_text = data["desc"]
+                if desc_text and (not best_rem or ("ราคา" in desc_text and "ราคา" not in best_rem)):
+                    best_rem = desc_text
                 aggregated_details.append({
                     "code": code,
                     "discount": round(data["total_discount"], 2),
-                    "desc": data["desc"],
-                    "remark": data["remark"],
-                    "remark_target_price": extract_target_price_from_text(f"{data['remark']} {data['desc']}"),
+                    "desc": desc_text or best_rem,
+                    "remark": best_rem,
+                    "remark_target_price": extract_target_price_from_text(f"{best_rem} {desc_text}"),
                     "raw_discount": f"{data['total_discount']:.2f}.-",
                     "is_selected": False,
                     "start_date": s_dt,
@@ -1899,18 +1907,27 @@ class POSPricingReconciler:
                 continue
 
             # ตรวจสอบการจับคู่ราคา:
-            # 1.1 ตรวจสอบตรงกับราคาเป้าหมายใน Remark (เช่น 'Dynamic ก.ย. Shp ราคา 9673' สำหรับสินค้าเซ็ต)
+            # 1.1 ตรวจสอบตรงกับราคาเป้าหมายใน Remark หรือ Campaign Desc (เช่น 'Dynamic ก.ย. Shp ราคา 9673' หรือ 'Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056')
             remark_price = c.get("remark_target_price")
-            is_remark_price_match = (
+            desc_price = extract_target_price_from_text(c.get("desc", ""))
+            is_desc_price_match = (
                 expected_price is not None
-                and remark_price is not None
-                and abs(remark_price - float(expected_price)) <= 0.05
+                and desc_price is not None
+                and abs(desc_price - float(expected_price)) <= 0.05
+            )
+            is_remark_price_match = (
+                (
+                    expected_price is not None
+                    and remark_price is not None
+                    and abs(remark_price - float(expected_price)) <= 0.05
+                )
+                or is_desc_price_match
             )
 
             # 1.2 ตรวจสอบส่วนลดปกติ
             # หากคูปองมี remark_target_price ระบุราคาชัดเจน แต่ไม่ตรงกับ expected_price (เช่น ระบุ 'ราคา 409' แต่ expected_price = 993 หรือ 1056)
-            # แสดงว่าเป็นคูปองของ SKU ตัวอื่น ไม่ควรนำมาแนะนำ
-            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0:
+            # แต่ถ้า desc_price ระบุราคาตรงกับ expected_price (เช่น ราคาเซ็ทละ 1056) จะไม่ตัดทิ้ง
+            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0 and not is_desc_price_match:
                 is_discount_match = False
             else:
                 is_discount_match = (
@@ -1929,6 +1946,23 @@ class POSPricingReconciler:
                 # ให้คะแนนพิเศษสูงมากกับคูปองที่ Remark ระบุราคาเป้าหมายตรงกับราคาออเดอร์พอดี
                 if is_remark_price_match:
                     rec_score += 100000
+                rem_val = str(c.get("remark", "") or "").strip()
+                desc_val = str(c.get("desc", "") or "").strip()
+                chosen_rem = rem_val
+                if expected_price is not None:
+                    desc_p = extract_target_price_from_text(desc_val)
+                    rem_p = extract_target_price_from_text(rem_val)
+                    if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
+                        chosen_rem = desc_val
+                    elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
+                        chosen_rem = rem_val
+                    elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val:
+                        chosen_rem = desc_val
+                    elif not chosen_rem:
+                        chosen_rem = desc_val
+                elif not chosen_rem:
+                    chosen_rem = desc_val
+
                 matching_singles.append({
                     "suggested_code": c['code'],
                     "discount": c.get('discount', 0.0),
@@ -1938,7 +1972,7 @@ class POSPricingReconciler:
                     "e_val": e_val,
                     "start_date": s_dt,
                     "end_date": e_dt,
-                    "remark": c.get("remark", ""),
+                    "remark": chosen_rem,
                     "remark_price_matched": is_remark_price_match
                 })
 
@@ -2106,13 +2140,22 @@ class POSPricingReconciler:
                 continue
 
             remark_price = c.get("remark_target_price")
-            is_remark_price_match = (
+            desc_price = extract_target_price_from_text(c.get("desc", ""))
+            is_desc_price_match = (
                 expected_price is not None
-                and remark_price is not None
-                and abs(remark_price - float(expected_price)) <= 0.05
+                and desc_price is not None
+                and abs(desc_price - float(expected_price)) <= 0.05
+            )
+            is_remark_price_match = (
+                (
+                    expected_price is not None
+                    and remark_price is not None
+                    and abs(remark_price - float(expected_price)) <= 0.05
+                )
+                or is_desc_price_match
             )
             # 1.2 ตรวจสอบส่วนลดปกติ
-            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0:
+            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0 and not is_desc_price_match:
                 is_discount_match = False
             else:
                 is_discount_match = (
@@ -2126,13 +2169,30 @@ class POSPricingReconciler:
                 if code and code not in seen_codes:
                     seen_codes.add(code)
                     s_dt, e_dt = get_coupon_start_and_end_dates(c)
+                    rem_val = str(c.get("remark", "") or "").strip()
+                    desc_val = str(c.get("desc", "") or "").strip()
+                    chosen_rem = rem_val
+                    if expected_price is not None:
+                        desc_p = extract_target_price_from_text(desc_val)
+                        rem_p = extract_target_price_from_text(rem_val)
+                        if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
+                            chosen_rem = desc_val
+                        elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
+                            chosen_rem = rem_val
+                        elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val:
+                            chosen_rem = desc_val
+                        elif not chosen_rem:
+                            chosen_rem = desc_val
+                    elif not chosen_rem:
+                        chosen_rem = desc_val
+
                     results.append({
                         "cp_name": code,
                         "oc_amount": "",
                         "dc_amount": "",
                         "start_date": s_dt,
                         "end_date": e_dt,
-                        "remark": c.get("remark", ""),
+                        "remark": chosen_rem,
                         "source": "SMCO"
                     })
 
