@@ -130,15 +130,15 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         ])
 
         self.reconciler._record_missing_cp_with_dates = MagicMock()
+        self.reconciler.apply_candidate_coupons_if_missing = MagicMock(return_value=True)
 
-        # ต้อง raise ValueError จาก _raise_ambiguous_cp_guide
-        with self.assertRaises(ValueError) as cm:
-            self.reconciler.process_price_mismatches(verification_result)
+        # Conflict Resolver จะบันทึก conflict และเลือกตัวที่ดีที่สุด (CP2610050027) ออกบิลต่อโดยไม่ Error
+        self.reconciler.process_price_mismatches(verification_result)
 
-        self.assertIn("ขอวิธีปรับราคา", str(cm.exception))
-        self.assertIn("CP2609140012", str(cm.exception))
-        self.assertIn("CP2610050027", str(cm.exception))
         self.reconciler._record_missing_cp_with_dates.assert_called()
+        self.reconciler.apply_candidate_coupons_if_missing.assert_called_with(
+            1, "SP2-001753+SP2-001755", "CP2610050027"
+        )
 
     def test_add_missing_cp_to_excel_sanitizes_conflicting_remark_and_syncs_gas(self):
         """

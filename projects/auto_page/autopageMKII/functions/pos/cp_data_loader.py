@@ -155,13 +155,87 @@ class DualSourceCPLoader:
             
         return False
 
-    def sync_to_local_excel(self, df: pd.DataFrame) -> None:
-        """Sync merged CP data from GAS/memory down to local excel file"""
-        if not self.local_excel_path or df.empty:
+    def fetch_conflict_resolver_gas(self) -> pd.DataFrame:
+        """Fetch conflict resolver data from Google Apps Script Web App (GET ?sheet=conflict_resolver)"""
+        if not self.gas_url:
+            return pd.DataFrame()
+        try:
+            resp = requests.get(f"{self.gas_url}?sheet=conflict_resolver", timeout=self.request_timeout)
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, list) and len(data) > 0:
+                    df = pd.DataFrame(data)
+                    return self._clean_conflict_dataframe(df)
+        except Exception as e:
+            print(f"[GAS Conflict Loader Warning] Failed to fetch conflict resolver from GAS: {e}")
+        return pd.DataFrame()
+
+    def fetch_conflict_resolver_local(self) -> pd.DataFrame:
+        """Fetch conflict resolver data from local excel file (tab: conflict_resolver)"""
+        if not self.local_excel_path or not os.path.exists(self.local_excel_path):
+            return pd.DataFrame()
+        try:
+            xl = pd.ExcelFile(self.local_excel_path)
+            if 'conflict_resolver' in xl.sheet_names:
+                df = pd.read_excel(self.local_excel_path, sheet_name='conflict_resolver')
+                return self._clean_conflict_dataframe(df)
+        except Exception as e:
+            print(f"[Local Conflict Loader Warning] Failed to read conflict_resolver from local excel: {e}")
+        return pd.DataFrame()
+
+    def load_conflict_resolver_df(self) -> pd.DataFrame:
+        """Load and merge conflict resolver DataFrame from GAS and Local Excel"""
+        df_gas = self.fetch_conflict_resolver_gas()
+        df_local = self.fetch_conflict_resolver_local()
+        if df_gas.empty and df_local.empty:
+            return pd.DataFrame()
+        if df_gas.empty:
+            return df_local
+        if df_local.empty:
+            return df_gas
+        combined = pd.concat([df_gas, df_local], ignore_index=True)
+        if 'sku' in combined.columns and 'sale_price' in combined.columns:
+            combined = combined.drop_duplicates(subset=['sku', 'sale_price'], keep='first')
+        return combined
+
+    def push_conflict_record(self, record_dict: Dict[str, Any]) -> bool:
+        """Push a conflict record to Google Sheet tab 'conflict_resolver' via GAS (POST)"""
+        if not self.gas_url:
+            return False
+        payload = dict(record_dict)
+        payload['sheet'] = 'conflict_resolver'
+        try:
+            resp = requests.post(self.gas_url, json=payload, timeout=self.request_timeout)
+            if resp.status_code == 200:
+                res_data = resp.json()
+                if isinstance(res_data, dict) and res_data.get("status") in ("success", "skipped"):
+                    print(f"[GAS Conflict Loader] Successfully synced conflict record: {record_dict.get('sku')}")
+                    return True
+        except Exception as e:
+            print(f"[GAS Conflict Loader] Failed to POST conflict record: {e}")
+        return False
+
+    def sync_to_local_excel(self, df_cp: pd.DataFrame, df_conflict: Optional[pd.DataFrame] = None) -> None:
+        """Sync merged CP data (and optional conflict_resolver) down to multi-sheet local excel file"""
+        if not self.local_excel_path or df_cp.empty:
             return
         try:
-            df_to_save = df.copy()
-            df_to_save.to_excel(self.local_excel_path, index=False)
+            # Check existing conflict resolver sheet if df_conflict not provided
+            if df_conflict is None:
+                df_conflict = self.fetch_conflict_resolver_local()
+
+            with pd.ExcelWriter(self.local_excel_path, engine='openpyxl') as writer:
+                df_cp.to_excel(writer, sheet_name='cp_data', index=False)
+                if df_conflict is not None and not df_conflict.empty:
+                    df_conflict.to_excel(writer, sheet_name='conflict_resolver', index=False)
+                else:
+                    # Create placeholder conflict resolver sheet
+                    dummy_conflict = pd.DataFrame(columns=[
+                        'sku', 'sale_price', 'candidate_1', 'candidate_2', 'candidate_3',
+                        'suggested_winner', 'reason', 'admin_selection', 'status', 'last_updated'
+                    ])
+                    dummy_conflict.to_excel(writer, sheet_name='conflict_resolver', index=False)
+
             self._last_local_mtime = os.path.getmtime(self.local_excel_path)
             try:
                 from functions.pos.pricing_engine import format_cp_excel
@@ -172,6 +246,26 @@ class DualSourceCPLoader:
             print(f"[GAS CP Loader] Local excel file is open in another app, cannot sync down: {self.local_excel_path}")
         except Exception as e:
             print(f"[GAS CP Loader Warning] Failed to sync to local excel: {e}")
+
+    def _clean_conflict_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize conflict resolver dataframe columns"""
+        if df.empty:
+            return df
+        df = df.copy()
+        df.columns = [str(c).strip().lower() for c in df.columns]
+        if 'sku' in df.columns:
+            df.loc[:, 'sku'] = [str(v).strip().upper() for v in df['sku']]
+        if 'sale_price' in df.columns:
+            df.loc[:, 'sale_price'] = pd.to_numeric(df['sale_price'], errors='coerce')
+        for col in ['admin_selection', 'suggested_winner', 'status', 'reason']:
+            if col in df.columns:
+                def _c_str(v):
+                    if pd.isna(v) or v is None:
+                        return ""
+                    s = str(v).strip()
+                    return "" if s.lower() in ('nan', 'none', '<na>', 'null', '-') else s
+                df.loc[:, col] = [_c_str(v) for v in df[col]]
+        return df
 
     def load_cp_df(self, force_refresh: bool = False) -> pd.DataFrame:
         """
@@ -199,7 +293,8 @@ class DualSourceCPLoader:
 
         # ซิงค์ข้อมูลล่าสุดจาก Cloud Google Sheet กลับลงมาที่ Local Excel อัตโนมัติ (หากดึง GAS สำเร็จ)
         if not df_gas.empty and self.local_excel_path and os.path.exists(self.local_excel_path):
-            self.sync_to_local_excel(merged_df)
+            df_conflict_gas = self.fetch_conflict_resolver_gas()
+            self.sync_to_local_excel(merged_df, df_conflict=df_conflict_gas)
 
         return merged_df
 
@@ -339,16 +434,33 @@ class DualSourceCPLoader:
                 for idx in df.index:
                     s_val = df.loc[idx, s_col]
                     e_val = df.loc[idx, e_col]
-                    if pd.notna(s_val) and pd.notna(e_val) and s_val > e_val:
-                        e_swapped = _swap_dt(e_val)
-                        s_swapped = _swap_dt(s_val)
-                        if pd.notna(e_swapped) and s_val <= e_swapped:
-                            df.loc[idx, e_col] = e_swapped
-                        elif pd.notna(s_swapped) and s_swapped <= e_val:
-                            df.loc[idx, s_col] = s_swapped
-                        elif pd.notna(s_swapped) and pd.notna(e_swapped) and s_swapped <= e_swapped:
-                            df.loc[idx, s_col] = s_swapped
-                            df.loc[idx, e_col] = e_swapped
+                    if pd.notna(s_val) and pd.notna(e_val):
+                        # กรณีที่ 1: วันเริ่ม > วันสิ้นสุด
+                        if s_val > e_val:
+                            e_swapped = _swap_dt(e_val)
+                            s_swapped = _swap_dt(s_val)
+                            if pd.notna(e_swapped) and s_val <= e_swapped:
+                                df.loc[idx, e_col] = e_swapped
+                            elif pd.notna(s_swapped) and s_swapped <= e_val:
+                                df.loc[idx, s_col] = s_swapped
+                            elif pd.notna(s_swapped) and pd.notna(e_swapped) and s_swapped <= e_swapped:
+                                df.loc[idx, s_col] = s_swapped
+                                df.loc[idx, e_col] = e_swapped
+                        # กรณีที่ 2: วันเริ่มเกิด US Locale Swap (เช่น e_val เดือน 10 แต่ s_val เดือน 1 วัน 10)
+                        elif hasattr(s_val, 'month') and hasattr(s_val, 'day') and hasattr(e_val, 'month'):
+                            if s_val.month != e_val.month and s_val.day == e_val.month and 1 <= s_val.month <= 12:
+                                s_swapped = _swap_dt(s_val)
+                                if pd.notna(s_swapped) and s_swapped <= e_val:
+                                    df.loc[idx, s_col] = s_swapped
+                        
+                        # กรณีที่ 3: ทั้งคู่เกิด US Locale Swap (เช่น 04/09 -> 9 เม.ย., 08/10 -> 10 ส.ค.)
+                        if hasattr(s_val, 'month') and hasattr(s_val, 'day') and hasattr(e_val, 'month') and hasattr(e_val, 'day'):
+                            if s_val.month in (4, 8) and s_val.day in (9, 10):
+                                s_swapped = _swap_dt(s_val)
+                                e_swapped = _swap_dt(e_val)
+                                if pd.notna(s_swapped) and pd.notna(e_swapped) and s_swapped <= e_swapped:
+                                    df.loc[idx, s_col] = s_swapped
+                                    df.loc[idx, e_col] = e_swapped
 
         if 'sku' in df.columns:
             df.loc[:, 'sku'] = [str(v).strip() for v in df['sku']]

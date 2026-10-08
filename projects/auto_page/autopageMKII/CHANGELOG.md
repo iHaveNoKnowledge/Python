@@ -72,7 +72,13 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
-### [ver5.x.x] - 2026-10-08
+- [X] **[Conflict Resolver Tab & Live SMCO Active Candidate Filtering & Dual-Month Date Auto-Correction]** เพิ่มระบบจัดการความขัดแย้งผ่านแท็บ `conflict_resolver` ร่วมกับระบบคัดกรองคูปองสดจาก SMCO และป้องกันความคลาดเคลื่อนของวันที่:
+  - **Conflict Resolver Multi-Sheet Architecture**: เพิ่มแท็บ `conflict_resolver` บน Google Sheets และ Local Excel (`cp_data.xlsx`) สำหรับรวบรวมเคสที่ SKU และราคาเป้าหมายมีตัวเลือกโปรโมชันซ้ำซ้อนกัน โดยมีคอลัมน์ `sku`, `sale_price`, `candidate_1`, `candidate_2`, `candidate_3`, `suggested_winner`, `reason`, `admin_selection`, `status`, `last_updated`
+  - **Smart Tie-Breaking Auto-Proceed**: เมื่อเกิดความขัดแย้งและยังไม่มีการตัดสินใจจาก Admin ระบบจะไม่หยุดข้ามออเดอร์ให้คิวสะดุด แต่จะใช้การประเมินคะแนนอัจฉริยะ (Date Validity + Date Recency + Simplicity No OC) เลือกตัวที่ดีที่สุด (`suggested_winner`) ไปออกบิลต่อทันที พร้อมส่งบันทึกเข้า `conflict_resolver`
+  - **Admin Selection Priority**: หาก Admin เข้าไประบุรหัสคูปองใน `admin_selection` และตั้ง `status = APPROVED` บอทจะล็อกใช้ตามที่ Admin สั่ง 100% ทันที
+  - **Used CP Mask Isolation**: ปรับปรุง `record_pos_cart_summary_to_excel()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ให้แมตช์แถวด้วย `used_cp` ป้องกันไม่ให้ออเดอร์ที่สำเร็จไปอัปเดตทับแถวคูปองอื่นของ SKU เดียวกัน จนเกิดแถวเบิ้ลหรือวันที่ปนเปื้อน
+  - **Dual-Month US Locale Auto-Correction**: ปรับปรุง `_clean_dataframe()` ใน [cp_data_loader.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/cp_data_loader.py) ตรวจจับการสลับวัน/เดือนของโปรโมชัน (เช่น `04/09` เพี้ยนเป็น 9 เม.ย. และ `08/10` เพี้ยนเป็น 10 ส.ค.) และแปลงกลับเป็น `04 ก.ย.` และ `08 ต.ค.` อย่างแม่นยำ
+  - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน [test_conflict_resolver_and_live_filter.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_conflict_resolver_and_live_filter.py) (ผ่าน 100%)
 
 - [X] **[Auto-Record Ambiguous Recipe Patterns & Multi-CP/DC Comma-Separated Remark & Date Hierarchy Rules]** บันทึกสูตร Pattern อัตโนมัติเมื่อพบความคลุมเครือ พร้อมจัดรูปแบบ Remark และลำดับความสำคัญของวันที่สำหรับ Multi-CP/DC:
   - **Auto-Record Patterns on Ambiguity Alert**: เมื่อระบบตรวจพบทางเลือก CP/DC มากกว่า 1 ชุดบนหน้าเว็บ SMCO (Ambiguity Alert) และหยุดข้ามออเดอร์ (`Order skipped, multiple ambiguous CP/DC options found`) ระบบจะใช้โอกาสนี้บันทึกข้อมูลทุกชุด Pattern ที่ตรวจพบ (โดยเฉพาะสูตร/คูปองใหม่ที่พบบน SMCO) ลงใน `cp_data.xlsx` และซิงค์ไปยัง Google Sheet พร้อมข้อมูลข้อเสนอแนะ (`suggested_cp`, `suggested_usage_start_date`, `suggested_usage_end_date`, `suggested_remark`) โดยไม่ทับสูตรเดิมที่มีอยู่ เพื่อให้ Admin ตรวจสอบและเลือกใช้ได้ทันที

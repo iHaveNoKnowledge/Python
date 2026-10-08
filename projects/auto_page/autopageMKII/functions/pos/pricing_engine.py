@@ -1832,13 +1832,32 @@ class POSPricingReconciler:
 
                 # จับคู่แถวเดิม:
                 # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)
-                mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - act_price).abs() <= 0.05)
+                # และหากมี used_cp ให้จับคู่เฉพาะแถวที่เป็นคูปอง/สูตรเดียวกัน เพื่อไม่เขียนทับแถวอื่นของ SKU เดียวกัน
+                sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - act_price).abs() <= 0.05)
+                mask = sku_price_mask
+                if sku_price_mask.any() and used_cp:
+                    used_cp_clean = str(used_cp).strip().upper()
+                    cp_match_mask = sku_price_mask & (
+                        (df['cp_name'].astype(str).str.strip().str.upper() == used_cp_clean) |
+                        (df['suggested_cp'].astype(str).str.strip().str.upper() == used_cp_clean)
+                    )
+                    if cp_match_mask.any():
+                        mask = cp_match_mask
 
                 # 2. ถ้าไม่เจอ เช็ค sku และ sale_price ตรงกับ expected_price
                 if not mask.any() and hasattr(self, 'last_expected_prices') and self.last_expected_prices:
                     exp_p = self.last_expected_prices.get(sku_clean) or self.last_expected_prices.get(sku_raw)
                     if exp_p is not None:
-                        mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - exp_p).abs() <= 0.05)
+                        exp_sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - exp_p).abs() <= 0.05)
+                        mask = exp_sku_price_mask
+                        if exp_sku_price_mask.any() and used_cp:
+                            used_cp_clean = str(used_cp).strip().upper()
+                            cp_match_mask = exp_sku_price_mask & (
+                                (df['cp_name'].astype(str).str.strip().str.upper() == used_cp_clean) |
+                                (df['suggested_cp'].astype(str).str.strip().str.upper() == used_cp_clean)
+                            )
+                            if cp_match_mask.any():
+                                mask = cp_match_mask
 
                 # 3. ถ้ายังไม่เจอ เช็คเฉพาะ sku เดียวกัน
                 if not mask.any():
@@ -1926,7 +1945,15 @@ class POSPricingReconciler:
                         act_p = float(it.get('unit_net', 0.0))
                         
                         row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c) & ((df['sale_price'] - act_p).abs() <= 0.05)
-                        if not row_m.any():
+                        if row_m.any() and used_c:
+                            used_c_clean = str(used_c).strip().upper()
+                            row_m_cp = row_m & (
+                                (df['cp_name'].astype(str).str.strip().str.upper() == used_c_clean) |
+                                (df['suggested_cp'].astype(str).str.strip().str.upper() == used_c_clean)
+                            )
+                            if row_m_cp.any():
+                                row_m = row_m_cp
+                        elif not row_m.any():
                             row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c)
                         m_val = str(df.loc[row_m, 'last_adjustment_method'].iloc[0]) if (row_m.any() and 'last_adjustment_method' in df.columns) else ""
                         
@@ -3696,7 +3723,7 @@ class POSPricingReconciler:
 
                             self.app.update_log(f"✅ ใช้ชุด CP/DC สำหรับ SKU: {sku_key} สำเร็จ")
 
-                        # ─── CASE 2: พบชุดที่ตรงบน SMCO มากกว่า 1 ชุด (Ambiguity Detected!) ───
+                        # ─── CASE 2: พบชุดที่ตรงบน SMCO มากกว่า 1 ชุด (Ambiguity Detected -> Conflict Resolver) ───
                         else:
                             ambiguous_details = []
                             for idx_a, ac in enumerate(unified_candidates, start=1):
@@ -3706,24 +3733,40 @@ class POSPricingReconciler:
 
                             ambiguity_str = "\n".join(f"  • {d}" for d in ambiguous_details)
                             log_warn = (
-                                f"⚠️ [Ambiguity Alert] พบชุด CP/DC ที่ตรงเงื่อนไขบนหน้าเว็บ SMCO มากกว่า 1 ชุด ({len(unified_candidates)} ชุด) สำหรับ SKU: {sku_key}\n"
-                                f"{ambiguity_str}\n"
-                                f"ระบบจะหยุดการปรับราคาอัตโนมัติเพื่อป้องกันการเลือกผิดพลาด (Option B: Strict Safety)"
+                                f"⚠️ [Conflict Resolver] พบชุด CP/DC ที่ตรงเงื่อนไขบนหน้าเว็บ SMCO มากกว่า 1 ชุด ({len(unified_candidates)} ชุด) สำหรับ SKU: {sku_key}\n"
+                                f"{ambiguity_str}"
                             )
-                            logger.warning(log_warn)
+                            logger.info(log_warn)
                             self.app.update_log(log_warn)
 
-                            # บันทึกทุกชุด Pattern ที่พบ (โดยเฉพาะ pattern ใหม่ที่พบบน SMCO) พร้อมข้อมูลคำแนะนำ (suggested_cp, dates, remark)
+                            # 1. ตรวจสอบว่าในแท็บ conflict_resolver มีการอนุมัติ (Admin Selection) หรือยัง
+                            admin_cand = None
+                            if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                                try:
+                                    df_conf = self._dual_cp_loader.load_conflict_resolver_df()
+                                    if not df_conf.empty:
+                                        sku_m = (df_conf['sku'].astype(str).str.strip().str.upper() == str(sku_key).strip().upper())
+                                        price_m = ((pd.to_numeric(df_conf['sale_price'], errors='coerce') - float(expected_price)).abs() <= 0.05)
+                                        matched_conf = df_conf[sku_m & price_m]
+                                        if not matched_conf.empty:
+                                            admin_pick = str(matched_conf['admin_selection'].iloc[0] or "").strip().upper()
+                                            status_val = str(matched_conf['status'].iloc[0] or "").strip().upper()
+                                            if admin_pick and status_val in ('APPROVED', 'RESOLVED', 'ACTIVE'):
+                                                for uc in unified_candidates:
+                                                    c_name_u = str(uc.get('cp_name', '') or '').strip().upper()
+                                                    if c_name_u == admin_pick or admin_pick in c_name_u:
+                                                        admin_cand = uc
+                                                        break
+                                except Exception as ex_conf:
+                                    print(f"[Conflict Resolver] Error checking admin selection: {ex_conf}")
+
+                            # 2. บันทึกทุก Pattern ที่พบลงใน cp_data เพื่อเก็บเป็นประวัติและทางเลือก
                             for cand in unified_candidates:
                                 c_cp = str(cand.get("cp_name", "") or "").strip()
                                 c_oc = str(cand.get("oc_amount", "") or "").strip()
                                 c_dc = str(cand.get("dc_amount", "") or "").strip()
                                 c_src = cand.get("source", "")
-
-                                cand_sugg_info = None
-                                if sugg_info and sugg_info.get("suggested_code") == c_cp:
-                                    cand_sugg_info = sugg_info
-
+                                cand_sugg_info = sugg_info if (sugg_info and sugg_info.get("suggested_code") == c_cp) else None
                                 cand_rem = cand.get("remark", "")
                                 cand_start = cand.get("start_date") or cand.get("usage_start_date") or cand.get("suggested_usage_start_date")
                                 cand_end = cand.get("end_date") or cand.get("usage_end_date") or cand.get("suggested_usage_end_date")
@@ -3749,7 +3792,103 @@ class POSPricingReconciler:
                                     remark=resolved_rem
                                 )
 
-                            self._raise_ambiguous_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, unified_candidates, suggested_cp_info=sugg_info)
+                            # 3. เลือกตัวที่จะนำไปใช้งาน: หากมี Admin Selection ให้ใช้ตาม Admin; หากยังไม่มี ให้ใช้ Smart Suggested Winner
+                            if admin_cand is not None:
+                                chosen_cand = admin_cand
+                                self.app.update_log(f"🎯 [Conflict Resolver] ใช้สูตรตามที่ Admin อนุมัติ: [{chosen_cand.get('cp_name')}] สำหรับ SKU: {sku_key}")
+                            else:
+                                # Smart Tie-Breaker: คัดเลือกตัวที่ดีที่สุด (ไม่หมดอายุ + วันที่เริ่มใหม่สุด + ไม่มี OC/DC)
+                                def score_candidate(c_item):
+                                    sc = 0
+                                    c_st = parse_smart_date(c_item.get("start_date") or c_item.get("usage_start_date") or c_item.get("suggested_usage_start_date"))
+                                    c_en = parse_smart_date(c_item.get("end_date") or c_item.get("usage_end_date") or c_item.get("suggested_usage_end_date"))
+                                    ord_d = parse_smart_date(purchased_date)
+                                    if c_item.get("is_expired"):
+                                        sc -= 100
+                                    if ord_d and c_st and c_en:
+                                        if c_st <= ord_d <= c_en:
+                                            sc += 50
+                                        elif ord_d > c_en:
+                                            sc -= 80
+                                    if not is_valid_adjustment(c_item.get("oc_amount")) and not is_valid_adjustment(c_item.get("dc_amount")):
+                                        sc += 20
+                                    if c_st:
+                                        try:
+                                            sc += (c_st - datetime.date(2026, 1, 1)).days * 0.1
+                                        except Exception:
+                                            pass
+                                    return sc
+
+                                sorted_candidates = sorted(unified_candidates, key=score_candidate, reverse=True)
+                                chosen_cand = sorted_candidates[0]
+                                suggested_winner_code = str(chosen_cand.get("cp_name") or "").strip()
+
+                                # สร้าง Conflict Record ส่งขึ้นแท็บ conflict_resolver
+                                cand_desc_list = []
+                                for idx_c, c in enumerate(unified_candidates[:3], start=1):
+                                    c_name = c.get("cp_name") or "-"
+                                    c_rem = f" ({c.get('remark')})" if c.get("remark") else ""
+                                    cand_desc_list.append(f"{idx_c}) {c_name}{c_rem}")
+
+                                reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
+                                conflict_payload = {
+                                    "sku": str(sku_key).strip().upper(),
+                                    "sale_price": float(expected_price),
+                                    "candidate_1": cand_desc_list[0] if len(cand_desc_list) > 0 else "",
+                                    "candidate_2": cand_desc_list[1] if len(cand_desc_list) > 1 else "",
+                                    "candidate_3": cand_desc_list[2] if len(cand_desc_list) > 2 else "",
+                                    "suggested_winner": suggested_winner_code,
+                                    "reason": reason_str,
+                                    "admin_selection": "",
+                                    "status": "PENDING",
+                                    "last_updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                }
+                                if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                                    self._dual_cp_loader.push_conflict_record(conflict_payload)
+
+                                self.app.update_log(
+                                    f"💡 [Conflict Resolver] บันทึกข้อขัดแย้งเข้าแท็บ conflict_resolver เรียบร้อยแล้ว -> เลือกใช้สูตรแนะนำ [{suggested_winner_code}] ออกบิลต่ออัตโนมัติ"
+                                )
+
+                            # 4. ดำเนินการออกบิลต่อด้วย chosen_cand โดยไม่อุดตัน (Proceed Smoothly)
+                            cp_name = chosen_cand.get("cp_name", "")
+                            oc_amount_str = chosen_cand.get("oc_amount", "")
+                            dc_amount_str = chosen_cand.get("dc_amount", "")
+                            is_bypass_signal = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
+
+                            if is_bypass_signal:
+                                self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cp_name})")
+                                continue
+
+                            has_valid_cp = bool(cp_name and not is_bypass_signal and cp_name.strip() != "")
+                            has_valid_oc = is_valid_adjustment(oc_amount_str)
+                            has_valid_dc = is_valid_adjustment(dc_amount_str)
+
+                            if has_valid_cp:
+                                self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
+                                try:
+                                    cp_ok = self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cp_name)
+                                    if not cp_ok:
+                                        cp_ok = self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                                    time.sleep(0.5)
+                                except Exception as check_err:
+                                    print(f"Error applying coupon in conflict resolver: {check_err}")
+                                    self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                                    time.sleep(0.5)
+
+                            if has_valid_oc:
+                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+                                self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
+                                time.sleep(0.5)
+
+                            if has_valid_dc:
+                                item_qty = int(item.get('จำนวน', 1))
+                                total_dc = float(dc_amount_str) * item_qty
+                                self.app.update_log(f"📉 ปรับราคาลด (Discount): {dc_amount_str} x {item_qty} = {total_dc} บาท")
+                                self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=item_qty)
+                                time.sleep(0.5)
+
+                            self.app.update_log(f"✅ ใช้ชุด CP/DC สำหรับ SKU: {sku_key} สำเร็จ")
 
     def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list, suggested_cp_info: Optional[dict] = None) -> None:
         """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อพบคูปองที่ตรงเงื่อนไขซ้ำซ้อนกันมากกว่า 1 ชุด"""
