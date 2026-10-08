@@ -485,6 +485,27 @@ class POSPricingReconciler:
         self._product_master_cache: Dict[str, list] = {}
         self._session_ctx: Optional[Dict[str, Any]] = None
 
+        # Initialize DualSourceCPLoader for real-time sync with Google Sheet & Local Excel
+        gas_url = getattr(self.app, 'cp_gas_url', None)
+        excel_path = getattr(self.app, 'cp_table_location', '')
+        if not excel_path or not os.path.exists(excel_path):
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            for cand in [
+                os.path.join(base_dir, "tables", "cp_data.xlsx"),
+                os.path.join(base_dir, "assets", "tables", "cp_data.xlsx")
+            ]:
+                if os.path.exists(cand):
+                    excel_path = cand
+                    break
+        try:
+            from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
+            self._dual_cp_loader = DualSourceCPLoader(
+                gas_url=gas_url or DEFAULT_GAS_URL,
+                local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None
+            )
+        except Exception:
+            self._dual_cp_loader = None
+
     # ══════════════════════════════════════════════════════════════════════════
     # HELPER UTILITIES
     # ══════════════════════════════════════════════════════════════════════════
@@ -1032,12 +1053,32 @@ class POSPricingReconciler:
         """
         try:
             excel_path = getattr(self.app, 'cp_table_location', '')
-            if not excel_path or str(excel_path).strip() == "":
+            if not excel_path or not os.path.exists(excel_path):
+                base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+                for cand in [
+                    os.path.join(base_dir, "tables", "cp_data.xlsx"),
+                    os.path.join(base_dir, "assets", "tables", "cp_data.xlsx")
+                ]:
+                    if os.path.exists(cand):
+                        excel_path = cand
+                        if hasattr(self.app, 'cp_table_location') and not self.app.cp_table_location:
+                            self.app.cp_table_location = cand
+                        break
+
+            if not excel_path or not os.path.exists(excel_path):
                 return
 
-            import os
-            if not os.path.exists(excel_path):
-                return
+            if not hasattr(self, '_dual_cp_loader') or self._dual_cp_loader is None:
+                try:
+                    from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
+                    self._dual_cp_loader = DualSourceCPLoader(
+                        gas_url=getattr(self.app, 'cp_gas_url', None) or DEFAULT_GAS_URL,
+                        local_excel_path=excel_path
+                    )
+                except Exception:
+                    self._dual_cp_loader = None
+            elif excel_path and self._dual_cp_loader.local_excel_path != excel_path:
+                self._dual_cp_loader.local_excel_path = excel_path
 
             try:
                 df = pd.read_excel(excel_path)
@@ -1064,6 +1105,11 @@ class POSPricingReconciler:
             end_str = format_smart_datetime_str(end_date) if end_date else ""
             remark_str = str(remark or "").strip()
 
+            # Sanitize remark: if remark contains target price contradicting expected_price, discard/clear it
+            rem_price = extract_target_price_from_text(remark_str)
+            if rem_price is not None and expected_price is not None and abs(rem_price - float(expected_price)) > 1.0:
+                remark_str = ""
+
             sku_clean = str(sku_key).strip().upper()
             mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - expected_price).abs() <= 0.05)
 
@@ -1076,8 +1122,13 @@ class POSPricingReconciler:
                     existing_rows['suggested_usage_start_date'] = start_str
                 if end_str:
                     existing_rows['suggested_usage_end_date'] = end_str
+                
+                existing_rem = str(existing_rows['suggested_remark'].iloc[0] or "").strip()
+                existing_rem_price = extract_target_price_from_text(existing_rem)
                 if remark_str:
                     existing_rows['suggested_remark'] = remark_str
+                elif existing_rem_price is not None and abs(existing_rem_price - float(expected_price)) > 1.0:
+                    existing_rows['suggested_remark'] = ""
                 existing_rows['last_updated'] = now_str
                 
                 df_without_old = df[~mask]
@@ -1093,13 +1144,7 @@ class POSPricingReconciler:
                     'last_updated': now_str
                 }
 
-                new_df = pd.DataFrame([new_row])
-
-                for col in df.columns:
-                    if col not in new_df.columns:
-                        new_df[col] = ""
-                new_df = new_df[df.columns]
-
+                new_df = pd.DataFrame([new_row]).reindex(columns=df.columns, fill_value="")
                 df_combined = pd.concat([df, new_df], ignore_index=True)
 
             df_combined.to_excel(excel_path, index=False)
@@ -1134,8 +1179,12 @@ class POSPricingReconciler:
                         app_rows['suggested_usage_start_date'] = start_str
                     if end_str:
                         app_rows['suggested_usage_end_date'] = end_str
+                    app_existing_rem = str(app_rows['suggested_remark'].iloc[0] or "").strip()
+                    app_rem_price = extract_target_price_from_text(app_existing_rem)
                     if remark_str:
                         app_rows['suggested_remark'] = remark_str
+                    elif app_rem_price is not None and abs(app_rem_price - float(expected_price)) > 1.0:
+                        app_rows['suggested_remark'] = ""
                     app_rows['last_updated'] = now_str
                     self.app.cp_df = pd.concat([self.app.cp_df[~app_mask], app_rows], ignore_index=True)
                 else:
@@ -1145,17 +1194,32 @@ class POSPricingReconciler:
             # ส่งข้อมูลขึ้น Google Sheet ในเบื้องหลัง (ถ้าเชื่อมต่อ GAS ไว้)
             try:
                 if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                    cur_sugg_cp = str(suggested_cp or "").strip()
+                    cur_start = start_str
+                    cur_end = end_str
+                    cur_rem = remark_str
+                    if mask.any() and 'existing_rows' in locals():
+                        if not cur_sugg_cp and 'suggested_cp' in existing_rows.columns:
+                            cur_sugg_cp = str(existing_rows['suggested_cp'].iloc[0] or "").strip()
+                        if not cur_start and 'suggested_usage_start_date' in existing_rows.columns and pd.notna(existing_rows['suggested_usage_start_date'].iloc[0]):
+                            cur_start = str(existing_rows['suggested_usage_start_date'].iloc[0]).strip()
+                        if not cur_end and 'suggested_usage_end_date' in existing_rows.columns and pd.notna(existing_rows['suggested_usage_end_date'].iloc[0]):
+                            cur_end = str(existing_rows['suggested_usage_end_date'].iloc[0]).strip()
+                        if 'suggested_remark' in existing_rows.columns:
+                            cur_rem = str(existing_rows['suggested_remark'].iloc[0] or "").strip()
+
+                    gas_remark = cur_rem if cur_rem else "-"
                     payload = {
                         "sku": sku_clean,
                         "sale_price": float(expected_price),
                         "expected_price": float(expected_price),
-                        "suggested_cp": str(suggested_cp or "").strip(),
-                        "suggested_usage_start_date": start_str,
-                        "suggested_usage_end_date": end_str,
-                        "suggested_remark": remark_str,
+                        "suggested_cp": cur_sugg_cp,
+                        "suggested_usage_start_date": cur_start,
+                        "suggested_usage_end_date": cur_end,
+                        "suggested_remark": gas_remark,
                         "last_updated": now_str
                     }
-                    if mask.any():
+                    if mask.any() and 'existing_rows' in locals():
                         old_row = existing_rows.iloc[0]
                         for c in ['cp_name', 'usage_start_date', 'usage_end_date', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc', 'last_order_id', 'last_used_cp', 'last_actual_price', 'last_adjustment_method']:
                             if c in old_row and pd.notna(old_row[c]) and str(old_row[c]).strip():
@@ -1608,7 +1672,19 @@ class POSPricingReconciler:
 
             # ส่งข้อมูลสรุปการออกบิลและคูปองที่สำเร็จขึ้น Google Sheet (Pattern เดียวกับ Local cp_data.xlsx)
             try:
-                if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                if not hasattr(self, '_dual_cp_loader') or self._dual_cp_loader is None:
+                    try:
+                        from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
+                        self._dual_cp_loader = DualSourceCPLoader(
+                            gas_url=getattr(self.app, 'cp_gas_url', None) or DEFAULT_GAS_URL,
+                            local_excel_path=excel_path
+                        )
+                    except Exception:
+                        self._dual_cp_loader = None
+                elif excel_path and self._dual_cp_loader.local_excel_path != excel_path:
+                    self._dual_cp_loader.local_excel_path = excel_path
+
+                if self._dual_cp_loader:
                     for it in summary_items:
                         used_c = it.get('coupons', '').strip()
                         sku_c = str(it.get('sku', '')).strip().upper()
@@ -1636,6 +1712,15 @@ class POSPricingReconciler:
                             for col in ['usage_start_date', 'usage_end_date', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc']:
                                 if col in m_row and pd.notna(m_row[col]) and str(m_row[col]).strip():
                                     payload[col] = str(m_row[col]).strip()
+
+                        # ตรวจสอบและ sanitize suggested_remark หากราคาที่ระบุใน remark ขัดแย้งกับราคาขายจริง
+                        sugg_rem = payload.get('suggested_remark', '')
+                        sugg_rem_price = extract_target_price_from_text(sugg_rem)
+                        if sugg_rem_price is not None and abs(sugg_rem_price - act_p) > 1.0:
+                            payload['suggested_remark'] = "-"
+                            if row_m.any() and 'suggested_remark' in df.columns:
+                                df.loc[row_m, 'suggested_remark'] = ""
+
                         self._dual_cp_loader.push_record_to_gas(payload)
             except Exception as gas_err:
                 logger.debug(f"[record_pos_cart_summary_to_excel] Google Sheet sync skipped: {gas_err}")

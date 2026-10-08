@@ -72,6 +72,15 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-10-08
+
+- [X] **[DualSource CP Loader Real-Time Google Sheet & Local Sync & Remark Conflict Sanitization]** แก้ไขปัญหาคอลัมน์ `suggested_remark` และ `suggested_cp` ไม่อัปเดตบน Google Sheets และ local `cp_data.xlsx`:
+  - **Local Path Fallback & Guaranteed Loader**: เพิ่มการค้นหาพาธสำรอง `tables/cp_data.xlsx` ใน `POSPricingReconciler.__init__`, `add_missing_cp_to_excel()` และ `record_pos_cart_summary_to_excel()` ป้องกันการหยุดทำงานเมื่อ `cp_table_location` ยังไม่ได้ถูกเซ็ตใน Session
+  - **Remark Conflict Sanitization**: ตรวจสอบความสอดคล้องระหว่างราคาที่ระบุในข้อความ Remark กับราคาขายจริง (`act_price` / `expected_price`) เช่น กรณีสินค้าเซ็ต 1,056 บาท แต่ Remark ติดข้อความ "ราคา 409" มาจาก SKU ย่อย ระบบจะเคลียร์ค่าใน Local Excel เป็นค่าว่าง และส่ง `"-"` ไปยัง Google Apps Script เพื่อบังคับเขียนทับลบค่าเดิมทิ้งทันที
+  - **Deduplication Logic Fix (`_is_exact_duplicate`)**: ปรับปรุงการตรวจสอบใน `DualSourceCPLoader` ให้ตรวจจับเมื่อมีการเคลียร์ฟิลด์ (เช่น ค่าเดิมมี แต่ค่าใหม่ส่ง `""` หรือ `"-"`) เพื่อไม่ให้เข้าใจผิดว่าเป็นแถวซ้ำซ้อน และส่ง POST อัปเดตไปยัง Google Sheet ได้สำเร็จ พร้อมเคลียร์ Cache ทันที
+  - **Cloud-to-Local Auto Sync (`sync_to_local_excel`)**: เพิ่มระบบซิงค์ข้อมูลจาก Google Sheets กลับลงมายัง Local Excel (`cp_data.xlsx`) อัตโนมัติเมื่อมีการโหลดข้อมูลผ่าน `load_cp_df()` ทำให้ข้อมูลฝั่ง Local เป็นปัจจุบันตรงกับบนคลาวด์เสมอ
+  - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน [test_realtime_ambiguity_and_remark.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_realtime_ambiguity_and_remark.py)
+
 ### [ver5.x.x] - 2026-10-05
 
 - [X] **[Pricing Engine Real-Time SMCO Candidate Discovery & Multi-Recipe Ambiguity Protection (Strict Safety)]** เพิ่มระบบตรวจจับโปรโมชั่น/คูปองใหม่บนเว็บ SMCO แบบ Real-time และระบบป้องกันความคลุมเครือของสูตรคูปอง:

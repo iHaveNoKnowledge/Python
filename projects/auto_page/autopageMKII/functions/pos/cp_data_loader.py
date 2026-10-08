@@ -109,13 +109,14 @@ class DualSourceCPLoader:
         for _, row in matched.iterrows():
             is_match = True
             for field in fields_to_check:
+                if field not in record_dict:
+                    continue
                 val = record_dict.get(field)
-                if val is not None and str(val).strip() != "":
-                    val_str = str(val).strip()
-                    row_val = str(row.get(field, '')).strip() if pd.notna(row.get(field)) else ""
-                    if val_str != row_val:
-                        is_match = False
-                        break
+                val_str = str(val).strip() if (val is not None and str(val).strip() not in ("", "-")) else ""
+                row_val = str(row.get(field, '')).strip() if (pd.notna(row.get(field)) and str(row.get(field)).strip() not in ("", "-")) else ""
+                if val_str != row_val:
+                    is_match = False
+                    break
             if is_match:
                 return True
 
@@ -140,8 +141,9 @@ class DualSourceCPLoader:
                 res_data = resp.json()
                 if isinstance(res_data, dict) and res_data.get("status") in ("success", "skipped"):
                     print(f"[GAS CP Loader] Successfully synced record to Google Sheet: {record_dict.get('sku')}")
-                    # เคลียร์เวลา fetch แคช เพื่อให้รอบถัดไปดึงข้อมูลใหม่ที่เพิ่งซิงค์
+                    # เคลียร์เวลา fetch แคช และแคช เพื่อให้รอบถัดไปดึงข้อมูลใหม่ที่เพิ่งซิงค์
                     self._last_fetch_time = 0
+                    self._cached_df = None
                     return True
                 else:
                     print(f"[GAS CP Loader] GAS returned response: {res_data}")
@@ -151,6 +153,24 @@ class DualSourceCPLoader:
             print(f"[GAS CP Loader] Failed to POST data to Google Sheet: {e}")
             
         return False
+
+    def sync_to_local_excel(self, df: pd.DataFrame) -> None:
+        """Sync merged CP data from GAS/memory down to local excel file"""
+        if not self.local_excel_path or df.empty:
+            return
+        try:
+            df_to_save = df.copy()
+            df_to_save.to_excel(self.local_excel_path, index=False)
+            self._last_local_mtime = os.path.getmtime(self.local_excel_path)
+            try:
+                from functions.pos.pricing_engine import format_cp_excel
+                format_cp_excel(self.local_excel_path)
+            except Exception:
+                pass
+        except PermissionError:
+            print(f"[GAS CP Loader] Local excel file is open in another app, cannot sync down: {self.local_excel_path}")
+        except Exception as e:
+            print(f"[GAS CP Loader Warning] Failed to sync to local excel: {e}")
 
     def load_cp_df(self, force_refresh: bool = False) -> pd.DataFrame:
         """
@@ -175,6 +195,11 @@ class DualSourceCPLoader:
         
         self._cached_df = merged_df
         self._last_fetch_time = now
+
+        # ซิงค์ข้อมูลล่าสุดจาก Cloud Google Sheet กลับลงมาที่ Local Excel อัตโนมัติ (หากดึง GAS สำเร็จ)
+        if not df_gas.empty and self.local_excel_path and os.path.exists(self.local_excel_path):
+            self.sync_to_local_excel(merged_df)
+
         return merged_df
 
     def _merge_dfs(self, df_gas: pd.DataFrame, df_local: pd.DataFrame) -> pd.DataFrame:
@@ -241,6 +266,18 @@ class DualSourceCPLoader:
                         return s[:-2]
                     return s
                 df.loc[:, adj_col] = [_clean_adj(v) for v in df[adj_col]]
+
+        # Clean string remark columns (แปลง '-' หรือ 'nan' จาก GAS ให้เป็นค่าว่าง)
+        for str_col in ['suggested_remark', 'remark']:
+            if str_col in df.columns:
+                def _clean_str(v):
+                    if pd.isna(v) or v is None:
+                        return ""
+                    s = str(v).strip()
+                    if s.lower() in ('-', 'nan', 'none', '<na>', 'null'):
+                        return ""
+                    return s
+                df.loc[:, str_col] = [_clean_str(v) for v in df[str_col]]
 
         for date_col in ['usage_start_date', 'usage_end_date', 'suggested_usage_start_date', 'suggested_usage_end_date']:
             if date_col in df.columns:

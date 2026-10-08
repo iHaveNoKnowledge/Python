@@ -356,6 +356,11 @@ class MyApp:
             self.user_pw = StringVar(value="")
             self._saved_accel_dir = ""
             self.cp_table_location = ""
+        if not self.cp_table_location or not os.path.exists(self.cp_table_location):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            cand_cp = os.path.join(base_dir, "tables", "cp_data.xlsx")
+            if os.path.exists(cand_cp):
+                self.cp_table_location = cand_cp
         self.result = ""
         self.is_accel_mode = BooleanVar()
         self.is_accel_mode_activated = BooleanVar(value=False)
@@ -365,6 +370,11 @@ class MyApp:
         self.lazada_output_path = ""
         self.cp_df = None
         self._cp_last_mtime = 0
+        if self.cp_table_location and os.path.exists(self.cp_table_location):
+            try:
+                self.reload_cp_df_if_modified()
+            except Exception:
+                pass
 
         # * Initialize AccelMode instance
         self.accel_mode = AccelMode(self)

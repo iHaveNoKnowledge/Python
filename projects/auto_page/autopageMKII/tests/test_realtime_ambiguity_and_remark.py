@@ -140,6 +140,128 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         self.assertIn("CP2610050027", str(cm.exception))
         self.reconciler._record_missing_cp_with_dates.assert_called()
 
+    def test_add_missing_cp_to_excel_sanitizes_conflicting_remark_and_syncs_gas(self):
+        """
+        ทดสอบว่า add_missing_cp_to_excel เมื่อราคาเป้าหมายคือ 1056 แต่ remark ระบุ 'ราคา 409'
+        จะ sanitize remark ให้เป็นค่าว่างใน local Excel และส่ง '-' ให้ GAS เพื่อเคลียร์ค่าเดิม
+        """
+        import os
+        import tempfile
+        import pandas as pd
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # เริ่มต้นด้วยแถวที่มี suggested_remark ขัดแย้งกับราคา
+            df_init = pd.DataFrame({
+                "sku": ["SP2-001753+SP2-001755"],
+                "sale_price": [1056.0],
+                "cp_name": ["CP2609300040"],
+                "suggested_cp": ["CP2609300040"],
+                "suggested_remark": ["Shp/TT เดือน ต.ค. ราคา 409"]
+            })
+            df_init.to_excel(tmp_path, index=False)
+
+            self.mock_app.cp_table_location = tmp_path
+            self.mock_app.cp_df = df_init.copy()
+            mock_gas_loader = MagicMock()
+            self.reconciler._dual_cp_loader = mock_gas_loader
+
+            # สั่ง add_missing_cp_to_excel โดยไม่ระบุ remark หรือ remark ขัดแย้ง
+            self.reconciler.add_missing_cp_to_excel(
+                sku_key="SP2-001753+SP2-001755",
+                expected_price=1056.0,
+                suggested_cp="CP2609300040",
+                remark=""
+            )
+
+            # ตรวจสอบว่าในไฟล์ Excel เคลียร์ suggested_remark ให้ว่าง
+            df_saved = pd.read_excel(tmp_path)
+            row = df_saved[df_saved["sku"] == "SP2-001753+SP2-001755"]
+            self.assertEqual(len(row), 1)
+            rem_val = str(row["suggested_remark"].iloc[0])
+            self.assertTrue(rem_val in ("", "nan", "None") or pd.isna(row["suggested_remark"].iloc[0]))
+
+            # ตรวจสอบ payload ที่ส่งให้ GAS ว่าส่ง suggested_remark เป็น '-' เพื่อบังคับเขียนทับ
+            mock_gas_loader.push_record_to_gas.assert_called_once()
+            call_payload = mock_gas_loader.push_record_to_gas.call_args[0][0]
+            self.assertEqual(call_payload["sku"], "SP2-001753+SP2-001755")
+            self.assertEqual(call_payload["suggested_remark"], "-")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_dual_cp_loader_sync_to_local_excel(self):
+        """
+        ทดสอบว่า DualSourceCPLoader เมื่อ fetch จาก GAS ได้ จะ sync ข้อมูลลง local Excel อัตโนมัติ
+        """
+        import os
+        import tempfile
+        import pandas as pd
+        from functions.pos.cp_data_loader import DualSourceCPLoader
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # สร้าง local excel เดิม
+            df_local = pd.DataFrame({
+                "sku": ["SP2-001753+SP2-001755"],
+                "sale_price": [993.0],
+                "cp_name": ["CP2609140012"],
+                "suggested_cp": [""],
+                "suggested_remark": [""]
+            })
+            df_local.to_excel(tmp_path, index=False)
+
+            loader = DualSourceCPLoader(gas_url="https://fake-gas-url/exec", local_excel_path=tmp_path)
+
+            # mock fetch_from_gas ให้ได้ข้อมูลใหม่ที่มี suggested_cp และ suggested_remark
+            df_gas_data = pd.DataFrame({
+                "sku": ["SP2-001753+SP2-001755"],
+                "sale_price": [993.0],
+                "cp_name": ["CP2609140012"],
+                "suggested_cp": ["CP2610050027"],
+                "suggested_remark": ["FS Shp Rebate ราคาเซ็ทละ 993"]
+            })
+            loader.fetch_from_gas = MagicMock(return_value=df_gas_data)
+
+            # โหลด CP
+            loaded_df = loader.load_cp_df(force_refresh=True)
+            self.assertFalse(loaded_df.empty)
+
+            # ตรวจสอบว่า local Excel ถูก sync อัปเดตข้อมูลจาก GAS เรียบร้อย
+            df_synced = pd.read_excel(tmp_path)
+            self.assertEqual(df_synced.loc[0, "suggested_cp"], "CP2610050027")
+            self.assertEqual(df_synced.loc[0, "suggested_remark"], "FS Shp Rebate ราคาเซ็ทละ 993")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_is_exact_duplicate_detects_cleared_field(self):
+        """
+        ทดสอบว่า _is_exact_duplicate จะไม่มองข้ามกรณีที่มีการเคลียร์ฟิลด์ (เช่น ค่าเดิมมี แต่ค่าใหม่ส่ง '-' หรือ '')
+        """
+        import pandas as pd
+        from functions.pos.cp_data_loader import DualSourceCPLoader
+
+        loader = DualSourceCPLoader(gas_url="", local_excel_path=None)
+        loader._cached_df = pd.DataFrame([{
+            "sku": "SP2-001753+SP2-001755",
+            "sale_price": 1056.0,
+            "suggested_remark": "Shp/TT เดือน ต.ค. ราคา 409"
+        }])
+
+        # เมื่อส่ง payload ที่ต้องการเคลียร์ suggested_remark ให้เป็น '-'
+        payload = {
+            "sku": "SP2-001753+SP2-001755",
+            "sale_price": 1056.0,
+            "suggested_remark": "-"
+        }
+        # ต้องไม่ใช่ duplicate (is_exact_duplicate = False) เพื่อให้ส่ง POST ไปอัปเดตบน Google Sheet ได้
+        self.assertFalse(loader._is_exact_duplicate(payload))
+
 
 if __name__ == "__main__":
     unittest.main()
