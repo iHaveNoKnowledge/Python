@@ -1,3 +1,4 @@
+import socket
 import time
 import traceback
 from loguru import logger
@@ -13,6 +14,53 @@ from selenium.common.exceptions import (
 )
 from webdriver_manager.chrome import ChromeDriverManager
 from functions.network_response_utils import NetworkResponseCapture
+
+CHROME_DEBUG_HOST = "localhost"
+CHROME_DEBUG_PORT = 8989
+
+# ข้อความที่บอกว่าแค่ session ตาย (Chrome ตัวจริงอาจยังอยู่ -> attach ใหม่ได้)
+_DEAD_SESSION_KEYWORDS = (
+    "invalid session id",
+    "no such window",
+    "failed to check if window was closed",
+)
+
+# ข้อความที่บอกว่า chromedriver process ตายทั้งตัว (port ปิด -> refused)
+_DEAD_PROCESS_KEYWORDS = (
+    "connection refused",
+    "target machine actively refused it",
+    "max retries exceeded",
+    "winerror 10061",
+    "chrome not reachable",
+    "disconnected",
+    "broken pipe",
+    "newconnectionerror",
+)
+
+
+def classify_connection_error(err) -> str:
+    """แยกชนิด connection error เพื่อให้ log/reconnect ตัดสินใจถูก
+
+    Returns:
+        'dead_session' - session หลุด แต่ Chrome อาจยังอยู่ (attach :8989 มีลุ้น)
+        'dead_process' - chromedriver process ตาย / port ปิด (ต้องเช็คว่า Chrome ยังอยู่ไหม)
+        'other' - ไม่ใช่ connection error ที่รู้จัก
+    """
+    err_str = str(err).lower()
+    if any(k in err_str for k in _DEAD_SESSION_KEYWORDS) or isinstance(err, InvalidSessionIdException):
+        return "dead_session"
+    if isinstance(err, ConnectionError) or any(k in err_str for k in _DEAD_PROCESS_KEYWORDS):
+        return "dead_process"
+    return "other"
+
+
+def is_chrome_debug_port_alive(host: str = CHROME_DEBUG_HOST, port: int = CHROME_DEBUG_PORT, timeout: float = 2.0) -> bool:
+    """เช็คว่า Chrome ตัวจริงยังเปิด debug port อยู่ไหม (ยังไม่ตายทั้งเบราว์เซอร์)"""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
 
 class BrowserManager:
     def __init__(self, app, bot_instance, logger_instance=logger, max_memory_mb=70):
@@ -77,11 +125,29 @@ class BrowserManager:
         """
         Reconnect WebDriver หลังจาก connection หาย (เช่น หลัง sleep)
         Chrome ยังเปิดอยู่ แต่ ChromeDriver process ตายไป
+
+        เงื่อนไขติด: Chrome ตัวจริงต้องยังเปิด debug port (default localhost:8989) อยู่
+        ถ้า Chrome โดนปิด/crash ไปด้วย จะต่อไม่ติด ต้องเปิด Chrome ใหม่เอง
         """
         try:
             print("🔄 Attempting to reconnect WebDriver...")
             self.logger.info("Attempting WebDriver reconnection...")
             self.app.update_log("🔄 Reconnecting to browser...")
+
+            # เช็คก่อนว่า Chrome ตัวจริงยังอยู่ไหม จะได้บอก user ถูกว่าแก้ตรงไหน
+            if not is_chrome_debug_port_alive():
+                msg = (f"❌ Chrome ไม่ได้เปิด debug port {CHROME_DEBUG_HOST}:{CHROME_DEBUG_PORT} "
+                       "อาจปิด/crash ไปแล้ว กรุณาเปิด Chrome ใหม่ด้วย --remote-debugging-port=8989 แล้วกดรันอีกครั้ง")
+                print(msg)
+                self.logger.error(msg)
+                self.app.update_log(msg)
+                return False
+
+            # ตัด session เก่าทิ้งก่อน (กันค้าง) — quit พังได้ถ้า process ตายแล้ว ไม่เป็นไร
+            try:
+                self.driver.quit()
+            except Exception as quit_err:
+                print(f"Quit old driver (best-effort): {type(quit_err).__name__}")
 
             # สร้าง driver ใหม่เชื่อมต่อ Chrome ที่ยังเปิดอยู่
             self.driver = self.setup_chrome()
@@ -115,7 +181,10 @@ class BrowserManager:
         except Exception as e:
             print(f"❌ Failed to reconnect WebDriver: {e}")
             self.logger.error(f"WebDriver reconnection failed: {e}")
-            self.app.update_log(f"❌ Cannot reconnect: {e}")
+            hint = ""
+            if "This version of ChromeDriver only supports" in str(e) or "session not created" in str(e).lower():
+                hint = " (ChromeDriver ไม่ตรงเวอร์ชัน Chrome — อัปเดต C:\\bin\\chromedriver.exe ให้ตรง Chrome ที่ใช้)"
+            self.app.update_log(f"❌ Cannot reconnect: {e}{hint}")
             return False
 
     def retry_on_stale_element(self, func, max_retries=5, delay=0.5, *args, **kwargs):
@@ -153,14 +222,10 @@ class BrowserManager:
                 self.driver.window_handles
                 print("driver is still running")
             except Exception as e:
-                # * driver หลุดก็ออก seesion เก่า
-                print(f"Driver connection lost in get_tabs ({e}). Attempting to reconnect...")
-                try:
-                    print("Quit old driver, not sure if this process is auto or not")
-                    self.driver.quit()
-                except:
-                    print("No need to quit old driver, no driver found")
-                    pass
+                # * driver หลุดก็ออก session เก่า — reconnect_driver() จะ quit ซ้ำแบบ best-effort เอง
+                kind = classify_connection_error(e)
+                print(f"Driver connection lost in get_tabs [{kind}] ({e}). Attempting to reconnect...")
+                self.logger.warning(f"Driver connection lost in get_tabs [{kind}]: {e}")
 
                 try:
                     success = self.reconnect_driver()

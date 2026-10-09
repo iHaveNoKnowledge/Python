@@ -509,7 +509,7 @@ class MyApp:
 
     def cp_sonic_blow_handler(self):
         self.bot.cp_sonic_blow_process(
-            self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get())
+            self.demonicCp_itemNo.get(), self.demonicCp_cpNo.get(), mode="manual")
 
     def reset_browser_memory(self):
         """Callback สำหรับปุ่ม 'Reset Memory' Button"""
@@ -2174,7 +2174,7 @@ class MyApp:
                 self.update_log(f"❌ เกิดข้อผิดพลาดในการบันทึก CP Data: {err}")
                 print(f"[scan_and_sync_missing_cp_data] Error: {err}")
         else:
-            self.update_log("ข้ามการเติม SKU ขาดลงใน CP_data.xlsx ตามคำสั่งผู้ใช้")
+            self.update_log("ข้ามการเติม SKU ขาดลงใน CP_data.xlsx")
             print("[scan_and_sync_missing_cp_data] User canceled sync.")
 
 
@@ -4589,8 +4589,8 @@ class Bot_POS:
             except Exception:
                 pass
 
-    def cp_sonic_blow_process(self, item_no: int, cp_no: str):
-        return self.pricing_reconciler.cp_sonic_blow_process(item_no, cp_no)
+    def cp_sonic_blow_process(self, item_no: int, cp_no: str, mode: str = "auto_inv"):
+        return self.pricing_reconciler.cp_sonic_blow_process(item_no, cp_no, mode=mode)
 
     def cp_bringer(self):
         pass
@@ -4677,6 +4677,23 @@ class Bot_POS:
             any(k in err_str for k in connection_keywords)
         )
         return is_conn
+
+    def _raise_if_connection_error(self, err, context=""):
+        """กัน loop กลืน connection error: ถ้า driver/session ตายให้ raise ขึ้นไปหา
+        operation_task_thread ทันที (ตรงนั้นถึงจะ reconnect ได้) อย่า continue วนต่อ"""
+        if self.is_connection_error(err):
+            print(f"WebDriver connection lost in {context}, bubbling up to operation_task_thread: {err}")
+            logger.error(f"Order: {getattr(self, 'cus_order', getattr(getattr(self, 'app', None), 'order', ''))} - "
+                         f"WebDriver connection lost in {context}: {err}")
+            raise ConnectionError(f"WebDriver connection lost in {context}: {err}") from err
+
+    def _assert_driver_alive(self, context=""):
+        """เช็คเร็ว (ไม่รอ wait50) ว่า driver ยังคุยได้ไหม — ตายแล้ว raise ทันที"""
+        try:
+            _ = self.driver.window_handles
+        except Exception as e:
+            self._raise_if_connection_error(e, context or "driver_health_check")
+            raise
 
     def operation_task_thread(self, event=None, gen=None):
         # * ใช้ generation counter เพื่อให้ old thread หยุดอัตโนมัติเมื่อ thread ใหม่เริ่ม
@@ -4893,7 +4910,8 @@ class Bot_POS:
                     break
                 time.sleep(0.3)
 
-            except:
+            except Exception as err:
+                self._raise_if_connection_error(err, "dropdown_handler")
                 time.sleep(0.45)
                 continue
 
@@ -4924,6 +4942,8 @@ class Bot_POS:
         pass
 
     def get_customer_name_ready(self, cus_search_input, is_last_page: bool = False):
+        # * เช็ค driver ก่อนเลย — ตายแล้วให้ raise ขึ้นไป reconnect ทันที ไม่ต้องเสีย 50 วิกับ wait
+        self._assert_driver_alive("get_customer_name_ready_entry")
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
         print(f"Order: {self.cus_order} : get_customer_name_ready starts")
         self.set_cus_name_search_type()
@@ -4931,10 +4951,15 @@ class Bot_POS:
 
         # * start Enter customer name here +++++++++++==================================================
         while not self.operation_thread.is_set():
-            if getattr(self, 'cus_code', False):
-                self.enter_cus_name(self.cus_code)
-            else:
-                self.enter_cus_name(cus_search_input)
+            try:
+                if getattr(self, 'cus_code', False):
+                    self.enter_cus_name(self.cus_code)
+                else:
+                    self.enter_cus_name(cus_search_input)
+            except Exception as err:
+                # * enter_cus_name กลืน error ไว้ข้างใน — ดัก connection ตรงนี้ก่อนวนต่อ
+                self._raise_if_connection_error(err, "get_customer_name_ready_enter")
+                raise
             print("กรอกชื่อเสร็จ")
             # * wait_condition มันจะเจอ cusNameLi1 ที่ containค่า "Searching..."
             self.searching_condition = self.driver.find_element(
@@ -4954,7 +4979,9 @@ class Bot_POS:
                     continue
                 # * ไม่มี pop-up ให้ break
                 break
-            except:
+            except Exception as popup_err:
+                # * ไม่มี pop-up ก็ break — แต่ถ้า driver ตายต้อง raise ขึ้นไป reconnect
+                self._raise_if_connection_error(popup_err, "get_customer_name_ready_popup_check")
                 break
 
         # * ตาม Stepแล้วนั้น ขั้นตอนด้านบนจะทำให้ Dropdown UL มันโผล่ และมี li อย่างน้อย 1 อัน นั่นคือ li[0] โดย li[0] จะบอกสถานะของการ search ตั้งแต่ "Searching...", "No results found", ไม่แน่ใจมีอีกไหม และแสดง ผลลัพธ์ที่เจอลำดับแรก
@@ -4962,6 +4989,7 @@ class Bot_POS:
         self.ensure_li_shown_cus_name()
 
         # * is_name_list_selectable จะมีการตรวจสอบว่าเลือกได้เหรือไม่ ถ้าเลือกได้ก็เลือกเลย----------------------------
+        cus_select_fail_count = 0
         while not self.operation_thread.is_set():
             time.sleep(0.5)
             try:
@@ -4987,13 +5015,19 @@ class Bot_POS:
                 print(f"Aborting customer selection due to ValueError: {ve}")
                 raise ve
             except Exception as err:
-                print("ยังเลือกชื่อลูกค้าไม่ได้เลย:", err)
+                # * driver/session ตาย -> ห้ามวนต่อ ให้ raise ขึ้นไป reconnect ที่ operation_task_thread ทันที
+                self._raise_if_connection_error(err, "get_customer_name_ready_select")
+                cus_select_fail_count += 1
+                if cus_select_fail_count >= 20:
+                    raise ValueError(
+                        f"เลือกชื่อลูกค้าไม่สำเร็จเกิน 20 ครั้ง (order {self.cus_order}): {err}") from err
+                print(f"ยังเลือกชื่อลูกค้าไม่ได้เลย (ครั้งที่ {cus_select_fail_count}):", err)
                 time.sleep(0.5)
                 try:
                     self.driver.find_element(
                         By.XPATH, self.app.cus_arrow_btn).click()
-                except Exception:
-                    pass
+                except Exception as arrow_err:
+                    self._raise_if_connection_error(arrow_err, "get_customer_name_ready_select_arrow")
                 continue
 
         # * กรณีมีสินค้ายิงไปแล้ว แล้วมีการเปลี่ยนชื่อลูกค้า มันจะมี alert // path นี้คือ element นอกของ alert /html/body/div[16]/div[2]
@@ -5016,7 +5050,8 @@ class Bot_POS:
                     print("Skip, Alert Element is Not appear")
                     break
 
-            except:
+            except Exception as alert_err:
+                self._raise_if_connection_error(alert_err, "get_customer_name_ready_alert_check")
                 continue
 
         print(
@@ -5025,6 +5060,8 @@ class Bot_POS:
             (By.XPATH, self.app.cusNameInput)))
 
     def enter_cus_name(self, cus_search):
+        # * driver ตายแล้วให้ raise ขึ้นไปเลย ไม่ต้องไล่ click/find ต่อ (ทุกคำสั่งจะได้ invalid session ซ้ำ)
+        self._assert_driver_alive("enter_cus_name")
         # * ย้ายไปหน้าหลัก
         self.driver.switch_to.window(self.merged_dict['SMCO :: เปิดการขาย'])
 
@@ -5034,7 +5071,8 @@ class Bot_POS:
             inputs = self.driver.find_elements(By.XPATH, self.app.cusNameInput)
             if inputs and inputs[0].is_displayed():
                 input_already_open = True
-        except Exception:
+        except Exception as err:
+            self._raise_if_connection_error(err, "enter_cus_name_probe")
             input_already_open = False
 
         if not input_already_open:
@@ -5047,9 +5085,10 @@ class Bot_POS:
                     el = self.driver.find_element(
                         By.XPATH, self.cus_name_dropdown_elmt_loc)
                     self.driver.execute_script("arguments[0].click();", el)
-                except Exception:
-                    pass
+                except Exception as js_err:
+                    self._raise_if_connection_error(js_err, "enter_cus_name_container_js")
             except Exception as e:
+                self._raise_if_connection_error(e, "enter_cus_name_container")
                 print(f"enter_cus_name click container exception: {e}")
 
         # * จับตาดูว่า ul เปิดอยู่ไหม
@@ -5060,16 +5099,18 @@ class Bot_POS:
         if not self.is_ul_open:
             try:
                 self.driver.find_element(By.XPATH, self.app.cus_arrow_btn).click()
-            except Exception:
+            except Exception as arrow_err:
+                self._raise_if_connection_error(arrow_err, "enter_cus_name_arrow")
                 try:
                     btn = self.driver.find_element(By.XPATH, self.app.cus_arrow_btn)
                     self.driver.execute_script("arguments[0].click();", btn)
-                except Exception:
-                    pass
+                except Exception as arrow_js_err:
+                    self._raise_if_connection_error(arrow_js_err, "enter_cus_name_arrow_js")
             try:
                 self.wait50.until(EC.visibility_of_element_located(
                     (By.XPATH, self.app.cusNameInput)))
-            except Exception:
+            except Exception as wait_err:
+                self._raise_if_connection_error(wait_err, "enter_cus_name_wait_input")
                 pass
 
         # * เคลียและกรอกชื่อลูกค้า
@@ -5078,11 +5119,13 @@ class Bot_POS:
                 (By.XPATH, self.app.cusNameInput)))
             cus_input.clear()
             cus_input.send_keys(cus_search)
-        except Exception:
+        except Exception as input_err:
+            self._raise_if_connection_error(input_err, "enter_cus_name_input")
             try:
                 cus_input = self.driver.find_element(By.XPATH, self.app.cusNameInput)
                 self.js_input_value(cus_input, cus_search)
             except Exception as err:
+                self._raise_if_connection_error(err, "enter_cus_name_sendkeys")
                 print(f"enter_cus_name send_keys fallback error: {err}")
 
     def add_new_customer(self, cb=None):
@@ -5154,7 +5197,9 @@ class Bot_POS:
             try:
                 self.wait50.until(EC.presence_of_element_located(
                     (By.XPATH, self.app.cus_name_dropdown_ul)))
-            except Exception:
+            except Exception as wait_err:
+                # * wait หมดเวลา = ul ยังไม่มา -> รอต่อได้ แต่ถ้า driver ตายต้อง raise ขึ้นไป reconnect
+                self._raise_if_connection_error(wait_err, "ensure_li_shown_cus_name_wait_ul")
                 time.sleep(0.5)
                 continue
             if self.driver.find_elements(By.XPATH, self.app.cus_name_dropdown_ul):
@@ -5174,7 +5219,8 @@ class Bot_POS:
                     elif self.searching_condition.text:
                         print("text element not display Searching...")
                         pass
-                except:
+                except Exception as text_err:
+                    self._raise_if_connection_error(text_err, "ensure_li_shown_cus_name_read_text")
                     pass
 
                 # * หลังจาก Searching... หายไป ๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑

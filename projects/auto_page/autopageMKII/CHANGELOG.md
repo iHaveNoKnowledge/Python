@@ -72,6 +72,12 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+- [X] **[WebDriver Connection-Loss Guard & Reconnect Diagnosis (2026-10-09)]** แก้ `invalid session id` วนลูปไม่รู้จบใน `get_customer_name_ready()` และทำให้ reconnect หลัง session หลุดวินิจฉัยได้:
+  - **Bubble-up แทนกลืน error**: เพิ่ม helper `_raise_if_connection_error()` + `_assert_driver_alive()` ใน `Bot_POS` (`autopage_MKII_ver5.x.x.py`) — ทุก loop ที่เคย `except: continue/pass` (`get_customer_name_ready` 3 วง, `enter_cus_name`, `ensure_li_shown_cus_name`, `dropdown_handler`) ถ้าเจอ connection error จะ `raise ConnectionError` ขึ้นไปให้ `operation_task_thread` reconnect ทันที แทนการวน `ยังเลือกชื่อลูกค้าไม่ได้เลย: invalid session id` ซ้ำไม่รู้จบ
+  - **Retry cap 20 ครั้ง**: loop เลือกชื่อลูกค้าเกิน 20 ครั้งจะจบเป็น `ValueError` เข้า flow failed ปกติ ไม่ค้าง
+  - **แยกชนิด error ใน `functions/browser_manager.py`**: เพิ่ม `classify_connection_error()` แยก `dead_session` (session หลุด Chrome อาจยังอยู่ — attach `:8989` มีลุ้น) vs `dead_process` (chromedriver ตายทั้ง process — ต้องเช็ค Chrome) พร้อม `is_chrome_debug_port_alive()` ให้เช็คก่อน reconnect ถ้า Chrome ปิด/crash ไปแล้วจะบอกให้เปิด Chrome ใหม่ด้วย `--remote-debugging-port=8989` แทน fail งงๆ
+  - **Hint version mismatch**: reconnect ล้มเหลวเพราะ ChromeDriver ไม่ตรงเวอร์ชัน Chrome จะชี้ให้อัปเดต `C:\bin\chromedriver.exe` ชัดเจน; `get_tabs()` log ชนิด error `[dead_session/dead_process]` แทนข้อความดิบ
+
 - [X] **[Conflict Resolver Tab & Live SMCO Active Candidate Filtering & Dual-Month Date Auto-Correction]** เพิ่มระบบจัดการความขัดแย้งผ่านแท็บ `conflict_resolver` ร่วมกับระบบคัดกรองคูปองสดจาก SMCO และป้องกันความคลาดเคลื่อนของวันที่:
   - **Conflict Resolver Multi-Sheet Architecture**: เพิ่มแท็บ `conflict_resolver` บน Google Sheets และ Local Excel (`cp_data.xlsx`) สำหรับรวบรวมเคสที่ SKU และราคาเป้าหมายมีตัวเลือกโปรโมชันซ้ำซ้อนกัน โดยมีคอลัมน์ `sku`, `sale_price`, `candidate_1`, `candidate_2`, `candidate_3`, `suggested_winner`, `reason`, `admin_selection`, `status`, `last_updated`
   - **Smart Tie-Breaking Auto-Proceed**: เมื่อเกิดความขัดแย้งและยังไม่มีการตัดสินใจจาก Admin ระบบจะไม่หยุดข้ามออเดอร์ให้คิวสะดุด แต่จะใช้การประเมินคะแนนอัจฉริยะ (Date Validity + Date Recency + Simplicity No OC) เลือกตัวที่ดีที่สุด (`suggested_winner`) ไปออกบิลต่อทันที พร้อมส่งบันทึกเข้า `conflict_resolver`
