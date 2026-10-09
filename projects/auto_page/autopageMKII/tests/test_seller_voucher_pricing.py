@@ -238,9 +238,9 @@ class TestSellerVoucherPricing(unittest.TestCase):
             reconciler.process_price_mismatches(verification_result)
 
         self.assertIn("ขอวิธีปรับราคาครับ", str(ctx.exception))
-        # บันทึก suggested_cp ที่รวมทั้งคูปองเริ่มต้น และคูปอง Seller Voucher พร้อมวันที่
+        # บันทึก suggested_cp ที่เป็นคูปอง Seller Voucher พร้อมวันที่ (ไม่พ่วง CP_DEFAULT ซ้ำซ้อนเพราะคูปองตัวใหม่ลดครบ 500 บาทอยู่แล้ว)
         reconciler.add_missing_cp_to_excel.assert_called_once_with(
-            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP_DEFAULT CP2609100001", start_date=datetime.date(2026, 9, 10)
+            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP2609100001", start_date=datetime.date(2026, 9, 10)
         )
 
     def test_scan_matching_cp_candidates_filters_seller_voucher(self):

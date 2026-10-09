@@ -252,6 +252,117 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
         self.assertEqual(res["new_code"], "DC2609290042")
 
 
+    def test_find_suggested_cp_does_not_double_discount_when_new_coupon_matches_full_discount(self):
+        """
+        กรณี SKU เช่น PR3-000099:
+        ราคาฐาน 12,300 บาท ราคาเป้าหมาย 10,238 บาท (ต้องการส่วนลด 2,062 บาท)
+        บน SMCO มี Default/Auto CP2609300041 (ลด 1,870) ถูกติ๊กไว้
+        และมี CP2610070014 (ลด 2,062) ซึ่งลดได้ครบ 2,062 พอดี
+        ระบบต้องเลือก CP2610070014 ตัวเดียว ไม่พ่วง CP2609300041 เข้าไปจนกลายเป็นลด 3,932 (ราคาเหลือ 8,368)
+        """
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2609300041", "discount": 1870.0, "desc": "Default Auto Coupon", "is_selected": True},
+            {"code": "CP2610070014", "discount": 2062.0, "desc": "Specific Promo 2062", "is_selected": False},
+        ]
+        self.reconciler.last_preselected_smco_coupons = ["CP2609300041"]
+
+        res = self.reconciler.find_suggested_cp_for_discount(2062.0, expected_price=10238.0, sku="PR3-000099")
+        self.assertIsNotNone(res)
+        self.assertEqual(res["suggested_code"], "CP2610070014")
+        self.assertEqual(res["new_code"], "CP2610070014")
+        self.assertEqual(res["preselected_codes"], [])
+        self.assertEqual(res["discount"], 2062.0)
+
+
+    def test_cp_sonic_blow_process_selects_target_and_deselects_unwanted_auto_coupon(self):
+        """
+        ทดสอบว่า cp_sonic_blow_process:
+        - ทำการคลิกปลด (Deselect) คูปอง Auto Top-up (CP2609300041) ที่กำลังเลือกอยู่ (btn-primary / selected) ออก
+        - และทำการคลิกเลือก (Select) คูปองเป้าหมาย (CP2610070014) ที่ยังไม่ถูกเลือก (btn-default / unselect)
+        """
+        mock_driver = MagicMock()
+        self.reconciler.driver = mock_driver
+
+        # Coupon 1: CP2609300041 (Auto Top-up / is_selected = True)
+        name1 = MagicMock()
+        name1.text = "CP2609300041"
+        btn1 = MagicMock()
+        btn1.get_attribute.return_value = "btn btn-primary"
+        btn1.text = "Selected"
+
+        # Coupon 2: CP2610070014 (Target Promo / is_selected = False)
+        name2 = MagicMock()
+        name2.text = "CP2610070014"
+        btn2 = MagicMock()
+        btn2.get_attribute.return_value = "btn btn-default"
+        btn2.text = "Un select"
+
+        mock_driver.execute_script.return_value = ["MNL-002281"]
+        cp_modal_btn = MagicMock()
+        agree_btn = MagicMock()
+
+        mock_driver.find_elements.side_effect = lambda by, sel: (
+            [cp_modal_btn] if "btn-coupon" in sel else
+            [btn1, btn2] if "selectCoupon" in sel else
+            [name1, name2] if "price-sku-h1" in sel else
+            [agree_btn] if "okCoupon" in sel else
+            []  # backdrop empty
+        )
+
+        success = self.reconciler.cp_sonic_blow_process(item_no=1, cp_no="CP2610070014")
+        self.assertTrue(success)
+
+        # ตรวจสอบว่าทั้ง btn1 (ปลดออก) และ btn2 (เลือกเข้า) ถูกคลิก
+        btn1.click.assert_called_once()
+        btn2.click.assert_called_once()
+        agree_btn.click.assert_called_once()
+
+    def test_process_price_mismatches_diff_positive_applies_cp_instead_of_overcharge(self):
+        """
+        เมื่อราคาบน SMCO ต่ำกว่าราคาเป้าหมาย (diff > 0 เช่น expected=1128 แต่ actual=1000 เพราะติด Auto Top-up)
+        และในตารางมีสูตรคูปอง CP2610000099 สำหรับราคา 1128
+        ระบบต้องเลือกคูปอง CP2610000099 (เพื่อปลด Auto Top-up) และต้องไม่ทำการ Overcharge (+128) ซ้ำซ้อน
+        """
+        sku = "SP2-001414+SP2-001415+SP2-001416+SP2-001417"
+        self.app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": sku}]
+        self.mock_bot.items = self.app.items
+
+        # จำลองผลการตรวจราคา: diff = +128.0 (expected 1128, actual 1000)
+        verification_result = {
+            "price": {
+                sku: {
+                    "ok": False,
+                    "expected": 1128.0,
+                    "actual": 1000.0,
+                    "diff": 128.0
+                }
+            }
+        }
+
+        # Mock cp_candidates ให้มีสูตรคูปอง CP2610000099
+        cand = {
+            "sku": sku,
+            "sale_price": 1128.0,
+            "cp_name": "CP2610000099",
+            "oc_amount": "",
+            "dc_amount": ""
+        }
+
+        with patch.object(self.reconciler, "find_all_cp_candidates_from_excel", return_value=[cand]), \
+             patch.object(self.reconciler, "apply_candidate_coupons_if_missing") as mock_apply_cp, \
+             patch.object(self.reconciler, "smco_set_overcharge_product") as mock_oc:
+
+            self.reconciler.process_price_mismatches(verification_result)
+
+            # ตรวจสอบว่า apply_candidate_coupons_if_missing ถูกเรียกด้วยคูปอง CP2610000099
+            mock_apply_cp.assert_called_once_with(1, sku, "CP2610000099")
+            # ตรวจสอบว่าไม่มีการสั่ง Overcharge
+            mock_oc.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+
 

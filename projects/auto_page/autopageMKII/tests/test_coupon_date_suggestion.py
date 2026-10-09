@@ -683,9 +683,74 @@ class TestCouponDateSuggestion(unittest.TestCase):
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
+    def test_filter_out_payment_and_installment_is_coupons(self):
+        """
+        ทดสอบว่าระบบกรองคูปองประเภท Payment / ผ่อนชำระ (เช่น IS2604170001, couponTypeEn='Payment') ออก
+        และรับเฉพาะคูปอง Topup และ Add-on ที่มี Prefix เป็น CP หรือ DC เท่านั้น (เช่นสำหรับ SKU: PR5-000673)
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        sku = "PR5-000673"
+
+        # จำลอง Response จาก POS ที่มีทั้งคูปอง Payment (IS) และคูปอง Topup/Addon (CP/DC)
+        mock_response = [
+            {
+                "productCode": sku,
+                "productCouponDetail": [
+                    {
+                        "couponCode": "IS2604170001",
+                        "couponDesc": "Promotion ผ่อน 0% 10 เดือน ธนาคารกสิกรไทย",
+                        "couponTypeEn": "Payment",
+                        "couponTypeTh": "Payment",
+                        "couponDetailCash": 0.0,
+                        "couponDetailDisc": 500.0,
+                        "usedFlag": False
+                    },
+                    {
+                        "couponCode": "IS2608010005",
+                        "couponDesc": "Promotion ผ่อนชำระ Krungsri First Choice",
+                        "couponTypeEn": "Payment",
+                        "couponTypeTh": "Payment",
+                        "couponDetailCash": 0.0,
+                        "couponDetailDisc": 300.0,
+                        "usedFlag": False
+                    },
+                    {
+                        "couponCode": "CP2609010012",
+                        "couponDesc": "Promotion Topup Campaign Online",
+                        "couponTypeEn": "Topup",
+                        "couponTypeTh": "Topup",
+                        "couponDetailCash": 0.0,
+                        "couponDetailDisc": 250.0,
+                        "usedFlag": False
+                    },
+                    {
+                        "couponCode": "DC2609150020",
+                        "couponDesc": "Promotion Add-on Flash Sale",
+                        "couponTypeEn": "Add-on",
+                        "couponTypeTh": "Add-on",
+                        "couponDetailCash": 0.0,
+                        "couponDetailDisc": 150.0,
+                        "usedFlag": False
+                    }
+                ]
+            }
+        ]
+
+        reconciler.record_product_master_response(sku, mock_response)
+        extracted = reconciler.get_aggregated_combo_coupons(sku)
+
+        # ต้องได้เฉพาะ CP2609010012 และ DC2609150020 (ต้องไม่มี IS2604170001 หรือ IS2608010005)
+        extracted_codes = [c["code"] for c in extracted]
+        self.assertIn("CP2609010012", extracted_codes)
+        self.assertIn("DC2609150020", extracted_codes)
+        self.assertNotIn("IS2604170001", extracted_codes)
+        self.assertNotIn("IS2608010005", extracted_codes)
+        self.assertEqual(len(extracted), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

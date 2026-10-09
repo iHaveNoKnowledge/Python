@@ -229,9 +229,10 @@ class DualSourceCPLoader:
                 if df_conflict is not None and not df_conflict.empty:
                     df_conflict.to_excel(writer, sheet_name='conflict_resolver', index=False)
                 else:
-                    # Create placeholder conflict resolver sheet
+                    # Create placeholder conflict resolver sheet (รองรับ Dynamic Candidates)
                     dummy_conflict = pd.DataFrame(columns=[
-                        'sku', 'sale_price', 'candidate_1', 'candidate_2', 'candidate_3',
+                        'sku', 'sale_price', 'candidates', 'candidates_count',
+                        'candidate_1', 'candidate_2', 'candidate_3',
                         'suggested_winner', 'reason', 'admin_selection', 'status', 'last_updated'
                     ])
                     dummy_conflict.to_excel(writer, sheet_name='conflict_resolver', index=False)
@@ -336,6 +337,31 @@ class DualSourceCPLoader:
                             return s[:-2]
                         return s
                     combined.loc[:, col] = [_norm_pat(v) for v in combined[col]]
+
+            # กำจัดแถว Ghost/Placeholder ซ้ำซ้อน (กรณีมีแถวที่ cp_name ว่าง แต่มีอีกแถวที่ใส่ cp_name หรือยืนยันสูตรแล้วสำหรับ SKU + ราคาเดียวกัน)
+            if 'cp_name' in combined.columns and 'suggested_cp' in combined.columns and 'sale_price' in combined.columns:
+                ghost_drops = []
+                for i in range(len(combined)):
+                    r_i = combined.iloc[i]
+                    cp_i = str(r_i.get('cp_name', '') or '').strip()
+                    sugg_i = str(r_i.get('suggested_cp', '') or '').strip()
+                    sku_i = str(r_i.get('sku', '') or '').strip().upper()
+                    price_i = r_i.get('sale_price')
+                    if not cp_i and sugg_i and pd.notna(price_i):
+                        for j in range(len(combined)):
+                            if i == j:
+                                continue
+                            r_j = combined.iloc[j]
+                            if str(r_j.get('sku', '') or '').strip().upper() == sku_i:
+                                price_j = r_j.get('sale_price')
+                                if pd.notna(price_j) and abs(float(price_i) - float(price_j)) <= 0.05:
+                                    cp_j = str(r_j.get('cp_name', '') or '').strip()
+                                    sugg_j = str(r_j.get('suggested_cp', '') or '').strip()
+                                    if cp_j == sugg_i or (cp_j and sugg_j == sugg_i):
+                                        ghost_drops.append(combined.index[i])
+                                        break
+                if ghost_drops:
+                    combined = combined.drop(index=ghost_drops)
 
             dedup_subset = ['sku']
             if 'sale_price' in combined.columns:

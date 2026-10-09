@@ -764,8 +764,22 @@ class POSPricingReconciler:
                 if not isinstance(cp, dict) or cp.get("usedFlag") is True:
                     continue
 
-                code = cp.get("couponCode")
+                code = str(cp.get("couponCode") or "").strip().upper()
                 if not code or code in seen_in_sku:
+                    continue
+
+                # 🛑 กรองไม่เอาคูปองประเภท Payment / ผ่อนชำระ (เช่น IS2604170001 หรือ couponTypeEn/Th = 'Payment')
+                c_type_en = str(cp.get("couponTypeEn") or "").strip().lower()
+                c_type_th = str(cp.get("couponTypeTh") or "").strip().lower()
+                if code.startswith("IS") or c_type_en == "payment" or c_type_th == "payment":
+                    logger.debug(f"[get_aggregated_combo_coupons] Skipping Payment/Installment coupon: {code}")
+                    continue
+
+                # ✅ ใช้งานเฉพาะ Topup และ Add-on และต้องมี Prefix เป็น CP หรือ DC เท่านั้น
+                is_valid_type = (c_type_en in ["topup", "add-on", "addon", ""] or c_type_th in ["topup", "add-on", "addon", ""])
+                is_valid_prefix = code.startswith("CP") or code.startswith("DC")
+                if not (is_valid_prefix and is_valid_type):
+                    logger.debug(f"[get_aggregated_combo_coupons] Skipping non-CP/DC coupon: {code} (type: {c_type_en}/{c_type_th})")
                     continue
 
                 # ตรวจสอบสาขา / Store จาก Session Context (ถ้ามีระบุใน couponBranchs)
@@ -1818,9 +1832,9 @@ class POSPricingReconciler:
                         )
 
                     if is_auto_inv:
-                        # ในโหมด Auto Invoice: หากมีคูปองติดมาอัตโนมัติจาก SMCO ให้ถือเป็น CP
+                        # ในโหมด Auto Invoice: หากมีคูปองติดมาอัตโนมัติและราคาตรงตั้งแต่แรกให้บันทึกเป็น AUTO_MATCH
                         if has_any_coupon:
-                            method_val = "CP"
+                            method_val = "AUTO_MATCH"
                         else:
                             method_val = "NONE"
                     else:
@@ -1829,6 +1843,15 @@ class POSPricingReconciler:
                             method_val = "MANUAL"
                         else:
                             method_val = "NONE"
+
+                # สกัดข้อมูลช่วงวันและ Remark ของคูปองที่ติดมา เพื่อเติมลงใน usage_start_date / usage_end_date
+                auto_rem, auto_start_dt, auto_end_dt = "", None, None
+                if used_cp:
+                    auto_rem, auto_start_dt, auto_end_dt = self.resolve_multi_coupon_info(
+                        used_cp, expected_price=act_price
+                    )
+                auto_s_str = format_smart_datetime_str(auto_start_dt) if auto_start_dt else ""
+                auto_e_str = format_smart_datetime_str(auto_end_dt) if auto_end_dt else ""
 
                 # จับคู่แถวเดิม:
                 # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)
@@ -1876,11 +1899,30 @@ class POSPricingReconciler:
                     df.loc[mask, 'last_adjustment_method'] = method_val
                     df.loc[mask, 'last_actual_price'] = act_price
                     df.loc[mask, 'last_updated'] = now_str
+
+                    # เติมวันที่และ Remark ในแถวหากยังว่างอยู่ เพื่อให้ระบบมีช่วงวันใช้งาน
+                    for idx in df[mask].index:
+                        if 'usage_start_date' in df.columns and (pd.isna(df.loc[idx, 'usage_start_date']) or str(df.loc[idx, 'usage_start_date']).strip() in ("", "-")) and auto_s_str:
+                            df.loc[idx, 'usage_start_date'] = auto_s_str
+                        if 'usage_end_date' in df.columns and (pd.isna(df.loc[idx, 'usage_end_date']) or str(df.loc[idx, 'usage_end_date']).strip() in ("", "-")) and auto_e_str:
+                            df.loc[idx, 'usage_end_date'] = auto_e_str
+                        if 'suggested_usage_start_date' in df.columns and (pd.isna(df.loc[idx, 'suggested_usage_start_date']) or str(df.loc[idx, 'suggested_usage_start_date']).strip() in ("", "-")) and auto_s_str:
+                            df.loc[idx, 'suggested_usage_start_date'] = auto_s_str
+                        if 'suggested_usage_end_date' in df.columns and (pd.isna(df.loc[idx, 'suggested_usage_end_date']) or str(df.loc[idx, 'suggested_usage_end_date']).strip() in ("", "-")) and auto_e_str:
+                            df.loc[idx, 'suggested_usage_end_date'] = auto_e_str
+                        if 'suggested_remark' in df.columns and (pd.isna(df.loc[idx, 'suggested_remark']) or str(df.loc[idx, 'suggested_remark']).strip() in ("", "-")) and auto_rem:
+                            df.loc[idx, 'suggested_remark'] = auto_rem
                 else:
                     new_row = {
                         'sku': sku_raw,
                         'sale_price': act_price,
-                        'cp_name': '',
+                        'cp_name': used_cp if used_cp else '',
+                        'suggested_cp': used_cp if used_cp else '',
+                        'usage_start_date': auto_s_str,
+                        'usage_end_date': auto_e_str,
+                        'suggested_usage_start_date': auto_s_str,
+                        'suggested_usage_end_date': auto_e_str,
+                        'suggested_remark': auto_rem,
                         'last_order_id': str(order_id),
                         'last_used_cp': used_cp,
                         'last_adjustment_method': method_val,
@@ -2204,11 +2246,35 @@ class POSPricingReconciler:
                 if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
                     preselected.append(c.get("code"))
 
-        # ดึงรหัส preselected ที่มีอยู่เดิมบนหน้าเว็บ (เช่น Default CP หรือ DC) โดยไม่ใส่ซ้ำกับคูปองใหม่ที่แนะนำ
+        # ดึงรหัส preselected ที่มีอยู่เดิมบนหน้าเว็บ (เช่น Default CP หรือ DC)
+        # ตรวจสอบความถูกต้องทางคณิตศาสตร์เพื่อป้องกันการลดราคาซ้ำซ้อน (Over-discount):
+        # 1. หากระบุ expected_price: ตรวจสอบว่าคูปองตัวใหม่ (best) ตัวเดียวทำราคาได้ตรงกับ expected_price จากราคาตั้งต้นหรือไม่
+        #    - ถ้า best ตัวเดียวตรงกับ expected_price (เช่น 12,300 - 2,062 = 10,238): ไม่ต้องพ่วง preselected (ป้องกันกลายเป็น 8,368)
+        #    - ถ้า best + preselected รวมกันแล้วตรงกับ expected_price: ให้พ่วง preselected เข้าไปด้วย
+        # 2. หากไม่ได้ระบุ expected_price: ตรวจสอบจาก remark_price_matched หรือพ่วง pre_codes ตามปกติ
         if preselected:
             new_tokens = [tok.strip().upper() for tok in best["suggested_code"].split()]
             pre_codes = [p for p in preselected if p.strip().upper() not in new_tokens and p in valid_detail_codes]
-            if pre_codes:
+
+            code_disc_map = {str(d.get("code", "")).strip().upper(): float(d.get("discount", 0.0)) for d in details if d.get("code")}
+            pre_discount = sum(code_disc_map.get(p.strip().upper(), 0.0) for p in pre_codes)
+
+            if expected_price is not None and target_discount > 0 and pre_discount > 0:
+                base_price = float(expected_price) + float(target_discount)
+                price_with_single = base_price - float(best.get("discount", 0.0))
+                price_with_combo = base_price - (float(best.get("discount", 0.0)) + pre_discount)
+
+                if abs(price_with_single - float(expected_price)) <= 0.05:
+                    final_code = best["suggested_code"]
+                    pre_codes = []
+                elif abs(price_with_combo - float(expected_price)) <= 0.05:
+                    final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
+                else:
+                    final_code = best["suggested_code"] if abs(price_with_single - float(expected_price)) < abs(price_with_combo - float(expected_price)) else f"{' '.join(pre_codes)} {best['suggested_code']}"
+            elif best.get("remark_price_matched", False) and pre_codes:
+                final_code = best["suggested_code"]
+                pre_codes = []
+            elif pre_codes:
                 final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
             else:
                 final_code = best["suggested_code"]
@@ -2412,15 +2478,22 @@ class POSPricingReconciler:
     # ══════════════════════════════════════════════════════════════════════════
     # COUPON SELECTION & ADJUSTMENTS ON POS CART
     # ══════════════════════════════════════════════════════════════════════════
-    def cp_sonic_blow_process(self, item_no: int, cp_no: str) -> bool:
+    def cp_sonic_blow_process(self, item_no: int, cp_no: str, mode: str = "auto_inv") -> bool:
         """
-        เลือก coupon สำหรับสินค้าที่ระบุ รองรับการเลือกหลาย coupon ในครั้งเดียว
-        รองรับทั้งการระบุเป็นลำดับตัวเลข (Index เช่น "1 5") หรือระบุเป็นชื่อ/รหัสคูปองโดยตรง (เช่น "CP2605220025, DC2605220017")
-        และรองรับสินค้าที่มีหลาย SKU ใน 1 รายการ (เช่น "SP2-001610+SP2-001611+...") ให้เลือกคูปองให้ครบทุก SKU
+        เลือก coupon สำหรับสินค้าที่ระบุ รองรับ 2 รูปแบบการทำงาน:
+        1. mode="auto_inv" (Default สำหรับระบบบอทอัตโนมัติ):
+           - ทำงานตาม cp_data / candidate target แบบสมบูรณ์
+           - คูปองเป้าหมายที่ยังไม่เลือก -> กดเลือก (Select)
+           - คูปองที่ไม่ใช่เป้าหมายแต่ถูกระบบ POS ติ๊กไว้ล่วงหน้า (เช่น Auto Top-up) -> กดปลดออก (Deselect)
+           - คูปองที่สถานะตรงอยู่แล้วจะไม่กดซ้ำ
+        2. mode="manual" (สำหรับปุ่ม Demonic CP ใน GUI):
+           - ทำงานแบบ Manual Toggle โดยตรง
+           - กดเฉพาะคูปองที่ระบุใน cp_no และไม่แตะต้องคูปองตัวอื่น
 
         Args:
             item_no (int): เลขลำดับสินค้า (1-indexed)
             cp_no (str): ลำดับคูปอง (ตัวเลข) หรือ รหัสคูปอง (ข้อความ) แยกด้วยเว้นวรรคหรือเครื่องหมายจุลภาค
+            mode (str): "auto_inv" หรือ "manual" (default: "auto_inv")
         """
         item_idx = int(item_no) - 1
         raw_tokens = []
@@ -2441,8 +2514,8 @@ class POSPricingReconciler:
         demonic_ordered_items_list = self.app.correct_sku_pattern(
             self.app.items[item_idx]['เลขอ้างอิง SKU (SKU Reference No.)']
         )
-        print(f"demonic_ordered_items_list: {demonic_ordered_items_list}")
-        print(f"raw_tokens: {raw_tokens}")
+        logger.debug(f"[cp_sonic_blow_process] mode={mode}, demonic_ordered_items_list: {demonic_ordered_items_list}")
+        logger.debug(f"[cp_sonic_blow_process] raw_tokens: {raw_tokens}")
 
         self.driver.switch_to.window(self.bot.merged_dict['SMCO :: เปิดการขาย'])
         green_agree_btn_xpath = 'button[ng-click="okCoupon()"]'
@@ -2452,7 +2525,7 @@ class POSPricingReconciler:
         # * Loop ผ่านแต่ละ item ในรายการสินค้า (สำหรับ pattern ที่ 1 รายการมีหลาย SKU เช่น SP2-001610+SP2-001611+...)
         for idx, item in enumerate(demonic_ordered_items_list):
             item_position = idx + 1
-            print(f"item [{item_position}/{len(demonic_ordered_items_list)}] จาก demonic_ordered_items_list: {item}")
+            logger.debug(f"[cp_sonic_blow_process] item [{item_position}/{len(demonic_ordered_items_list)}]: {item}")
 
             # ดึงข้อมูลรายการสินค้าบนหน้าเว็บใหม่ทุกรอบของแต่ละสินค้า เพื่อรองรับความเปลี่ยนแปลงของหน้าเว็บและตำแหน่งที่อาจสลับได้เสมอ!
             try:
@@ -2460,7 +2533,7 @@ class POSPricingReconciler:
                     return Array.from(document.querySelectorAll('.col-sm-12.panel.panel-default.ng-scope')).map(el => el.innerText);
                 """)
             except Exception as e:
-                print("ไม่สามารถดึงข้อมูลรายการสินค้าจากหน้าเว็บได้:", e)
+                logger.debug(f"ไม่สามารถดึงข้อมูลรายการสินค้าจากหน้าเว็บได้: {e}")
                 item_texts = []
 
             # สร้าง dict mapping ระหว่าง SKU -> Index สำหรับรอบนั้นๆ
@@ -2471,11 +2544,11 @@ class POSPricingReconciler:
                     break
 
             if item not in sku_to_index:
-                print(f"ไม่พบ SKU: {item} ในรายการขายหน้าเว็บ (ข้าม)")
+                logger.debug(f"ไม่พบ SKU: {item} ในรายการขายหน้าเว็บ (ข้าม)")
                 continue
 
             target_idx = sku_to_index[item]
-            print(f"เจอสินค้า {item} ที่ตำแหน่ง Index: {target_idx}")
+            logger.debug(f"เจอสินค้า {item} ที่ตำแหน่ง Index: {target_idx}")
 
             try:
                 # * คลิกปุ่ม coupon เพื่อเปิดหน้ารายการ coupon (มี retry ด้วย Selenium ปกติ)
@@ -2504,7 +2577,7 @@ class POSPricingReconciler:
                                 cp_btn_xpath = item_list_cp_btn_elements[target_idx]
 
                         if cp_btn_xpath is None:
-                            print(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (ไม่พบคอนเทนเนอร์ปุ่ม)")
+                            logger.debug(f"ดึงปุ่ม coupon ของ {item} ไม่สำเร็จ (ไม่พบคอนเทนเนอร์ปุ่ม)")
                             break
 
                         try:
@@ -2527,82 +2600,108 @@ class POSPricingReconciler:
                         time.sleep(0.05)
 
                 if not modal_opened:
-                    print(f"ไม่สามารถเปิดหน้าต่างคูปองของ {item} ได้")
+                    logger.debug(f"ไม่สามารถเปิดหน้าต่างคูปองของ {item} ได้")
                     continue
 
-                # * Loop ผ่านแต่ละ coupon token ที่ต้องการเลือก
-                for cp_idx, token in enumerate(raw_tokens):
-                    print(f"กำลังเลือก coupon: {token} สำหรับ item: {item}")
+                # ดึงข้อมูลชื่อคูปองและปุ่มบนหน้าจอสดๆ เสมอ
+                cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
+                cp_btn_elements = self.driver.find_elements(By.XPATH, selected_cp_btn_loc)
 
-                    # ค้นหาปุ่มคูปองเป้าหมาย
-                    target_btn_idx = -1
+                if not cp_name_elements or not cp_btn_elements:
+                    logger.debug("ไม่พบรายการคูปองหรือปุ่มคูปองบนหน้าจอ")
+                    continue
 
-                    # ดึงข้อมูลชื่อคูปองและปุ่มบนหน้าจอสดๆ เสมอ
-                    cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
-                    cp_btn_elements = self.driver.find_elements(By.XPATH, selected_cp_btn_loc)
-
-                    if not cp_name_elements or not cp_btn_elements:
-                        print("ไม่พบรายการคูปองหรือปุ่มคูปองบนหน้าจอ")
-                        continue
-
-                    # กรณีที่ 1: token เป็นรหัสคูปอง/ชื่อคูปองโดยตรง (มีตัวอักษรปน เช่น CPxxxx, DCxxxx)
-                    if not token.isdigit():
-                        token_clean = token.replace(" ", "").upper()
-                        for idx3, element in enumerate(cp_name_elements):
-                            element_text_cleaned = element.text.replace(" ", "").upper()
-                            if token_clean in element_text_cleaned:
-                                target_btn_idx = idx3
-                                break
-                        if target_btn_idx == -1:
-                            print(f"ไม่พบคูปองที่มีชื่อ/รหัส: {token} ในรายการ")
-                            continue
-
-                    # กรณีที่ 2: token เป็นลำดับตัวเลข (Index เช่น "1", "2")
-                    else:
-                        original_idx = int(token) - 1
-
-                        # รักษาความสามารถเดิม: ถ้ามี cp_target_name จากรอบก่อน ให้ใช้ชื่อนั้นค้นหาแทนเพื่อกันตำแหน่งสลับ
-                        if cp_idx < len(cp_target_names) and cp_target_names[cp_idx] != "":
-                            for idx3, element in enumerate(cp_name_elements):
-                                element_text_cleaned = element.text.replace(" ", "").upper()
-                                if cp_target_names[cp_idx] in element_text_cleaned:
-                                    target_btn_idx = idx3
+                if mode == "manual":
+                    # ══════════════════════════════════════════════════════════════════
+                    # 1. รูปแบบ MANUAL (TOGGLE): คลิกเฉพาะคูปองที่ผู้ใช้ระบุโดยไม่แตะต้องคูปองอื่น
+                    # ══════════════════════════════════════════════════════════════════
+                    for token in raw_tokens:
+                        target_btn_idx = -1
+                        if not token.isdigit():
+                            token_clean = token.replace(" ", "").upper()
+                            for r_idx in range(min(len(cp_name_elements), len(cp_btn_elements))):
+                                row_cp_name = cp_name_elements[r_idx].text.replace(" ", "").upper()
+                                if token_clean in row_cp_name:
+                                    target_btn_idx = r_idx
                                     break
-                            if target_btn_idx == -1:
+                        else:
+                            original_idx = int(token) - 1
+                            if 0 <= original_idx < len(cp_btn_elements):
                                 target_btn_idx = original_idx
+
+                        if 0 <= target_btn_idx < len(cp_btn_elements):
+                            btn_el = cp_btn_elements[target_btn_idx]
+                            row_name = cp_name_elements[target_btn_idx].text if target_btn_idx < len(cp_name_elements) else token
+                            logger.info(f"🔘 [Manual Toggle] สลับสถานะคูปอง: [{row_name}] สำหรับ {item}")
+                            self.app.update_log(f"🔘 [Manual] สลับคูปอง: [{row_name}] สำหรับ SKU: {item}")
+                            try:
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", btn_el)
+                            except Exception:
+                                pass
+                            btn_el.click()
+                            time.sleep(0.1)
+                            any_success = True
                         else:
-                            target_btn_idx = original_idx
+                            logger.debug(f"[Manual Toggle] ไม่พบคูปอง: {token}")
 
-                    # คลิกเลือกคูปองที่ต้องการ
-                    if 0 <= target_btn_idx < len(cp_btn_elements):
-                        target_btn = cp_btn_elements[target_btn_idx]
-                        try:
-                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", target_btn)
-                        except Exception:
-                            pass
-                        target_btn.click()
-                        time.sleep(0.1)  # * รอให้ UI อัพเดท
-
-                        # ดึงชื่อคูปองล่าสุดอีกรอบในกรณีที่มีการ update เพื่อความปลอดภัย
-                        latest_cp_name_elements = self.driver.find_elements(By.XPATH, cp_name_loc)
-                        if target_btn_idx < len(latest_cp_name_elements):
-                            selected_cp_name = latest_cp_name_elements[target_btn_idx].text.replace(" ", "").upper()
+                else:
+                    # ══════════════════════════════════════════════════════════════════
+                    # 2. รูปแบบ AUTO_INV: ปรับสถานะตาม cp_data / candidate target 100%
+                    #    - เลือกคูปองเป้าหมายที่ยังไม่ถูกเลือก (Select)
+                    #    - ปลดคูปองส่วนเกินหรือ Auto Top-up ออก (Deselect)
+                    #    - ไม่คลิกซ้ำหากสถานะถูกต้องอยู่แล้ว
+                    # ══════════════════════════════════════════════════════════════════
+                    desired_target_names = set()
+                    for token in raw_tokens:
+                        if not token.isdigit():
+                            desired_target_names.add(token.replace(" ", "").upper())
                         else:
-                            selected_cp_name = ""
+                            num_idx = int(token) - 1
+                            if 0 <= num_idx < len(cp_name_elements):
+                                desired_target_names.add(cp_name_elements[num_idx].text.replace(" ", "").upper())
 
-                        # * เก็บหรืออัพเดทชื่อ CP ที่เลือกเพื่อใช้ในสินค้าตัวถัดไป
-                        if cp_idx >= len(cp_target_names):
-                            cp_target_names.append(selected_cp_name)
-                            print(f"cp_target_name[{cp_idx}] now is: {selected_cp_name}")
-                        else:
-                            cp_target_names[cp_idx] = selected_cp_name
+                    logger.debug(f"[{item}] [Auto-Inv] ชุดคูปองเป้าหมายที่ต้องการ: {desired_target_names}")
 
-                        any_success = True
-                    else:
-                        print(f"ตำแหน่ง Index {target_btn_idx} นอกขอบเขตของรายการปุ่มคูปองที่มีอยู่ ({len(cp_btn_elements)})")
+                    for r_idx in range(min(len(cp_name_elements), len(cp_btn_elements))):
+                        name_el = cp_name_elements[r_idx]
+                        btn_el = cp_btn_elements[r_idx]
+                        row_cp_name = name_el.text.replace(" ", "").upper()
 
-                # * กดยืนยัน (ครั้งเดียวหลังจากเลือกครบทุก coupon แล้วสำหรับ SKU นี้)
-                print(f"click OK ในรอบของ: {item}, เลือก coupon ทั้งหมด: {raw_tokens}")
+                        btn_class = str(btn_el.get_attribute("class") or "").lower()
+                        btn_text = str(btn_el.text or "").strip().lower()
+                        is_currently_selected = (
+                            "btn-primary" in btn_class
+                            or "btn-info" in btn_class
+                            or "selected" in btn_text
+                            or "เลือกแล้ว" in btn_text
+                        )
+
+                        should_be_selected = any(target in row_cp_name for target in desired_target_names)
+
+                        if should_be_selected and not is_currently_selected:
+                            logger.info(f"🔘 [Auto-Inv] กดเลือกคูปองเป้าหมาย: [{row_cp_name}] สำหรับ {item}")
+                            self.app.update_log(f"🔘 เลือกคูปอง: [{row_cp_name}] สำหรับ SKU: {item}")
+                            try:
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", btn_el)
+                            except Exception:
+                                pass
+                            btn_el.click()
+                            time.sleep(0.1)
+                            any_success = True
+
+                        elif not should_be_selected and is_currently_selected:
+                            logger.info(f"🔄 [Auto-Inv] ปลดคูปองส่วนเกิน/Auto Top-up ออก: [{row_cp_name}] สำหรับ {item}")
+                            self.app.update_log(f"🔄 ปลดคูปองส่วนเกิน/Auto Top-up: [{row_cp_name}] ออกสำหรับ SKU: {item}")
+                            try:
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", btn_el)
+                            except Exception:
+                                pass
+                            btn_el.click()
+                            time.sleep(0.1)
+                            any_success = True
+
+                # * กดยืนยัน (ครั้งเดียวหลังจากปรับสถานะครบทุก coupon แล้วสำหรับ SKU นี้)
+                logger.debug(f"click OK ในรอบของ: {item}, ชุดคูปองเป้าหมาย: {desired_target_names}")
                 try:
                     agree_btns = self.driver.find_elements(By.CSS_SELECTOR, green_agree_btn_xpath)
                     if agree_btns and agree_btns[0].is_displayed():
@@ -2635,7 +2734,7 @@ class POSPricingReconciler:
                         break
                     time.sleep(0.05)
 
-        print(f"เลือก coupon เสร็จสิ้น: {cp_target_names}")
+        logger.debug(f"[cp_sonic_blow_process] Done selecting coupons: {cp_target_names}")
         if any_success:
             for it in demonic_ordered_items_list:
                 self._track_adjustment(it, 'CP')
@@ -2946,6 +3045,15 @@ class POSPricingReconciler:
                         print(f"[scan_matching_cp_candidates_on_smco] Error checking is_selected: {ex_sel}")
 
                     if c_name:
+                        c_name = c_name.strip().upper()
+                        # 🛑 กรองไม่เอาคูปอง Payment / IS ผ่อนชำระ (รับเฉพาะ CP/DC เท่านั้น)
+                        if c_name.startswith("IS") or not (c_name.startswith("CP") or c_name.startswith("DC")):
+                            logger.debug(f"[scan_matching_cp_candidates_on_smco] Skipping non-CP/DC coupon: {c_name}")
+                            continue
+                        if "payment" in str(c_desc).lower() or "payment" in str(c_remark).lower() or "ผ่อน" in str(c_desc) or "ผ่อน" in str(c_remark):
+                            logger.debug(f"[scan_matching_cp_candidates_on_smco] Skipping Payment/Installment coupon: {c_name}")
+                            continue
+
                         scanned_details.append({
                             "code": c_name,
                             "discount": disc_val,
@@ -3393,23 +3501,16 @@ class POSPricingReconciler:
                 if tok:
                     target_tokens.append(tok)
 
-        missing_tokens = []
-        for token in target_tokens:
-            matched = False
-            for existing in existing_cps:
-                if token in existing:
-                    matched = True
-                    break
-            if not matched:
-                missing_tokens.append(token)
+        # ตรวจสอบว่าคูปองที่มีอยู่บนแผงสินค้าตรงกับสูตรเป้าหมายพอดีเป๊ะหรือไม่ (ไม่มีคูปองขาด และไม่มีคูปองส่วนเกิน)
+        all_targets_present = all(any(tok in ext for ext in existing_cps) for tok in target_tokens)
+        no_unwanted_coupons = (len(existing_cps) == len(target_tokens))
 
-        if not missing_tokens:
-            self.app.update_log(f"✨ คูปอง {cp_name} สำหรับ SKU: {sku_key} ถูกเลือกไว้ครบก่อนแล้ว ข้ามการเลือกซ้ำ")
+        if all_targets_present and no_unwanted_coupons:
+            self.app.update_log(f"✨ คูปอง [{cp_name}] สำหรับ SKU: {sku_key} ถูกเลือกไว้ตรงตามเป้าหมายแล้ว ข้ามการเลือกซ้ำ")
             return True
 
-        missing_cp_str = " ".join(missing_tokens)
-        self.app.update_log(f"✅ คูปองที่ยังไม่ถูกเลือกคือ: {missing_cp_str} กำลังดำเนินการแอดคูปอง...")
-        return self.cp_sonic_blow_process(item_no_1indexed, missing_cp_str)
+        self.app.update_log(f"🔧 ปรับปรุงคูปองสำหรับ SKU: {sku_key} ให้เป็น [{cp_name}] (ปลดคูปองส่วนเกิน/Auto และเลือกคูปองที่ต้องการ)...")
+        return self.cp_sonic_blow_process(item_no_1indexed, cp_name)
 
     # ══════════════════════════════════════════════════════════════════════════
     # PRICE MISMATCH RESOLUTION PIPELINE
@@ -3565,14 +3666,17 @@ class POSPricingReconciler:
                         )
 
                     # ══════════════════════════════════════════════════════════
-                    # ขั้นตอนที่ 2 (Phase 2): ปรับราคาตาม Pattern เดิมใน cp_data.xlsx
+                    # ══════════════════════════════════════════════════════════
+                    # ขั้นตอนที่ 2 (Phase 2): ปรับราคาตาม Pattern เดิมใน cp_data.xlsx หรือ SMCO
                     # ══════════════════════════════════════════════════════════
                     # กรณีที่ 1: marketplace_item_price > smco_item_price? (diff > 0)
-                    # ถ้าราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0) ให้ปรับราคาขึ้น (Overcharge) ทันที
+                    # ถ้าราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ อาจเกิดจากมี Auto Top-up ติดอยู่
+                    # ตรวจสอบว่ามีคูปอง CP/DC หรือ Remark ราคาที่ตรงกับ expected_price ก่อนปรับราคาขึ้น (Overcharge)
                     if diff_val > 0:
                         bypassed = False
                         oc_amount_to_apply = None
                         matched_cand = None
+                        pure_cp_cand = None
 
                         if cp_candidates:
                             for cand in cp_candidates:
@@ -3586,31 +3690,65 @@ class POSPricingReconciler:
                                     matched_cand = cand
                                     self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_to_apply} บาท")
                                     break
+                                elif cand.get("cp_name") and str(cand.get("cp_name", "")).strip():
+                                    pure_cp_cand = cand
 
                         if not bypassed:
-                            if oc_amount_to_apply is not None:
-                                self.smco_set_overcharge_product(sku_key, str(oc_amount_to_apply))
-                            elif seller_voucher > 0:
-                                # หากเป็นออเดอร์ที่มี Seller Voucher: ไม่อนุญาตให้ auto-overcharge โดยพลการหากไม่มี oc_amount ระบุใน cp_data.xlsx
+                            # 1.1 ถ้าในตารางมี candidate ที่ระบุคูปอง (cp_name) โดยไม่มีการระบุ oc_amount
+                            # แสดงว่าราคานี้ใช้คูปองตัวนี้และต้องปลด Auto Top-up ออก -> ให้ใส่คูปองก่อน ห้าม Overcharge ซ้อน
+                            if pure_cp_cand is not None and oc_amount_to_apply is None:
+                                cand_cp_name = str(pure_cp_cand.get("cp_name", "")).strip()
                                 self.app.update_log(
-                                    f"ℹ️ ออเดอร์มี Seller Voucher แต่ไม่มีการระบุ oc_amount ใน cp_data.xlsx สำหรับ SKU: {sku_key} (ส่วนต่าง: +{diff_val:,.2f} บาท) -> ไม่ทำการ Overcharge อัตโนมัติ เพื่อความปลอดภัย"
+                                    f"🔍 พบสูตรคูปอง [{cand_cp_name}] ในตารางสำหรับราคา {expected_price} (ราคาบน SMCO ต่ำกว่าอาจเกิดจาก Auto Top-up) -> ทำการเลือกคูปองและปลด Auto Top-up ออกแทนการ Overcharge..."
                                 )
-                            else:
-                                # กรณีออเดอร์ทั่วไปที่ราคาขายบน SMCO ต่ำกว่าราคาที่ลูกค้าซื้อ (diff > 0): ปรับราคาขึ้นตามส่วนต่าง diff_val ทันที
-                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
-                                self.smco_set_overcharge_product(sku_key, str(diff_val))
+                                try:
+                                    self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cand_cp_name)
+                                except Exception as ex_cp:
+                                    print(f"Error applying pure cp candidate in diff > 0: {ex_cp}")
 
-                            # หาก candidate มีการระบุคูปอง (cp_name) ด้วย ให้ตรวจสอบและเลือกคูปองที่ยังขาดอยู่
-                            cand_to_use = matched_cand or (cp_candidates[0] if cp_candidates else None)
-                            if cand_to_use and cand_to_use.get("cp_name"):
-                                cand_cp_name = str(cand_to_use.get("cp_name", "")).strip()
-                                is_bp = cand_cp_name.upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
-                                if not is_bp and cand_cp_name:
-                                    self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปองที่เหลือ [{cand_cp_name}] สำหรับ SKU: {sku_key}...")
-                                    try:
-                                        self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cand_cp_name)
-                                    except Exception as ex_cp:
-                                        print(f"Error applying candidate coupons in diff > 0: {ex_cp}")
+                            # 1.2 ถ้า candidate มีการระบุ oc_amount ชัดเจนในตาราง -> ปรับราคาขึ้นตาม oc_amount และใส่คูปอง (ถ้ามี)
+                            elif oc_amount_to_apply is not None:
+                                self.smco_set_overcharge_product(sku_key, str(oc_amount_to_apply))
+                                if matched_cand and matched_cand.get("cp_name"):
+                                    cand_cp_name = str(matched_cand.get("cp_name", "")).strip()
+                                    is_bp = cand_cp_name.upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
+                                    if not is_bp and cand_cp_name:
+                                        self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปองที่เหลือ [{cand_cp_name}] สำหรับ SKU: {sku_key}...")
+                                        try:
+                                            self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cand_cp_name)
+                                        except Exception as ex_cp:
+                                            print(f"Error applying candidate coupons in diff > 0: {ex_cp}")
+
+                            # 1.3 ถ้าไม่มี candidate ในตารางเลย ให้สแกนดูบน SMCO ก่อนว่ามีคูปองที่ Remark ระบุราคาตรงกับ expected_price หรือไม่
+                            else:
+                                direct_smco_cands = self.find_all_matching_coupons_on_smco(
+                                    0, expected_price=expected_price, order_date=purchased_date, sku=sku_key
+                                )
+                                sugg_info = self.find_suggested_cp_for_discount(
+                                    0, expected_price=expected_price, order_date=purchased_date, sku=sku_key
+                                )
+                                suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
+
+                                if direct_smco_cands or sugg_info:
+                                    self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                                    log_msg = (
+                                        f"ℹ️ พบคูปองแนะนำ [{suggested_cp_code}] บน SMCO ที่ตรงกับราคา {expected_price} สำหรับ SKU: {sku_key} "
+                                        f"(ราคาต่ำกว่าอาจเกิดจาก Auto Top-up) -> หยุดเพื่อให้ตรวจสอบก่อนทำการ Overcharge"
+                                    )
+                                    logger.info(log_msg)
+                                    self.app.update_log(log_msg)
+                                    self._raise_missing_cp_guide(
+                                        item, sku_key, actual_price, expected_price, purchased_date,
+                                        has_entry=False, suggested_cp_info=sugg_info
+                                    )
+                                elif seller_voucher > 0:
+                                    self.app.update_log(
+                                        f"ℹ️ ออเดอร์มี Seller Voucher แต่ไม่มีการระบุ oc_amount ใน cp_data.xlsx สำหรับ SKU: {sku_key} (ส่วนต่าง: +{diff_val:,.2f} บาท) -> ไม่ทำการ Overcharge อัตโนมัติ เพื่อความปลอดภัย"
+                                    )
+                                else:
+                                    # ไม่มีคูปองใดๆ ที่ตรงกับราคานี้ทั้งในตารางและบน SMCO จึงทำการ Overcharge ตามส่วนต่าง
+                                    self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
+                                    self.smco_set_overcharge_product(sku_key, str(diff_val))
 
                     # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
                     elif diff_val < 0:
@@ -3823,17 +3961,21 @@ class POSPricingReconciler:
                                 chosen_cand = sorted_candidates[0]
                                 suggested_winner_code = str(chosen_cand.get("cp_name") or "").strip()
 
-                                # สร้าง Conflict Record ส่งขึ้นแท็บ conflict_resolver
+                                # สร้าง Conflict Record ส่งขึ้นแท็บ conflict_resolver (รองรับ candidates ไม่จำกัดจำนวน)
                                 cand_desc_list = []
-                                for idx_c, c in enumerate(unified_candidates[:3], start=1):
+                                for idx_c, c in enumerate(unified_candidates, start=1):
                                     c_name = c.get("cp_name") or "-"
                                     c_rem = f" ({c.get('remark')})" if c.get("remark") else ""
                                     cand_desc_list.append(f"{idx_c}) {c_name}{c_rem}")
 
+                                candidates_multiline = "\n".join(cand_desc_list)
                                 reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
                                 conflict_payload = {
                                     "sku": str(sku_key).strip().upper(),
                                     "sale_price": float(expected_price),
+                                    "candidates": candidates_multiline,
+                                    "candidates_count": len(unified_candidates),
+                                    # Legacy fallback columns สำหรับชีตเวอร์ชันเก่า
                                     "candidate_1": cand_desc_list[0] if len(cand_desc_list) > 0 else "",
                                     "candidate_2": cand_desc_list[1] if len(cand_desc_list) > 1 else "",
                                     "candidate_3": cand_desc_list[2] if len(cand_desc_list) > 2 else "",

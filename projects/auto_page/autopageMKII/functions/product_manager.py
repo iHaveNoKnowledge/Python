@@ -295,11 +295,14 @@ class ProductManager:
             ok = (actual == expected) if actual != "NOT_FOUND" else False
             diff = expected - actual if actual != "NOT_FOUND" else "NOT_FOUND"
             result[sku_key] = {"expected": expected, "actual": actual, "diff": diff, "ok": ok}
-            status_icon = "✅" if ok else "❌"
-            print(
-                f"[ProductManager.verify_item_price] {status_icon} "
-                f"SKU={sku_key}  expected={expected}  actual={actual}"
-            )
+            status_icon = "[OK]" if ok else "[FAIL]"
+            try:
+                print(
+                    f"[ProductManager.verify_item_price] {status_icon} "
+                    f"SKU={sku_key}  expected={expected}  actual={actual}"
+                )
+            except Exception:
+                pass
 
         return result
 
