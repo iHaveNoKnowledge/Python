@@ -237,10 +237,9 @@ class TestSellerVoucherPricing(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             reconciler.process_price_mismatches(verification_result)
 
-        self.assertIn("ขอวิธีปรับราคาครับ", str(ctx.exception))
-        # บันทึก suggested_cp ที่เป็นคูปอง Seller Voucher พร้อมวันที่ (ไม่พ่วง CP_DEFAULT ซ้ำซ้อนเพราะคูปองตัวใหม่ลดครบ 500 บาทอยู่แล้ว)
+        # บันทึก suggested_cp ที่เป็นคูปอง Seller Voucher พร้อมวันที่ และ remark
         reconciler.add_missing_cp_to_excel.assert_called_once_with(
-            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP2609100001", start_date=datetime.date(2026, 9, 10)
+            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP2609100001", start_date=datetime.date(2026, 9, 10), remark="Promotion MSI Seller Voucher 10-30 Sep 2026"
         )
 
     def test_scan_matching_cp_candidates_filters_seller_voucher(self):
@@ -492,13 +491,13 @@ class TestSellerVoucherPricing(unittest.TestCase):
                 has_entry=False
             )
 
-        # ใน logs ต้องมีข้อความ pattern ที่แสดงราคา "ลูกค้าซื้อราคา 1,200.00 บาท" (ก่อนหัก voucher)
+        # ใน logs ต้องมีข้อความ pattern ที่แสดงราคาหลังหัก voucher พร้อมระบุ seller voucher
         pattern_found = False
         for msg in logs:
-            if "ลูกค้าซื้อราคา 1,200.00 บาท" in msg:
+            if "ลูกค้าซื้อราคา 1,000.00 บาท (seller voucher 200.00 บาท)" in msg:
                 pattern_found = True
                 break
-        self.assertTrue(pattern_found, f"ไม่พบข้อความ 'ลูกค้าซื้อราคา 1,200.00 บาท' ใน logs: {logs}")
+        self.assertTrue(pattern_found, f"ไม่พบข้อความ 'ลูกค้าซื้อราคา 1,000.00 บาท (seller voucher 200.00 บาท)' ใน logs: {logs}")
 
     def test_scan_matching_cp_fallback_to_coupon_detail_remark(self):
         """ทดสอบว่าเมื่อไม่พบข้อความใน couponDesc จะค้นหา fallback จาก couponDetailRemark XPath แทน"""

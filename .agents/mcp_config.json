@@ -6,8 +6,12 @@
         "/c",
         "npx",
         "-y",
-        "@postman/postman-mcp-server@latest"
-      ]
+        "@postman/postman-mcp-server@latest",
+        "--minimal"
+      ],
+      "env": {
+        "POSTMAN_API_KEY": "$POSTMAN_API_KEY"
+      }
     },
     "selenium": {
       "command": "npx",

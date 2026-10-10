@@ -2991,8 +2991,14 @@ class MyApp:
             self.update_log(
                 f"🛑 Error [Order: {order}]: ข้อมูลในไฟล์ไม่ถูกต้อง ({err_type}: {err_msg})")
             
-            # บันทึกลง Accel file (Failed_Orders) หากเปิดโหมด Accel
-            if hasattr(self, 'accel_mode') and hasattr(self, 'is_accel_mode_activated') and self.is_accel_mode_activated.get():
+            # บันทึกลง Accel file (Processed_Logs / Failed_Orders) หากมีไฟล์ Accel โหลดอยู่
+            has_accel = (
+                hasattr(self, 'accel_mode')
+                and self.accel_mode
+                and getattr(self.accel_mode, 'accel_file_dir', None)
+                and os.path.exists(self.accel_mode.accel_file_dir)
+            )
+            if has_accel:
                 try:
                     self.accel_mode.record_failed_order(
                         order, f"Error in order_search ({err_type}): {err_msg}")
@@ -5706,12 +5712,19 @@ class Bot_POS:
 
     def _update_accel_on_complete(self, inv_number: str, is_etax: bool = False) -> None:
         """อัปเดต Accel file เมื่อ order เสร็จ — ใช้ร่วมกันทั้ง etax และ non-etax path
+        รองรับทั้งโหมดอัตโนมัติ (Accel Mode) และการออกบิลแบบ Manual หากมีการโหลดไฟล์ Accel อยู่
 
         Args:
             inv_number: เลขใบเสร็จ
             is_etax:    True = etax path (status จะใส่ "Completed (etax)")
         """
-        if not (hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get()):
+        has_accel = (
+            hasattr(self.app, 'accel_mode')
+            and self.app.accel_mode
+            and getattr(self.app.accel_mode, 'accel_file_dir', None)
+            and os.path.exists(self.app.accel_mode.accel_file_dir)
+        )
+        if not has_accel:
             return
         try:
             tracking_no = (
@@ -6032,7 +6045,13 @@ class Bot_POS:
             if marketplace_result.is_forbid:
                 self.is_forbid = True
                 print("This order was forbidden.")
-                if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                has_accel = (
+                    hasattr(self.app, 'accel_mode')
+                    and self.app.accel_mode
+                    and getattr(self.app.accel_mode, 'accel_file_dir', None)
+                    and os.path.exists(self.app.accel_mode.accel_file_dir)
+                )
+                if has_accel:
                     try:
                         self.app.accel_mode.deduct_accel_file_data(
                             self.app.cus_order, remove_order=True)
@@ -8919,7 +8938,13 @@ class Bot_POS:
                             logger.error(f"Order: {self.cus_order} - {err_msg}")
                             self.current_checkpoint = f"ล้มเหลว: {err_msg}"
 
-                            if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                            has_accel = (
+                                hasattr(self.app, 'accel_mode')
+                                and self.app.accel_mode
+                                and getattr(self.app.accel_mode, 'accel_file_dir', None)
+                                and os.path.exists(self.app.accel_mode.accel_file_dir)
+                            )
+                            if has_accel:
                                 try:
                                     self.app.accel_mode.record_failed_order(
                                         self.app.cus_order, err_msg)
@@ -9016,7 +9041,13 @@ class Bot_POS:
                     except:
                         pass
                     print("พัง ข้ามไปเลยละกัน", err)
-                    if hasattr(self.app, 'accel_mode') and self.app.is_accel_mode_activated.get():
+                    has_accel = (
+                        hasattr(self.app, 'accel_mode')
+                        and self.app.accel_mode
+                        and getattr(self.app.accel_mode, 'accel_file_dir', None)
+                        and os.path.exists(self.app.accel_mode.accel_file_dir)
+                    )
+                    if has_accel:
                         try:
                             self.app.accel_mode.record_failed_order(
                                 self.app.cus_order, f"พังระหว่างยืนยันบิล: {err}")

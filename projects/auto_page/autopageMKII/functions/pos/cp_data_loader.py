@@ -384,6 +384,12 @@ class DualSourceCPLoader:
 
         df = df.copy()
         df.columns = [str(c).strip().lower() for c in df.columns]
+        # กรอง unnamed columns และตัดคอลัมน์ชื่อซ้ำออก เพื่อป้องกัน InvalidIndexError
+        valid_cols = [c for c in df.columns if not c.startswith('unnamed') and c != '']
+        df = df.loc[:, ~df.columns.duplicated(keep='first')]
+        if valid_cols:
+            df = df[[c for c in df.columns if c in valid_cols]]
+        df = df.reset_index(drop=True)
 
         if 'expected_price' in df.columns and 'sale_price' not in df.columns:
             df['sale_price'] = df['expected_price']

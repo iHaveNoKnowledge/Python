@@ -224,12 +224,23 @@ def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[Union[datetime.dat
     ดึง start_date และ end_date ของคูปอง พร้อมรักษาเวลา (Time) ถ้ามี
     หากไม่มีค่าที่สแกนมา ให้ลอง parse จาก desc หรือรหัสคูปอง (fallback)
     """
-    s_date = c.get("start_date")
-    e_date = c.get("end_date")
+    s_raw = c.get("start_date") or c.get("startDate") or c.get("usage_start_date") or c.get("suggested_usage_start_date")
+    e_raw = c.get("end_date") or c.get("endDate") or c.get("usage_end_date") or c.get("suggested_usage_end_date")
+
+    if isinstance(s_raw, (datetime.datetime, datetime.date)):
+        s_date = s_raw
+    else:
+        s_date = parse_smart_datetime(s_raw) or parse_smart_date(s_raw) if s_raw else None
+
+    if isinstance(e_raw, (datetime.datetime, datetime.date)):
+        e_date = e_raw
+    else:
+        e_date = parse_smart_datetime(e_raw) or parse_smart_date(e_raw) if e_raw else None
+
     if s_date and e_date:
         return s_date, e_date
 
-    desc = c.get("desc", "")
+    desc = c.get("desc", "") or c.get("couponDesc", "") or c.get("remark", "") or c.get("couponDetailRemark", "")
     if desc:
         s_dt, e_dt = extract_coupon_date_range(desc)
         if s_dt and not s_date:
@@ -239,7 +250,7 @@ def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[Union[datetime.dat
 
     # Fallback ดึงวันเริ่มจากรหัสคูปอง SMCO เช่น CP2609100001 -> 2026-09-10
     if not s_date:
-        code = str(c.get("code", ""))
+        code = str(c.get("code", "") or c.get("couponCode", ""))
         m = re.search(r'\b(?:CP|DC)(\d{2})(\d{2})(\d{2})\d{4}\b', code, re.IGNORECASE)
         if m:
             try:
@@ -536,6 +547,234 @@ class POSPricingReconciler:
                     self._product_master_cache[p_code] = response_data
         logger.debug(f"[record_product_master_response] Cached product master info for SKU: {sku_clean} ({len(response_data)} records)")
 
+        # ซิงค์วันที่และข้อมูลคูปองจาก Network Response เข้าสู่ตาราง cp_data ทันที
+        try:
+            self.sync_product_master_coupon_dates_to_excel(sku_clean, response_data)
+        except Exception as sync_ex:
+            logger.warning(f"[record_product_master_response] Error syncing coupon dates for {sku_clean}: {sync_ex}")
+
+    def sync_product_master_coupon_dates_to_excel(self, sku: str, response_data: Union[list, dict]) -> None:
+        """
+        เมื่อดักจับ Response จาก /getProductMasterInfoPOSV3.htm ได้จากการยิง SKU
+        ให้สกัดข้อมูล Coupon Details (คูปอง, วันที่เริ่มต้น, วันที่สิ้นสุด, ส่วนลด, Remark)
+        และอัปเดตลง cp_df, tables/cp_data.xlsx และ Google Sheets ทันที
+        """
+        if not sku or not response_data:
+            return
+
+        def _scan_coupons(items):
+            found = []
+            if isinstance(items, list):
+                for it in items:
+                    found.extend(_scan_coupons(it))
+            elif isinstance(items, dict):
+                c_c = str(items.get("couponCode") or items.get("code") or "").strip().upper()
+                if c_c:
+                    found.append(items)
+                for k in ["productCouponDetail", "coupons", "couponDetail", "couponDetails", "couponList", "productCoupons", "productCouponList", "listCoupon", "promotions"]:
+                    v = items.get(k)
+                    if isinstance(v, list):
+                        for sub in v:
+                            if isinstance(sub, dict):
+                                found.append(sub)
+            return found
+
+        coupons = _scan_coupons(response_data)
+        if not coupons:
+            return
+
+        excel_path = getattr(self.app, 'cp_table_location', '')
+        if not excel_path or not os.path.exists(excel_path):
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            candidates = [
+                os.path.join(base_dir, "tables", "cp_data.xlsx"),
+                os.path.join(base_dir, "assets", "tables", "cp_data.xlsx")
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    excel_path = c
+                    break
+
+        if not excel_path or not os.path.exists(excel_path):
+            return
+
+        try:
+            df = pd.read_excel(excel_path)
+            df = df.loc[:, ~df.columns.duplicated(keep='first')]
+            df = df.loc[:, [c for c in df.columns if not str(c).lower().startswith('unnamed')]]
+            df = df.reset_index(drop=True)
+        except Exception as read_err:
+            logger.warning(f"[sync_product_master_coupon_dates_to_excel] Error reading excel: {read_err}")
+            return
+
+        suggested_cols = [
+            'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark',
+            'usage_start_date', 'usage_end_date', 'last_updated'
+        ]
+        for col in suggested_cols:
+            if col not in df.columns:
+                df[col] = ""
+            else:
+                df[col] = df[col].astype(object)
+
+        sku_clean = str(sku).strip().upper()
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updated_any = False
+        updated_indices = set()
+
+        curr_expected = None
+        if hasattr(self, 'last_expected_prices') and self.last_expected_prices:
+            curr_expected = self.last_expected_prices.get(sku_clean)
+
+        session_ctx = self.get_smco_session_context()
+        for cp in coupons:
+            c_code = str(cp.get("couponCode") or cp.get("code") or "").strip().upper()
+            if not c_code or c_code.startswith("IS"):
+                continue
+
+            # ตรวจสอบสาขา / Store จาก Session Context (ถ้ามีระบุใน couponBranchs)
+            if not self.is_coupon_branch_and_store_match(cp, session_ctx):
+                logger.debug(
+                    f"[sync_product_master_coupon_dates] Skipping coupon {c_code} due to branch/store mismatch "
+                    f"(branch_id={session_ctx.get('branch_id')}, store_id={session_ctx.get('store_id')})"
+                )
+                continue
+
+            s_raw = cp.get("startDate") or cp.get("start_date")
+            e_raw = cp.get("endDate") or cp.get("end_date")
+            s_dt = parse_smart_datetime(s_raw) if s_raw else None
+            e_dt = parse_smart_datetime(e_raw) if e_raw else None
+            
+            s_str = s_dt.strftime("%d/%m/%Y") if s_dt else (format_smart_datetime_str(s_raw) if s_raw else "")
+            e_str = e_dt.strftime("%d/%m/%Y") if e_dt else (format_smart_datetime_str(e_raw) if e_raw else "")
+
+            rem_raw = str(cp.get("couponDetailRemark") or cp.get("remark") or cp.get("couponDesc") or "").strip()
+
+            sku_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean)
+            if not sku_mask.any():
+                fmt_sku = self.sku_formater(sku_clean).strip().upper()
+                if fmt_sku:
+                    sku_mask = (df['sku'].astype(str).str.strip().str.upper() == fmt_sku)
+
+            if not sku_mask.any():
+                continue
+
+            cp_match = sku_mask & (
+                (df['cp_name'].astype(str).str.strip().str.upper() == c_code) |
+                (df['suggested_cp'].astype(str).str.strip().str.upper() == c_code)
+            )
+
+            placeholder_match = sku_mask & (
+                (df['cp_name'].isna() | df['cp_name'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none'])) &
+                (df['suggested_cp'].isna() | df['suggested_cp'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none']))
+            )
+
+            target_mask = None
+            if cp_match.any():
+                target_mask = cp_match
+            elif placeholder_match.any():
+                if curr_expected is not None:
+                    price_matched = placeholder_match & ((pd.to_numeric(df['sale_price'], errors='coerce') - curr_expected).abs() <= 0.05)
+                    if price_matched.any():
+                        target_mask = price_matched
+                    else:
+                        target_mask = placeholder_match
+                else:
+                    target_mask = placeholder_match
+
+            if target_mask is not None and target_mask.any():
+                for idx in df[target_mask].index:
+                    if s_str:
+                        df.loc[idx, 'usage_start_date'] = s_str
+                        df.loc[idx, 'suggested_usage_start_date'] = s_str
+                    if e_str:
+                        df.loc[idx, 'usage_end_date'] = e_str
+                        df.loc[idx, 'suggested_usage_end_date'] = e_str
+                    
+                    cur_sugg = str(df.loc[idx, 'suggested_cp'] or '').strip()
+                    if not cur_sugg or cur_sugg.lower() in ('nan', '<na>', 'none', '-'):
+                        df.loc[idx, 'suggested_cp'] = c_code
+                    
+                    if rem_raw:
+                        cur_rem = str(df.loc[idx, 'suggested_remark'] or '').strip()
+                        if not cur_rem or cur_rem.lower() in ('nan', '<na>', 'none', '-'):
+                            df.loc[idx, 'suggested_remark'] = rem_raw
+                    
+                    df.loc[idx, 'last_updated'] = now_str
+                    updated_any = True
+                    updated_indices.add(idx)
+
+                    logger.info(
+                        f"🎯 [sync_product_master_coupon_dates] อัปเดตช่วงวันคูปอง {c_code} [{s_str} - {e_str}] "
+                        f"สำหรับ SKU {sku_clean} แถวที่ {idx} เรียบร้อยแล้ว"
+                    )
+
+        if updated_any:
+            try:
+                df.to_excel(excel_path, index=False)
+                format_cp_excel(excel_path)
+                if hasattr(self.app, '_cp_last_mtime'):
+                    self.app._cp_last_mtime = os.path.getmtime(excel_path)
+                if getattr(self.app, 'cp_df', None) is not None:
+                    self.app.cp_df = df.copy()
+            except Exception as save_err:
+                logger.warning(f"[sync_product_master_coupon_dates_to_excel] Error saving excel: {save_err}")
+
+            try:
+                if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                    for idx in updated_indices:
+                        row_dict = df.loc[idx].to_dict()
+                        payload = {k: ("" if pd.isna(v) else str(v)) for k, v in row_dict.items()}
+                        self._dual_cp_loader.push_record_to_gas(payload)
+            except Exception as gas_e:
+                logger.debug(f"[sync_product_master_coupon_dates_to_excel] GAS push error: {gas_e}")
+
+    def fetch_product_master_info(self, sku: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        ดึงข้อมูล Product Master Info และ Coupon Details ล่าสุดของ SKU จาก SMCO ผ่าน POS API
+        /smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm
+        โดยรัน JavaScript POST ในเบราว์เซอร์ และแคชผลลัพธ์ลงใน _product_master_cache
+        """
+        if not sku or not self.driver:
+            return None
+        sku_clean = str(sku).strip().upper()
+        # หากมีข้อมูลในแคชอยู่แล้ว (เช่น ดักจับได้แล้วตอนยิงสินค้าลง POS) ให้ใช้จากแคช ไม่ต้องยิง JS fetch ซ้ำ
+        if hasattr(self, '_product_master_cache') and self._product_master_cache and sku_clean in self._product_master_cache:
+            logger.debug(f"[fetch_product_master_info] SKU '{sku_clean}' มีข้อมูลใน cache อยู่แล้ว ข้ามการ fetch ซ้ำ")
+            return self._product_master_cache.get(sku_clean)
+        try:
+            js_fetch = """
+            var callback = arguments[arguments.length - 1];
+            var sku = arguments[0];
+            var formData = new URLSearchParams();
+            formData.append('activeFlag', 'true');
+            formData.append('requestText', sku);
+            formData.append('start', '1');
+            formData.append('length', '1');
+            formData.append('order[0][column]', '0');
+            formData.append('order[0][dir]', 'asc');
+            formData.append('modeScan', 'Y');
+            formData.append('isIgnoreQty', 'false');
+            formData.append('onlyProduct', 'false');
+
+            fetch('/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: formData.toString()
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { callback(d); })
+            .catch(function(err) { callback(null); });
+            """
+            fetched_data = self.driver.execute_async_script(js_fetch, sku_clean)
+            if fetched_data:
+                self.record_product_master_response(sku_clean, fetched_data)
+                logger.info(f"[fetch_product_master_info] Fetched product master info for '{sku_clean}' from SMCO directly")
+                return self._product_master_cache.get(sku_clean)
+        except Exception as ex_fetch:
+            logger.debug(f"[fetch_product_master_info] Error fetching SKU '{sku_clean}': {ex_fetch}")
+        return None
+
     def get_smco_session_context(self) -> Dict[str, Any]:
         """
         ดึงข้อมูลผู้ใช้ สาขา (branch_id) และร้านค้า (store_id) จาก AngularJS scope ของหน้า SMCO
@@ -596,7 +835,7 @@ class POSPricingReconciler:
                     logger.debug(f"[get_smco_session_context] Error reading AngularJS scope: {ex_sc}")
 
             # 2. Fallback: ดึง JWT Token จาก Cookie/Storage ของ SMCO แล้วแกะ sub -> (emp_id, branch_id, store_id)
-            if ctx.get("branch_id") is None:
+            if ctx.get("branch_id") is None or ctx.get("store_id") is None:
                 import base64
                 import json
 
@@ -623,12 +862,21 @@ class POSPricingReconciler:
                         if sub_str:
                             sub_parts = [p.strip() for p in sub_str.split(',')]
                             if len(sub_parts) >= 3:
-                                ctx["emp_id"] = sub_parts[0]
-                                ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
-                                ctx["store_id"] = int(sub_parts[2]) if sub_parts[2].isdigit() else sub_parts[2]
+                                if ctx.get("emp_id") is None:
+                                    ctx["emp_id"] = sub_parts[0]
+                                if ctx.get("branch_id") is None:
+                                    ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+                                if ctx.get("store_id") is None:
+                                    ctx["store_id"] = int(sub_parts[2]) if sub_parts[2].isdigit() else sub_parts[2]
                             elif len(sub_parts) == 2:
-                                ctx["emp_id"] = sub_parts[0]
-                                ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+                                if ctx.get("emp_id") is None:
+                                    ctx["emp_id"] = sub_parts[0]
+                                if ctx.get("branch_id") is None:
+                                    ctx["branch_id"] = int(sub_parts[1]) if sub_parts[1].isdigit() else sub_parts[1]
+                        if ctx.get("store_id") is None and payload.get("storeId") is not None:
+                            ctx["store_id"] = payload.get("storeId")
+                        if ctx.get("branch_id") is None and payload.get("branchId") is not None:
+                            ctx["branch_id"] = payload.get("branchId")
 
             if orig_handle:
                 try:
@@ -641,6 +889,47 @@ class POSPricingReconciler:
         if any(v is not None for v in ctx.values()):
             self._session_ctx = ctx
         return ctx
+
+    def is_coupon_branch_and_store_match(self, cp_dict: dict, session_ctx: Optional[dict] = None) -> bool:
+        """
+        ตรวจสอบว่าคูปองใน cp_dict สามารถใช้งานในสาขา (branch_id) และร้านค้า (store_id) ปัจจุบันได้หรือไม่
+        โดยเทียบกับ couponBranchs: [{"couponBranchId": 180, "couponStoreId": 208}, ...]
+        หากไม่มีการระบุ couponBranchs หรือค่าว่าง ถือว่าใช้ได้ทุกสาขา/ร้านค้า (True)
+        """
+        if not isinstance(cp_dict, dict):
+            return True
+
+        branches = cp_dict.get("couponBranchs", [])
+        if not branches or not isinstance(branches, list):
+            return True
+
+        if session_ctx is None:
+            session_ctx = self.get_smco_session_context()
+
+        branch_id = session_ctx.get("branch_id")
+        store_id = session_ctx.get("store_id")
+
+        if branch_id is None and store_id is None:
+            return True
+
+        for b in branches:
+            if not isinstance(b, dict):
+                continue
+            b_br = b.get("couponBranchId") if b.get("couponBranchId") is not None else b.get("branchId")
+            b_st = b.get("couponStoreId") if b.get("couponStoreId") is not None else b.get("storeId")
+
+            # ตรวจสอบรหัสสาขา (Branch)
+            br_ok = (b_br is None) or (branch_id is None) or (str(b_br).strip() == str(branch_id).strip())
+
+            # ตรวจสอบรหัสร้านค้า (Store)
+            st_ok = True
+            if store_id is not None and b_st is not None and str(b_st).strip() not in ["", "0", "None"]:
+                st_ok = (str(b_st).strip() == str(store_id).strip())
+
+            if br_ok and st_ok:
+                return True
+
+        return False
 
 
     def get_aggregated_combo_coupons(self, sku_input: Union[str, list], order_date: Any = None) -> list[dict]:
@@ -672,36 +961,7 @@ class POSPricingReconciler:
 
         if missing_skus and self.driver:
             for ms in missing_skus:
-                try:
-                    js_fetch = """
-                    var callback = arguments[arguments.length - 1];
-                    var sku = arguments[0];
-                    var formData = new URLSearchParams();
-                    formData.append('activeFlag', 'true');
-                    formData.append('requestText', sku);
-                    formData.append('start', '1');
-                    formData.append('length', '1');
-                    formData.append('order[0][column]', '0');
-                    formData.append('order[0][dir]', 'asc');
-                    formData.append('modeScan', 'Y');
-                    formData.append('isIgnoreQty', 'false');
-                    formData.append('onlyProduct', 'false');
-
-                    fetch('/smartcore/smartpos/pointofsales/posmainv3/getProductMasterInfoPOSV3.htm', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        body: formData.toString()
-                    })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { callback(d); })
-                    .catch(function(err) { callback(null); });
-                    """
-                    fetched_data = self.driver.execute_async_script(js_fetch, ms)
-                    if fetched_data:
-                        self.record_product_master_response(ms, fetched_data)
-                        logger.info(f"[get_aggregated_combo_coupons] Fetched missing sub-SKU '{ms}' from SMCO directly")
-                except Exception as ex_fetch:
-                    logger.debug(f"[get_aggregated_combo_coupons] Error fetching sub-SKU '{ms}': {ex_fetch}")
+                self.fetch_product_master_info(ms)
 
         # ดึงข้อมูลจาก _product_master_cache ด้วย flexible matching
         cached_records = {}
@@ -784,30 +1044,9 @@ class POSPricingReconciler:
 
                 # ตรวจสอบสาขา / Store จาก Session Context (ถ้ามีระบุใน couponBranchs)
                 # ต้องตรงกับสาขาที่ระบบเปิดการขายอยู่จริง มิเช่นนั้นบนเว็บ POS จะมองไม่เห็นคูปองนี้
-                branches = cp.get("couponBranchs", [])
-                if branches and isinstance(branches, list):
-                    if branch_id is not None:
-                        matched_branch = False
-                        for b in branches:
-                            if not isinstance(b, dict):
-                                continue
-                            b_br = b.get("couponBranchId") if b.get("couponBranchId") is not None else b.get("branchId")
-                            b_st = b.get("couponStoreId") if b.get("couponStoreId") is not None else b.get("storeId")
-
-                            # ตรวจสอบรหัสสาขา (Branch)
-                            br_ok = (b_br is None) or (str(b_br).strip() == str(branch_id).strip())
-                            
-                            # ตรวจสอบรหัสร้านค้า (Store)
-                            st_ok = True
-                            if store_id is not None and b_st is not None and str(b_st).strip() not in ["", "0", "None"]:
-                                st_ok = (str(b_st).strip() == str(store_id).strip())
-
-                            if br_ok and st_ok:
-                                matched_branch = True
-                                break
-                        if not matched_branch:
-                            logger.debug(f"[get_aggregated_combo_coupons] Skipping coupon {code} due to branch mismatch (branch_id={branch_id}, store_id={store_id})")
-                            continue
+                if not self.is_coupon_branch_and_store_match(cp, ctx):
+                    logger.debug(f"[get_aggregated_combo_coupons] Skipping coupon {code} due to branch/store mismatch (branch_id={branch_id}, store_id={store_id})")
+                    continue
 
                 seen_in_sku.add(code)
                 disc = float(cp.get("couponDetailCash", 0.0)) + float(cp.get("couponDetailDisc", 0.0))
@@ -1107,6 +1346,9 @@ class POSPricingReconciler:
 
             try:
                 df = pd.read_excel(excel_path)
+                df = df.loc[:, ~df.columns.duplicated(keep='first')]
+                df = df.loc[:, [c for c in df.columns if not str(c).lower().startswith('unnamed')]]
+                df = df.reset_index(drop=True)
             except Exception as read_err:
                 print(f"[add_missing_cp_to_excel] Error reading excel: {read_err}")
                 return
@@ -1400,6 +1642,12 @@ class POSPricingReconciler:
             kwargs["end_date"] = end_date
         if remark and "remark" not in kwargs:
             kwargs["remark"] = remark
+
+        # ถ้าไม่มี remark และไม่พบคูปองที่จับคู่ได้ ให้บันทึก remark แจ้งว่าไม่มี pattern พร้อมระบุจำนวน cp/dc ที่พบบนหน้าจอ
+        if not kwargs.get("remark") and not suggested_cp_code:
+            cp_dc_count = len([c for c in getattr(self, 'last_scanned_smco_coupon_details', []) if c.get('code') and not str(c['code']).strip().upper().startswith('IS')])
+            kwargs["remark"] = f"ไม่มี pattern, cp/dcที่พบ: {cp_dc_count} อัน"
+
         self.add_missing_cp_to_excel(sku_key, expected_price, **kwargs)
 
     def resolve_multi_coupon_info(
@@ -1408,7 +1656,8 @@ class POSPricingReconciler:
         expected_price: Optional[float] = None,
         default_remark: str = "",
         default_start: Any = None,
-        default_end: Any = None
+        default_end: Any = None,
+        sku: Optional[str] = None
     ) -> tuple[str, Any, Any]:
         """
         สำหรับกรณี SKU ที่มีค่า CP/DC หลายตัว (เช่น 'CP... DC...' หรือหลายรหัส):
@@ -1419,7 +1668,25 @@ class POSPricingReconciler:
         if not tokens:
             return default_remark, default_start, default_end
 
-        # ค้นหาข้อมูลคูปองแต่ละตัวจาก last_scanned_smco_coupon_details
+        def _scan_pm_coupons(items):
+            found = []
+            if isinstance(items, list):
+                for it in items:
+                    found.extend(_scan_pm_coupons(it))
+            elif isinstance(items, dict):
+                c_c = str(items.get("couponCode") or items.get("code") or "").strip().upper()
+                if c_c:
+                    found.append(items)
+                for k in ["productCouponDetail", "coupons", "couponDetail", "couponDetails", "couponList", "productCoupons", "productCouponList", "listCoupon", "promotions"]:
+                    v = items.get(k)
+                    if isinstance(v, list):
+                        for sub in v:
+                            if isinstance(sub, dict):
+                                found.append(sub)
+            return found
+
+        # ค้นหาข้อมูลคูปองแต่ละตัวจาก:
+        # 1. last_scanned_smco_coupon_details (จาก Modal)
         details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
         token_c_map = {}
         for d in details:
@@ -1427,26 +1694,102 @@ class POSPricingReconciler:
             if code and code not in token_c_map:
                 token_c_map[code] = d
 
+        # 2. ค้นหาเพิ่มเติมจาก _product_master_cache (JSON API cache)
+        if hasattr(self, '_product_master_cache') and self._product_master_cache:
+            for sku_k, rec_list in self._product_master_cache.items():
+                for cp_dict in _scan_pm_coupons(rec_list):
+                    c_code = str(cp_dict.get("couponCode") or cp_dict.get("code") or "").strip().upper()
+                    if c_code and c_code not in token_c_map:
+                        token_c_map[c_code] = {
+                            "code": c_code,
+                            "desc": cp_dict.get("couponDesc") or cp_dict.get("desc") or "",
+                            "remark": cp_dict.get("couponDetailRemark") or cp_dict.get("remark") or "",
+                            "startDate": cp_dict.get("startDate") or cp_dict.get("start_date"),
+                            "endDate": cp_dict.get("endDate") or cp_dict.get("end_date")
+                        }
+
+        # หากยังมี token ใดที่ไม่พบใน token_c_map และระบุ sku มา ให้ลองดึงสดจาก SMCO POS API เฉพาะ SKU ที่ยังไม่มีในแคช
+        missing_tokens = [t for t in tokens if t not in token_c_map]
+        if missing_tokens and sku and self.driver:
+            sub_skus = [s.strip().upper() for s in str(sku).split('+') if s.strip()]
+            for s in sub_skus:
+                if not hasattr(self, '_product_master_cache') or not self._product_master_cache or s not in self._product_master_cache:
+                    self.fetch_product_master_info(s)
+            if hasattr(self, '_product_master_cache') and self._product_master_cache:
+                session_ctx = self.get_smco_session_context()
+                for sku_k, rec_list in self._product_master_cache.items():
+                    for cp_dict in _scan_pm_coupons(rec_list):
+                        if not self.is_coupon_branch_and_store_match(cp_dict, session_ctx):
+                            continue
+                        c_code = str(cp_dict.get("couponCode") or cp_dict.get("code") or "").strip().upper()
+                        if c_code and c_code not in token_c_map:
+                            token_c_map[c_code] = {
+                                "code": c_code,
+                                "desc": cp_dict.get("couponDesc") or cp_dict.get("desc") or "",
+                                "remark": cp_dict.get("couponDetailRemark") or cp_dict.get("remark") or "",
+                                "startDate": cp_dict.get("startDate") or cp_dict.get("start_date"),
+                                "endDate": cp_dict.get("endDate") or cp_dict.get("end_date")
+                            }
+
+        # 3. ค้นหาเพิ่มเติมจาก cp_df / local Excel หากยังไม่พบ
+        cp_df = getattr(self.app, 'cp_df', None)
+        if cp_df is not None and not cp_df.empty:
+            for t in tokens:
+                    t_masks = []
+                    for c_col in ['cp_name', 'suggested_cp', 'last_used_cp']:
+                        if c_col in cp_df.columns:
+                            t_masks.append(cp_df[c_col].astype(str).str.strip().str.upper() == t)
+                    if t_masks:
+                        combined_mask = t_masks[0]
+                        for m_mask in t_masks[1:]:
+                            combined_mask = combined_mask | m_mask
+                        if combined_mask.any():
+                            valid_rem_mask = combined_mask & (
+                                cp_df['suggested_remark'].notna()
+                                & ~cp_df['suggested_remark'].astype(str).str.strip().isin(['', '-', 'nan', '<na>'])
+                                & ~cp_df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
+                            )
+                            target_df = cp_df[valid_rem_mask] if valid_rem_mask.any() else cp_df[combined_mask]
+                            row = target_df.iloc[0]
+                            s_val = row.get('usage_start_date') if 'usage_start_date' in row else row.get('suggested_usage_start_date')
+                            e_val = row.get('usage_end_date') if 'usage_end_date' in row else row.get('suggested_usage_end_date')
+                            r_val = row.get('suggested_remark') if 'suggested_remark' in row else None
+                            if r_val and "ไม่มี pattern" in str(r_val):
+                                r_val = ""
+                            token_c_map[t] = {
+                                "code": t,
+                                "desc": str(r_val or "") if (pd.notna(r_val) and str(r_val).strip() != "") else "",
+                                "remark": str(r_val or "") if (pd.notna(r_val) and str(r_val).strip() != "") else "",
+                                "startDate": s_val if pd.notna(s_val) else None,
+                                "endDate": e_val if pd.notna(e_val) else None
+                            }
+
         remarks = []
         found_coupons = []
         for t in tokens:
             c = token_c_map.get(t)
-            if c:
-                found_coupons.append(c)
-                rem_val = str(c.get("remark", "") or "").strip()
-                desc_val = str(c.get("desc", "") or "").strip()
-                chosen = rem_val
-                if expected_price is not None:
-                    desc_p = extract_target_price_from_text(desc_val)
-                    rem_p = extract_target_price_from_text(rem_val)
-                    if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
-                        chosen = desc_val
-                    elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
-                        chosen = rem_val
-                    elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val and extract_target_price_from_text(desc_val) is not None:
-                        chosen = desc_val
-                if chosen:
-                    remarks.append(chosen)
+            if not c:
+                # 4. Fallback สร้าง dict สำหรับ token เสมอเพื่อให้ parse วันที่เริ่มจากรหัสคูปองได้
+                c = {"code": t}
+            found_coupons.append(c)
+            rem_val = str(c.get("remark", "") or "").strip()
+            desc_val = str(c.get("desc", "") or "").strip()
+            if "ไม่มี pattern" in rem_val:
+                rem_val = ""
+            if "ไม่มี pattern" in desc_val:
+                desc_val = ""
+            chosen = rem_val or desc_val
+            if expected_price is not None:
+                desc_p = extract_target_price_from_text(desc_val)
+                rem_p = extract_target_price_from_text(rem_val)
+                if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
+                    chosen = desc_val
+                elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
+                    chosen = rem_val
+                elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_val and extract_target_price_from_text(desc_val) is not None:
+                    chosen = desc_val
+            if chosen and chosen not in remarks:
+                remarks.append(chosen)
 
         # 1. suggested_remark: รวมตามลำดับ คั่นด้วย ", "
         if remarks:
@@ -1482,6 +1825,8 @@ class POSPricingReconciler:
                         is_better = True
                     elif not s_cmp and not best_s_cmp:
                         if e_cmp and best_e_cmp and e_cmp < best_e_cmp:
+                            is_better = True
+                        elif e_cmp and not best_e_cmp:
                             is_better = True
 
                     if is_better:
@@ -1706,14 +2051,23 @@ class POSPricingReconciler:
 
             try:
                 df = pd.read_excel(excel_path)
+                df = df.loc[:, ~df.columns.duplicated(keep='first')]
+                df = df.loc[:, [c for c in df.columns if not str(c).lower().startswith('unnamed')]]
+                df = df.reset_index(drop=True)
             except Exception as read_err:
                 print(f"[record_pos_cart_summary_to_excel] Error reading excel: {read_err}")
                 return
 
-            new_cols = ['last_order_id', 'last_used_cp', 'last_adjustment_method', 'last_actual_price', 'last_updated']
+            new_cols = [
+                'cp_name', 'usage_start_date', 'usage_end_date', 'suggested_cp',
+                'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark',
+                'last_order_id', 'last_used_cp', 'last_adjustment_method', 'last_actual_price', 'last_updated'
+            ]
             for col in new_cols:
                 if col not in df.columns:
                     df[col] = ""
+                else:
+                    df[col] = df[col].astype(object)
 
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1732,8 +2086,15 @@ class POSPricingReconciler:
                         continue
 
                     # หา SKU ย่อยในชุด
-                    if hasattr(self.app, 'correct_sku_pattern'):
-                        sub_skus = self.app.correct_sku_pattern(raw_sku)
+                    if hasattr(self.app, 'correct_sku_pattern') and callable(getattr(self.app, 'correct_sku_pattern', None)):
+                        try:
+                            pattern_res = self.app.correct_sku_pattern(raw_sku)
+                            if isinstance(pattern_res, (list, tuple, set)):
+                                sub_skus = [str(s) for s in pattern_res if s]
+                            else:
+                                sub_skus = [s.strip() for s in raw_sku.replace(' ', '').split('+') if s.strip()]
+                        except Exception:
+                            sub_skus = [s.strip() for s in raw_sku.replace(' ', '').split('+') if s.strip()]
                     else:
                         sub_skus = [s.strip() for s in raw_sku.replace(' ', '').split('+') if s.strip()]
 
@@ -1834,7 +2195,7 @@ class POSPricingReconciler:
                     if is_auto_inv:
                         # ในโหมด Auto Invoice: หากมีคูปองติดมาอัตโนมัติและราคาตรงตั้งแต่แรกให้บันทึกเป็น AUTO_MATCH
                         if has_any_coupon:
-                            method_val = "AUTO_MATCH"
+                            method_val = "DEFAULT"
                         else:
                             method_val = "NONE"
                     else:
@@ -1848,7 +2209,7 @@ class POSPricingReconciler:
                 auto_rem, auto_start_dt, auto_end_dt = "", None, None
                 if used_cp:
                     auto_rem, auto_start_dt, auto_end_dt = self.resolve_multi_coupon_info(
-                        used_cp, expected_price=act_price
+                        used_cp, expected_price=act_price, sku=sku_clean
                     )
                 auto_s_str = format_smart_datetime_str(auto_start_dt) if auto_start_dt else ""
                 auto_e_str = format_smart_datetime_str(auto_end_dt) if auto_end_dt else ""
@@ -1900,23 +2261,45 @@ class POSPricingReconciler:
                     df.loc[mask, 'last_actual_price'] = act_price
                     df.loc[mask, 'last_updated'] = now_str
 
-                    # เติมวันที่และ Remark ในแถวหากยังว่างอยู่ เพื่อให้ระบบมีช่วงวันใช้งาน
-                    for idx in df[mask].index:
-                        if 'usage_start_date' in df.columns and (pd.isna(df.loc[idx, 'usage_start_date']) or str(df.loc[idx, 'usage_start_date']).strip() in ("", "-")) and auto_s_str:
-                            df.loc[idx, 'usage_start_date'] = auto_s_str
-                        if 'usage_end_date' in df.columns and (pd.isna(df.loc[idx, 'usage_end_date']) or str(df.loc[idx, 'usage_end_date']).strip() in ("", "-")) and auto_e_str:
-                            df.loc[idx, 'usage_end_date'] = auto_e_str
-                        if 'suggested_usage_start_date' in df.columns and (pd.isna(df.loc[idx, 'suggested_usage_start_date']) or str(df.loc[idx, 'suggested_usage_start_date']).strip() in ("", "-")) and auto_s_str:
-                            df.loc[idx, 'suggested_usage_start_date'] = auto_s_str
-                        if 'suggested_usage_end_date' in df.columns and (pd.isna(df.loc[idx, 'suggested_usage_end_date']) or str(df.loc[idx, 'suggested_usage_end_date']).strip() in ("", "-")) and auto_e_str:
-                            df.loc[idx, 'suggested_usage_end_date'] = auto_e_str
-                        if 'suggested_remark' in df.columns and (pd.isna(df.loc[idx, 'suggested_remark']) or str(df.loc[idx, 'suggested_remark']).strip() in ("", "-")) and auto_rem:
-                            df.loc[idx, 'suggested_remark'] = auto_rem
+                    # ปรับ cp_name และเติมวันที่/Remark ในแถวแบบ Vectorial
+                    if not used_cp:
+                        empty_cp_mask = mask & (df['cp_name'].isna() | df['cp_name'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-']))
+                        df.loc[empty_cp_mask, 'cp_name'] = "NONE"
+                    else:
+                        empty_or_none_mask = mask & (df['cp_name'].isna() | df['cp_name'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none']))
+                        df.loc[empty_or_none_mask, 'cp_name'] = used_cp
+                        if auto_s_str:
+                            if auto_e_str:
+                                df.loc[mask, 'usage_start_date'] = auto_s_str
+                            else:
+                                empty_s_mask = mask & (df['usage_start_date'].isna() | df['usage_start_date'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
+                                df.loc[empty_s_mask, 'usage_start_date'] = auto_s_str
+                        if auto_e_str:
+                            df.loc[mask, 'usage_end_date'] = auto_e_str
+
+                    if auto_s_str:
+                        if auto_e_str:
+                            df.loc[mask, 'suggested_usage_start_date'] = auto_s_str
+                        else:
+                            empty_sugg_s = mask & (df['suggested_usage_start_date'].isna() | df['suggested_usage_start_date'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
+                            df.loc[empty_sugg_s, 'suggested_usage_start_date'] = auto_s_str
+                    if auto_e_str:
+                        df.loc[mask, 'suggested_usage_end_date'] = auto_e_str
+                    if auto_rem:
+                        empty_or_stale_rem = mask & (
+                            df['suggested_remark'].isna()
+                            | df['suggested_remark'].astype(str).str.strip().isin(['', '-', 'nan', '<na>'])
+                            | df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
+                        )
+                        df.loc[empty_or_stale_rem, 'suggested_remark'] = auto_rem
+                    else:
+                        stale_no_pattern = mask & df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
+                        df.loc[stale_no_pattern, 'suggested_remark'] = ""
                 else:
                     new_row = {
                         'sku': sku_raw,
                         'sale_price': act_price,
-                        'cp_name': used_cp if used_cp else '',
+                        'cp_name': used_cp if used_cp else 'NONE',
                         'suggested_cp': used_cp if used_cp else '',
                         'usage_start_date': auto_s_str,
                         'usage_end_date': auto_e_str,
@@ -2003,7 +2386,9 @@ class POSPricingReconciler:
                             "sku": sku_c,
                             "sale_price": act_p,
                             "expected_price": act_p,
-                            "cp_name": used_c,
+                            "cp_name": used_c if used_c else "NONE",
+                            "usage_start_date": auto_s_str,
+                            "usage_end_date": auto_e_str,
                             "last_order_id": str(order_id),
                             "last_used_cp": used_c,
                             "last_adjustment_method": m_val,
@@ -2014,7 +2399,7 @@ class POSPricingReconciler:
                         if row_m.any():
                             m_row = df.loc[row_m].iloc[0]
                             for col in ['usage_start_date', 'usage_end_date', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc']:
-                                if col in m_row and pd.notna(m_row[col]) and str(m_row[col]).strip():
+                                if col in m_row and pd.notna(m_row[col]) and str(m_row[col]).strip() and col not in payload:
                                     payload[col] = str(m_row[col]).strip()
 
                         # ตรวจสอบและ sanitize suggested_remark หากราคาที่ระบุใน remark ขัดแย้งกับราคาขายจริง
@@ -2056,7 +2441,7 @@ class POSPricingReconciler:
         
         # หาก details ว่างเปล่า หรือกรณีสินค้าเซ็ต ให้ดึง/ผสานจาก get_aggregated_combo_coupons ร่วมด้วย
         target_sku = sku or getattr(self, '_current_reconcile_sku', '')
-        if target_sku and ('+' in str(target_sku) or isinstance(target_sku, list)):
+        if target_sku and ('+' in str(target_sku) or isinstance(target_sku, list) or not details):
             try:
                 agg = self.get_aggregated_combo_coupons(target_sku, order_date=order_date)
                 if agg:
@@ -2086,217 +2471,174 @@ class POSPricingReconciler:
         def is_coupon_valid(c_dict: dict) -> bool:
             return is_coupon_valid_for_order(c_dict, parsed_order_date)
 
-        # 1. ตรวจสอบคูปองเดี่ยว (Single Coupon)
-        matching_singles = []
-        for c in details:
-            if require_seller_voucher and not is_seller_voucher_desc(c.get("desc", "")):
-                continue
-            if not is_coupon_valid(c):
-                continue
+        # คูปองทั้งหมดที่พบบนหน้าเว็บ SMCO (ยกเว้น Payment / IS)
+        all_cp_dc_coupons = [
+            c for c in details
+            if c.get("code") and not str(c["code"]).strip().upper().startswith("IS")
+        ]
+        cp_dc_count = len(all_cp_dc_coupons)
 
-            # ตรวจสอบการจับคู่ราคา:
-            # 1.1 ตรวจสอบตรงกับราคาเป้าหมายใน Remark หรือ Campaign Desc (เช่น 'Dynamic ก.ย. Shp ราคา 9673' หรือ 'Shp/TT เดือน ต.ค. ราคาเซ็ทละ 1056')
-            remark_price = c.get("remark_target_price")
-            desc_price = extract_target_price_from_text(c.get("desc", ""))
-            is_desc_price_match = (
-                expected_price is not None
-                and desc_price is not None
-                and abs(desc_price - float(expected_price)) <= 0.05
-            )
-            is_remark_price_match = (
-                (
-                    expected_price is not None
-                    and remark_price is not None
-                    and abs(remark_price - float(expected_price)) <= 0.05
-                )
-                or is_desc_price_match
-            )
+        valid_details = [c for c in all_cp_dc_coupons if is_coupon_valid(c)]
 
-            # 1.2 ตรวจสอบส่วนลดปกติ
-            # หากคูปองมี remark_target_price ระบุราคาชัดเจน แต่ไม่ตรงกับ expected_price (เช่น ระบุ 'ราคา 409' แต่ expected_price = 993 หรือ 1056)
-            # แต่ถ้า desc_price ระบุราคาตรงกับ expected_price (เช่น ราคาเซ็ทละ 1056) จะไม่ตัดทิ้ง
-            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0 and not is_desc_price_match:
-                is_discount_match = False
-            else:
-                is_discount_match = (
-                    target_discount > 0
-                    and abs(c.get('discount', 0.0) - target_discount) <= 0.05
-                    and c.get('discount', 0.0) > 0
-                )
+        valid_detail_codes = {d.get("code") for d in valid_details if d.get("code")}
+        raw_preselected = getattr(self, 'last_preselected_smco_coupons', None) or []
+        preselected = [p for p in raw_preselected if p in valid_detail_codes]
 
-            if is_remark_price_match or is_discount_match:
-                s_dt, e_dt = get_coupon_start_and_end_dates(c)
-                s_cmp = to_comparable_datetime(s_dt)
-                e_cmp = to_comparable_datetime(e_dt)
-                s_val = s_cmp.timestamp() if s_cmp else 0
-                e_val = e_cmp.timestamp() if e_cmp else 9999999999
-                rec_score = get_coupon_recency_score(c.get('code', ''), c.get('desc', ''))
-                # ให้คะแนนพิเศษสูงมากกับคูปองที่ Remark ระบุราคาเป้าหมายตรงกับราคาออเดอร์พอดี
-                if is_remark_price_match:
-                    rec_score += 100000
-                rem_val = str(c.get("remark", "") or "").strip()
-                desc_val = str(c.get("desc", "") or "").strip()
-                chosen_rem = rem_val
-                if expected_price is not None:
-                    desc_p = extract_target_price_from_text(desc_val)
-                    rem_p = extract_target_price_from_text(rem_val)
-                    if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
-                        chosen_rem = desc_val
-                    elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
-                        chosen_rem = rem_val
-                    elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
-                        chosen_rem = desc_val
+        if not preselected:
+            for c in valid_details:
+                if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
+                    preselected.append(c.get("code"))
 
-                matching_singles.append({
-                    "suggested_code": c['code'],
-                    "discount": c.get('discount', 0.0),
-                    "type": "single",
-                    "score": rec_score,
-                    "s_val": s_val,
-                    "e_val": e_val,
-                    "start_date": s_dt,
-                    "end_date": e_dt,
-                    "remark": chosen_rem,
-                    "remark_price_matched": is_remark_price_match
-                })
+        code_disc_map = {str(d.get("code", "")).strip().upper(): float(d.get("discount", 0.0)) for d in valid_details if d.get("code")}
+        pre_discount = sum(code_disc_map.get(p.strip().upper(), 0.0) for p in preselected)
 
-        # 2. ตรวจสอบคูปองคู่ผสม (Combination เช่น CP 1 ตัว + DC 1 ตัว หรือ CP 2 ตัว)
+        # คำนวณ Base Price และเป้าหมายส่วนลดที่เป็นไปได้
+        possible_req_discounts = set()
+        if target_discount > 0:
+            possible_req_discounts.add(round(float(target_discount), 2))
+            if pre_discount > 0:
+                if expected_price is None or target_discount < pre_discount:
+                    possible_req_discounts.add(round(float(target_discount) + float(pre_discount), 2))
+
+        # ─── ค้นหาความน่าจะเป็นทุกรูปแบบ (Subset Combinations: 1, 2, 3, 4 ใบ) ───
         matching_combos = []
-        for i in range(len(details)):
-            for j in range(i + 1, len(details)):
-                c1 = details[i]
-                c2 = details[j]
+        import itertools
+
+        max_combo_size = min(4, len(valid_details))
+        seen_combos = set()
+
+        for k in range(1, max_combo_size + 1):
+            for combo_tuple in itertools.combinations(valid_details, k):
                 if require_seller_voucher:
-                    has_sv = is_seller_voucher_desc(c1.get("desc", "")) or is_seller_voucher_desc(c2.get("desc", ""))
-                    if not has_sv:
+                    if not any(is_seller_voucher_desc(c.get("desc", "")) for c in combo_tuple):
                         continue
-                if not is_coupon_valid(c1) or not is_coupon_valid(c2):
+
+                sub_disc = sum(float(c.get('discount', 0.0)) for c in combo_tuple)
+                if sub_disc <= 0:
                     continue
-                total_disc = c1.get('discount', 0.0) + c2.get('discount', 0.0)
-                if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
-                    s1, e1 = get_coupon_start_and_end_dates(c1)
-                    s2, e2 = get_coupon_start_and_end_dates(c2)
-                    s1_cmp = to_comparable_datetime(s1)
-                    s2_cmp = to_comparable_datetime(s2)
-                    e1_cmp = to_comparable_datetime(e1)
-                    e2_cmp = to_comparable_datetime(e2)
 
-                    # ดูว่าอันไหนมีวัน suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันก็เอา suggested_usage_end_date ที่สั้นกว่า
-                    if s1_cmp and s2_cmp:
-                        if s1_cmp > s2_cmp:
-                            combo_start, combo_end = s1, e1
-                        elif s2_cmp > s1_cmp:
-                            combo_start, combo_end = s2, e2
-                        else:
-                            combo_start = s1
-                            if e1_cmp and e2_cmp:
-                                combo_end = e1 if e1_cmp <= e2_cmp else e2
-                            else:
-                                combo_end = e1 or e2
-                    else:
-                        combo_start = s1 or s2
-                        combo_end = e1 or e2
+                sub_disc_round = round(sub_disc, 2)
+                is_disc_match = any(abs(sub_disc - rd) <= 0.05 for rd in possible_req_discounts)
 
-                    combo_s_cmp = to_comparable_datetime(combo_start)
-                    combo_e_cmp = to_comparable_datetime(combo_end)
-                    combo_s_val = combo_s_cmp.timestamp() if combo_s_cmp else 0
-                    combo_e_val = combo_e_cmp.timestamp() if combo_e_cmp else 9999999999
+                # ตรวจสอบ Remark Target Price (เช่น 'ราคา 3890')
+                is_remark_target_match = False
+                matched_remark_text = ""
+                has_conflicting_remark_price = False
+                if expected_price is not None:
+                    for c in combo_tuple:
+                        rem_p = c.get("remark_target_price") or extract_target_price_from_text(c.get("remark", ""))
+                        desc_p = extract_target_price_from_text(c.get("desc", ""))
+                        if (desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05):
+                            is_remark_target_match = True
+                            matched_remark_text = str(c.get("desc", "")).strip()
+                            break
+                        elif (rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05):
+                            is_remark_target_match = True
+                            matched_remark_text = str(c.get("remark", "") or c.get("desc", "")).strip()
+                            break
+                        elif (rem_p is not None and abs(rem_p - float(expected_price)) > 0.05):
+                            has_conflicting_remark_price = True
 
-                    rec1 = get_coupon_recency_score(c1.get('code', ''), c1.get('desc', ''))
-                    rec2 = get_coupon_recency_score(c2.get('code', ''), c2.get('desc', ''))
-                    combo_score = max(rec1, rec2)
+                if has_conflicting_remark_price and not is_remark_target_match:
+                    continue
 
-                    r1 = str(c1.get("remark", "") or "").strip()
-                    r2 = str(c2.get("remark", "") or "").strip()
-                    combo_remark = ", ".join([r for r in [r1, r2] if r])
+                if is_disc_match or is_remark_target_match:
+                    c_codes = [c['code'].strip().upper() for c in combo_tuple]
+                    new_tokens = [code for code in c_codes if code not in preselected]
+                    pre_tokens = [code for code in c_codes if code in preselected]
+
+                    expanded_codes = list(c_codes)
+                    # ถ้า combo นี้เป็นคูปองใหม่ที่ลดได้ตรง target_discount และมี preselected อยู่บนหน้าจอ
+                    if preselected and not pre_tokens and target_discount > 0:
+                        should_combine_pre = False
+                        if not is_remark_target_match:
+                            # 1. ถ้า sub_disc เท่ากับ full discount (target_discount + pre_discount) ห้ามพ่วง เพราะ combo นี้ให้ส่วนลดเต็มจำนวนแล้ว
+                            if pre_discount > 0 and abs(sub_disc - (target_discount + pre_discount)) <= 0.05:
+                                should_combine_pre = False
+                            # 2. ถ้า target_discount >= pre_discount แสดงว่า target_discount คือส่วนลดเต็มจำนวนจากราคาตั้งต้นแล้ว ห้ามพ่วง
+                            elif expected_price is not None and pre_discount > 0 and abs(sub_disc - target_discount) <= 0.05 and target_discount >= pre_discount:
+                                should_combine_pre = False
+                            # 3. ถ้า sub_disc ลดได้ตรงกับ target_discount (ที่เป็นส่วนต่างเพิ่มเติม incremental) ให้พ่วง preselected
+                            elif abs(sub_disc - target_discount) <= 0.05:
+                                should_combine_pre = True
+
+                        if should_combine_pre:
+                            expanded_codes = [p for p in preselected if p not in expanded_codes] + expanded_codes
+
+                    detail_code_order = {d['code'].strip().upper(): idx for idx, d in enumerate(valid_details) if d.get('code')}
+                    sorted_codes = sorted(expanded_codes, key=lambda x: (0, preselected.index(x)) if x in preselected else (1, detail_code_order.get(x, 999)))
+                    combo_key = " ".join(sorted_codes)
+                    if combo_key in seen_combos:
+                        continue
+                    seen_combos.add(combo_key)
+
+                    s_dates = [get_coupon_start_and_end_dates(c)[0] for c in combo_tuple]
+                    e_dates = [get_coupon_start_and_end_dates(c)[1] for c in combo_tuple]
+                    s_cmps = [to_comparable_datetime(sd) for sd in s_dates if sd]
+                    e_cmps = [to_comparable_datetime(ed) for ed in e_dates if ed]
+
+                    latest_start = max(s_cmps) if s_cmps else None
+                    shortest_end = min(e_cmps) if e_cmps else None
+
+                    s_val = latest_start.timestamp() if latest_start else 0
+                    e_val = shortest_end.timestamp() if shortest_end else 9999999999
+
+                    base_score = max(get_coupon_recency_score(c.get('code', ''), c.get('desc', '')) for c in combo_tuple)
+                    if is_remark_target_match:
+                        base_score += 100000000
+                    if len(sorted_codes) == 1:
+                        base_score += 10000000
+                    elif all(p in sorted_codes for p in preselected) and preselected:
+                        base_score += 5000000
+
+                    remarks = [str(c.get("remark", "") or "").strip() for c in combo_tuple if str(c.get("remark", "") or "").strip()]
+                    combo_remark = matched_remark_text if matched_remark_text else (", ".join(remarks) if remarks else "")
+
+                    new_code_tokens = [c for c in sorted_codes if c not in preselected]
+                    new_code_val = " ".join(new_code_tokens) or combo_key
+                    new_code_disc = sum(code_disc_map.get(c, 0.0) for c in new_code_tokens) if new_code_tokens else sub_disc
 
                     matching_combos.append({
-                        "suggested_code": f"{c1['code']} {c2['code']}",
-                        "discount": total_disc,
-                        "type": "combo",
-                        "score": combo_score,
-                        "s_val": combo_s_val,
-                        "e_val": combo_e_val,
-                        "start_date": combo_start,
-                        "end_date": combo_end,
+                        "suggested_code": combo_key,
+                        "discount": new_code_disc if new_code_tokens else sub_disc,
+                        "type": "single" if len(sorted_codes) == 1 else "combo",
+                        "score": base_score,
+                        "s_val": s_val,
+                        "e_val": e_val,
+                        "start_date": latest_start,
+                        "end_date": shortest_end,
                         "remark": combo_remark,
+                        "new_code": new_code_val,
+                        "preselected_in_combo": [p for p in preselected if p in sorted_codes and p not in new_code_tokens]
                     })
 
         best = None
-        sort_key = lambda x: (-x["s_val"], x["e_val"], -x["score"])
-        if matching_singles:
-            matching_singles.sort(key=sort_key)
-            best = matching_singles[0]
-        elif matching_combos:
+        if matching_combos:
+            sort_key = lambda x: (-x["score"], len(x["suggested_code"].split()), -x["s_val"], x["e_val"])
             matching_combos.sort(key=sort_key)
             best = matching_combos[0]
 
         if not best:
             return None
 
-        # ตรวจสอบคูปองที่เป็นค่าเริ่มต้น (Pre-selected coupons บน SMCO)
-        # ต้องเป็นคูปองที่มีอยู่ในรายการคูปองของ SKU นี้ (details) จริงๆ เท่านั้น ป้องกันคูปองจาก SKU อื่นรั่วไหล
-        valid_detail_codes = {d.get("code") for d in details if d.get("code")}
-        raw_preselected = getattr(self, 'last_preselected_smco_coupons', None)
-        preselected = [p for p in (raw_preselected or []) if p in valid_detail_codes]
-
-        if not preselected:
-            preselected = []
-            for c in details:
-                if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
-                    preselected.append(c.get("code"))
-
-        # ดึงรหัส preselected ที่มีอยู่เดิมบนหน้าเว็บ (เช่น Default CP หรือ DC)
-        # ตรวจสอบความถูกต้องทางคณิตศาสตร์เพื่อป้องกันการลดราคาซ้ำซ้อน (Over-discount):
-        # 1. หากระบุ expected_price: ตรวจสอบว่าคูปองตัวใหม่ (best) ตัวเดียวทำราคาได้ตรงกับ expected_price จากราคาตั้งต้นหรือไม่
-        #    - ถ้า best ตัวเดียวตรงกับ expected_price (เช่น 12,300 - 2,062 = 10,238): ไม่ต้องพ่วง preselected (ป้องกันกลายเป็น 8,368)
-        #    - ถ้า best + preselected รวมกันแล้วตรงกับ expected_price: ให้พ่วง preselected เข้าไปด้วย
-        # 2. หากไม่ได้ระบุ expected_price: ตรวจสอบจาก remark_price_matched หรือพ่วง pre_codes ตามปกติ
-        if preselected:
-            new_tokens = [tok.strip().upper() for tok in best["suggested_code"].split()]
-            pre_codes = [p for p in preselected if p.strip().upper() not in new_tokens and p in valid_detail_codes]
-
-            code_disc_map = {str(d.get("code", "")).strip().upper(): float(d.get("discount", 0.0)) for d in details if d.get("code")}
-            pre_discount = sum(code_disc_map.get(p.strip().upper(), 0.0) for p in pre_codes)
-
-            if expected_price is not None and target_discount > 0 and pre_discount > 0:
-                base_price = float(expected_price) + float(target_discount)
-                price_with_single = base_price - float(best.get("discount", 0.0))
-                price_with_combo = base_price - (float(best.get("discount", 0.0)) + pre_discount)
-
-                if abs(price_with_single - float(expected_price)) <= 0.05:
-                    final_code = best["suggested_code"]
-                    pre_codes = []
-                elif abs(price_with_combo - float(expected_price)) <= 0.05:
-                    final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
-                else:
-                    final_code = best["suggested_code"] if abs(price_with_single - float(expected_price)) < abs(price_with_combo - float(expected_price)) else f"{' '.join(pre_codes)} {best['suggested_code']}"
-            elif best.get("remark_price_matched", False) and pre_codes:
-                final_code = best["suggested_code"]
-                pre_codes = []
-            elif pre_codes:
-                final_code = f"{' '.join(pre_codes)} {best['suggested_code']}"
-            else:
-                final_code = best["suggested_code"]
-        else:
-            final_code = best["suggested_code"]
-            pre_codes = []
+        final_code = best["suggested_code"]
+        new_code_val = best.get("new_code", final_code)
+        pre_codes_list = [p for p in preselected if p in final_code.split() and p != new_code_val]
 
         # สำหรับกรณี SKU ที่มีค่า CP/DC หลายตัว (multi-code):
-        # 1. suggested_remark: ดึง remark ของทุก CP/DC ตามลำดับ คั่นด้วย ", "
-        # 2. เวลา: ดูว่าตัวไหนมี suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันให้เอา suggested_usage_end_date ที่สั้นกว่า
         final_remark, final_start, final_end = self.resolve_multi_coupon_info(
             final_code,
             expected_price=expected_price,
             default_remark=best.get("remark", ""),
             default_start=best.get("start_date"),
-            default_end=best.get("end_date")
+            default_end=best.get("end_date"),
+            sku=target_sku
         )
 
         return {
             "suggested_code": final_code,
-            "preselected_codes": pre_codes,
-            "new_code": best["suggested_code"],
+            "preselected_codes": pre_codes_list,
+            "new_code": new_code_val,
             "discount": best["discount"],
             "type": best["type"],
             "start_date": final_start,
@@ -2316,10 +2658,11 @@ class POSPricingReconciler:
         require_seller_voucher: bool = False
     ) -> list[dict]:
         """
-        สแกนหาคูปองทั้งหมด (ทั้งเดี่ยวและคู่ผสม) บนหน้าเว็บ SMCO ที่ตรงกับเงื่อนไข:
+        สแกนหาคูปองทั้งหมด (ทั้งเดี่ยวและคอมโบ CP/DC ทุกรูปแบบ โดยไม่เอา OC/DC ปรับมือ)
+        บนหน้าเว็บ SMCO ที่ตรงกับเงื่อนไข:
         1. วันที่ครอบคลุม order_date
-        2. มีมูลค่าส่วนลดตรงกับ target_discount หรือมี Remark ระบุราคาเป้าหมายตรงกับ expected_price
-        ส่งกลับเป็น list of candidate dict
+        2. มีผลรวมส่วนลดตรงกับส่วนต่างที่ต้องลด หรือมี Remark ระบุราคาเป้าหมายตรงกับ expected_price
+        ส่งกลับเป็น list of candidate dict ทุกวิธี เพื่อนำเข้า Conflict Resolver หากมีมากกว่า 1 วิธี
         """
         details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
 
@@ -2354,121 +2697,128 @@ class POSPricingReconciler:
         def is_coupon_valid(c_dict: dict) -> bool:
             return is_coupon_valid_for_order(c_dict, parsed_order_date)
 
+        all_cp_dc_coupons = [
+            c for c in details
+            if c.get("code") and not str(c["code"]).strip().upper().startswith("IS")
+        ]
+        valid_details = [c for c in all_cp_dc_coupons if is_coupon_valid(c)]
+
+        if require_seller_voucher:
+            valid_details = [c for c in valid_details if is_seller_voucher_desc(c.get("desc", ""))]
+
+        valid_detail_codes = {d.get("code") for d in valid_details if d.get("code")}
+        raw_preselected = getattr(self, 'last_preselected_smco_coupons', None) or []
+        preselected = [p for p in raw_preselected if p in valid_detail_codes]
+
+        if not preselected:
+            for c in valid_details:
+                if c.get("is_selected") and c.get("code") and c.get("code") not in preselected:
+                    preselected.append(c.get("code"))
+
+        code_disc_map = {str(d.get("code", "")).strip().upper(): float(d.get("discount", 0.0)) for d in valid_details if d.get("code")}
+        pre_discount = sum(code_disc_map.get(p.strip().upper(), 0.0) for p in preselected)
+
+        possible_req_discounts = set()
+        if target_discount > 0:
+            possible_req_discounts.add(round(float(target_discount), 2))
+            if pre_discount > 0:
+                if expected_price is None or target_discount < pre_discount:
+                    possible_req_discounts.add(round(float(target_discount) + float(pre_discount), 2))
+
         results = []
         seen_codes = set()
+        import itertools
 
-        # 1. Singles
-        for c in details:
-            if require_seller_voucher and not is_seller_voucher_desc(c.get("desc", "")):
-                continue
-            if not is_coupon_valid(c):
-                continue
+        max_combo_size = min(4, len(valid_details))
+        for k in range(1, max_combo_size + 1):
+            for combo_tuple in itertools.combinations(valid_details, k):
+                if require_seller_voucher:
+                    if not any(is_seller_voucher_desc(c.get("desc", "")) for c in combo_tuple):
+                        continue
 
-            remark_price = c.get("remark_target_price")
-            desc_price = extract_target_price_from_text(c.get("desc", ""))
-            is_desc_price_match = (
-                expected_price is not None
-                and desc_price is not None
-                and abs(desc_price - float(expected_price)) <= 0.05
-            )
-            is_remark_price_match = (
-                (
-                    expected_price is not None
-                    and remark_price is not None
-                    and abs(remark_price - float(expected_price)) <= 0.05
-                )
-                or is_desc_price_match
-            )
-            # 1.2 ตรวจสอบส่วนลดปกติ
-            if remark_price is not None and expected_price is not None and abs(remark_price - float(expected_price)) > 1.0 and not is_desc_price_match:
-                is_discount_match = False
-            else:
-                is_discount_match = (
-                    target_discount > 0
-                    and abs(c.get('discount', 0.0) - target_discount) <= 0.05
-                    and c.get('discount', 0.0) > 0
-                )
+                sub_disc = sum(float(c.get('discount', 0.0)) for c in combo_tuple)
+                if sub_disc <= 0:
+                    continue
 
-            if is_remark_price_match or is_discount_match:
-                code = c.get('code', '').strip().upper()
-                if code and code not in seen_codes:
-                    seen_codes.add(code)
-                    s_dt, e_dt = get_coupon_start_and_end_dates(c)
-                    rem_val = str(c.get("remark", "") or "").strip()
-                    desc_val = str(c.get("desc", "") or "").strip()
-                    chosen_rem = rem_val
-                    if expected_price is not None:
-                        desc_p = extract_target_price_from_text(desc_val)
-                        rem_p = extract_target_price_from_text(rem_val)
-                        if desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
-                            chosen_rem = desc_val
-                        elif rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05:
-                            chosen_rem = rem_val
-                        elif rem_p is not None and abs(rem_p - float(expected_price)) > 1.0 and desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05:
-                            chosen_rem = desc_val
+                is_disc_match = any(abs(sub_disc - rd) <= 0.05 for rd in possible_req_discounts)
+
+                is_remark_target_match = False
+                matched_remark_text = ""
+                has_conflicting_remark_price = False
+                if expected_price is not None:
+                    for c in combo_tuple:
+                        rem_p = c.get("remark_target_price") or extract_target_price_from_text(c.get("remark", ""))
+                        desc_p = extract_target_price_from_text(c.get("desc", ""))
+                        if (desc_p is not None and abs(desc_p - float(expected_price)) <= 0.05):
+                            is_remark_target_match = True
+                            matched_remark_text = str(c.get("desc", "")).strip()
+                            break
+                        elif (rem_p is not None and abs(rem_p - float(expected_price)) <= 0.05):
+                            is_remark_target_match = True
+                            matched_remark_text = str(c.get("remark", "") or c.get("desc", "")).strip()
+                            break
+                        elif (rem_p is not None and abs(rem_p - float(expected_price)) > 0.05):
+                            has_conflicting_remark_price = True
+
+                if has_conflicting_remark_price and not is_remark_target_match:
+                    continue
+
+                if is_disc_match or is_remark_target_match:
+                    c_codes = [c['code'].strip().upper() for c in combo_tuple]
+                    new_tokens = [code for code in c_codes if code not in preselected]
+                    pre_tokens = [code for code in c_codes if code in preselected]
+
+                    expanded_codes = list(c_codes)
+                    all_combo_items = list(combo_tuple)
+                    # ถ้า combo นี้เป็นคูปองใหม่ที่ลดได้ตรง target_discount (ที่เป็นส่วนต่างเพิ่มเติม incremental) และมี preselected อยู่บนหน้าจอ
+                    if preselected and not pre_tokens and target_discount > 0:
+                        should_combine_pre = False
+                        if not is_remark_target_match:
+                            # 1. ถ้า sub_disc เท่ากับ full discount (target_discount + pre_discount) ห้ามพ่วง เพราะ combo นี้ให้ส่วนลดเต็มจำนวนแล้ว
+                            if pre_discount > 0 and abs(sub_disc - (target_discount + pre_discount)) <= 0.05:
+                                should_combine_pre = False
+                            # 2. ถ้า target_discount >= pre_discount แสดงว่า target_discount คือส่วนลดเต็มจำนวนจากราคาตั้งต้นแล้ว ห้ามพ่วง
+                            elif expected_price is not None and pre_discount > 0 and abs(sub_disc - target_discount) <= 0.05 and target_discount >= pre_discount:
+                                should_combine_pre = False
+                            # 3. ถ้า sub_disc ลดได้ตรงกับ target_discount (ที่เป็นส่วนต่างเพิ่มเติม incremental) ให้พ่วง preselected
+                            elif abs(sub_disc - target_discount) <= 0.05:
+                                should_combine_pre = True
+
+                        if should_combine_pre:
+                            expanded_codes = [p for p in preselected if p not in expanded_codes] + expanded_codes
+                            for p in preselected:
+                                if p not in c_codes:
+                                    p_dict = next((d for d in valid_details if str(d.get("code", "")).strip().upper() == p), None)
+                                    if p_dict and p_dict not in all_combo_items:
+                                        all_combo_items.append(p_dict)
+
+                    detail_code_order = {d['code'].strip().upper(): idx for idx, d in enumerate(valid_details) if d.get('code')}
+                    sorted_codes = sorted(expanded_codes, key=lambda x: (0, preselected.index(x)) if x in preselected else (1, detail_code_order.get(x, 999)))
+                    combo_code = " ".join(sorted_codes)
+                    if combo_code in seen_codes:
+                        continue
+                    seen_codes.add(combo_code)
+
+                    s_dates = [get_coupon_start_and_end_dates(c)[0] for c in all_combo_items]
+                    e_dates = [get_coupon_start_and_end_dates(c)[1] for c in all_combo_items]
+                    s_cmps = [to_comparable_datetime(sd) for sd in s_dates if sd]
+                    e_cmps = [to_comparable_datetime(ed) for ed in e_dates if ed]
+
+                    latest_start = max(s_cmps) if s_cmps else None
+                    shortest_end = min(e_cmps) if e_cmps else None
+
+                    remarks = [str(c.get("remark", "") or "").strip() for c in all_combo_items if str(c.get("remark", "") or "").strip()]
+                    combo_remark = matched_remark_text if matched_remark_text else (", ".join(remarks) if remarks else "")
 
                     results.append({
-                        "cp_name": code,
+                        "cp_name": combo_code,
                         "oc_amount": "",
                         "dc_amount": "",
-                        "start_date": s_dt,
-                        "end_date": e_dt,
-                        "remark": chosen_rem,
+                        "start_date": latest_start,
+                        "end_date": shortest_end,
+                        "remark": combo_remark,
                         "source": "SMCO"
                     })
-
-        # 2. Combos
-        for i in range(len(details)):
-            for j in range(i + 1, len(details)):
-                c1 = details[i]
-                c2 = details[j]
-                if require_seller_voucher:
-                    if not (is_seller_voucher_desc(c1.get("desc", "")) or is_seller_voucher_desc(c2.get("desc", ""))):
-                        continue
-                if not is_coupon_valid(c1) or not is_coupon_valid(c2):
-                    continue
-                total_disc = c1.get('discount', 0.0) + c2.get('discount', 0.0)
-                if abs(total_disc - target_discount) <= 0.05 and total_disc > 0:
-                    code1 = c1.get('code', '').strip().upper()
-                    code2 = c2.get('code', '').strip().upper()
-                    combo_code = f"{code1} {code2}"
-                    if combo_code not in seen_codes:
-                        seen_codes.add(combo_code)
-                        s1, e1 = get_coupon_start_and_end_dates(c1)
-                        s2, e2 = get_coupon_start_and_end_dates(c2)
-                        s1_cmp = to_comparable_datetime(s1)
-                        s2_cmp = to_comparable_datetime(s2)
-                        e1_cmp = to_comparable_datetime(e1)
-                        e2_cmp = to_comparable_datetime(e2)
-                        # ดูว่าอันไหนมีวัน suggested_usage_start_date ใหม่กว่า ถ้าเท่ากันก็เอา suggested_usage_end_date ที่สั้นกว่า
-                        if s1_cmp and s2_cmp:
-                            if s1_cmp > s2_cmp:
-                                combo_start, combo_end = s1, e1
-                            elif s2_cmp > s1_cmp:
-                                combo_start, combo_end = s2, e2
-                            else:
-                                combo_start = s1
-                                if e1_cmp and e2_cmp:
-                                    combo_end = e1 if e1_cmp <= e2_cmp else e2
-                                else:
-                                    combo_end = e1 or e2
-                        else:
-                            combo_start = s1 or s2
-                            combo_end = e1 or e2
-
-                        r1 = str(c1.get("remark", "") or "").strip()
-                        r2 = str(c2.get("remark", "") or "").strip()
-                        combo_remark = ", ".join([r for r in [r1, r2] if r])
-
-                        results.append({
-                            "cp_name": combo_code,
-                            "oc_amount": "",
-                            "dc_amount": "",
-                            "start_date": combo_start,
-                            "end_date": combo_end,
-                            "remark": combo_remark,
-                            "source": "SMCO"
-                        })
 
         return results
 
@@ -3691,7 +4041,9 @@ class POSPricingReconciler:
                                     self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_to_apply} บาท")
                                     break
                                 elif cand.get("cp_name") and str(cand.get("cp_name", "")).strip():
-                                    pure_cp_cand = cand
+                                    cand_cp_str = str(cand.get("cp_name", "")).strip()
+                                    if cand_cp_str.upper() not in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"] and "ไม่มี" not in cand_cp_str:
+                                        pure_cp_cand = cand
 
                         if not bypassed:
                             # 1.1 ถ้าในตารางมี candidate ที่ระบุคูปอง (cp_name) โดยไม่มีการระบุ oc_amount
@@ -3914,7 +4266,8 @@ class POSPricingReconciler:
                                     expected_price=expected_price,
                                     default_remark=cand_rem,
                                     default_start=cand_start,
-                                    default_end=cand_end
+                                    default_end=cand_end,
+                                    sku=sku_key
                                 )
 
                                 self._record_missing_cp_with_dates(
@@ -3924,7 +4277,7 @@ class POSPricingReconciler:
                                     sugg_info=cand_sugg_info,
                                     oc_amount=c_oc,
                                     dc_amount=c_dc,
-                                    cp_name=c_cp if c_src == "SMCO" else (cand.get("cp_name") or ""),
+                                    cp_name="",  # บันทึกเฉพาะฝั่ง suggest ก่อน ไม่แตะช่องใช้จริง (cp_name) จนกว่าจะมีการยิงผ่านจริง
                                     start_date=resolved_start,
                                     end_date=resolved_end,
                                     remark=resolved_rem
@@ -4070,11 +4423,27 @@ class POSPricingReconciler:
                 f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
             )
 
+        # ดึงมูลค่า Seller Voucher ของ SKU นี้ (ถ้ามี)
+        seller_voucher_val = 0.0
+        try:
+            if hasattr(self.app, 'financials') and self.app.financials:
+                aggr = getattr(self.app.financials, 'aggregated_items', {})
+                if sku_key in aggr:
+                    seller_voucher_val = float(aggr[sku_key].get("total_seller_voucher", 0.0) or 0.0)
+                if seller_voucher_val <= 0.0:
+                    seller_voucher_val = float(getattr(self.app.financials, 'seller_voucher', 0.0) or 0.0)
+            elif hasattr(self, 'seller_voucher'):
+                seller_voucher_val = float(self.seller_voucher or 0.0)
+        except Exception:
+            seller_voucher_val = 0.0
+
+        sv_suffix = f" (seller voucher {seller_voucher_val:,.2f} บาท)" if seller_voucher_val > 0 else ""
+
         pattern_msg = (
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
             f"{sku_key} {product_name}\n"
             f"ยิงขายขึ้น {actual_formatted} บาท\n"
-            f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+            f"ลูกค้าซื้อราคา {expected_formatted} บาท{sv_suffix}\n"
             f"ขอวิธีปรับราคาครับ (พบคูปอง/ส่วนลดที่เข้าเงื่อนไข {len(candidate_list)} ชุดบน SMCO):\n"
             f"{cand_str}"
             f"{sugg_str}"
@@ -4102,31 +4471,23 @@ class POSPricingReconciler:
         except Exception:
             expected_formatted = str(expected_price)
 
-        # หากมี Seller Voucher ให้แสดงราคาซื้อของลูกค้าแบบไม่รวม Seller Voucher ในข้อความแพทเทิร์นถามราคา
-        display_price = expected_price
+        # ดึงมูลค่า Seller Voucher ของ SKU นี้ (ถ้ามี)
+        seller_voucher_val = 0.0
         try:
             if hasattr(self.app, 'financials') and self.app.financials:
                 aggr = getattr(self.app.financials, 'aggregated_items', {})
                 if sku_key in aggr:
-                    t_qty = aggr[sku_key].get("total_qty", 1.0) or 1.0
-                    t_price = aggr[sku_key].get("total_price", 0.0)
-                    t_disc = aggr[sku_key].get("total_discount", 0.0)
-                    display_price = (t_price + t_disc) / t_qty
-            elif hasattr(item, 'get'):
-                raw_p = str(item.get('ราคาขายสุทธิ', item.get('ราคาตั้งต้น', expected_price))).replace(',', '')
-                raw_d = str(item.get('ส่วนลดจาก Shopee', 0)).replace(',', '')
-                raw_q = str(item.get('จำนวน', 1)).replace(',', '')
-                qty = float(raw_q) if raw_q else 1.0
-                display_price = (float(raw_p) + (float(raw_d) if raw_d else 0.0)) / (qty if qty > 0 else 1.0)
+                    seller_voucher_val = float(aggr[sku_key].get("total_seller_voucher", 0.0) or 0.0)
+                if seller_voucher_val <= 0.0:
+                    seller_voucher_val = float(getattr(self.app.financials, 'seller_voucher', 0.0) or 0.0)
+            elif hasattr(self, 'seller_voucher'):
+                seller_voucher_val = float(self.seller_voucher or 0.0)
         except Exception:
-            display_price = expected_price
+            seller_voucher_val = 0.0
 
-        try:
-            display_price_formatted = f"{float(display_price):,.2f}"
-        except Exception:
-            display_price_formatted = str(display_price)
+        sv_suffix = f" (seller voucher {seller_voucher_val:,.2f} บาท)" if seller_voucher_val > 0 else ""
 
-        excel_cp_names = [c.get('cp_name') for c in (cp_candidates or []) if c.get('cp_name')]
+        excel_cp_names = [str(c.get('cp_name', '')).strip() for c in (cp_candidates or []) if str(c.get('cp_name', '')).strip()]
         smco_scanned = getattr(self, 'last_scanned_smco_coupons', [])
 
         if has_entry:
@@ -4143,30 +4504,17 @@ class POSPricingReconciler:
         if suggested_cp_info:
             s_code = suggested_cp_info.get("suggested_code", "")
             s_disc = suggested_cp_info.get("discount", 0.0)
-            pre_codes = suggested_cp_info.get("preselected_codes", [])
-            new_code = suggested_cp_info.get("new_code", s_code)
-
-            if pre_codes:
-                pre_str = ", ".join(pre_codes)
-                sugg_str = (
-                    f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ (แบบคู่ผสม):\n"
-                    f"   • คูปองเริ่มต้นที่ติดมากับสินค้า: '{pre_str}'\n"
-                    f"   • คูปองที่ต้องเลือกเพิ่ม: '{new_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
-                    f"   • รหัสรวมที่แนะนำ: '{s_code}'\n"
-                    f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
-                )
-            else:
-                sugg_str = (
-                    f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ:\n"
-                    f"   • แนะนำ: '{s_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
-                    f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
-                )
+            sugg_str = (
+                f"\n💡 [ระบบคำนวณแนะนำ] พบคูปองบน SMCO ที่ลดแล้วได้ราคา {expected_formatted} บาท พอดีเป๊ะ:\n"
+                f"   • แนะนำ: '{s_code}' (ส่วนลด {s_disc:,.2f} บาท)\n"
+                f"   • บันทึกใส่คอลัมน์ 'suggested_cp' ใน cp_data.xlsx เรียบร้อยแล้ว (เปิดตรวจสอบและคัดลอกได้)\n"
+            )
 
         pattern_msg = (
             f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
             f"{sku_key} {product_name}\n"
             f"ยิงขายขึ้น {actual_formatted} บาท\n"
-            f"ลูกค้าซื้อราคา {display_price_formatted} บาท\n"
+            f"ลูกค้าซื้อราคา {expected_formatted} บาท{sv_suffix}\n"
             f"ขอวิธีปรับราคาครับ"
             f"{extra_note}"
             f"{sugg_str}"
@@ -4444,11 +4792,26 @@ class POSPricingReconciler:
                 except Exception:
                     expected_formatted = str(expected_price)
 
+                seller_voucher_val = 0.0
+                try:
+                    if hasattr(self.app, 'financials') and self.app.financials:
+                        aggr = getattr(self.app.financials, 'aggregated_items', {})
+                        if sku in aggr:
+                            seller_voucher_val = float(aggr[sku].get("total_seller_voucher", 0.0) or 0.0)
+                        if seller_voucher_val <= 0.0:
+                            seller_voucher_val = float(getattr(self.app.financials, 'seller_voucher', 0.0) or 0.0)
+                    elif hasattr(self, 'seller_voucher'):
+                        seller_voucher_val = float(self.seller_voucher or 0.0)
+                except Exception:
+                    seller_voucher_val = 0.0
+
+                sv_suffix = f" (seller voucher {seller_voucher_val:,.2f} บาท)" if seller_voucher_val > 0 else ""
+
                 pattern_msg = (
                     f"\n{marketplace} เวลาสั่งซื้อ {purchase_time}\n"
                     f"{sku} {product_name}\n"
                     f"ยิงขายขึ้น {actual_formatted} บาท\n"
-                    f"ลูกค้าซื้อราคา {expected_formatted} บาท\n"
+                    f"ลูกค้าซื้อราคา {expected_formatted} บาท{sv_suffix}\n"
                     f"ขอวิธีปรับราคาครับ"
                 )
                 self.app.update_log(pattern_msg)

@@ -224,6 +224,8 @@ class AutoAddProduct:
                             # บันทึกข้อมูล Product Master Info (รวมถึงคูปอง) เข้าสู่ Pricing Reconciler
                             try:
                                 if hasattr(self.bot, 'pricing_reconciler') and self.bot.pricing_reconciler:
+                                    from loguru import logger
+                                    logger.info(f"🎯 [auto_add_product] ตรวจจับ Req-Res ของ SKU '{sku or product_from_response}' สำเร็จ -> ดำเนินการซิงค์วันที่และคูปองลงตาราง...")
                                     self.bot.pricing_reconciler.record_product_master_response(sku or product_from_response, response_data)
                             except Exception as ex_pm:
                                 print(f"Error caching product master response: {ex_pm}")

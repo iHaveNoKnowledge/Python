@@ -747,6 +747,353 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertNotIn("IS2608010005", extracted_codes)
         self.assertEqual(len(extracted), 2)
 
+    def test_record_pos_cart_summary_sets_cp_name_none_when_no_coupon(self):
+        """ทดสอบว่าเมื่อไม่มีการใช้ CP/DC ระบบจะบันทึก cp_name เป็น 'NONE'"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {"sku": "MNL-002484", "sale_price": 4507.0, "cp_name": "", "usage_start_date": "", "usage_end_date": ""}
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002484", "ราคาขายสุทธิ": 4507.0}]
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+            reconciler.scrape_pos_cart_items = MagicMock(return_value=[
+                {"sku": "MNL-002484", "unit_net": 4507.0, "coupons": ""}
+            ])
+
+            reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_NONE_01")
+
+            res_df = pd.read_excel(excel_path)
+            self.assertEqual(str(res_df.loc[0, "cp_name"]).strip(), "NONE")
+            self.assertEqual(str(res_df.loc[0, "last_adjustment_method"]).strip(), "NONE")
+
+    def test_record_pos_cart_summary_populates_dates_from_coupon_code_fallback(self):
+        """ทดสอบว่าเมื่อมี CP/DC แม้ไม่ได้เปิด Modal ระบบจะดึงวันที่เริ่มต้นจากรหัสคูปองมาบันทึก usage_start_date"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {"sku": "MNL-002418", "sale_price": 2849.0, "cp_name": "", "usage_start_date": "", "usage_end_date": ""}
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002418", "ราคาขายสุทธิ": 2849.0}]
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+            # คูปอง DC2609280008 ถูกเลือกอัตโนมัติบน POS (ไม่มีการเปิด Modal สแกน)
+            reconciler.scrape_pos_cart_items = MagicMock(return_value=[
+                {"sku": "MNL-002418", "unit_net": 2849.0, "coupons": "DC2609280008"}
+            ])
+
+            reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_DATE_01")
+
+            res_df = pd.read_excel(excel_path)
+            self.assertEqual(str(res_df.loc[0, "cp_name"]).strip(), "DC2609280008")
+            self.assertEqual(str(res_df.loc[0, "usage_start_date"]).strip(), "28/09/2026")
+
+    def test_resolve_multi_coupon_info_hierarchy_newest_start_and_shortest_end(self):
+        """ทดสอบตรรกะ Multi-Coupon: วันที่ใหม่สุด และถ้าวันเริ่มเท่ากัน ให้เลือกวันจบที่สั้นที่สุด"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        # Mock Modal details ที่มี 3 คูปอง
+        reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609010001",
+                "start_date": datetime.date(2026, 9, 1),
+                "end_date": datetime.date(2026, 9, 30),
+                "remark": "Promo Sep"
+            },
+            {
+                "code": "CP2609150001",
+                "start_date": datetime.date(2026, 9, 15),
+                "end_date": datetime.date(2026, 10, 31),
+                "remark": "Promo Mid-Sep Long"
+            },
+            {
+                "code": "CP2609150002",
+                "start_date": datetime.date(2026, 9, 15),
+                "end_date": datetime.date(2026, 9, 25),
+                "remark": "Promo Mid-Sep Short"
+            }
+        ]
+
+        # กรณี 1: CP2609010001 vs CP2609150001 -> วันเริ่ม 15/09/2026 ใหม่กว่า 01/09/2026
+        rem1, s1, e1 = reconciler.resolve_multi_coupon_info("CP2609010001 CP2609150001")
+        self.assertEqual(s1, datetime.date(2026, 9, 15))
+        self.assertEqual(e1, datetime.date(2026, 10, 31))
+
+        # กรณี 2: CP2609150001 vs CP2609150002 -> วันเริ่มเท่ากัน (15/09) แต่ CP2609150002 จบไวกว่า (25/09 < 31/10)
+        rem2, s2, e2 = reconciler.resolve_multi_coupon_info("CP2609150001 CP2609150002")
+        self.assertEqual(s2, datetime.date(2026, 9, 15))
+        self.assertEqual(e2, datetime.date(2026, 9, 25))
+
+
+    def test_add_missing_cp_to_excel_updates_empty_placeholder_and_splits_multi_patterns(self):
+        """
+        ทดสอบว่า:
+        1. หาก cp_data มีแถวที่มีแค่ SKU และ sale_price (แต่ cp_name ว่าง)
+           เมื่อได้รับ Suggestion ระบบจะอัปเดตลงช่อง suggested_* ของแถวเดิมนั้นโดยไม่แตะ cp_name
+        2. หากพบหลาย Pattern สำหรับ SKU และราคาเดียวกัน Pattern ที่ 2 จะถูกสร้างเป็นแถวใหม่
+           โดยทั้งสองแถวยังคงมี cp_name ว่าง เพื่อรอการยิงจริง
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        with tempfile.TemporaryDirectory() as test_dir:
+            test_file = os.path.join(test_dir, "test_placeholder_update.xlsx")
+            initial_df = pd.DataFrame([
+                {
+                    "sku": "MNL-009999",
+                    "sale_price": 5000.0,
+                    "cp_name": "",
+                    "usage_start_date": "",
+                    "usage_end_date": "",
+                    "suggested_cp": "",
+                    "suggested_usage_start_date": "",
+                    "suggested_usage_end_date": "",
+                    "suggested_remark": ""
+                }
+            ])
+            initial_df.to_excel(test_file, index=False)
+            self.mock_app.cp_table_location = test_file
+
+            # 1. ส่ง Pattern ที่ 1 เข้ามา -> ต้องอัปเดตลงแถวเดิมที่มีช่องว่าง
+            reconciler.add_missing_cp_to_excel(
+                "MNL-009999",
+                5000.0,
+                suggested_cp="CP2610010001",
+                start_date="01/10/2026",
+                end_date="31/10/2026",
+                remark="Pattern 1 Single"
+            )
+
+            df1 = pd.read_excel(test_file)
+            self.assertEqual(len(df1), 1)
+            self.assertTrue(pd.isna(df1.iloc[0]['cp_name']) or df1.iloc[0]['cp_name'] == "")
+            self.assertEqual(df1.iloc[0]['suggested_cp'], "CP2610010001")
+            self.assertEqual(df1.iloc[0]['suggested_usage_start_date'], "01/10/2026")
+            self.assertEqual(df1.iloc[0]['suggested_usage_end_date'], "31/10/2026")
+            self.assertEqual(df1.iloc[0]['suggested_remark'], "Pattern 1 Single")
+
+            # 2. ส่ง Pattern ที่ 2 เข้ามา (สูตรคูปองต่างกัน: CP2610010002 DC2610010001) -> ต้อง Insert แถวใหม่
+            reconciler.add_missing_cp_to_excel(
+                "MNL-009999",
+                5000.0,
+                suggested_cp="CP2610010002 DC2610010001",
+                start_date="01/10/2026",
+                end_date="15/10/2026",
+                remark="Pattern 2 Combo"
+            )
+
+            df2 = pd.read_excel(test_file)
+            self.assertEqual(len(df2), 2)
+            # ตรวจสอบว่าทั้ง 2 แถวมี cp_name ว่าง (ไม่แตะช่องจริง)
+            for _, row in df2.iterrows():
+                self.assertTrue(pd.isna(row['cp_name']) or row['cp_name'] == "")
+                self.assertEqual(row['sku'], "MNL-009999")
+                self.assertEqual(row['sale_price'], 5000.0)
+
+            # แถวแรกมี Pattern 1 และแถวสองมี Pattern 2
+            sugg_cps = df2['suggested_cp'].tolist()
+            self.assertIn("CP2610010001", sugg_cps)
+            self.assertIn("CP2610010002 DC2610010001", sugg_cps)
+
+    def test_mnl_002358_standalone_coupon_selected_without_preselected(self):
+        """
+        ทดสอบกรณี SKU MNL-002358:
+        บน POS มี Top-up CP2609290086 (ลด 300) ติดมาอัตโนมัติ ทำให้ราคาเป็น 2,202
+        ต้องการขายที่ 2,157 (ส่วนต่างบน POS = 45 บาท, แต่ลดจาก Base Price 2502 คือ 345 บาท)
+        พบคูปอง dynamic CP2610090037 (ลด 345) ระบุ Remark 'ใช้คูปอง dynamic นี้ราคาขายยิงขึ้น 2157'
+        ระบบต้องเลือก CP2610090037 ใบเดียว โดยไม่พ่วง CP2609290086 มาซ้ำซ้อน
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2609290086", "discount": 300.0, "desc": "Top-up 300", "is_selected": True},
+            {"code": "CP2610090037", "discount": 345.0, "desc": "Addon 345", "remark": "ใช้คูปอง dynamic นี้ราคาขายยิงขึ้น 2157", "is_selected": False},
+        ]
+        reconciler.last_preselected_smco_coupons = ["CP2609290086"]
+
+        res = reconciler.find_suggested_cp_for_discount(45.0, expected_price=2157.0, sku="MNL-002358")
+        self.assertIsNotNone(res)
+        self.assertEqual(res["suggested_code"], "CP2610090037")
+        self.assertEqual(res["preselected_codes"], [])
+        self.assertEqual(res["new_code"], "CP2610090037")
+        self.assertEqual(res["discount"], 345.0)
+        self.assertEqual(res["remark"], "ใช้คูปอง dynamic นี้ราคาขายยิงขึ้น 2157")
+
+    def test_mnl_002120_live_fetch_and_resolve_coupon_dates_from_smco(self):
+        """
+        ทดสอบกรณี SKU MNL-002120:
+        เมื่อดึงข้อมูลสดผ่าน fetch_product_master_info / resolve_multi_coupon_info
+        ต้องได้ช่วงวันที่ 01/10/2026 - 31/10/2026 ตามที่ SMCO POS API ส่งกลับมา
+        ไม่ใช่ 30/09/2026 ที่เดามาจากรหัสคูปอง
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        mock_driver = MagicMock()
+        reconciler.driver = mock_driver
+
+        mock_driver.execute_async_script.return_value = [
+            {
+                "productId": 9999,
+                "productCode": "MNL-002120",
+                "productCouponDetail": [
+                    {
+                        "couponId": 12345,
+                        "couponCode": "CP2609300027",
+                        "couponDesc": "Promotion 900.- (01/10/2026 - 31/10/2026)",
+                        "couponDetailRemark": "Promotion 900.-",
+                        "startDate": "Oct 1, 2026 12:00:01 AM",
+                        "endDate": "Oct 31, 2026 11:59:59 PM",
+                        "couponDetailCash": 900.0,
+                        "couponDetailDisc": 0.0
+                    }
+                ]
+            }
+        ]
+
+        rem, s_dt, e_dt = reconciler.resolve_multi_coupon_info(
+            "CP2609300027", expected_price=7225.0, sku="MNL-002120"
+        )
+        self.assertEqual(rem, "Promotion 900.-")
+        s_date_val = s_dt.date() if isinstance(s_dt, datetime.datetime) else s_dt
+        e_date_val = e_dt.date() if isinstance(e_dt, datetime.datetime) else e_dt
+        self.assertEqual(s_date_val, datetime.date(2026, 10, 1))
+        self.assertEqual(e_date_val, datetime.date(2026, 10, 31))
+
+    def test_sync_product_master_coupon_dates_updates_excel_and_cp_df(self):
+        """ทดสอบว่าเมื่อยิง SKU และดักจับ Network Response ได้ ระบบจะสกัด startDate/endDate และอัปเดตลง Excel กับ cp_df ทันที"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_file = os.path.join(tmpdir, "cp_data.xlsx")
+            initial_df = pd.DataFrame([
+                {
+                    "sku": "MNL-002120",
+                    "sale_price": 7225.0,
+                    "cp_name": "CP2609300027",
+                    "usage_start_date": "30/09/2026",
+                    "usage_end_date": "",
+                    "suggested_cp": "CP2609300027",
+                    "suggested_usage_start_date": "30/09/2026",
+                    "suggested_usage_end_date": "",
+                    "suggested_remark": ""
+                }
+            ])
+            initial_df.to_excel(test_file, index=False)
+            self.mock_app.cp_table_location = test_file
+            self.mock_app.cp_df = initial_df.copy()
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+
+            # จำลอง response ที่ดักจับได้จากการยิง SKU
+            captured_response = [
+                {
+                    "productId": 9999,
+                    "productCode": "MNL-002120",
+                    "productCouponDetail": [
+                        {
+                            "couponId": 12345,
+                            "couponCode": "CP2609300027",
+                            "couponDesc": "Promotion 900.- (01/10/2026 - 31/10/2026)",
+                            "couponDetailRemark": "Promotion 900.-",
+                            "startDate": "Oct 1, 2026 12:00:01 AM",
+                            "endDate": "Oct 31, 2026 11:59:59 PM",
+                            "couponDetailCash": 900.0,
+                            "couponDetailDisc": 0.0
+                        }
+                    ]
+                }
+            ]
+
+            reconciler.record_product_master_response("MNL-002120", captured_response)
+
+            updated_df = pd.read_excel(test_file)
+            self.assertEqual(len(updated_df), 1)
+            row = updated_df.iloc[0]
+            self.assertEqual(str(row["usage_start_date"]).strip(), "01/10/2026")
+            self.assertEqual(str(row["usage_end_date"]).strip(), "31/10/2026")
+            self.assertEqual(str(row["suggested_usage_start_date"]).strip(), "01/10/2026")
+            self.assertEqual(str(row["suggested_usage_end_date"]).strip(), "31/10/2026")
+            self.assertEqual(str(row["suggested_remark"]).strip(), "Promotion 900.-")
+
+            # ตรวจสอบ cp_df ใน memory ด้วย
+            self.assertIsNotNone(self.mock_app.cp_df)
+            mem_row = self.mock_app.cp_df.iloc[0]
+            self.assertEqual(str(mem_row["usage_start_date"]).strip(), "01/10/2026")
+            self.assertEqual(str(mem_row["usage_end_date"]).strip(), "31/10/2026")
+
+
+    def test_fetch_product_master_info_uses_cache_and_avoids_duplicate_fetch(self):
+        """ทดสอบว่า fetch_product_master_info จะใช้ข้อมูลจาก cache ทันที และไม่เรียก execute_async_script ซ้ำหากมีข้อมูลอยู่แล้ว"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        test_sku = "TEST-SKU-CACHE"
+        cached_data = [{"productCode": test_sku, "productCouponDetail": []}]
+        reconciler._product_master_cache = {test_sku: cached_data}
+
+        # เรียก fetch_product_master_info
+        result = reconciler.fetch_product_master_info(test_sku)
+
+        # ผลลัพธ์ต้องเป็น cached_data ทันที
+        self.assertEqual(result, cached_data)
+        # mock_driver.execute_async_script ต้องไม่ถูกเรียกเลย
+        self.mock_driver.execute_async_script.assert_not_called()
+
+
+    def test_sync_product_master_coupon_dates_filters_store_and_branch_by_session_context(self):
+        """ทดสอบว่า sync_product_master_coupon_dates_to_excel จะกรองคูปองจาก store อื่นทิ้ง ไม่บันทึกข้าม store"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler._session_ctx = {"branch_id": 180, "store_id": 208}  # สมมติเป็น Shopee store 208
+
+        sku = "MNL-002420"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            test_file = os.path.join(tmp_dir, "cp_data.xlsx")
+            init_df = pd.DataFrame([{
+                "sku": sku,
+                "sale_price": 3601.0,
+                "cp_name": "",
+                "suggested_cp": "",
+                "usage_start_date": "",
+                "usage_end_date": "",
+                "suggested_usage_start_date": "",
+                "suggested_usage_end_date": "",
+                "suggested_remark": ""
+            }])
+            init_df.to_excel(test_file, index=False)
+            self.mock_app.cp_table_location = test_file
+
+            # จำลอง Response จาก POS:
+            # - CP2609290086 สำหรับ store 208 (Shopee) -> ต้องผ่าน
+            # - CP2610050011 สำหรับ store 642 (store อื่น) -> ต้องถูกกรองทิ้ง!
+            response_data = [{
+                "productCode": sku,
+                "productCouponDetail": [
+                    {
+                        "couponCode": "CP2610050011",
+                        "startDate": "2026-10-05 00:00:00",
+                        "endDate": "2026-10-11 23:59:59",
+                        "couponDetailRemark": "Other Store Promo",
+                        "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 642}]
+                    },
+                    {
+                        "couponCode": "CP2609290086",
+                        "startDate": "2026-10-01 00:00:00",
+                        "endDate": "2026-10-31 23:59:59",
+                        "couponDetailRemark": "Shopee Promo 300.-",
+                        "couponBranchs": [{"couponBranchId": 180, "couponStoreId": 208}]
+                    }
+                ]
+            }]
+
+            reconciler.sync_product_master_coupon_dates_to_excel(sku, response_data)
+
+            res_df = pd.read_excel(test_file)
+            row = res_df.iloc[0]
+            # ต้องได้ CP2609290086 ไม่ใช่ CP2610050011 จาก store 642
+            self.assertEqual(row["suggested_cp"], "CP2609290086")
+            self.assertEqual(row["suggested_usage_start_date"], "01/10/2026")
+            self.assertEqual(row["suggested_usage_end_date"], "31/10/2026")
+            self.assertIn("Shopee Promo", row["suggested_remark"])
+
 
 if __name__ == "__main__":
     unittest.main()

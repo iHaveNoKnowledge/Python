@@ -72,11 +72,32 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
-### [ver5.x.x] - 2026-10-09
+### [ver5.x.x] - 2026-10-10
 
+- [X] **[Standalone Coupon Separation & Universal SMCO Live Fetch Fix]**:
+  - **Standalone vs Combined Preselected Resolution (`MNL-002358`)**: ปรับปรุงเงื่อนไขใน `find_suggested_cp_for_discount()` ไม่ให้พ่วง `preselected` (เช่น `CP2609290086`) เข้ามาอัตโนมัติ เมื่อคูปองที่ค้นพบ (เช่น `CP2610090037`) ให้ส่วนลดเต็มจำนวนจากราคาตั้งต้น (`abs(sub_disc - (target_discount + pre_discount)) <= 0.05`) หรือเป็นคูปองที่มี Remark ระบุราคาขายเป้าหมายตรงกับ `expected_price` (`is_remark_target_match = True`) ระบบจะแนะนำคูปองเดี่ยวๆ พร้อมสั่ง Deselect คูปอง Auto Top-up ส่วนเกินออก ทำให้ราคาจบตรง 2,157 บาทพอดี ไม่ลดซ้ำซ้อน
+  - **Universal Live SMCO POS Fetch (`MNL-002120`)**: เพิ่มเมธอด `fetch_product_master_info(sku)` และปรับปรุง `resolve_multi_coupon_info(sku=...)` ให้ยิงดึงข้อมูลสดผ่าน POS API `/getProductMasterInfoPOSV3.htm` อัตโนมัติเมื่อคูปองที่ใช้ยังไม่มีข้อมูลในแคช (ครอบคลุมทั้ง Single SKU ที่ไม่ได้ผ่าน `auto_add_product` และ Combo SKU) ทำให้ได้ช่วงวันที่โปรโมชั่นจริง (`01/10/2026 - 31/10/2026`) ครบทั้ง Start และ End Date แทนที่จะตกไปใช้ Fallback จากตัวเลขรหัสคูปอง
+  - **Partial Fallback Guard in Cart Summary**: เพิ่ม Guard ใน `record_pos_cart_summary_to_excel()` หากวันที่ได้มาเป็นเพียง Fallback ที่ไม่มี End Date จะไม่อนุญาตให้เขียนทับ `usage_start_date` เดิมที่มีอยู่แล้ว
+
+- [X] **[Separate Suggestion Isolation & Empty Placeholder Update (`cp_data`)]**:
+  - **Isolated Suggestion Update**: เมื่อได้รับ Suggestion สำหรับ SKU และราคาเป้าหมายที่มีแถวเดิมใน `cp_data.xlsx` แต่ `cp_name` ยังว่างอยู่ ระบบจะทำการอัปเดตข้อมูลลงเฉพาะกลุ่มคอลัมน์แนะนำ (`suggested_cp`, `suggested_usage_start_date`, `suggested_usage_end_date`, `suggested_remark`) โดยคงช่องใช้จริง (`cp_name`, `usage_start_date`, `usage_end_date`) ไว้เป็นค่าว่างเพื่อรอการยิงผ่านจริงหรือการยืนยัน
+  - **Non-Conflicting Multi-Pattern Split**: หากระบบค้นพบหลาย Pattern สำหรับ SKU และราคาเดียวกัน (เช่น Pattern 1 เป็น Single CP, Pattern 2 เป็น Combo CP+DC) ระบบจะนำ Pattern แรกหยอดลงในแถวเดิมที่ว่าง และทำการแตกแถวใหม่ (Insert New Row) สำหรับ Pattern ที่ 2, 3... โดยทุกแถวยังคงมี `cp_name` ว่างไว้ทั้งหมด ทำให้ตาราง `cp_data` ทำหน้าที่เป็นกระดานรวบรวมตัวเลือก (Suggestion Board) ได้อย่างสมบูรณ์ และไม่เกิดความขัดแย้งของข้อมูล
+- [X] **[No-Coupon `cp_name = "NONE"` & Multi-Source Auto-Population of `usage_start_date` / `usage_end_date`]**:
+  - **No-Coupon `cp_name = "NONE"`**: กำหนดค่า `cp_name = "NONE"` อัตโนมัติสำหรับรายการสินค้าที่ไม่มีการใช้คูปอง CP/DC (ซึ่ง `last_adjustment_method == "NONE"`) ทั้งใน Local Excel (`cp_data.xlsx`) และ Payload ของ Google Sheets Web App ช่วยให้ผู้ใช้ตรวจสอบสถานะได้ทันทีจากคอลัมน์ C (`cp_name`) โดยไม่ต้องเลื่อนสายตาไปดูคอลัมน์ `last_adjustment_method` ทางขวาสุด
+  - **Multi-Source Auto-Population of `usage_start_date` & `usage_end_date`**: ปรับปรุงการดึงวันที่ของคูปองใน `get_coupon_start_and_end_dates()` และ `resolve_multi_coupon_info()` ให้ดึงข้อมูลจากหลายแหล่ง:
+    1. ข้อมูลสดจาก Modal (`last_scanned_smco_coupon_details`)
+    2. แคชของ SMCO Product Master API (`_product_master_cache`) รองรับทั้ง `startDate` และ `endDate`
+    3. ข้อมูลประวัติจาก `cp_df` / `cp_data.xlsx`
+    4. Fallback ดึงวันเริ่มต้นจากรหัสคูปองโดยตรง เช่น `DC2609280008` -> `28/09/2026`
+    - ทำให้กรณีออเดอร์ที่เป็น `AUTO_MATCH` (ราคาตรงตั้งแต่แรกบน POS โดยไม่ต้องเปิด Modal สแกน) สามารถบันทึกค่า `usage_start_date` และ `usage_end_date` ลงตารางได้อย่างครบถ้วน
+  - **Multi-Coupon Date Hierarchy**: สำหรับรายการที่มีคูปองหลายใบ (เช่น `CP... DC...`) จะเลือกคูปองที่มี `usage_start_date` ใหม่ที่สุด และหาก `usage_start_date` เท่ากัน จะเลือกคูปองที่มี `usage_end_date` สั้นที่สุด/สิ้นสุดไวที่สุดเสมอ
 - [X] **[CP Sonic Blow Dual-Mode Architecture (`manual` vs `auto_inv`)]** แยกโหมดการทำงานของ `cp_sonic_blow_process()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ออกเป็น 2 โหมดอิสระตามบริบทการใช้งาน:
   - **Manual Mode (`mode="manual"`)**: ทำงานเป็น Toggle บริสุทธิ์สำหรับการกดคลิกผ่านปุ่มลัดหรือ UI ของผู้ใช้
   - **Auto Invoice Mode (`mode="auto_inv"`)**: ทำงานเป็น Bidirectional Exact State Sync เพื่อจับคู่และปรับสถานะคูปองให้ตรงกับ Master Data (`cp_data`) 100% โดยจะสั่งเลือกคูปองเป้าหมาย และสั่งยกเลิกติ๊ก (Deselect) คูปองที่ไม่ต้องการหรือคูปอง Auto Top-up ที่ระบบ POS ติ๊กติดมาให้เองโดยอัตโนมัติ
+- [X] **[Full CP/DC Combinations (1–4 Tokens) & Preselected Auto Top-Up Pairing & No-Pattern Remark]**:
+  - **Full Subset Combinations Search (1–4 CP/DC)**: ปรับปรุง `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` ใน [pricing_engine.py](file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) ให้ค้นหาความน่าจะเป็นทุกรูปแบบของชุดคูปอง (Pure CP/DC coupons) 1–4 ใบอย่างครอบคลุม โดยไม่พึ่งพาสูตรปรับราคา OC/DC
+  - **Preselected (Auto Top-Up) Pairing Preservation**: แก้ไขกรณีที่สินค้ามีคูปอง Auto Top-up ติดมาตั้งแต่ต้น (เช่น ยิง SKU `MNL-002535` ติด `DC2609280008` ลด 100 บาท แล้วบอทกดเพิ่ม `CP2610100002` ลด 57 บาท เพื่อให้ได้ราคาเป้าหมาย 3,890 บาท) ให้บันทึกรหัสคูปองที่ใช้จริงครบทุกตัวเป็น `"DC2609280008 CP2610100002"` โดยรักษาลำดับของคูปองที่เลือกไว้ก่อนหน้าและคูปองใหม่ได้อย่างถูกต้อง
+  - **Fallback No-Pattern Remark Format**: เมื่อระบบทดลองจับคู่ทุก Combination แล้วไม่พบ Pattern ที่ตรงกับราคาเป้าหมาย จะสร้าง Remark ในรูปแบบ `"ไม่มี pattern, cp/dcที่พบ: {cp_dc_count} อัน"` (นับจำนวนคูปอง CP/DC ทั้งหมดที่สแกนพบบนหน้า Modal SMCO POS) และบันทึกลงชีต/Excel เพื่อแจ้งให้ผู้ใช้ทราบสถานะอย่างชัดเจน
 - [X] **[Preselected Auto Top-Up Conflict & Pre-Overcharge Candidate Check (`diff > 0`)]** แก้ไขปัญหาตรรกะการปรับราคาเมื่อราคาบน POS ต่ำกว่าราคาเป้าหมาย (`diff_val > 0`):
   - สำหรับกรณีสินค้าชุด (เช่น เซ็ตหมึก `SP2-001414 + SP2-001415 + SP2-001416 + SP2-001417` ที่ราคาซื้อคือ 1,128 บาท แต่บน POS ติด Auto Top-up จนราคาลดลงเหลือ 1,000 บาท):
   - ระบบจะตรวจสอบค้นหาคูปองแคมเปญที่ระบุราคาเป้าหมายใน Remark หรือสแกนพบ candidate คูปองที่ตรงกับราคาซื้อก่อนเสมอ ก่อนที่จะตัดสินใจทำ Overcharge
@@ -124,7 +145,20 @@
   - **Cloud-to-Local Auto Sync (`sync_to_local_excel`)**: เพิ่มระบบซิงค์ข้อมูลจาก Google Sheets กลับลงมายัง Local Excel (`cp_data.xlsx`) อัตโนมัติเมื่อมีการโหลดข้อมูลผ่าน `load_cp_df()` ทำให้ข้อมูลฝั่ง Local เป็นปัจจุบันตรงกับบนคลาวด์เสมอ
   - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน [test_realtime_ambiguity_and_remark.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_realtime_ambiguity_and_remark.py)
 
+### [ver5.x.x] - 2026-10-10
+
+- [X] **[Manual Invoice Mode Accel Processed_Logs & SN Deduction Support]** รองรับการตัด SN และบันทึกผลการออกบิลลงชีต `Processed_Logs` ของไฟล์ Accel สำหรับการออกบิลแบบ Manual:
+  - แก้ไขเงื่อนไขใน `autopage_MKII_ver5.x.x.py` ที่ฟังก์ชัน `_update_accel_on_complete`, จุดดักจับข้อผิดพลาดระหว่างยืนยันบิล (Final popup), จุด submit retry, จุดยกเลิกคำสั่งซื้อ และจุดค้นหาออเดอร์ (`order_search`)
+  - เปลี่ยนจากการตรวจสอบ `is_accel_mode_activated.get()` (สวิตช์ Auto Run) เพียงอย่างเดียว เป็นการตรวจสอบการมีอยู่จริงของไฟล์ Accel (`self.app.accel_mode.accel_file_dir`)
+  - เมื่อออกบิลแบบ Manual โดยที่โหลดไฟล์ Accel ไว้อยู่ในระบบ ระบบจะตัด SN ที่ถูกใช้งาน (`deduct_accel_file_data`) และบันทึกข้อมูล `Completed` พร้อมเลขบิล (`bill_no`), `tracking`, และราคาลงในชีต `Processed_Logs` ของไฟล์ Accel เสมอ
+  - เพิ่มชุดทดสอบ Unit Test `test_manual_mode_records_to_processed_logs_when_accel_file_present` ใน `tests/test_accel_unified_processed_logs.py`
+- [X] **[Pricing Engine Seller Voucher Detail & Combo Coupon Calculation]** ปรับปรุงระบบคำนวณและรายงานราคาส่วนลดคูปอง:
+  - ปรับปรุงข้อความถามราคาเป้าหมายในโหมดรันให้แสดงมูลค่า Seller Voucher สุทธิอย่างชัดเจน เช่น `(seller voucher 200.00 บาท)`
+  - ปรับปรุง `find_all_matching_coupons_on_smco()` ให้คำนวณและรวมคูปอง Preselected (เช่น `DC...`) กับคูปองเสริม (เช่น `CP...`) เป็นชุดคอมโบเดี่ยวที่ได้ราคาสุทธิถูกต้อง
+  - เคลียร์ข้อความ Remark "ไม่มี pattern..." ออกจากตาราง `cp_data` เมื่อยิงสินค้าสำเร็จ เพื่อไม่ให้มีข้อความเตือนตกค้างในระบบ
+
 ### [ver5.x.x] - 2026-10-05
+
 
 - [X] **[Pricing Engine Real-Time SMCO Candidate Discovery & Multi-Recipe Ambiguity Protection (Strict Safety)]** เพิ่มระบบตรวจจับโปรโมชั่น/คูปองใหม่บนเว็บ SMCO แบบ Real-time และระบบป้องกันความคลุมเครือของสูตรคูปอง:
   - พัฒนาระบบ `find_all_matching_coupons_on_smco()` ใน [pricing_engine.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/functions/pos/pricing_engine.py) สแกนหาคูปอง/คอมโบใหม่ที่เปิดใช้งานสดๆ บนหน้าเว็บ SMCO (เช่น คูปองเดี่ยวตัวใหม่ `CP2610050027` ที่ตรงกับราคาสุทธิของเซ็ตสินค้า เช่น 993) แม้ใน `cp_data.xlsx` จะเคยมีสูตรผสมเดิมบันทึกไว้ (เช่น `CP2609140012 + OC 5 4`)
@@ -274,6 +308,15 @@
     - กดย้อนกลับไปหน้าแรกและสั่งล้างตะกร้า POS (`clean_pos_cart`) ทันทีเพื่อเตรียมเริ่มรอบออเดอร์ถัดไปโดยอัตโนมัติ
   - ปรับปรุงเงื่อนไขใน [payment_handler.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/payment_handler.py>) และ [autopage_MKII_ver5.x.x.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py>) (`record_failed_with_checkpoint`)
   - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py>) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
+
+### [ver5.x.x] - 2026-10-10
+
+- [X] **[Auto Add SKU Network Interception & Coupon Dates Auto-Sync]** ดักจับข้อมูลช่วงวันและคูปองจริง (`startDate`, `endDate`) จาก Network Response `/getProductMasterInfoPOSV3.htm` เมื่อยิงสินค้า (Auto Add SKU):
+  - เพิ่มเมธอด `sync_product_master_coupon_dates_to_excel` ใน `functions/pos/pricing_engine.py` สกัด `startDate`, `endDate`, `couponCode`, `remark` จาก `productCouponDetail` ใน response ที่ดักจับได้ทันที
+  - อัปเดต `usage_start_date`, `usage_end_date`, `suggested_usage_start_date`, `suggested_usage_end_date` ลง `self.app.cp_df`, `tables/cp_data.xlsx` และ push ขึ้น Google Sheets (GAS) ทันทีที่มีการยิง SKU
+  - ปรับปรุง `accel_fill_sku` ใน `functions/accel_mode.py`: สำหรับสินค้าที่ไม่มีใน `accel_file` (สินค้าที่ไม่มี SN เช่น จอภาพ, อุปกรณ์เสริม) ระบบจะทำการแอดสินค้าลงตะกร้า POS ด้วย `AutoAddProduct.auto_add_product` อัตโนมัติ แทนการข้าม
+  - ปรับปรุง `record_pos_cart_summary_to_excel`: ให้เขียนทับ `suggested_usage_start_date` และ `suggested_usage_end_date` ด้วยช่วงวันจริงจาก Network Response เสมอ เพื่อขจัดปัญหาวันที่ค้างจากการเดา Regex เดิม
+  - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านครบ 23 ข้อ 100%
 
 ### [ver5.x.x] - 2026-09-30
 

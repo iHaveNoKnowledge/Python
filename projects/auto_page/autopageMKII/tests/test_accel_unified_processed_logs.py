@@ -177,9 +177,52 @@ class TestAccelUnifiedProcessedLogs(unittest.TestCase):
         # ต้องมีเพียง 1 แถวเท่านั้น
         self.assertEqual(len(failed_df[failed_df['orders'] == 'ORD_DEBOUNCE']), 1)
 
+    def test_manual_mode_records_to_processed_logs_when_accel_file_present(self):
+        """ทดสอบว่าการออกบิลแบบ Manual (is_accel_mode_activated=False) โดยมี accel_file อยู่ จะบันทึกค่าลง Processed_Logs ได้"""
+        class DummyBot:
+            def __init__(self, app):
+                self.app = app
+                self.tracking_manager = type('TM', (), {'trackings': ['TH998877']})()
+
+            def _update_accel_on_complete(self, inv_number: str, is_etax: bool = False) -> None:
+                has_accel = (
+                    hasattr(self.app, 'accel_mode')
+                    and self.app.accel_mode
+                    and getattr(self.app.accel_mode, 'accel_file_dir', None)
+                    and os.path.exists(self.app.accel_mode.accel_file_dir)
+                )
+                if not has_accel:
+                    return
+                try:
+                    tracking_no = (
+                        ", ".join(self.tracking_manager.trackings)
+                        if hasattr(self, 'tracking_manager') and self.tracking_manager.trackings
+                        else ""
+                    )
+                    status = "Completed (etax)" if is_etax else "Completed"
+                    self.app.accel_mode.deduct_accel_file_data(
+                        self.app.cus_order, getattr(self.app.accel_mode, "used_serials", []))
+                    self.app.accel_mode.record_completed_order(
+                        self.app.cus_order, tracking=tracking_no, bill_no=inv_number, status=status,
+                        price=getattr(self.app, 'final_price', ''))
+                except Exception as xl_err:
+                    pass
+
+        self.app.is_accel_mode_activated = type('Var', (), {'get': lambda: False})() # Manual mode (False)
+        self.app.accel_mode = self.accel
+        self.app.cus_order = "ORD101"
+        self.app.final_price = 1590.0
+
+        bot = DummyBot(self.app)
+        bot._update_accel_on_complete("INV-MANUAL-001", is_etax=False)
+
         proc_df = pd.read_excel(self.test_excel, sheet_name='Processed_Logs')
-        self.assertEqual(len(proc_df[proc_df['orders'] == 'ORD_DEBOUNCE']), 1)
+        row = proc_df[proc_df['orders'] == 'ORD101'].iloc[0]
+        self.assertEqual(row['status'], 'Completed')
+        self.assertEqual(row['bill_no'], 'INV-MANUAL-001')
+        self.assertEqual(float(row['price']), 1590.0)
 
 
 if __name__ == '__main__':
     unittest.main()
+

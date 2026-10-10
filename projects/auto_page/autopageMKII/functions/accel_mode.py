@@ -1426,10 +1426,10 @@ class AccelMode:
                     break
 
             if not matched_col:
-                logger.info(f"SKU {target_sku_key} ไม่มีใน accel_file ข้ามไป")
+                logger.info(f"SKU {target_sku_key} ไม่มีใน accel_file (ไม่ใช่สินค้าที่มี SN ในไฟล์ ข้ามไปให้ ProductManager จัดการ)")
                 if hasattr(self.main_app, 'is_auto_invoice_mode') and not self.main_app.is_auto_invoice_mode.get():
                     self.main_app.update_log(
-                        f"ℹ️ SKU {target_sku_key} ไม่มีในไฟล์ Accel (ปล่อยให้ User จัดการเอง)")
+                        f"ℹ️ SKU {target_sku_key} ไม่มีในไฟล์ Accel ข้ามไป")
                 continue
 
             target_qty = info['qty']
