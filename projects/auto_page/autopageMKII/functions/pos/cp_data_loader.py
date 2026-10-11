@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 import requests
 import pandas as pd
 from typing import Optional, Dict, Any
@@ -123,19 +124,8 @@ class DualSourceCPLoader:
 
         return False
 
-    def push_record_to_gas(self, record_dict: Dict[str, Any]) -> bool:
-        """
-        Push new record to Google Sheet via Google Apps Script (POST)
-        Includes client-side deduplication check to save API quota and latency.
-        """
-        if not self.gas_url:
-            return False
-
-        # 🔍 ข้ามการยิง POST หากข้อมูลตรงกับที่มีอยู่ในตารางแล้ว 100%
-        if self._is_exact_duplicate(record_dict):
-            print(f"[GAS CP Loader] Record already exists identically in cache (SKU: {record_dict.get('sku')}), skipping POST.")
-            return True
-            
+    def _execute_push_request(self, record_dict: Dict[str, Any]) -> bool:
+        """Internal synchronous worker to POST record to Google Apps Script Web App"""
         try:
             resp = requests.post(self.gas_url, json=record_dict, timeout=self.request_timeout)
             if resp.status_code == 200:
@@ -152,8 +142,40 @@ class DualSourceCPLoader:
                 print(f"[GAS CP Loader] Push failed with HTTP Status {resp.status_code}: {resp.text}")
         except Exception as e:
             print(f"[GAS CP Loader] Failed to POST data to Google Sheet: {e}")
-            
+
         return False
+
+    def push_record_to_gas(self, record_dict: Dict[str, Any], is_async: bool = True) -> bool:
+        """
+        Push new record to Google Sheet via Google Apps Script (POST)
+        Includes client-side deduplication check to save API quota and latency.
+        By default (is_async=True), executes in a background daemon thread so POS operations
+        are not blocked by Google Apps Script network roundtrips.
+        """
+        if not self.gas_url:
+            return False
+
+        # 🔍 ข้ามการยิง POST หากข้อมูลตรงกับที่มีอยู่ในตารางแล้ว 100%
+        if self._is_exact_duplicate(record_dict):
+            print(f"[GAS CP Loader] Record already exists identically in cache (SKU: {record_dict.get('sku')}), skipping POST.")
+            return True
+
+        if is_async:
+            sku_name = str(record_dict.get('sku', 'unknown')).strip()
+            bg_thread = threading.Thread(
+                target=self._execute_push_request,
+                args=(record_dict,),
+                daemon=True,
+                name=f"GAS-Push-{sku_name}"
+            )
+            bg_thread.start()
+            return True
+
+        return self._execute_push_request(record_dict)
+
+    def push_record_to_gas_async(self, record_dict: Dict[str, Any]) -> bool:
+        """Convenience method to explicitly trigger asynchronous push"""
+        return self.push_record_to_gas(record_dict, is_async=True)
 
     def fetch_conflict_resolver_gas(self) -> pd.DataFrame:
         """Fetch conflict resolver data from Google Apps Script Web App (GET ?sheet=conflict_resolver)"""

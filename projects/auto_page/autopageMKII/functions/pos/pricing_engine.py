@@ -2410,7 +2410,7 @@ class POSPricingReconciler:
                             if row_m.any() and 'suggested_remark' in df.columns:
                                 df.loc[row_m, 'suggested_remark'] = ""
 
-                        self._dual_cp_loader.push_record_to_gas(payload)
+                        self._dual_cp_loader.push_record_to_gas(payload, is_async=True)
             except Exception as gas_err:
                 logger.debug(f"[record_pos_cart_summary_to_excel] Google Sheet sync skipped: {gas_err}")
 
