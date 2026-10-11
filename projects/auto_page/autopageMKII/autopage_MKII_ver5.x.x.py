@@ -6454,14 +6454,11 @@ class Bot_POS:
             if self.app.is_auto_invoice_mode.get():
                 self.pricing_reconciler.reconcile_and_verify()
 
-            # บันทึกสรุปรายการ SKU คูปอง และราคาขายสุทธิลงใน cp_data.xlsx หากยังไม่ได้บันทึก
-            try:
-                if hasattr(self, 'pricing_reconciler') and self.pricing_reconciler:
-                    cur_order = str(self.cus_order or getattr(self.app, 'cus_order', '')).strip()
-                    if getattr(self.pricing_reconciler, '_last_recorded_order_id', None) != cur_order:
-                        self.pricing_reconciler.record_pos_cart_summary_to_excel(cur_order)
-            except Exception as e:
-                logger.warning(f"Error recording POS cart summary to excel: {e}")
+            # NOTE: ห้ามบันทึก cp_data ตรงนี้ (หน้าแรก/ก่อนออกบิล) เด็ดขาด
+            # เดิมเคยเรียก record_pos_cart_summary_to_excel ตรงนี้ทุกโหมด ทำให้โหมด Manual
+            # โดนประทับ last_adjustment_method="MANUAL" ตั้งแต่ยังไม่ปรับราคา/ยังไม่ออกบิล
+            # แถม _last_recorded_order_id โดนเซ็ตก่อน ทำให้บันทึกตอนออกบิลจริงใน finish_order() ถูกข้ามไปด้วย
+            # ที่ถูกต้อง: auto_inv บันทึกใน reconcile_and_verify (หลังปรับราคาผ่าน), manual บันทึกใน finish_order() (ตอนออกบิล)
 
             self.check_abort()
 

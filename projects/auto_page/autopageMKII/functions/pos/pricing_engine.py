@@ -493,6 +493,7 @@ class POSPricingReconciler:
         self._last_recorded_order_id: Optional[str] = None
         self.last_expected_prices: Dict[str, float] = {}
         self._applied_adjustments: Dict[str, Set[str]] = {}
+        self._applied_amounts: Dict[str, Dict[str, list]] = {}
         self._product_master_cache: Dict[str, list] = {}
         self._session_ctx: Optional[Dict[str, Any]] = None
 
@@ -1093,8 +1094,8 @@ class POSPricingReconciler:
         return aggregated_details
 
 
-    def _track_adjustment(self, sku: str, method: str) -> None:
-        """บันทึกประวัติการปรับราคาของ SKU (OC, DC, CP) ในรอบการทำงานปัจจุบัน"""
+    def _track_adjustment(self, sku: str, method: str, amount: Any = None) -> None:
+        """บันทึกประวัติการปรับราคาของ SKU (OC, DC, CP) ในรอบการทำงานปัจจุบัน (พร้อมยอดบาทสำหรับ OC/DC)"""
         if not sku:
             return
         sku_clean = str(sku).strip().upper()
@@ -1103,6 +1104,27 @@ class POSPricingReconciler:
         if sku_clean not in self._applied_adjustments:
             self._applied_adjustments[sku_clean] = set()
         self._applied_adjustments[sku_clean].add(str(method).strip().upper())
+        # เก็บยอด OC/DC (เช่น 73) เพื่อนำไปเติมลงคอลัมน์ oc_amount/dc_amount ตอนบันทึก cp_data
+        # (เดิมเก็บแค่วิธี ทำให้แถวที่เรียนจากการ OC สำเร็จมียอดว่าง แล้วรอบถัดไปแตกแถวซ้ำ)
+        m_up = str(method).strip().upper()
+        if m_up in ("OC", "DC") and amount is not None:
+            try:
+                if not hasattr(self, '_applied_amounts') or self._applied_amounts is None:
+                    self._applied_amounts = {}
+                toks = []
+                for t in str(amount).split():
+                    t_clean = t.replace(',', '').strip()
+                    if not t_clean:
+                        continue
+                    try:
+                        f = float(t_clean)
+                        toks.append(str(int(f)) if float(f).is_integer() else str(f))
+                    except Exception:
+                        toks.append(t_clean)
+                if toks:
+                    self._applied_amounts.setdefault(sku_clean, {}).setdefault(m_up, []).extend(toks)
+            except Exception:
+                pass
 
     def sku_formater(self, sku_input: str) -> str:
         """แปลง SKU ให้อยู่ในฟอร์แมตมาตรฐาน เช่น sp2-1703 -> SP2-001703"""
@@ -1360,6 +1382,55 @@ class POSPricingReconciler:
                 if tokens:
                     return " ".join(tokens)
             return ""
+        except Exception as ex:
+            print(f"[Admin Override] Error reading conflict_resolver: {ex}")
+            return ""
+
+    def _lookup_oc_dc_for_pattern(self, sku: str, platform_price: float, cp_string: str) -> tuple:
+        """
+        หา oc_amount/dc_amount จาก cp_data.xlsx สำหรับสูตร (SKU + ราคา + ชุดคูปองตรงกันเป๊ะ).
+        ใช้ประกอบ Admin Override: pattern ที่ Admin สั่งอาจต้อง OC/DC ด้วย ไม่ใช่แค่คูปอง.
+        ไม่เจอแบบตรงกันเป๊ะ -> ส่งกลับ ("", "") (ไม่เดา ไม่หยิบสูตรอื่นมาปน).
+        """
+        try:
+            df = getattr(self.app, 'cp_df', None) if hasattr(self, 'app') else None
+            if df is None or df.empty:
+                return "", ""
+            sku_clean = str(sku).strip().upper()
+            try:
+                target = float(platform_price)
+            except Exception:
+                return "", ""
+            want = str(cp_string or "").strip().upper()
+            if not want:
+                return "", ""
+            if 'sku' not in df.columns or 'sale_price' not in df.columns:
+                return "", ""
+            m = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & (
+                (pd.to_numeric(df['sale_price'], errors='coerce') - target).abs() <= 0.05)
+            sub = df[m]
+            if sub.empty:
+                return "", ""
+            for _, row in sub.iterrows():
+                hit = False
+                for col in ('cp_name', 'suggested_cp'):
+                    if col in df.columns:
+                        v = str(row.get(col, '') or '').strip().upper()
+                        if v and v == want:
+                            hit = True
+                            break
+                if not hit:
+                    continue
+                oc = str(row.get('oc_amount', '') or '').strip() if 'oc_amount' in df.columns else ""
+                dc = str(row.get('dc_amount', '') or '').strip() if 'dc_amount' in df.columns else ""
+                if oc.lower() in ('nan', 'none', '<na>', 'null', '-', ''):
+                    oc = ""
+                if dc.lower() in ('nan', 'none', '<na>', 'null', '-', ''):
+                    dc = ""
+                return oc, dc
+            return "", ""
+        except Exception:
+            return "", ""
         except Exception as ex:
             print(f"[Admin Override] Error reading conflict_resolver: {ex}")
             return ""
@@ -2230,6 +2301,24 @@ class POSPricingReconciler:
                             if k in sku_clean or sku_clean in k:
                                 bot_methods = v
                                 break
+
+                # ยอด OC/DC ที่บอทปรับจริงในรอบนี้ (เติมลงคอลัมน์เฉพาะช่องที่ว่าง ไม่ทับค่าที่มีอยู่)
+                oc_fill, dc_fill = "", ""
+                try:
+                    amt_map = getattr(self, '_applied_amounts', None) or {}
+                    amt_entry = amt_map.get(sku_clean, {})
+                    if not amt_entry:
+                        for k, v in amt_map.items():
+                            if k in sku_clean or sku_clean in k:
+                                amt_entry = v
+                                break
+                    if isinstance(amt_entry, dict):
+                        oc_vals = [str(x) for x in (amt_entry.get("OC") or []) if str(x).strip()]
+                        dc_vals = [str(x) for x in (amt_entry.get("DC") or []) if str(x).strip()]
+                        oc_fill = " ".join(oc_vals)
+                        dc_fill = " ".join(dc_vals)
+                except Exception:
+                    oc_fill, dc_fill = "", ""
 
                 if bot_methods:
                     has_cp = "CP" in bot_methods
@@ -3779,7 +3868,7 @@ class POSPricingReconciler:
                                     (By.XPATH, "//a[@class='btn btn-success text-center' and @ng-click='okChagePriceProduct()']")))
                             except Exception:
                                 time.sleep(1)
-                            self._track_adjustment(item, 'OC')
+                            self._track_adjustment(item, 'OC', oc_amount)
                             break
                     except Exception as err:
                         err_msg = f"การปรับราคาขึ้น (Overcharge) สำหรับ SKU: {item} ผิดพลาด: {err}"
@@ -3878,7 +3967,7 @@ class POSPricingReconciler:
                                     (By.CSS_SELECTOR, '.row.row-space div.text-center a.btn.btn-success.text-center#saveCustomerBtn[ng-click="okChagePrice()"]')))
                             except Exception:
                                 time.sleep(1)
-                            self._track_adjustment(item, 'DC')
+                            self._track_adjustment(item, 'DC', dc_amount)
                             break
                     except Exception as err:
                         logger.error(f"Order: {self.bot.cus_order}: smco_set_discount error: {err}")
@@ -4020,14 +4109,28 @@ class POSPricingReconciler:
                         continue
 
                     # ─── ADMIN OVERRIDE (conflict_resolver): ถ้า Admin ใส่ admin_selection ไว้ ให้ทำตามทันที ไม่สนวันที่ ───
+                    # กฎ: pattern = คูปอง + OC/DC (ดึง OC/DC จากแถว cp_data ที่ชุดคูปองตรงกันเป๊ะ) ทำครบแล้วค่อยให้ Round 2 เทียบ
                     admin_override_cp = self.get_admin_resolver_override(sku_key, expected_price)
                     if admin_override_cp:
                         self.app.update_log(
                             f"🎯 [Admin Override] conflict_resolver สั่ง [{admin_override_cp}] สำหรับ SKU: {sku_key} ราคา {expected_price} -> ข้าม date check และใช้ตามสั่งทันที"
                         )
                         logger.info(f"[Admin Override] SKU {sku_key} price {expected_price}: applying [{admin_override_cp}] (bypass date check)")
+                        oc_admin, dc_admin = self._lookup_oc_dc_for_pattern(sku_key, expected_price, admin_override_cp)
+                        if oc_admin:
+                            self.app.update_log(f"⚡ [Admin Override] ปรับราคาขึ้น (Overcharge): {oc_admin} บาท")
                         try:
+                            if oc_admin:
+                                self.smco_set_overcharge_product(sku_key, str(oc_admin))
+                                time.sleep(0.5)
                             self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, admin_override_cp)
+                            if dc_admin:
+                                try:
+                                    item_qty = int(item.get('จำนวน', 1))
+                                except Exception:
+                                    item_qty = 1
+                                self.app.update_log(f"📉 [Admin Override] ปรับราคาลด (Discount): {dc_admin} x {item_qty}")
+                                self.smco_set_discount_product(sku_key, str(dc_admin), qty=item_qty)
                         except Exception as ex_admin:
                             print(f"[Admin Override] Error applying admin coupons: {ex_admin}")
                             try:
@@ -4142,6 +4245,33 @@ class POSPricingReconciler:
                                     self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cand_cp_name)
                                 except Exception as ex_cp:
                                     print(f"Error applying pure cp candidate in diff > 0: {ex_cp}")
+                                time.sleep(0.5)
+
+                                # 1.1b กรณีคูปองครบอยู่แล้วแต่ราคายังต่ำ (เช่น log ขึ้น "ข้ามการเลือกซ้ำ" แล้ว Round 2 ยังต่าง):
+                                # แปลว่าคูปองอธิบายราคาไม่ได้ (base drift/ส่วนลดคูปองเปลี่ยน) ไม่ใช่ Auto Top-up เกินมา
+                                # ถ้าตรวจซ้ำแล้วส่วนต่างเท่าเดิมเป๊ะ (ราคาไม่ขยับเลย) ให้ Overcharge ส่วนต่างที่เหลือ
+                                # (เคารพกฎเดียวกับ 1.3: มี seller voucher ห้าม auto-OC) แล้วปล่อยให้ Round 2 เป็นผู้ตัดสิน
+                                try:
+                                    re_res = self.bot.ProductManager.verify_item_price()
+                                    re_info = (re_res or {}).get(sku_key, {}) if isinstance(re_res, dict) else {}
+                                    re_diff = re_info.get("diff", 0) if isinstance(re_info, dict) else 0
+                                    if isinstance(re_diff, (int, float)) and not isinstance(re_diff, bool):
+                                        if re_diff > 0 and abs(float(re_diff) - float(diff_val)) <= 0.05:
+                                            if seller_voucher > 0:
+                                                self.app.update_log(
+                                                    f"ℹ️ คูปอง [{cand_cp_name}] ครบแล้วแต่ราคายังต่ำกว่า {float(re_diff):,.2f} บาท "
+                                                    f"ออเดอร์มี Seller Voucher -> ไม่ Overcharge อัตโนมัติ เพื่อความปลอดภัย"
+                                                )
+                                            else:
+                                                self.app.update_log(
+                                                    f"⚡ คูปอง [{cand_cp_name}] ครบแล้วแต่ราคายังต่ำกว่า {float(re_diff):,.2f} บาท "
+                                                    f"(คูปองขยับราคาไม่ได้) -> Overcharge ส่วนต่างที่เหลือ {float(re_diff):,.2f} บาท"
+                                                )
+                                                logger.info(f"[diff>0 residual] SKU {sku_key}: coupons exact but still low by {re_diff}, OC remainder")
+                                                self.smco_set_overcharge_product(sku_key, str(re_diff))
+                                                time.sleep(0.5)
+                                except Exception as ex_re:
+                                    print(f"[diff>0 residual] re-verify skipped: {ex_re}")
 
                             # 1.2 ถ้า candidate มีการระบุ oc_amount ชัดเจนในตาราง -> ปรับราคาขึ้นตาม oc_amount และใส่คูปอง (ถ้ามี)
                             elif oc_amount_to_apply is not None:
@@ -4327,7 +4457,8 @@ class POSPricingReconciler:
                                             admin_cand = uc
                                             break
                                     if admin_cand is None:
-                                        admin_cand = {"cp_name": admin_pick_raw, "oc_amount": "", "dc_amount": "", "source": "ADMIN"}
+                                        oc_lu, dc_lu = self._lookup_oc_dc_for_pattern(sku_key, expected_price, admin_pick_raw)
+                                        admin_cand = {"cp_name": admin_pick_raw, "oc_amount": oc_lu, "dc_amount": dc_lu, "source": "ADMIN"}
                             except Exception as ex_conf:
                                 print(f"[Conflict Resolver] Error checking admin selection: {ex_conf}")
 
@@ -4400,7 +4531,7 @@ class POSPricingReconciler:
                                 for idx_c, c in enumerate(unified_candidates, start=1):
                                     c_name = c.get("cp_name") or "-"
                                     c_rem = f" ({c.get('remark')})" if c.get("remark") else ""
-                                    cand_desc_list.append(f"{idx_c}) {c_name}{c_rem}")
+                                    cand_desc_list.append(f"{c_name}{c_rem}")
 
                                 candidates_multiline = "\n".join(cand_desc_list)
                                 reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
@@ -4625,6 +4756,8 @@ class POSPricingReconciler:
         try:
             if hasattr(self, '_applied_adjustments') and self._applied_adjustments is not None:
                 self._applied_adjustments.clear()
+            if hasattr(self, '_applied_amounts') and self._applied_amounts is not None:
+                self._applied_amounts.clear()
             self.last_scanned_smco_coupons = []
             self.last_scanned_smco_coupon_details = []
             self.last_preselected_smco_coupons = []
