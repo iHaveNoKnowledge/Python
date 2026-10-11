@@ -692,6 +692,88 @@ class TestSellerVoucherPricing(unittest.TestCase):
             1, sku_key, "CP2609070007 CP2609070008 CP2609100001"
         )
 
+    def test_reconcile_and_verify_seller_voucher_guard_single_sku_qty_gt_1(self):
+        """ทดสอบว่า reconcile_and_verify ปฏิเสธ auto_inv เมื่อมี Seller Voucher และ SKU เดี่ยวมีจำนวน > 1"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.mock_app.financials.seller_voucher = 200.0
+        self.mock_app.order = "26100971NVA05E"
+
+        df_order = pd.DataFrame([
+            {
+                "หมายเลขคำสั่งซื้อ": "26100971NVA05E",
+                "เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002420",
+                "จำนวน": 2
+            }
+        ])
+        self.mock_app.data_frame = df_order
+        self.mock_app.items = []
+
+        with self.assertRaises(ValueError) as ctx:
+            reconciler.reconcile_and_verify()
+
+        self.assertIn("ไม่สามารถ auto_inv ได้ เนื่องจากเป็น order seller voucher ที่มีจำนวนมากกว่า 1 ต่อ SKU", str(ctx.exception))
+        self.assertIn("MNL-002420", str(ctx.exception))
+        self.assertIn("2 ชิ้น", str(ctx.exception))
+        self.mock_bot.ProductManager.auto_add_all_items.assert_not_called()
+
+    def test_reconcile_and_verify_seller_voucher_guard_multi_sku(self):
+        """ทดสอบว่า reconcile_and_verify ปฏิเสธ auto_inv เมื่อมี Seller Voucher และมีหลาย SKU"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.mock_app.financials.seller_voucher = 150.0
+        self.mock_app.order = "ORDER-MULTI-SKU"
+
+        df_order = pd.DataFrame([
+            {
+                "หมายเลขคำสั่งซื้อ": "ORDER-MULTI-SKU",
+                "เลขอ้างอิง SKU (SKU Reference No.)": "SKU-A",
+                "จำนวน": 1
+            },
+            {
+                "หมายเลขคำสั่งซื้อ": "ORDER-MULTI-SKU",
+                "เลขอ้างอิง SKU (SKU Reference No.)": "SKU-B",
+                "จำนวน": 1
+            }
+        ])
+        self.mock_app.data_frame = df_order
+        self.mock_app.items = []
+
+        with self.assertRaises(ValueError) as ctx:
+            reconciler.reconcile_and_verify()
+
+        self.assertIn("ไม่สามารถ auto_inv ได้ เนื่องจากเป็น order seller voucher ที่มีหลาย SKU", str(ctx.exception))
+        self.assertIn("2 รายการ", str(ctx.exception))
+        self.mock_bot.ProductManager.auto_add_all_items.assert_not_called()
+
+    def test_reconcile_and_verify_seller_voucher_guard_single_sku_qty_1_passes(self):
+        """ทดสอบว่า reconcile_and_verify ผ่านฉลุยเมื่อมี Seller Voucher แต่เป็น SKU เดี่ยวจำนวน 1 ชิ้น"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        self.mock_app.is_auto_invoice_mode.get.return_value = True
+        self.mock_app.financials.seller_voucher = 200.0
+        self.mock_app.order = "26100971NVA05E"
+
+        df_order = pd.DataFrame([
+            {
+                "หมายเลขคำสั่งซื้อ": "26100971NVA05E",
+                "เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002420",
+                "จำนวน": 1
+            }
+        ])
+        self.mock_app.data_frame = df_order
+        self.mock_app.items = []
+
+        # Mock the rest of reconcile_and_verify flow
+        self.mock_bot.ProductManager.verify_all_pos_items.return_value = {"all_passed": True}
+        reconciler.process_price_mismatches = MagicMock(return_value={"all_passed": True})
+        self.mock_bot.ProductManager.get_cart_subtotal_and_total.return_value = {"total": 3601.0}
+        self.mock_app.financials.total_cart_price = 3601.0
+        self.mock_bot.ProductManager.verify_total_price.return_value = {"ok": True}
+
+        # Should execute successfully without raising ValueError
+        reconciler.reconcile_and_verify()
+        self.mock_bot.ProductManager.auto_add_all_items.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

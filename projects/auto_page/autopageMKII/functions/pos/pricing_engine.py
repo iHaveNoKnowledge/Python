@@ -1297,6 +1297,73 @@ class POSPricingReconciler:
         candidates = self.find_all_cp_candidates_from_excel(sku, platform_price, purchased_date_str)
         return candidates[0] if candidates else None
 
+    def get_admin_resolver_override(self, sku: str, platform_price: float) -> str:
+        """
+        ดึงคำสั่ง Admin จากแท็บ conflict_resolver (คอลัมน์ admin_selection).
+        ถ้า Admin ใส่รหัสคูปองไว้ -> ส่งกลับรหัสนั้นทันที โดยไม่สนวันที่/สถานะหมดอายุ.
+        กฎ: admin_selection ไม่ว่าง + status ไม่อยู่ในกลุ่มยกเลิก (REJECTED/CANCELLED/VOID/CLOSED)
+        ถ้าไม่มีคำสั่ง -> ส่งกลับ "" (ให้ flow ปกติทำงานตามวันที่).
+        """
+        try:
+            loader = getattr(self, '_dual_cp_loader', None)
+            if loader is None:
+                excel_path = getattr(self.app, 'cp_table_location', '') if hasattr(self, 'app') else ''
+                gas_url = getattr(self.app, 'cp_gas_url', None) if hasattr(self, 'app') else None
+                try:
+                    from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
+                    loader = DualSourceCPLoader(
+                        gas_url=gas_url or DEFAULT_GAS_URL,
+                        local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None
+                    )
+                    self._dual_cp_loader = loader
+                except Exception:
+                    return ""
+            else:
+                try:
+                    excel_path = getattr(self.app, 'cp_table_location', '') if hasattr(self, 'app') else ''
+                    if excel_path and os.path.exists(excel_path) and getattr(loader, 'local_excel_path', None) != excel_path:
+                        loader.local_excel_path = excel_path
+                except Exception:
+                    pass
+            df_conf = loader.load_conflict_resolver_df()
+            if df_conf is None or df_conf.empty:
+                return ""
+            if 'sku' not in df_conf.columns or 'sale_price' not in df_conf.columns:
+                return ""
+            if 'admin_selection' not in df_conf.columns:
+                return ""
+            sku_clean = str(sku).strip().upper()
+            try:
+                target_price = float(platform_price)
+            except Exception:
+                return ""
+            sku_m = (df_conf['sku'].astype(str).str.strip().str.upper() == sku_clean)
+            try:
+                price_m = ((pd.to_numeric(df_conf['sale_price'], errors='coerce') - target_price).abs() <= 0.05)
+            except Exception:
+                return ""
+            matched = df_conf[sku_m & price_m]
+            if matched.empty:
+                return ""
+            # หลาย source (GAS + Local) อาจมีหลายแถว cho SKU+ราคาเดียวกัน:
+            # เลือกแถวแรกที่มี admin_selection ไม่ว่าง (กันแถว GAS เก่าที่ว่างบังแถว Local ที่ Admin เพิ่งกรอก)
+            for _, row in matched.iterrows():
+                admin_pick = str(row.get('admin_selection', '') or '').strip()
+                if not admin_pick or admin_pick.lower() in ('nan', 'none', '<na>', 'null', '-', ''):
+                    continue
+                status_val = str(row.get('status', '') or '').strip().upper()
+                if status_val in ('REJECTED', 'REJECT', 'CANCELLED', 'CANCEL', 'VOID', 'CLOSED', 'DISABLED'):
+                    continue
+                # Normalize tokens (รองรับคั่นด้วย comma/space) คงลำดับเดิม
+                tokens = [t.strip().upper() for part in admin_pick.split(',') for t in part.split() if t.strip()]
+                tokens = [t for t in tokens if t and t.lower() not in ('nan', 'none', '-')]
+                if tokens:
+                    return " ".join(tokens)
+            return ""
+        except Exception as ex:
+            print(f"[Admin Override] Error reading conflict_resolver: {ex}")
+            return ""
+
     def add_missing_cp_to_excel(
         self,
         sku_key: str,
@@ -3952,6 +4019,24 @@ class POSPricingReconciler:
                     if not isinstance(diff_val, (int, float)):
                         continue
 
+                    # ─── ADMIN OVERRIDE (conflict_resolver): ถ้า Admin ใส่ admin_selection ไว้ ให้ทำตามทันที ไม่สนวันที่ ───
+                    admin_override_cp = self.get_admin_resolver_override(sku_key, expected_price)
+                    if admin_override_cp:
+                        self.app.update_log(
+                            f"🎯 [Admin Override] conflict_resolver สั่ง [{admin_override_cp}] สำหรับ SKU: {sku_key} ราคา {expected_price} -> ข้าม date check และใช้ตามสั่งทันที"
+                        )
+                        logger.info(f"[Admin Override] SKU {sku_key} price {expected_price}: applying [{admin_override_cp}] (bypass date check)")
+                        try:
+                            self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, admin_override_cp)
+                        except Exception as ex_admin:
+                            print(f"[Admin Override] Error applying admin coupons: {ex_admin}")
+                            try:
+                                self.cp_sonic_blow_process(item_no_1indexed, admin_override_cp)
+                            except Exception:
+                                pass
+                        time.sleep(0.5)
+                        continue
+
                     # ══════════════════════════════════════════════════════════
                     # ขั้นตอนที่ 1 (Phase 1): เติมคูปอง Seller Voucher ก่อน
                     # ══════════════════════════════════════════════════════════
@@ -4230,25 +4315,21 @@ class POSPricingReconciler:
                             self.app.update_log(log_warn)
 
                             # 1. ตรวจสอบว่าในแท็บ conflict_resolver มีการอนุมัติ (Admin Selection) หรือยัง
+                            #    กฎใหม่: admin_selection ไม่ว่าง + status ไม่ใช่กลุ่มยกเลิก -> ชนะทันที ไม่สนวันที่
+                            #    (รองรับทั้งตัวที่อยู่ใน unified_candidates และตัวที่ Admin พิมพ์เองนอกลิสต์)
                             admin_cand = None
-                            if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
-                                try:
-                                    df_conf = self._dual_cp_loader.load_conflict_resolver_df()
-                                    if not df_conf.empty:
-                                        sku_m = (df_conf['sku'].astype(str).str.strip().str.upper() == str(sku_key).strip().upper())
-                                        price_m = ((pd.to_numeric(df_conf['sale_price'], errors='coerce') - float(expected_price)).abs() <= 0.05)
-                                        matched_conf = df_conf[sku_m & price_m]
-                                        if not matched_conf.empty:
-                                            admin_pick = str(matched_conf['admin_selection'].iloc[0] or "").strip().upper()
-                                            status_val = str(matched_conf['status'].iloc[0] or "").strip().upper()
-                                            if admin_pick and status_val in ('APPROVED', 'RESOLVED', 'ACTIVE'):
-                                                for uc in unified_candidates:
-                                                    c_name_u = str(uc.get('cp_name', '') or '').strip().upper()
-                                                    if c_name_u == admin_pick or admin_pick in c_name_u:
-                                                        admin_cand = uc
-                                                        break
-                                except Exception as ex_conf:
-                                    print(f"[Conflict Resolver] Error checking admin selection: {ex_conf}")
+                            try:
+                                admin_pick_raw = self.get_admin_resolver_override(sku_key, expected_price)
+                                if admin_pick_raw:
+                                    for uc in unified_candidates:
+                                        c_name_u = str(uc.get('cp_name', '') or '').strip().upper()
+                                        if c_name_u == admin_pick_raw or admin_pick_raw in c_name_u or c_name_u in admin_pick_raw:
+                                            admin_cand = uc
+                                            break
+                                    if admin_cand is None:
+                                        admin_cand = {"cp_name": admin_pick_raw, "oc_amount": "", "dc_amount": "", "source": "ADMIN"}
+                            except Exception as ex_conf:
+                                print(f"[Conflict Resolver] Error checking admin selection: {ex_conf}")
 
                             # 2. บันทึกทุก Pattern ที่พบลงใน cp_data เพื่อเก็บเป็นประวัติและทางเลือก
                             for cand in unified_candidates:
@@ -4323,6 +4404,16 @@ class POSPricingReconciler:
 
                                 candidates_multiline = "\n".join(cand_desc_list)
                                 reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
+                                existing_admin_sel = ""
+                                existing_status = "PENDING"
+                                try:
+                                    existing_pick = self.get_admin_resolver_override(sku_key, expected_price)
+                                    if existing_pick:
+                                        existing_admin_sel = existing_pick
+                                        existing_status = "APPROVED"
+                                except Exception:
+                                    pass
+
                                 conflict_payload = {
                                     "sku": str(sku_key).strip().upper(),
                                     "sale_price": float(expected_price),
@@ -4334,8 +4425,8 @@ class POSPricingReconciler:
                                     "candidate_3": cand_desc_list[2] if len(cand_desc_list) > 2 else "",
                                     "suggested_winner": suggested_winner_code,
                                     "reason": reason_str,
-                                    "admin_selection": "",
-                                    "status": "PENDING",
+                                    "admin_selection": existing_admin_sel,
+                                    "status": existing_status,
                                     "last_updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 }
                                 if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
@@ -4540,6 +4631,96 @@ class POSPricingReconciler:
             if hasattr(self, 'app') and self.app:
                 self.app.last_pricing_status = ""
                 self.app.last_pricing_detail = ""
+            # ──────────────────────────────────────────────────────────────────
+            # GUARD: ตรวจสอบคำสั่งซื้อที่มี Seller Voucher (> 0)
+            # เงื่อนไขการบล็อกในโหมด Auto Invoice:
+            # 1. มี SKU ใดก็ตามที่มียอดสั่ง (Qty) > 1 ชิ้น
+            # 2. มีหลาย SKU (> 1 SKU) ในคำสั่งซื้อเดียวกัน
+            # ──────────────────────────────────────────────────────────────────
+            is_auto_inv = False
+            try:
+                if hasattr(self.app, 'is_auto_invoice_mode') and hasattr(self.app.is_auto_invoice_mode, 'get'):
+                    v = self.app.is_auto_invoice_mode.get()
+                    is_auto_inv = bool(v) if isinstance(v, (bool, int)) else False
+                elif hasattr(self, 'main_app') and hasattr(self.main_app, 'is_auto_invoice_mode') and hasattr(self.main_app.is_auto_invoice_mode, 'get'):
+                    v = self.main_app.is_auto_invoice_mode.get()
+                    is_auto_inv = bool(v) if isinstance(v, (bool, int)) else False
+            except Exception:
+                is_auto_inv = False
+
+            seller_voucher = 0.0
+            try:
+                if hasattr(self.app, 'financials') and hasattr(self.app.financials, 'seller_voucher'):
+                    sv = self.app.financials.seller_voucher
+                    if isinstance(sv, (int, float)) and not isinstance(sv, bool):
+                        seller_voucher = float(sv)
+                    elif isinstance(sv, str) and sv.strip() and sv.strip().replace('.', '', 1).isdigit():
+                        seller_voucher = float(sv.strip())
+
+                if seller_voucher == 0.0 and hasattr(self.app, 'cus_seller_voucher') and hasattr(self.app.cus_seller_voucher, 'get'):
+                    sv = self.app.cus_seller_voucher.get()
+                    if isinstance(sv, (int, float)) and not isinstance(sv, bool):
+                        seller_voucher = float(sv)
+                    elif isinstance(sv, str) and sv.strip() and sv.strip().replace('.', '', 1).isdigit():
+                        seller_voucher = float(sv.strip())
+            except Exception:
+                seller_voucher = 0.0
+
+            if is_auto_inv and seller_voucher > 0:
+                sku_qtys: Dict[str, int] = {}
+                current_order_str = str(getattr(self.app, 'order', '') or getattr(self.bot, 'cus_order', '')).strip()
+
+                if (hasattr(self.app, 'data_frame') and self.app.data_frame is not None and not self.app.data_frame.empty
+                        and 'หมายเลขคำสั่งซื้อ' in self.app.data_frame.columns
+                        and 'เลขอ้างอิง SKU (SKU Reference No.)' in self.app.data_frame.columns):
+                    match_df = self.app.data_frame[self.app.data_frame['หมายเลขคำสั่งซื้อ'].astype(str).str.strip() == current_order_str]
+                    if not match_df.empty:
+                        for _, row in match_df.iterrows():
+                            sk = str(row.get('เลขอ้างอิง SKU (SKU Reference No.)', '')).strip()
+                            if not sk or sk.upper().startswith('SV0-'):
+                                continue
+                            q_val = row.get('จำนวน', 1)
+                            try:
+                                q_int = int(float(str(q_val).replace(',', '')))
+                            except Exception:
+                                q_int = 1
+                            sku_qtys[sk] = sku_qtys.get(sk, 0) + q_int
+
+                if not sku_qtys and hasattr(self.app, 'items') and self.app.items:
+                    for it in self.app.items:
+                        sk = str(it.get('เลขอ้างอิง SKU (SKU Reference No.)', '')).strip()
+                        if not sk or sk.upper().startswith('SV0-'):
+                            continue
+                        q_val = it.get('จำนวน', 1)
+                        try:
+                            q_int = int(float(str(q_val).replace(',', '')))
+                        except Exception:
+                            q_int = 1
+                        sku_qtys[sk] = sku_qtys.get(sk, 0) + q_int
+
+                for sk, q_total in sku_qtys.items():
+                    if q_total > 1:
+                        err_msg = (
+                            f"ไม่สามารถ auto_inv ได้ เนื่องจากเป็น order seller voucher ที่มีจำนวนมากกว่า 1 ต่อ SKU "
+                            f"({sk}: จำนวน {q_total} ชิ้น, seller voucher: {seller_voucher:,.2f} บาท)"
+                        )
+                        self.app.update_log(f"❌ {err_msg}")
+                        if hasattr(self.app, 'last_pricing_status'):
+                            self.app.last_pricing_status = f"FAILED (Seller Voucher SKU {sk} qty > 1)"
+                        logger.warning(f"Order {current_order_str}: {err_msg}")
+                        raise ValueError(err_msg)
+
+                if len(sku_qtys) > 1:
+                    err_msg = (
+                        f"ไม่สามารถ auto_inv ได้ เนื่องจากเป็น order seller voucher ที่มีหลาย SKU "
+                        f"({len(sku_qtys)} รายการ, seller voucher: {seller_voucher:,.2f} บาท)"
+                    )
+                    self.app.update_log(f"⚠️ {err_msg}")
+                    if hasattr(self.app, 'last_pricing_status'):
+                        self.app.last_pricing_status = "FAILED (Seller Voucher Multi-SKU)"
+                    logger.warning(f"Order {current_order_str}: {err_msg}")
+                    raise ValueError(err_msg)
+
             self.bot.ProductManager.auto_add_all_items()
             self.bot.current_checkpoint = "กรอกสินค้าลง POS สำเร็จ"
 

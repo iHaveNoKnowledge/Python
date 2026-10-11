@@ -206,7 +206,7 @@ class DualSourceCPLoader:
         return pd.DataFrame()
 
     def load_conflict_resolver_df(self) -> pd.DataFrame:
-        """Load and merge conflict resolver DataFrame from GAS and Local Excel"""
+        """Load and merge conflict resolver DataFrame from GAS and Local Excel. Prioritizes non-empty admin_selection."""
         df_gas = self.fetch_conflict_resolver_gas()
         df_local = self.fetch_conflict_resolver_local()
         if df_gas.empty and df_local.empty:
@@ -215,10 +215,19 @@ class DualSourceCPLoader:
             return df_local
         if df_local.empty:
             return df_gas
-        combined = pd.concat([df_gas, df_local], ignore_index=True)
+
+        combined = pd.concat([df_local, df_gas], ignore_index=True)
         if 'sku' in combined.columns and 'sale_price' in combined.columns:
+            if 'admin_selection' in combined.columns:
+                def _has_admin(val):
+                    if pd.isna(val) or val is None:
+                        return 0
+                    s = str(val).strip().lower()
+                    return 1 if (s and s not in ('nan', 'none', '<na>', 'null', '-', '')) else 0
+                combined['_prio'] = combined['admin_selection'].apply(_has_admin)
+                combined = combined.sort_values(by=['_prio'], ascending=False).drop(columns=['_prio'])
             combined = combined.drop_duplicates(subset=['sku', 'sale_price'], keep='first')
-        return combined
+        return combined.reset_index(drop=True)
 
     def push_conflict_record(self, record_dict: Dict[str, Any]) -> bool:
         """Push a conflict record to Google Sheet tab 'conflict_resolver' via GAS (POST)"""
@@ -316,8 +325,8 @@ class DualSourceCPLoader:
 
         # ซิงค์ข้อมูลล่าสุดจาก Cloud Google Sheet กลับลงมาที่ Local Excel อัตโนมัติ (หากดึง GAS สำเร็จ)
         if not df_gas.empty and self.local_excel_path and os.path.exists(self.local_excel_path):
-            df_conflict_gas = self.fetch_conflict_resolver_gas()
-            self.sync_to_local_excel(merged_df, df_conflict=df_conflict_gas)
+            df_conflict_merged = self.load_conflict_resolver_df()
+            self.sync_to_local_excel(merged_df, df_conflict=df_conflict_merged)
 
         return merged_df
 
