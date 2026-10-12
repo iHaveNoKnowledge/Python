@@ -105,7 +105,8 @@ class DualSourceCPLoader:
             'cp_name', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date',
             'suggested_remark', 'usage_start_date', 'usage_end_date', 'last_order_id',
             'last_used_cp', 'last_adjustment_method', 'last_actual_price',
-            'oc_amount', 'dc_amount', 'addtion_cp'
+            'oc_amount', 'dc_amount', 'addtion_cp',
+            'pattern_discount', 'couponDetailCash', 'couponDetailDisc'
         ]
 
         for _, row in matched.iterrows():
@@ -426,7 +427,7 @@ class DualSourceCPLoader:
             df['sale_price'] = df['expected_price']
 
         # Normalize numeric columns to float (เฉพาะคอลัมน์ที่เป็นตัวเลขเดี่ยวเสมอ)
-        for num_col in ['sale_price', 'expected_price', 'last_actual_price']:
+        for num_col in ['sale_price', 'expected_price', 'last_actual_price', 'pattern_discount']:
             if num_col in df.columns:
                 df.loc[:, num_col] = pd.to_numeric(df[num_col], errors='coerce')
 
