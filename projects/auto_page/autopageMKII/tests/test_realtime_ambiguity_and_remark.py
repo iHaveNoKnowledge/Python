@@ -237,7 +237,10 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
             self.assertEqual(df_synced.loc[0, "suggested_remark"], "FS Shp Rebate ราคาเซ็ทละ 993")
         finally:
             if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
 
     def test_is_exact_duplicate_detects_cleared_field(self):
         """

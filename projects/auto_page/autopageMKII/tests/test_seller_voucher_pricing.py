@@ -239,7 +239,7 @@ class TestSellerVoucherPricing(unittest.TestCase):
 
         # บันทึก suggested_cp ที่เป็นคูปอง Seller Voucher พร้อมวันที่ และ remark
         reconciler.add_missing_cp_to_excel.assert_called_once_with(
-            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP2609100001", start_date=datetime.date(2026, 9, 10), remark="Promotion MSI Seller Voucher 10-30 Sep 2026"
+            "SKU-SELLER-SINGLE", 500.0, suggested_cp="CP2609100001", start_date=datetime.date(2026, 9, 10), end_date=datetime.date(2026, 9, 30), remark="Promotion MSI Seller Voucher 10-30 Sep 2026"
         )
 
     def test_scan_matching_cp_candidates_filters_seller_voucher(self):

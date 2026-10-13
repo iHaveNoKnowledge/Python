@@ -72,6 +72,21 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-10-12
+
+- [X] **[Preselected Top-up + Add-on Pairing & Authoritative Date Preservation (`MNL-002309`)]**:
+  - **Preselected Top-up + Add-on Combination**: แก้ไขตรรกะการจับคู่คูปองใน `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` เมื่อสินค้าบน POS มีคูปอง Auto Top-up ติดมาแล้ว (เช่น `CP2609280033` ลด 2,000 บาท ทำให้ราคาตั้งต้น 14,195 ลดเหลือ 12,195) และต้องการลดราคาเพิ่มอีก 2,000 บาทเพื่อเข้าสู่เป้าหมาย 10,195:
+    - ยกเลิกเงื่อนไขเดิมที่เคยบล็อกไม่ให้รวมคูปองเมื่อ `target_discount >= pre_discount` (2,000 >= 2,000)
+    - รวมคูปอง Top-up เดิมกับคูปอง Add-on ใหม่ (`CP2609290087`) เป็นสูตรแนะนำชุดเดียวกันคือ `"CP2609280033 CP2609290087"` แทนที่จะแยกหลุดเป็น 2 ตัวเลือกเดี่ยวใน `cp_data.xlsx`
+    - กรองไม่ให้แนะนำคูปองที่มีเฉพาะตัวเลือกที่เลือกอยู่แล้วเดิม (`preselected`) เพียงลำพังเมื่อยังต้องการลดราคาเพิ่ม (`target_discount > 0`) เนื่องจากไม่ก่อให้เกิดส่วนลดเพิ่มเติม
+    - **Mathematical Net Price Invariant Verification**: เพิ่มการตรวจสอบความถูกต้องทางคณิตศาสตร์อย่างเด็ดขาด `(effective_base_price - combo_total_disc == expected_price)` ในทุก Candidate ทำให้คูปองเดี่ยว (เช่น `CP2609280033` ลด 2,000 เหลือ 12,195 หรือ `CP2609290087` ลด 2,000 เหลือ 12,195) ถูกคัดทิ้งอย่างสิ้นเชิง และเหลือเพียงชุดคอมโบที่ลดได้ถึง 10,195 จริง (`CP2609280033 CP2609290087`) เพียงชุดเดียวเท่านั้น
+    - **Auto Top-up Coupon Auto-Detection**: เพิ่มฟังก์ชัน `is_topup_coupon_desc()` ช่วยดักจับคูปอง Top-up จากคำอธิบายและ Remark เข้าสู่ `preselected` ทันที แม้หน้าจอ DOM ของ POS จะยังไม่ได้เปิด Modal หรือติ๊ก checkbox
+    - **Placeholder Assignment Guard**: ป้องกันไม่ให้ `sync_product_master_coupon_dates_to_excel()` นำคูปอง Top-up หรือคูปองเดี่ยวที่ให้ส่วนลดไม่ตรงกับราคาขายไปหยอดลงในแถวว่างของ `cp_data.xlsx`
+  - **Authoritative Start/End Date Preservation จาก API Network Cache**:
+    - ใน `scan_matching_cp_candidates_on_smco()` และ `resolve_multi_coupon_info()` ดึง `startDate` และ `endDate` โดยตรงจาก `_product_master_cache` (ที่ได้จาก `/getProductMasterInfoPOSV3.htm`) เติมให้กับทุกคูปองที่สแกนพบบนหน้า Modal
+    - ป้องกันปัญหาคูปองที่สแกนจาก Modal มีเฉพาะ Start Date จาก regex รหัสคูปองแต่ไม่มี End Date
+    - ในชุด Combination หลายใบ จะคำนวณ `start_date` เป็นวันเริ่มที่ใหม่ที่สุด และ `end_date` เป็นวันหมดอายุที่สั้นที่สุดของทุกคูปองในชุดอย่างแม่นยำ
+
 ### [ver5.x.x] - 2026-10-10
 
 - [X] **[Standalone Coupon Separation & Universal SMCO Live Fetch Fix]**:
@@ -393,7 +408,8 @@
 
 ### [5.2.4LITE / 5.2.5] - 2026-08-27
 
-#### Fixed & Improved
+- [X] **[Accel Mode / Multi-QTY Serial Modal Retry Guard]** แก้ไขปัญหาบอทคลิกเปิด Modal Serial ไม่สำเร็จแล้วค้างวนลูปหาช่องกรอก SN ในหน้า POS (เกิดจาก `find_elements` เจอ element ใน DOM แต่ไม่ได้เช็ค `is_displayed()`, ปัญหา index ไม่ตรงเมื่อกรองเฉพาะ `ng-redalert`, และการคลิกเร็วเกินไปก่อน Angular settle) โดยปรับเปลี่ยนไปค้นหาปุ่มจาก Ancestor Panel ของ SKU โดยตรง, หน่วงเวลาและ scroll เข้า view, รอสถานะ `ng-redalert` และเพิ่มระบบ Retry Click หาก Modal ยังไม่แสดงผลจริงบนหน้าจอ
+- [X] **[GAS / CP Data Date Sync & Textual Period Support]** แก้ไขปัญหาการซิงค์วันที่คูปองลง Google Sheet ที่แสดงผลวัน-เดือนสลับกัน (US locale auto-coercion) และการตกหล่นของ field aliases (`suggested_start_date`, `suggested_end_date`, `remark`) ในโหมดอัปเดตแถวเดิม โดยปรับปรุง `doPost(e)` ให้แปลงวันที่เป็น `Date` object และกำหนด number format เป็น `dd/MM/yyyy` พร้อมปรับ `pricing_engine.py` รองรับข้อความชื่อเดือนภาษาไทย/อังกฤษ (เช่น `period 1-31 oct 2026`, `10-30 Sep 2026`) และการจับคู่คูปองคอมโบใน `sync_product_master_coupon_dates_to_excel`
 
 - [X] **[Print]** ปรับ `print_pdf_silence_sumatra` ในทั้ง `ver5.x.x.py` และ `ver5.2.4LITE.py` เป็นแบบ Non-blocking (`subprocess.Popen`) แก้ปัญหา Tkinter Not Responding
 - [X] **[Payment]** ปรับปรุง XPath ปุ่มชำระเงินเป็น `//div[contains(@class,'wrimagecard')]//a[@id='btnPayment']` พร้อมระบบ Retry และแก้ปัญหา Popup LockAcquisitionException

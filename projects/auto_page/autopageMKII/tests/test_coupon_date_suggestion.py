@@ -60,6 +60,22 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(s5, datetime.date(2026, 9, 1))
         self.assertEqual(e5, datetime.date(2026, 9, 30))
 
+        # ทดสอบรูปแบบชื่อเดือน เช่น 'period 1-31 oct 2026', '10-30 Sep 2026'
+        text6 = 'period 1-31 oct 2026'
+        s6, e6 = extract_coupon_date_range(text6)
+        self.assertEqual(s6, datetime.date(2026, 10, 1))
+        self.assertEqual(e6, datetime.date(2026, 10, 31))
+
+        text7 = 'Promotion MSI 10-30 Sep 2026'
+        s7, e7 = extract_coupon_date_range(text7)
+        self.assertEqual(s7, datetime.date(2026, 9, 10))
+        self.assertEqual(e7, datetime.date(2026, 9, 30))
+
+        text8 = 'ช่วง 1-31 ต.ค. 2026'
+        s8, e8 = extract_coupon_date_range(text8)
+        self.assertEqual(s8, datetime.date(2026, 10, 1))
+        self.assertEqual(e8, datetime.date(2026, 10, 31))
+
         s_none, e_none = extract_coupon_date_range("ไม่มีวันที่ระบุ")
         self.assertIsNone(s_none)
         self.assertIsNone(e_none)
@@ -1094,6 +1110,51 @@ class TestCouponDateSuggestion(unittest.TestCase):
             self.assertEqual(row["suggested_usage_end_date"], "31/10/2026")
             self.assertIn("Shopee Promo", row["suggested_remark"])
 
+    def test_preselected_topup_plus_addon_coupon_combination(self):
+        """
+        ทดสอบกรณี SKU (เช่น MNL-002309) ที่มีคูปอง topup ถูกเลือกอยู่แล้วบน POS (preselected)
+        Base SRP = 14195, Preselected CP = CP2609280033 (disc 2000) -> actual price 12195
+        Target price = 10195 -> target_discount = 2000
+        มีคูปอง Add-on: CP2609290087 (disc 2000)
+        ผลลัพธ์ที่แนะนำต้องรวมกันเป็น 'CP2609280033 CP2609290087'
+        และไม่แยกออกมาเป็นแค่ 'CP2609280033' เดี่ยวๆ เพราะไม่ได้ช่วยลดราคาเพิ่มจากหน้าจอ
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_preselected_smco_coupons = ["CP2609280033"]
+        scanned_details = [
+            {
+                "code": "CP2609280033",
+                "desc": "Topup 2000",
+                "discount": 2000.0,
+                "is_selected": True,
+                "startDate": "2026-10-01 00:00:00",
+                "endDate": "2026-10-31 23:59:59",
+            },
+            {
+                "code": "CP2609290087",
+                "desc": "Addon 2000",
+                "discount": 2000.0,
+                "is_selected": False,
+                "startDate": "2026-10-01 00:00:00",
+                "endDate": "2026-10-31 23:59:59",
+            }
+        ]
+        reconciler.last_scanned_smco_coupon_details = scanned_details
+
+        res = reconciler.find_suggested_cp_for_discount(
+            target_discount=2000.0,
+            expected_price=10195.0
+        )
+        self.assertIsNotNone(res)
+        self.assertEqual(res["suggested_code"], "CP2609280033 CP2609290087")
+
+        candidates = reconciler.find_all_matching_coupons_on_smco(
+            target_discount=2000.0,
+            expected_price=10195.0
+        )
+        cand_codes = [c.get("cp_name") or c.get("code") for c in candidates]
+        self.assertIn("CP2609280033 CP2609290087", cand_codes)
+        self.assertNotIn("CP2609280033", cand_codes)
 
 if __name__ == "__main__":
     unittest.main()

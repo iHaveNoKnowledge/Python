@@ -1011,7 +1011,7 @@ class AccelMode:
                     sku_inp.send_keys(Keys.ENTER)
             time.sleep(1.0)
 
-        # 2. รอแถวสินค้าและปุ่ม Serial
+        # 2. รอแถวสินค้าและปุ่ม Serial (หน่วงเวลารอให้สถานะปุ่มสีแดง ng-redalert พร้อมใช้งาน)
         start_find = time.time()
         target_serial_btn = None
         while (time.time() - start_find) < 15 and not operation_thread.is_set():
@@ -1019,40 +1019,79 @@ class AccelMode:
                 By.XPATH,
                 "//span[(contains(@ng-click, 'productNameChangeChk(x)')) and not(contains(@class, 'ng-hide'))]//u"
             )
-            serial_btns = driver.find_elements(
-                By.XPATH,
-                "//button[contains(@class, 'btn-serial')]"
-            )
             for idx, s_el in enumerate(sku_elems):
                 s_text = str(getattr(s_el, 'text', '') or '').strip().lower()
                 if target_sku.lower() in s_text or s_text in target_sku.lower():
-                    if idx < len(serial_btns):
-                        target_serial_btn = serial_btns[idx]
+                    # วิธีที่ 1: หาปุ่ม Serial ใน panel แถวเดียวกันของ SKU นี้โดยตรง (แม่นยำที่สุด)
+                    try:
+                        panel = s_el.find_element(
+                            By.XPATH,
+                            "./ancestor::div[contains(@class, 'panel')][1]"
+                        )
+                        p_btns = panel.find_elements(
+                            By.XPATH,
+                            "//button[contains(@class, 'btn-serial') and contains(@class, 'ng-redalert')]"
+                        )
+                        if p_btns:
+                            target_serial_btn = p_btns[0]
+                            break
+                    except Exception:
+                        pass
+
+                    # วิธีที่ 2 (Fallback): ค้นหาปุ่ม serial ทั้งหมดแล้ว map ตาม index แถว
+                    all_serial_btns = driver.find_elements(
+                        By.XPATH,
+                        "//button[contains(@class, 'btn-serial') and contains(@class, 'ng-redalert')]"
+                    )
+                    if idx < len(all_serial_btns):
+                        target_serial_btn = all_serial_btns[idx]
                         break
+
             if target_serial_btn is not None:
-                break
+                # ตรวจสอบว่าปุ่มเป็นสีแดง (ng-redalert) หรือหน่วงเวลารอจนพร้อม
+                btn_class = target_serial_btn.get_attribute("class") or ""
+                if "ng-redalert" in btn_class or (time.time() - start_find) > 2.0:
+                    break
             time.sleep(0.5)
 
         if target_serial_btn is None:
             logger.error(f"ไม่พบปุ่ม Serial สำหรับ SKU {target_sku} บนหน้าเว็บ SMCO")
             return False
 
-        # 3. คลิกปุ่ม Serial เพื่อเปิด Modal
-        logger.info(f"คลิกปุ่ม Serial เพื่อเปิด Modal สำหรับ SKU {target_sku}...")
+        # หน่วงเวลาเล็กน้อยให้ Angular settle สถานะปุ่มให้สมบูรณ์และเลื่อนจอมาที่ปุ่ม
+        time.sleep(0.6)
         try:
-            driver.execute_script("arguments[0].click();", target_serial_btn)
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", target_serial_btn)
         except Exception:
-            target_serial_btn.click()
+            pass
+        time.sleep(0.2)
 
-        # รอ Modal แสดง
+        # 3. คลิกปุ่ม Serial เพื่อเปิด Modal พร้อมระบบ Retry หาก Modal ยังไม่แสดงจริงบนหน้าจอ
+        logger.info(f"คลิกปุ่ม Serial เพื่อเปิด Modal สำหรับ SKU {target_sku}...")
         modal_opened = False
         m_wait = time.time()
-        while (time.time() - m_wait) < 10 and not operation_thread.is_set():
-            if driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']") or \
-               driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]"):
+        while (time.time() - m_wait) < 15 and not operation_thread.is_set():
+            # ตรวจสอบว่า Modal เปิดอยู่จริงบนหน้าจอ (is_displayed == True)
+            modal_inputs = driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]")
+            v_btns = driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']")
+            is_visible_inputs = any(getattr(inp, 'is_displayed', lambda: True)() for inp in modal_inputs) if modal_inputs else False
+            is_visible_verify = any(getattr(btn, 'is_displayed', lambda: True)() for btn in v_btns) if v_btns else False
+
+            if is_visible_inputs or is_visible_verify:
                 modal_opened = True
+                logger.info(f"Modal กรอก SN สำหรับ SKU {target_sku} เปิดแสดงผลสำเร็จแล้ว")
                 break
-            time.sleep(0.5)
+
+            # หาก Modal ยังไม่แสดง ให้ลองคลิกปุ่ม Serial ซ้ำ (Selenium click / JS click)
+            try:
+                target_serial_btn.click()
+            except Exception:
+                try:
+                    driver.execute_script("arguments[0].click();", target_serial_btn)
+                except Exception:
+                    pass
+
+            time.sleep(0.8)
 
         if not modal_opened:
             logger.error(f"ไม่สามารถเปิด Modal กรอก SN สำหรับ SKU {target_sku} ได้")
@@ -1130,6 +1169,18 @@ class AccelMode:
                 if operation_thread.is_set():
                     break
                 logger.warning(f"กรอก SN ได้เพียง {len(modal_filled_sns)}/{target_qty} ตัว ไม่ครบตามจำนวนที่ต้องการ วนค้นหาช่องกรอกใหม่...")
+                # หาก Modal ไม่ได้เปิดอยู่บนหน้าจอจริง ให้ลองคลิกเปิดใหม่
+                modal_inps = driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]")
+                if not any(getattr(inp, 'is_displayed', lambda: True)() for inp in modal_inps):
+                    logger.warning(f"Modal กรอก SN ไม่ได้แสดงผลบนหน้าจอ พยายามคลิกปุ่ม Serial ใหม่...")
+                    try:
+                        target_serial_btn.click()
+                    except Exception:
+                        try:
+                            driver.execute_script("arguments[0].click();", target_serial_btn)
+                        except Exception:
+                            pass
+                    time.sleep(1.0)
                 continue
 
             logger.info(f"กรอก SN ครบตามจำนวน QTY ({len(modal_filled_sns)}/{target_qty}) เรียบร้อยแล้ว -> เข้าสู่ Loop ตรวจสอบยืนยัน")
