@@ -436,6 +436,54 @@ def is_topup_coupon_desc(desc: Any) -> bool:
     return bool(re.search(r'\btop\s*-?\s*up\b', normalized))
 
 
+def canonical_cp_pattern(val: Any) -> str:
+    """Normalize coupon pattern order-insensitively ('A B' == 'B A') for dedup/compare.
+
+    Display values keep original order; this is for comparison keys only.
+    """
+    if val is None:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except Exception:
+        pass
+    s = str(val).strip()
+    if not s or s.lower() in ("-", "nan", "none", "<na>", "null"):
+        return ""
+    tokens = [t.strip().upper() for part in s.split(",") for t in re.split(r"\s+", part) if t.strip()]
+    tokens = [t for t in tokens if t and t.lower() not in ("nan", "none", "<na>", "null", "-")]
+    if not tokens:
+        return ""
+    return " ".join(sorted(tokens))
+
+
+def canonical_adj_pattern(val: Any) -> str:
+    """Normalize oc/dc amounts order-insensitively ('5 4' == '4 5') for dedup/compare only."""
+    if val is None:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except Exception:
+        pass
+    s = str(val).strip()
+    if not s or s.lower() in ("-", "nan", "none", "<na>", "null"):
+        return ""
+    tokens = [t.strip() for t in s.split() if t.strip()]
+    normed = []
+    for t in tokens:
+        if t.endswith(".0") and t[:-2].replace(".", "", 1).isdigit():
+            t = t[:-2]
+        normed.append(t)
+    def _k(x: str):
+        try:
+            return (0, float(x.replace(",", "")))
+        except Exception:
+            return (1, x.upper())
+    return " ".join(sorted(normed, key=_k))
+
+
 
 def get_coupon_recency_score(code: str, desc: str = "") -> int:
     """
@@ -1496,7 +1544,7 @@ class POSPricingReconciler:
                 target = float(platform_price)
             except Exception:
                 return "", ""
-            want = str(cp_string or "").strip().upper()
+            want = canonical_cp_pattern(cp_string)
             if not want:
                 return "", ""
             if 'sku' not in df.columns or 'sale_price' not in df.columns:
@@ -1510,7 +1558,7 @@ class POSPricingReconciler:
                 hit = False
                 for col in ('cp_name', 'suggested_cp'):
                     if col in df.columns:
-                        v = str(row.get(col, '') or '').strip().upper()
+                        v = canonical_cp_pattern(row.get(col, ''))
                         if v and v == want:
                             hit = True
                             break
@@ -1544,6 +1592,8 @@ class POSPricingReconciler:
         pattern_discount: Any = None,
         coupon_cash: Any = None,
         coupon_disc: Any = None,
+        suggested_oc_amount: str = "",
+        suggested_dc_amount: str = "",
         **kwargs
     ) -> None:
         """
@@ -1561,6 +1611,14 @@ class POSPricingReconciler:
             coupon_cash = kwargs.get("coupon_cash")
         if coupon_disc is None and "coupon_disc" in kwargs:
             coupon_disc = kwargs.get("coupon_disc")
+        if not suggested_oc_amount and "suggested_oc_amount" in kwargs:
+            suggested_oc_amount = kwargs.get("suggested_oc_amount") or ""
+        if not suggested_dc_amount and "suggested_dc_amount" in kwargs:
+            suggested_dc_amount = kwargs.get("suggested_dc_amount") or ""
+        if not suggested_oc_amount and "suggested_oc" in kwargs:
+            suggested_oc_amount = kwargs.get("suggested_oc") or ""
+        if not suggested_dc_amount and "suggested_dc" in kwargs:
+            suggested_dc_amount = kwargs.get("suggested_dc") or ""
         # alias จาก dict ของ candidate (find_all_matching_coupons_on_smco)
         if pattern_discount is None and "discount" in kwargs:
             pattern_discount = kwargs.get("discount")
@@ -1610,7 +1668,9 @@ class POSPricingReconciler:
                 'suggested_cp',
                 'suggested_usage_start_date',
                 'suggested_usage_end_date',
-                'suggested_remark'
+                'suggested_remark',
+                'suggested_oc_amount',
+                'suggested_dc_amount'
             ]
             for col in suggested_cols:
                 if col not in df.columns:
@@ -1672,6 +1732,12 @@ class POSPricingReconciler:
             target_dc = str(dc_amount or "").strip()
             if target_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
                 target_dc = ""
+            target_sugg_oc = str(suggested_oc_amount or "").strip()
+            if target_sugg_oc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                target_sugg_oc = ""
+            target_sugg_dc = str(suggested_dc_amount or "").strip()
+            if target_sugg_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                target_sugg_dc = ""
 
             # หาแถวที่ตรงกับ SKU และ Sale Price เดียวกัน
             sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((pd.to_numeric(df['sale_price'], errors='coerce') - expected_price).abs() <= 0.05)
@@ -1697,13 +1763,30 @@ class POSPricingReconciler:
                         r_dc = ""
                     if r_dc.endswith('.0') and r_dc[:-2].isdigit():
                         r_dc = r_dc[:-2]
+                    r_sugg_oc = str(row.get('suggested_oc_amount', '') or '').strip() if 'suggested_oc_amount' in df.columns else ""
+                    if r_sugg_oc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        r_sugg_oc = ""
+                    r_sugg_dc = str(row.get('suggested_dc_amount', '') or '').strip() if 'suggested_dc_amount' in df.columns else ""
+                    if r_sugg_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                        r_sugg_dc = ""
 
                     # กรณีที่ 1: แถวเดิมเป็น Placeholder เปล่า (ไม่มีทั้ง cp_name, suggested_cp, oc_amount, dc_amount)
-                    is_placeholder = (not r_cp and not r_sugg_cp and not r_oc and not r_dc)
-                    
-                    # กรณีที่ 2: เป็น Recipe Pattern เดียวกัน (คูปองตรงกัน และการปรับราคา OC/DC ตรงกัน)
-                    is_same_cp = bool(target_cp and (r_cp == target_cp or r_sugg_cp == target_cp))
-                    is_same_adj = (r_oc == target_oc and r_dc == target_dc)
+                    is_placeholder = (not r_cp and not r_sugg_cp and not r_oc and not r_dc and not r_sugg_oc and not r_sugg_dc)
+
+                    # กรณีที่ 2: เป็น Recipe Pattern เดียวกัน (คูปองตรงกันแบบไม่สนลำดับ และการปรับราคา OC/DC ตรงกันแบบไม่สนลำดับ)
+                    # 'DC2609280008 CP2610100001' == 'CP2610100001 DC2609280008'
+                    is_same_cp = bool(
+                        canonical_cp_pattern(target_cp)
+                        and (canonical_cp_pattern(r_cp) == canonical_cp_pattern(target_cp)
+                             or canonical_cp_pattern(r_sugg_cp) == canonical_cp_pattern(target_cp))
+                    )
+                    # ถ้าไม่มีคูปองเลย (pure OC/DC suggest) ให้ถือว่า cp ตรงกัน เพื่อเทียบด้วย OC/DC อย่างเดียว
+                    if not canonical_cp_pattern(target_cp) and not canonical_cp_pattern(r_cp) and not canonical_cp_pattern(r_sugg_cp):
+                        is_same_cp = True
+                    is_same_adj = (canonical_adj_pattern(r_oc) == canonical_adj_pattern(target_oc)
+                                   and canonical_adj_pattern(r_dc) == canonical_adj_pattern(target_dc)
+                                   and canonical_adj_pattern(r_sugg_oc) == canonical_adj_pattern(target_sugg_oc)
+                                   and canonical_adj_pattern(r_sugg_dc) == canonical_adj_pattern(target_sugg_dc))
 
                     if is_placeholder or (is_same_cp and is_same_adj):
                         pattern_match_idx = idx
@@ -1731,6 +1814,10 @@ class POSPricingReconciler:
                     matched_row['couponDetailCash'] = pat_cash_val
                 if pat_disc_split_val != "":
                     matched_row['couponDetailDisc'] = pat_disc_split_val
+                if target_sugg_oc:
+                    matched_row['suggested_oc_amount'] = target_sugg_oc
+                if target_sugg_dc:
+                    matched_row['suggested_dc_amount'] = target_sugg_dc
                 matched_row['last_updated'] = now_str
                 
                 df_without_old = df.drop(index=pattern_match_idx)
@@ -1747,6 +1834,8 @@ class POSPricingReconciler:
                     'suggested_remark': remark_str,
                     'oc_amount': target_oc,
                     'dc_amount': target_dc,
+                    'suggested_oc_amount': target_sugg_oc,
+                    'suggested_dc_amount': target_sugg_dc,
                     'pattern_discount': pat_disc_val,
                     'couponDetailCash': pat_cash_val,
                     'couponDetailDisc': pat_disc_split_val,
@@ -1802,10 +1891,25 @@ class POSPricingReconciler:
                             r_dc = ""
                         if r_dc.endswith('.0') and r_dc[:-2].isdigit():
                             r_dc = r_dc[:-2]
+                        r_sugg_oc = str(row.get('suggested_oc_amount', '') or '').strip() if 'suggested_oc_amount' in self.app.cp_df.columns else ""
+                        if r_sugg_oc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            r_sugg_oc = ""
+                        r_sugg_dc = str(row.get('suggested_dc_amount', '') or '').strip() if 'suggested_dc_amount' in self.app.cp_df.columns else ""
+                        if r_sugg_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
+                            r_sugg_dc = ""
 
-                        is_placeholder = (not r_cp and not r_sugg_cp and not r_oc and not r_dc)
-                        is_same_cp = bool(target_cp and (r_cp == target_cp or r_sugg_cp == target_cp))
-                        is_same_adj = (r_oc == target_oc and r_dc == target_dc)
+                        is_placeholder = (not r_cp and not r_sugg_cp and not r_oc and not r_dc and not r_sugg_oc and not r_sugg_dc)
+                        is_same_cp = bool(
+                            canonical_cp_pattern(target_cp)
+                            and (canonical_cp_pattern(r_cp) == canonical_cp_pattern(target_cp)
+                                 or canonical_cp_pattern(r_sugg_cp) == canonical_cp_pattern(target_cp))
+                        )
+                        if not canonical_cp_pattern(target_cp) and not canonical_cp_pattern(r_cp) and not canonical_cp_pattern(r_sugg_cp):
+                            is_same_cp = True
+                        is_same_adj = (canonical_adj_pattern(r_oc) == canonical_adj_pattern(target_oc)
+                                       and canonical_adj_pattern(r_dc) == canonical_adj_pattern(target_dc)
+                                       and canonical_adj_pattern(r_sugg_oc) == canonical_adj_pattern(target_sugg_oc)
+                                       and canonical_adj_pattern(r_sugg_dc) == canonical_adj_pattern(target_sugg_dc))
                         if is_placeholder or (is_same_cp and is_same_adj):
                             app_pattern_match_idx = idx
                             break
@@ -1830,6 +1934,10 @@ class POSPricingReconciler:
                         app_rows['couponDetailCash'] = pat_cash_val
                     if pat_disc_split_val != "":
                         app_rows['couponDetailDisc'] = pat_disc_split_val
+                    if target_sugg_oc:
+                        app_rows['suggested_oc_amount'] = target_sugg_oc
+                    if target_sugg_dc:
+                        app_rows['suggested_dc_amount'] = target_sugg_dc
                     app_rows['last_updated'] = now_str
                     self.app.cp_df = pd.concat([self.app.cp_df.drop(index=app_pattern_match_idx), app_rows], ignore_index=True)
                 else:
@@ -1843,6 +1951,8 @@ class POSPricingReconciler:
                         'suggested_remark': remark_str,
                         'oc_amount': target_oc,
                         'dc_amount': target_dc,
+                        'suggested_oc_amount': target_sugg_oc,
+                        'suggested_dc_amount': target_sugg_dc,
                         'pattern_discount': pat_disc_val,
                         'couponDetailCash': pat_cash_val,
                         'couponDetailDisc': pat_disc_split_val,
@@ -1878,6 +1988,8 @@ class POSPricingReconciler:
                         "suggested_remark": gas_remark,
                         "oc_amount": target_oc,
                         "dc_amount": target_dc,
+                        "suggested_oc_amount": target_sugg_oc,
+                        "suggested_dc_amount": target_sugg_dc,
                         "pattern_discount": pat_disc_val,
                         "couponDetailCash": pat_cash_val,
                         "couponDetailDisc": pat_disc_split_val,
@@ -1912,7 +2024,9 @@ class POSPricingReconciler:
         remark: str = "",
         pattern_discount: Any = None,
         coupon_cash: Any = None,
-        coupon_disc: Any = None
+        coupon_disc: Any = None,
+        suggested_oc_amount: str = "",
+        suggested_dc_amount: str = ""
     ) -> None:
         """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info โดยรักษาความถูกต้องของแต่ละ Pattern"""
         kwargs = {"suggested_cp": suggested_cp_code}
@@ -1922,6 +2036,10 @@ class POSPricingReconciler:
             kwargs["dc_amount"] = dc_amount
         if cp_name:
             kwargs["cp_name"] = cp_name
+        if suggested_oc_amount:
+            kwargs["suggested_oc_amount"] = suggested_oc_amount
+        if suggested_dc_amount:
+            kwargs["suggested_dc_amount"] = suggested_dc_amount
         if sugg_info:
             if sugg_info.get("suggested_start_date") or sugg_info.get("start_date"):
                 kwargs["start_date"] = sugg_info.get("suggested_start_date") or sugg_info.get("start_date")
@@ -1933,6 +2051,10 @@ class POSPricingReconciler:
                 kwargs["oc_amount"] = sugg_info["oc_amount"]
             if sugg_info.get("dc_amount") and not dc_amount:
                 kwargs["dc_amount"] = sugg_info["dc_amount"]
+            if sugg_info.get("suggested_oc_amount") and not suggested_oc_amount:
+                kwargs["suggested_oc_amount"] = sugg_info["suggested_oc_amount"]
+            if sugg_info.get("suggested_dc_amount") and not suggested_dc_amount:
+                kwargs["suggested_dc_amount"] = sugg_info["suggested_dc_amount"]
         if start_date and "start_date" not in kwargs:
             kwargs["start_date"] = start_date
         if end_date and "end_date" not in kwargs:
@@ -4712,6 +4834,17 @@ class POSPricingReconciler:
                                                 logger.info(f"[diff>0 residual] SKU {sku_key}: coupons exact but still low by {re_diff}, OC remainder")
                                                 self.smco_set_overcharge_product(sku_key, str(re_diff))
                                                 time.sleep(0.5)
+                                                # บันทึก suggested OC (ยิงต่ำกว่าแล้ว OC ทันที) เพื่อให้รอบหน้าไม่ต้องเดา:
+                                                # เก็บเป็น suggest (ยังไม่ยืนยัน) — admin ย้ายไป oc_amount เมื่อตรวจแล้ว
+                                                try:
+                                                    self._record_missing_cp_with_dates(
+                                                        sku_key, expected_price,
+                                                        suggested_cp_code=cand_cp_name,
+                                                        remark=f"ยิงต่ำกว่า {float(re_diff):,.2f} แล้ว OC ทันที (auto-suggest)",
+                                                        suggested_oc_amount=str(re_diff),
+                                                    )
+                                                except Exception as _e_sugg_oc:
+                                                    print(f"[suggest-oc] skip: {_e_sugg_oc}")
                                 except Exception as ex_re:
                                     print(f"[diff>0 residual] re-verify skipped: {ex_re}")
 
@@ -4758,6 +4891,16 @@ class POSPricingReconciler:
                                     # ไม่มีคูปองใดๆ ที่ตรงกับราคานี้ทั้งในตารางและบน SMCO จึงทำการ Overcharge ตามส่วนต่าง
                                     self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
                                     self.smco_set_overcharge_product(sku_key, str(diff_val))
+                                    # บันทึก suggested OC อัตโนมัติ (เคสยิงมาแล้วราคาต่ำกว่าแล้วปรับขึ้นทันที)
+                                    try:
+                                        self._record_missing_cp_with_dates(
+                                            sku_key, expected_price,
+                                            suggested_cp_code="",
+                                            remark=f"ยิงต่ำกว่า {float(diff_val):,.2f} แล้ว OC ทันที (auto-suggest)",
+                                            suggested_oc_amount=str(diff_val),
+                                        )
+                                    except Exception as _e_sugg_oc2:
+                                        print(f"[suggest-oc] skip: {_e_sugg_oc2}")
 
                     # กรณีที่ 2: marketplace_item_price < smco_item_price? (diff < 0)
                     elif diff_val < 0:
@@ -4900,7 +5043,9 @@ class POSPricingReconciler:
                                 if admin_pick_raw:
                                     for uc in unified_candidates:
                                         c_name_u = str(uc.get('cp_name', '') or '').strip().upper()
-                                        if c_name_u == admin_pick_raw or admin_pick_raw in c_name_u or c_name_u in admin_pick_raw:
+                                        # Order-insensitive match: same token set counts as same pattern
+                                        if (canonical_cp_pattern(c_name_u) == canonical_cp_pattern(admin_pick_raw)
+                                                or c_name_u == admin_pick_raw or admin_pick_raw in c_name_u or c_name_u in admin_pick_raw):
                                             admin_cand = uc
                                             break
                                     if admin_cand is None:
@@ -4910,6 +5055,33 @@ class POSPricingReconciler:
                                 print(f"[Conflict Resolver] Error checking admin selection: {ex_conf}")
 
                             # 2. บันทึกทุก Pattern ที่พบลงใน cp_data เพื่อเก็บเป็นประวัติและทางเลือก
+                            def calc_candidate_net_price(c_item):
+                                """คำนวณราคาสุทธิที่แท้จริงของ Candidate จาก base price, ส่วนลดคูปอง และยอดปรับมือ OC/DC"""
+                                sp = c_item.get("sale_price")
+                                if sp is not None:
+                                    try:
+                                        return round(float(sp), 2)
+                                    except Exception:
+                                        pass
+                                try:
+                                    base_p = float(actual_price) if isinstance(actual_price, (int, float)) else (float(expected_price) - float(diff_val))
+                                except Exception:
+                                    base_p = float(expected_price)
+
+                                disc = 0.0
+                                for k in ["pattern_discount", "discount"]:
+                                    val = c_item.get(k)
+                                    if val is not None and str(val).strip() != "":
+                                        try:
+                                            disc = float(val)
+                                            break
+                                        except Exception:
+                                            pass
+
+                                oc = float(c_item.get("oc_amount")) if is_valid_adjustment(c_item.get("oc_amount")) else 0.0
+                                dc = float(c_item.get("dc_amount")) if is_valid_adjustment(c_item.get("dc_amount")) else 0.0
+                                return round(base_p - disc + oc - dc, 2)
+
                             for cand in unified_candidates:
                                 c_cp = str(cand.get("cp_name", "") or "").strip()
                                 c_oc = str(cand.get("oc_amount", "") or "").strip()
@@ -4920,9 +5092,16 @@ class POSPricingReconciler:
                                 cand_start = cand.get("start_date") or cand.get("usage_start_date") or cand.get("suggested_usage_start_date")
                                 cand_end = cand.get("end_date") or cand.get("usage_end_date") or cand.get("suggested_usage_end_date")
 
+                                # คำนวณราคาจริงของ Pattern นี้ เพื่อไม่ให้ลงราคา sale_price ผิด (ป้องกัน Bug บันทึกเนียนราคาผิด)
+                                cand_net = calc_candidate_net_price(cand)
+                                target_rec_price = float(expected_price)
+                                if cand_net is not None and abs(cand_net - float(expected_price)) > 0.05:
+                                    # หากสูตรนี้คำนวณแล้วได้ราคาต่างจาก expected_price จริง ให้บันทึกตามราคาคำนวณจริงของมัน
+                                    target_rec_price = cand_net
+
                                 resolved_rem, resolved_start, resolved_end = self.resolve_multi_coupon_info(
                                     c_cp,
-                                    expected_price=expected_price,
+                                    expected_price=target_rec_price,
                                     default_remark=cand_rem,
                                     default_start=cand_start,
                                     default_end=cand_end,
@@ -4931,7 +5110,7 @@ class POSPricingReconciler:
 
                                 self._record_missing_cp_with_dates(
                                     sku_key=sku_key,
-                                    expected_price=expected_price,
+                                    expected_price=target_rec_price,
                                     suggested_cp_code=c_cp,
                                     sugg_info=cand_sugg_info,
                                     oc_amount=c_oc,
@@ -4940,9 +5119,6 @@ class POSPricingReconciler:
                                     start_date=resolved_start,
                                     end_date=resolved_end,
                                     remark=resolved_rem,
-                                    # ส่งส่วนลดของ pattern นี้ไปด้วย เพื่อให้แต่ละแถว
-                                    # ใน sheet เห็นยอด cash+disc ของตัวเอง (แถวต่าง cp
-                                    # แต่ sale_price เดียวกันจะได้แยกออกว่าลดต่างกัน)
                                     pattern_discount=cand.get("pattern_discount", cand.get("discount")),
                                     coupon_cash=cand.get("couponDetailCash"),
                                     coupon_disc=cand.get("couponDetailDisc")
@@ -4953,9 +5129,20 @@ class POSPricingReconciler:
                                 chosen_cand = admin_cand
                                 self.app.update_log(f"🎯 [Conflict Resolver] ใช้สูตรตามที่ Admin อนุมัติ: [{chosen_cand.get('cp_name')}] สำหรับ SKU: {sku_key}")
                             else:
-                                # Smart Tie-Breaker: คัดเลือกตัวที่ดีที่สุด (ไม่หมดอายุ + วันที่เริ่มใหม่สุด + ไม่มี OC/DC)
+                                # Smart Tie-Breaker: คัดเลือกตัวที่ดีที่สุด โดยยึด "ความถูกต้องของราคาสุทธิ" เป็นเงื่อนไขสูงสุด (Hard Constraint)
                                 def score_candidate(c_item):
                                     sc = 0
+                                    # ─── เกณฑ์ที่ 1: ความถูกต้องของราคา (Price Accuracy) ───
+                                    c_net = calc_candidate_net_price(c_item)
+                                    price_diff = abs(c_net - float(expected_price)) if c_net is not None else 9999.0
+                                    if price_diff <= 0.05:
+                                        sc += 2000  # ราคาตรงเป๊ะ ชนะขาด
+                                    elif price_diff <= 1.0:
+                                        sc += 800   # ปัดเศษเล็กน้อย
+                                    else:
+                                        sc -= 5000  # ราคาไม่ตรงเป้าหมาย ตัดแต้มทันที ห้ามเป็นผู้ชนะ
+
+                                    # ─── เกณฑ์ที่ 2: วันที่และระยะเวลาโปรโมชัน ───
                                     c_st = parse_smart_date(c_item.get("start_date") or c_item.get("usage_start_date") or c_item.get("suggested_usage_start_date"))
                                     c_en = parse_smart_date(c_item.get("end_date") or c_item.get("usage_end_date") or c_item.get("suggested_usage_end_date"))
                                     ord_d = parse_smart_date(purchased_date)
@@ -4966,8 +5153,14 @@ class POSPricingReconciler:
                                             sc += 50
                                         elif ord_d > c_en:
                                             sc -= 80
-                                    if not is_valid_adjustment(c_item.get("oc_amount")) and not is_valid_adjustment(c_item.get("dc_amount")):
-                                        sc += 20
+
+                                    # ─── เกณฑ์ที่ 3: ความเรียบง่ายของสูตร (เฉพาะเมื่อราคาถูกต้องเท่านั้น) ───
+                                    if price_diff <= 0.05:
+                                        if not is_valid_adjustment(c_item.get("oc_amount")) and not is_valid_adjustment(c_item.get("dc_amount")):
+                                            sc += 20
+                                        cp_count = len(str(c_item.get("cp_name") or "").split())
+                                        sc -= (cp_count * 5)
+
                                     if c_st:
                                         try:
                                             sc += (c_st - datetime.date(2026, 1, 1)).days * 0.1
@@ -4983,11 +5176,15 @@ class POSPricingReconciler:
                                 cand_desc_list = []
                                 for idx_c, c in enumerate(unified_candidates, start=1):
                                     c_name = c.get("cp_name") or "-"
-                                    c_rem = f" ({c.get('remark')})" if c.get("remark") else ""
+                                    c_rem = f" ({c.get('remark')})" if c.get('remark') else ""
                                     cand_desc_list.append(f"{c_name}{c_rem}")
 
                                 candidates_multiline = "\n".join(cand_desc_list)
-                                reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
+                                chosen_net = calc_candidate_net_price(chosen_cand)
+                                if chosen_net is not None and abs(chosen_net - float(expected_price)) <= 0.05:
+                                    reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะคำนวณราคาสุทธิได้ {chosen_net:,.2f} บาท ตรงกับราคาขายจริง และช่วงวันที่เหมาะสม"
+                                else:
+                                    reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
                                 existing_admin_sel = ""
                                 existing_status = "PENDING"
                                 try:
@@ -5015,6 +5212,12 @@ class POSPricingReconciler:
                                 }
                                 if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
                                     self._dual_cp_loader.push_conflict_record(conflict_payload)
+                                    # Local-first: เขียนลงแท็บ conflict_resolver ในไฟล์ local ด้วย
+                                    # (เครื่องที่ไม่มี GAS / offline จะได้มีแถวให้ admin มากรอก)
+                                    try:
+                                        self._dual_cp_loader.save_conflict_record_local(conflict_payload)
+                                    except Exception as _e_local_conf:
+                                        print(f"[conflict-local] skip: {_e_local_conf}")
 
                                 self.app.update_log(
                                     f"💡 [Conflict Resolver] บันทึกข้อขัดแย้งเข้าแท็บ conflict_resolver เรียบร้อยแล้ว -> เลือกใช้สูตรแนะนำ [{suggested_winner_code}] ออกบิลต่ออัตโนมัติ"

@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import threading
 import requests
@@ -6,6 +7,61 @@ import pandas as pd
 from typing import Optional, Dict, Any
 
 DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwy2qAs1OhIkQZEeSiCR9QlHouxaJYbgwRI4hZiBM7_M3TLsII0cRLn5j-pG2tMVPsrkw/exec"
+
+
+def canonical_cp_pattern(val: Any) -> str:
+    """Normalize coupon pattern order-insensitively: split on comma/space, upper, sort, rejoin.
+
+    e.g. 'DC2609280008 CP2610100001' == 'CP2610100001 DC2609280008'.
+    Empty / '-' / 'nan' / 'none' -> ''.
+    """
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except Exception:
+        pass
+    s = str(val).strip()
+    if not s or s.lower() in ("", "-", "nan", "none", "<na>", "null"):
+        return ""
+    tokens = [t.strip().upper() for part in s.split(",") for t in re.split(r"\s+", part) if t.strip()]
+    tokens = [t for t in tokens if t and t.lower() not in ("nan", "none", "<na>", "null", "-")]
+    if not tokens:
+        return ""
+    return " ".join(sorted(tokens))
+
+
+def canonical_adj_pattern(val: Any) -> str:
+    """Normalize oc_amount/dc_amount order-insensitively (multiset of amounts).
+
+    '5 4' == '4 5'. Normalizes trailing '.0' and sorts numerically when possible.
+    NOTE: for multi-line-item OC/DC where token order maps to item index,
+    order matters semantically — this canonical form is for DEDUP comparison
+    only, not for applying adjustments (apply path keeps original order).
+    """
+    if val is None:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except Exception:
+        pass
+    s = str(val).strip()
+    if not s or s.lower() in ("-", "nan", "none", "<na>", "null"):
+        return ""
+    tokens = [t.strip() for t in s.split() if t.strip()]
+    normed = []
+    for t in tokens:
+        if t.endswith(".0") and t[:-2].replace(".", "", 1).isdigit():
+            t = t[:-2]
+        normed.append(t)
+    def _sort_key(x: str):
+        try:
+            return (0, float(x.replace(",", "")))
+        except Exception:
+            return (1, x.upper())
+    return " ".join(sorted(normed, key=_sort_key))
 
 class DualSourceCPLoader:
     """
@@ -103,7 +159,8 @@ class DualSourceCPLoader:
         # ตรวจสอบฟิลด์สำคัญที่ส่งมา หากมีฟิลด์ใดที่มีค่าใหม่หรือค่าไม่ตรงกับในแถว ให้ถือว่าไม่ใช่ duplicate
         fields_to_check = [
             'cp_name', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date',
-            'suggested_remark', 'usage_start_date', 'usage_end_date', 'last_order_id',
+            'suggested_remark', 'suggested_oc_amount', 'suggested_dc_amount',
+            'usage_start_date', 'usage_end_date', 'last_order_id',
             'last_used_cp', 'last_adjustment_method', 'last_actual_price',
             'oc_amount', 'dc_amount', 'addtion_cp',
             'pattern_discount', 'couponDetailCash', 'couponDetailDisc'
@@ -117,7 +174,17 @@ class DualSourceCPLoader:
                 val = record_dict.get(field)
                 val_str = str(val).strip() if (val is not None and str(val).strip() not in ("", "-")) else ""
                 row_val = str(row.get(field, '')).strip() if (pd.notna(row.get(field)) and str(row.get(field)).strip() not in ("", "-")) else ""
-                if val_str != row_val:
+                # Order-insensitive compare for coupon/adjustment patterns:
+                # 'A B' == 'B A' (same set, different order).
+                if field in ('cp_name', 'suggested_cp', 'addtion_cp', 'last_used_cp'):
+                    if canonical_cp_pattern(val_str) != canonical_cp_pattern(row_val):
+                        is_match = False
+                        break
+                elif field in ('oc_amount', 'dc_amount', 'suggested_oc_amount', 'suggested_dc_amount'):
+                    if canonical_adj_pattern(val_str) != canonical_adj_pattern(row_val):
+                        is_match = False
+                        break
+                elif val_str != row_val:
                     is_match = False
                     break
             if is_match:
@@ -247,6 +314,126 @@ class DualSourceCPLoader:
             print(f"[GAS Conflict Loader] Failed to POST conflict record: {e}")
         return False
 
+    def save_conflict_record_local(self, record_dict: Dict[str, Any]) -> bool:
+        """Save/update a conflict record in the LOCAL excel tab 'conflict_resolver' (no network).
+
+        Mirror of the GAS conflict branch: match on SKU + sale_price (±0.05),
+        preserve existing admin_selection when the new one is empty, and never
+        downgrade a decided status back to PENDING. Creates the tab (with full
+        headers incl. candidate_1/2/3) if missing. Returns True on success.
+        """
+        if not self.local_excel_path:
+            return False
+        try:
+            headers = [
+                'sku', 'sale_price', 'candidates', 'candidates_count',
+                'candidate_1', 'candidate_2', 'candidate_3',
+                'suggested_winner', 'reason', 'admin_selection', 'status', 'last_updated'
+            ]
+            norm = {str(k).strip().lower(): v for k, v in dict(record_dict).items()}
+            sku = str(norm.get('sku', '')).strip().upper()
+            if not sku:
+                return False
+            try:
+                price = float(str(norm.get('sale_price', '')).replace(',', '').strip())
+            except Exception:
+                price = float('nan')
+            import datetime as _dt
+            now_str = str(norm.get('last_updated') or _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+            try:
+                xl = pd.ExcelFile(self.local_excel_path)
+                sheets = {s: xl.parse(s) for s in xl.sheet_names}
+            except Exception:
+                sheets = {}
+            df_conf = sheets.get('conflict_resolver')
+            if df_conf is None or df_conf.empty:
+                df_conf = pd.DataFrame(columns=headers)
+            else:
+                df_conf = df_conf.copy()
+                df_conf.columns = [str(c).strip() for c in df_conf.columns]
+                lower = {str(c).strip().lower(): c for c in df_conf.columns}
+                for h in headers:
+                    if h not in lower:
+                        df_conf[h] = ""
+                        lower[h] = h
+                # normalize to exact header names
+                df_conf = df_conf.rename(columns={v: k for k, v in lower.items() if k in headers and v != k})
+
+            def _price_of(v):
+                try:
+                    return float(str(v).replace(',', '').strip())
+                except Exception:
+                    return float('nan')
+
+            found = None
+            if not df_conf.empty and 'sku' in df_conf.columns:
+                for idx, row in df_conf.iterrows():
+                    r_sku = str(row.get('sku', '')).strip().upper()
+                    r_price = _price_of(row.get('sale_price', ''))
+                    import math
+                    price_ok = True
+                    try:
+                        if not math.isnan(price) and not math.isnan(r_price):
+                            price_ok = abs(r_price - price) <= 0.05
+                    except Exception:
+                        price_ok = True
+                    if r_sku == sku and price_ok:
+                        found = idx
+                        break
+
+            def _cell(key):
+                v = norm.get(key, "")
+                return "" if v is None else str(v)
+
+            if found is not None:
+                row = df_conf.loc[found]
+                # never overwrite a filled admin_selection with empty, never downgrade status to PENDING
+                if _cell('candidates'):
+                    df_conf.loc[found, 'candidates'] = _cell('candidates')
+                if _cell('candidates_count'):
+                    df_conf.loc[found, 'candidates_count'] = _cell('candidates_count')
+                for c in ('candidate_1', 'candidate_2', 'candidate_3', 'suggested_winner', 'reason'):
+                    if _cell(c):
+                        df_conf.loc[found, c] = _cell(c)
+                if _cell('admin_selection'):
+                    df_conf.loc[found, 'admin_selection'] = _cell('admin_selection')
+                cur_status = str(row.get('status', '')).strip()
+                new_status = _cell('status')
+                if new_status and not (new_status == 'PENDING' and cur_status and cur_status != 'PENDING'):
+                    df_conf.loc[found, 'status'] = new_status
+                df_conf.loc[found, 'last_updated'] = now_str
+            else:
+                new_row = {h: _cell(h) for h in headers}
+                new_row['sku'] = sku
+                new_row['sale_price'] = price if price == price else ""
+                new_row['last_updated'] = now_str
+                if not new_row.get('status'):
+                    new_row['status'] = 'PENDING'
+                df_conf = pd.concat([df_conf, pd.DataFrame([new_row])], ignore_index=True)
+
+            sheets['conflict_resolver'] = df_conf
+            with pd.ExcelWriter(self.local_excel_path, engine='openpyxl') as writer:
+                for s_name, s_df in sheets.items():
+                    # keep legacy 'Sheet1' cp data under its own name; do not rename user sheets
+                    s_df.to_excel(writer, sheet_name=s_name, index=False)
+            try:
+                self._last_local_mtime = os.path.getmtime(self.local_excel_path)
+            except Exception:
+                pass
+            try:
+                from functions.pos.pricing_engine import format_cp_excel
+                format_cp_excel(self.local_excel_path)
+            except Exception:
+                pass
+            return True
+        except PermissionError:
+            print(f"[Local Conflict] file is open in another app, cannot save: {self.local_excel_path}")
+            return False
+        except Exception as e:
+            print(f"[Local Conflict] Failed to save conflict record locally: {e}")
+            return False
+
     def sync_to_local_excel(self, df_cp: pd.DataFrame, df_conflict: Optional[pd.DataFrame] = None) -> None:
         """Sync merged CP data (and optional conflict_resolver) down to multi-sheet local excel file"""
         if not self.local_excel_path or df_cp.empty:
@@ -334,13 +521,14 @@ class DualSourceCPLoader:
     def _merge_dfs(self, df_gas: pd.DataFrame, df_local: pd.DataFrame) -> pd.DataFrame:
         """
         Merge DataFrames from GAS and Local Excel. GAS takes priority.
+        Dedup is order-insensitive: 'A B' == 'B A' (canonical keys).
         """
         if df_gas.empty and df_local.empty:
             return pd.DataFrame()
         if df_gas.empty:
-            return df_local
+            return self._dedup_canonical(df_local)
         if df_local.empty:
-            return df_gas
+            return self._dedup_canonical(df_gas)
 
         df_gas.columns = [str(c).strip().lower() for c in df_gas.columns]
         df_local.columns = [str(c).strip().lower() for c in df_local.columns]
@@ -357,6 +545,8 @@ class DualSourceCPLoader:
             combined = combined[combined['sku'].astype(str).str.strip() != ""]
             
             # Normalize pattern columns so drop_duplicates compares cleaned values
+            # NOTE: canonical (order-insensitive) form is used for DEDUP keys only.
+            # Display values in cp_name/suggested_cp keep original order.
             for col in ['cp_name', 'suggested_cp', 'oc_amount', 'dc_amount', 'addtion_cp']:
                 if col in combined.columns:
                     def _norm_pat(v):
@@ -369,6 +559,18 @@ class DualSourceCPLoader:
                             return s[:-2]
                         return s
                     combined.loc[:, col] = [_norm_pat(v) for v in combined[col]]
+
+            # Canonical dedup keys (order-insensitive): 'A B' == 'B A'
+            for _canon_src, _canon_dst, _canon_fn in [
+                ('cp_name', '_canon_cp', canonical_cp_pattern),
+                ('suggested_cp', '_canon_sugg', canonical_cp_pattern),
+                ('oc_amount', '_canon_oc', canonical_adj_pattern),
+                ('dc_amount', '_canon_dc', canonical_adj_pattern),
+                ('suggested_oc_amount', '_canon_sugg_oc', canonical_adj_pattern),
+                ('suggested_dc_amount', '_canon_sugg_dc', canonical_adj_pattern),
+            ]:
+                if _canon_src in combined.columns:
+                    combined.loc[:, _canon_dst] = [_canon_fn(v) for v in combined[_canon_src]]
 
             # กำจัดแถว Ghost/Placeholder ซ้ำซ้อน (กรณีมีแถวที่ cp_name ว่าง แต่มีอีกแถวที่ใส่ cp_name หรือยืนยันสูตรแล้วสำหรับ SKU + ราคาเดียวกัน)
             if 'cp_name' in combined.columns and 'suggested_cp' in combined.columns and 'sale_price' in combined.columns:
@@ -389,7 +591,7 @@ class DualSourceCPLoader:
                                 if pd.notna(price_j) and abs(float(price_i) - float(price_j)) <= 0.05:
                                     cp_j = str(r_j.get('cp_name', '') or '').strip()
                                     sugg_j = str(r_j.get('suggested_cp', '') or '').strip()
-                                    if cp_j == sugg_i or (cp_j and sugg_j == sugg_i):
+                                    if canonical_cp_pattern(cp_j) == canonical_cp_pattern(sugg_i) and canonical_cp_pattern(sugg_i) != "" or (cp_j and canonical_cp_pattern(sugg_j) == canonical_cp_pattern(sugg_i) and canonical_cp_pattern(sugg_i) != ""):
                                         ghost_drops.append(combined.index[i])
                                         break
                 if ghost_drops:
@@ -400,14 +602,48 @@ class DualSourceCPLoader:
                 dedup_subset.append('sale_price')
             elif 'expected_price' in combined.columns:
                 dedup_subset.append('expected_price')
-            
-            for col in ['cp_name', 'suggested_cp', 'oc_amount', 'dc_amount']:
+
+            for col in ['_canon_cp', '_canon_sugg', '_canon_oc', '_canon_dc', '_canon_sugg_oc', '_canon_sugg_dc']:
                 if col in combined.columns:
                     dedup_subset.append(col)
 
             combined = combined.drop_duplicates(subset=dedup_subset, keep='first')
+            # Drop helper canonical columns before returning (keep display order intact)
+            combined = combined.drop(columns=[c for c in ['_canon_cp', '_canon_sugg', '_canon_oc', '_canon_dc', '_canon_sugg_oc', '_canon_sugg_dc'] if c in combined.columns])
 
         return combined
+
+    def _dedup_canonical(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Dedup a single-source frame with the same order-insensitive canonical keys as _merge_dfs."""
+        if df is None or df.empty:
+            return pd.DataFrame() if df is None else df
+        combined = df.copy()
+        combined.columns = [str(c).strip().lower() for c in combined.columns]
+        if 'expected_price' in combined.columns and 'sale_price' not in combined.columns:
+            combined['sale_price'] = combined['expected_price']
+        if 'sku' not in combined.columns:
+            return combined
+        combined = combined[combined['sku'].astype(str).str.strip() != ""]
+        for _canon_src, _canon_dst, _canon_fn in [
+            ('cp_name', '_canon_cp', canonical_cp_pattern),
+            ('suggested_cp', '_canon_sugg', canonical_cp_pattern),
+            ('oc_amount', '_canon_oc', canonical_adj_pattern),
+            ('dc_amount', '_canon_dc', canonical_adj_pattern),
+            ('suggested_oc_amount', '_canon_sugg_oc', canonical_adj_pattern),
+            ('suggested_dc_amount', '_canon_sugg_dc', canonical_adj_pattern),
+        ]:
+            if _canon_src in combined.columns:
+                combined.loc[:, _canon_dst] = [_canon_fn(v) for v in combined[_canon_src]]
+        dedup_subset = ['sku']
+        if 'sale_price' in combined.columns:
+            dedup_subset.append('sale_price')
+        elif 'expected_price' in combined.columns:
+            dedup_subset.append('expected_price')
+        for col in ['_canon_cp', '_canon_sugg', '_canon_oc', '_canon_dc', '_canon_sugg_oc', '_canon_sugg_dc']:
+            if col in combined.columns:
+                dedup_subset.append(col)
+        combined = combined.drop_duplicates(subset=dedup_subset, keep='first')
+        return combined.drop(columns=[c for c in ['_canon_cp', '_canon_sugg', '_canon_oc', '_canon_dc', '_canon_sugg_oc', '_canon_sugg_dc'] if c in combined.columns])
 
     def _clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Clean dataframe columns, normalize prices, convert ISO/UTC dates to Bangkok time, and auto-correct inverted date pairs"""
@@ -432,7 +668,7 @@ class DualSourceCPLoader:
                 df.loc[:, num_col] = pd.to_numeric(df[num_col], errors='coerce')
 
         # Clean adjustment columns (oc_amount, dc_amount) as strings preserving space-separated amounts (e.g. '5 4')
-        for adj_col in ['oc_amount', 'dc_amount']:
+        for adj_col in ['oc_amount', 'dc_amount', 'suggested_oc_amount', 'suggested_dc_amount']:
             if adj_col in df.columns:
                 def _clean_adj(v):
                     if pd.isna(v) or v is None:
