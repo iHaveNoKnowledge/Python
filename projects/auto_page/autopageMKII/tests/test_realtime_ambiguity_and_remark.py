@@ -1,6 +1,8 @@
+import os
 import datetime
 import unittest
 from unittest.mock import MagicMock, patch
+import pandas as pd
 
 from functions.pos.pricing_engine import (
     POSPricingReconciler,
@@ -507,6 +509,64 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         self.assertEqual(rem2, "CP ตัวแรก, DC ตัวสอง")
         self.assertEqual(s_dt2, datetime.date(2026, 9, 10))
         self.assertEqual(e_dt2, datetime.date(2026, 9, 20))
+
+    def test_suggested_oc_dc_routing_to_suggested_columns_not_actual(self):
+        """
+        ทดสอบว่าเมื่อบันทึกการแนะนำ (suggestion โดยที่ cp_name ว่าง)
+        ยอด OC และ DC ต้องถูกเขียนลงคอลัมน์ suggested_oc_amount และ suggested_dc_amount เท่านั้น
+        โดยคอลัมน์จริง oc_amount และ dc_amount ต้องว่างเปล่าเสมอ
+        """
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            df_init = pd.DataFrame(columns=[
+                "sku", "sale_price", "cp_name", "usage_start_date", "usage_end_date",
+                "oc_amount", "dc_amount", "suggested_cp", "suggested_oc_amount", "suggested_dc_amount"
+            ])
+            df_init.to_excel(tmp_path, index=False)
+
+            self.mock_app.cp_table_location = tmp_path
+            self.mock_app.cp_df = df_init.copy()
+            mock_gas = MagicMock()
+            self.reconciler._dual_cp_loader = mock_gas
+
+            # เคสที่ 1: เรียกผ่าน _record_missing_cp_with_dates โดยส่ง oc_amount/dc_amount เข้ามาตอนที่ cp_name ว่าง
+            self.reconciler._record_missing_cp_with_dates(
+                sku_key="SKU-SUGG-TEST-01",
+                expected_price=1500.0,
+                suggested_cp_code="CP2610150001",
+                oc_amount="50",
+                dc_amount="25",
+                cp_name="",  # suggestion
+                remark="Test suggestion OC/DC"
+            )
+
+            df_saved = pd.read_excel(tmp_path)
+            row = df_saved[df_saved["sku"] == "SKU-SUGG-TEST-01"].iloc[0]
+
+            # ตรวจสอบว่าช่องจริงต้องว่าง
+            self.assertTrue(pd.isna(row["cp_name"]) or str(row["cp_name"]).strip() in ("", "-"))
+            self.assertTrue(pd.isna(row["oc_amount"]) or str(row["oc_amount"]).strip() in ("", "-"), f"oc_amount ต้องว่างแต่ได้ {row['oc_amount']}")
+            self.assertTrue(pd.isna(row["dc_amount"]) or str(row["dc_amount"]).strip() in ("", "-"), f"dc_amount ต้องว่างแต่ได้ {row['dc_amount']}")
+
+            # ตรวจสอบว่าช่องแนะนำต้องมีค่าถูกต้อง
+            self.assertEqual(str(row["suggested_cp"]).strip(), "CP2610150001")
+            self.assertEqual(str(row["suggested_oc_amount"]).strip(), "50")
+            self.assertEqual(str(row["suggested_dc_amount"]).strip(), "25")
+
+            # ตรวจสอบ payload ที่ส่งให้ GAS
+            mock_gas.push_record_to_gas.assert_called_once()
+            payload = mock_gas.push_record_to_gas.call_args[0][0]
+            self.assertEqual(payload["suggested_cp"], "CP2610150001")
+            self.assertEqual(payload["suggested_oc_amount"], "50")
+            self.assertEqual(payload["suggested_dc_amount"], "25")
+            self.assertEqual(payload["oc_amount"], "")
+            self.assertEqual(payload["dc_amount"], "")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
 
 if __name__ == "__main__":

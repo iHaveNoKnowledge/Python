@@ -1443,7 +1443,12 @@ class POSPricingReconciler:
             candidates.append({
                 "cp_name": str(cp_name).strip() if pd.notna(cp_name) else "",
                 "oc_amount": str(oc_amount).strip() if pd.notna(oc_amount) else "",
-                "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else ""
+                "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else "",
+                "sale_price": float(row.get('sale_price')) if pd.notna(row.get('sale_price')) else None,
+                "pattern_discount": row.get('pattern_discount'),
+                "usage_start_date": row.get('usage_start_date'),
+                "usage_end_date": row.get('usage_end_date'),
+                "source": "TABLE"
             })
 
         # หากมีแถว candidate ใน Excel ให้ตัดแถวเปล่าที่ไม่มีข้อมูลใดๆ (ไม่มีทั้ง cp_name, oc_amount, dc_amount) ทิ้งทันที
@@ -1739,6 +1744,20 @@ class POSPricingReconciler:
             if target_sugg_dc.lower() in ('nan', 'none', '<na>', 'null', '-'):
                 target_sugg_dc = ""
 
+            # ป้องกันกรณีบันทึกแถวที่เป็น suggestion เท่านั้น (cp_name ว่าง)
+            # ยอด OC/DC ต้องถูกโอนมาเป็น suggested_oc_amount/suggested_dc_amount และไม่ให้ค้างในช่องจริง
+            if not cp_name:
+                if target_oc and not target_sugg_oc:
+                    target_sugg_oc = target_oc
+                    target_oc = ""
+                elif target_oc:
+                    target_oc = ""
+                if target_dc and not target_sugg_dc:
+                    target_sugg_dc = target_dc
+                    target_dc = ""
+                elif target_dc:
+                    target_dc = ""
+
             # หาแถวที่ตรงกับ SKU และ Sale Price เดียวกัน
             sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((pd.to_numeric(df['sale_price'], errors='coerce') - expected_price).abs() <= 0.05)
             
@@ -1857,6 +1876,8 @@ class POSPricingReconciler:
             rem_info = f" (Remark: {remark_str})" if remark_str else ""
             log_sugg = f" (แนะนำ: {suggested_cp}{date_info}{rem_info})" if suggested_cp else ""
             adj_info = f" (OC: {target_oc})" if target_oc else (f" (DC: {target_dc})" if target_dc else "")
+            if not adj_info:
+                adj_info = f" (แนะนำ OC: {target_sugg_oc})" if target_sugg_oc else (f" (แนะนำ DC: {target_sugg_dc})" if target_sugg_dc else "")
             action_label = "อัปเดต" if pattern_match_idx is not None else "เพิ่ม Pattern ใหม่"
             self.app.update_log(
                 f"💾 {action_label} SKU: {sku_key} (ราคาเป้าหมาย: {expected_price}){log_sugg}{adj_info} ใน CP Data เรียบร้อยแล้ว"
@@ -2030,16 +2051,24 @@ class POSPricingReconciler:
     ) -> None:
         """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info โดยรักษาความถูกต้องของแต่ละ Pattern"""
         kwargs = {"suggested_cp": suggested_cp_code}
-        if oc_amount:
-            kwargs["oc_amount"] = oc_amount
-        if dc_amount:
-            kwargs["dc_amount"] = dc_amount
         if cp_name:
             kwargs["cp_name"] = cp_name
+            if oc_amount:
+                kwargs["oc_amount"] = oc_amount
+            if dc_amount:
+                kwargs["dc_amount"] = dc_amount
+        else:
+            # หากเป็นการแนะนำ (cp_name ว่าง) ยอดปรับราคา OC/DC ต้องถูกเก็บไว้ที่ช่องแนะนำเสมอ ห้ามลงช่องจริง
+            if oc_amount and not suggested_oc_amount:
+                suggested_oc_amount = oc_amount
+            if dc_amount and not suggested_dc_amount:
+                suggested_dc_amount = dc_amount
+
         if suggested_oc_amount:
             kwargs["suggested_oc_amount"] = suggested_oc_amount
         if suggested_dc_amount:
             kwargs["suggested_dc_amount"] = suggested_dc_amount
+
         if sugg_info:
             if sugg_info.get("suggested_start_date") or sugg_info.get("start_date"):
                 kwargs["start_date"] = sugg_info.get("suggested_start_date") or sugg_info.get("start_date")
@@ -2047,14 +2076,25 @@ class POSPricingReconciler:
                 kwargs["end_date"] = sugg_info.get("suggested_end_date") or sugg_info.get("end_date")
             if sugg_info.get("suggested_remark") or sugg_info.get("remark"):
                 kwargs["remark"] = sugg_info.get("suggested_remark") or sugg_info.get("remark")
-            if sugg_info.get("oc_amount") and not oc_amount:
-                kwargs["oc_amount"] = sugg_info["oc_amount"]
-            if sugg_info.get("dc_amount") and not dc_amount:
-                kwargs["dc_amount"] = sugg_info["dc_amount"]
-            if sugg_info.get("suggested_oc_amount") and not suggested_oc_amount:
-                kwargs["suggested_oc_amount"] = sugg_info["suggested_oc_amount"]
-            if sugg_info.get("suggested_dc_amount") and not suggested_dc_amount:
-                kwargs["suggested_dc_amount"] = sugg_info["suggested_dc_amount"]
+            
+            s_oc = sugg_info.get("suggested_oc_amount") or sugg_info.get("suggested_oc")
+            s_dc = sugg_info.get("suggested_dc_amount") or sugg_info.get("suggested_dc")
+            if not cp_name:
+                s_oc = s_oc or sugg_info.get("oc_amount")
+                s_dc = s_dc or sugg_info.get("dc_amount")
+                if s_oc and "suggested_oc_amount" not in kwargs:
+                    kwargs["suggested_oc_amount"] = str(s_oc)
+                if s_dc and "suggested_dc_amount" not in kwargs:
+                    kwargs["suggested_dc_amount"] = str(s_dc)
+            else:
+                if sugg_info.get("oc_amount") and not oc_amount:
+                    kwargs["oc_amount"] = sugg_info["oc_amount"]
+                if sugg_info.get("dc_amount") and not dc_amount:
+                    kwargs["dc_amount"] = sugg_info["dc_amount"]
+                if s_oc and "suggested_oc_amount" not in kwargs:
+                    kwargs["suggested_oc_amount"] = str(s_oc)
+                if s_dc and "suggested_dc_amount" not in kwargs:
+                    kwargs["suggested_dc_amount"] = str(s_dc)
         if start_date and "start_date" not in kwargs:
             kwargs["start_date"] = start_date
         if end_date and "end_date" not in kwargs:
@@ -2809,22 +2849,8 @@ class POSPricingReconciler:
                     df.loc[mask, 'last_actual_price'] = act_price
                     df.loc[mask, 'last_updated'] = now_str
 
-                    # ปรับ cp_name และเติมวันที่/Remark ในแถวแบบ Vectorial
-                    if not used_cp:
-                        empty_cp_mask = mask & (df['cp_name'].isna() | df['cp_name'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-']))
-                        df.loc[empty_cp_mask, 'cp_name'] = "NONE"
-                    else:
-                        empty_or_none_mask = mask & (df['cp_name'].isna() | df['cp_name'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none']))
-                        df.loc[empty_or_none_mask, 'cp_name'] = used_cp
-                        if auto_s_str:
-                            if auto_e_str:
-                                df.loc[mask, 'usage_start_date'] = auto_s_str
-                            else:
-                                empty_s_mask = mask & (df['usage_start_date'].isna() | df['usage_start_date'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
-                                df.loc[empty_s_mask, 'usage_start_date'] = auto_s_str
-                        if auto_e_str:
-                            df.loc[mask, 'usage_end_date'] = auto_e_str
-
+                    # กฎสำคัญ: บอทห้ามเขียนทับ cp_name หรือ usage_start_date/usage_end_date เด็ดขาด (คอลัมน์จริงสำหรับ User/Admin เท่านั้น)
+                    # บอทจะบันทึกประวัติที่ last_used_cp, last_order_id, last_actual_price, last_updated เท่านั้น
                     if auto_s_str:
                         if auto_e_str:
                             df.loc[mask, 'suggested_usage_start_date'] = auto_s_str
@@ -2847,10 +2873,10 @@ class POSPricingReconciler:
                     new_row = {
                         'sku': sku_raw,
                         'sale_price': act_price,
-                        'cp_name': used_cp if used_cp else 'NONE',
+                        'cp_name': '',
                         'suggested_cp': used_cp if used_cp else '',
-                        'usage_start_date': auto_s_str,
-                        'usage_end_date': auto_e_str,
+                        'usage_start_date': '',
+                        'usage_end_date': '',
                         'suggested_usage_start_date': auto_s_str,
                         'suggested_usage_end_date': auto_e_str,
                         'suggested_remark': auto_rem,
@@ -2930,13 +2956,18 @@ class POSPricingReconciler:
                             row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c)
                         m_val = str(df.loc[row_m, 'last_adjustment_method'].iloc[0]) if (row_m.any() and 'last_adjustment_method' in df.columns) else ""
                         
+                        existing_cp_val = str(df.loc[row_m, 'cp_name'].iloc[0] or "") if (row_m.any() and pd.notna(df.loc[row_m, 'cp_name'].iloc[0])) else ""
                         payload = {
                             "sku": sku_c,
                             "sale_price": act_p,
                             "expected_price": act_p,
-                            "cp_name": used_c if used_c else "NONE",
-                            "usage_start_date": auto_s_str,
-                            "usage_end_date": auto_e_str,
+                            "cp_name": existing_cp_val,
+                            "usage_start_date": "",
+                            "usage_end_date": "",
+                            "suggested_cp": used_c if used_c else "",
+                            "suggested_usage_start_date": auto_s_str,
+                            "suggested_usage_end_date": auto_e_str,
+                            "suggested_remark": auto_rem,
                             "last_order_id": str(order_id),
                             "last_used_cp": used_c,
                             "last_adjustment_method": m_val,
@@ -5078,11 +5109,23 @@ class POSPricingReconciler:
                                         except Exception:
                                             pass
 
-                                oc = float(c_item.get("oc_amount")) if is_valid_adjustment(c_item.get("oc_amount")) else 0.0
-                                dc = float(c_item.get("dc_amount")) if is_valid_adjustment(c_item.get("dc_amount")) else 0.0
+                                def _parse_adj(val):
+                                    if not is_valid_adjustment(val):
+                                        return 0.0
+                                    try:
+                                        return sum(float(x) for x in str(val).split() if x.replace('.', '', 1).isdigit() or (x.startswith('-') and x[1:].replace('.', '', 1).isdigit()))
+                                    except Exception:
+                                        return 0.0
+
+                                oc = _parse_adj(c_item.get("oc_amount"))
+                                dc = _parse_adj(c_item.get("dc_amount"))
                                 return round(base_p - disc + oc - dc, 2)
 
                             for cand in unified_candidates:
+                                # ข้าม candidate ที่มาจากตาราง cp_data อยู่แล้ว (source != "SMCO") ห้ามบันทึกซ้ำลงไปอีกเด็ดขาด!
+                                if cand.get("source") != "SMCO":
+                                    continue
+
                                 c_cp = str(cand.get("cp_name", "") or "").strip()
                                 c_oc = str(cand.get("oc_amount", "") or "").strip()
                                 c_dc = str(cand.get("dc_amount", "") or "").strip()
@@ -5113,9 +5156,11 @@ class POSPricingReconciler:
                                     expected_price=target_rec_price,
                                     suggested_cp_code=c_cp,
                                     sugg_info=cand_sugg_info,
-                                    oc_amount=c_oc,
-                                    dc_amount=c_dc,
-                                    cp_name="",  # บันทึกเฉพาะฝั่ง suggest ก่อน ไม่แตะช่องใช้จริง (cp_name) จนกว่าจะมีการยิงผ่านจริง
+                                    oc_amount="",
+                                    dc_amount="",
+                                    suggested_oc_amount=c_oc,
+                                    suggested_dc_amount=c_dc,
+                                    cp_name="",  # บันทึกเฉพาะฝั่ง suggest ก่อน ไม่แตะช่องใช้จริง (cp_name, oc_amount, dc_amount) จนกว่าจะมีการยิงผ่านจริง
                                     start_date=resolved_start,
                                     end_date=resolved_end,
                                     remark=resolved_rem,

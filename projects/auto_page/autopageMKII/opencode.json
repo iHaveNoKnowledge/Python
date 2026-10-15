@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "postman": {
+      "type": "local",
+      "command": ["cmd.exe", "/c", "npx", "-y", "@postman/postman-mcp-server@latest", "--minimal"],
+      "enabled": true,
+      "environment": {
+        "POSTMAN_API_KEY": "{env:POSTMAN_API_KEY}"
+      }
+    },
+    "selenium": {
+      "type": "local",
+      "command": ["npx", "-y", "@gaforov/selenium-mcp"],
+      "enabled": true
+    },
+    "serena": {
+      "type": "local",
+      "command": ["serena", "start-mcp-server", "--context", "antigravity"],
+      "enabled": true
+    }
+  }
+}

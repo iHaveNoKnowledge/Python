@@ -1,6 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md"],
+  "lsp": true,
   "mcp": {
     "typesafe-docs": {
       "type": "remote",
