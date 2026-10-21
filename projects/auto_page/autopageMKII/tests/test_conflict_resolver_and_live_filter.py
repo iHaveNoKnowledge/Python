@@ -58,15 +58,20 @@ class TestConflictResolverAndLiveFilter(unittest.TestCase):
             self.df_cp_init.to_excel(writer, sheet_name="cp_data", index=False)
             self.df_conflict_init.to_excel(writer, sheet_name="conflict_resolver", index=False)
 
+        self.mock_bot = MagicMock()
         self.mock_app = MagicMock()
+        self.mock_bot.app = self.mock_app
         self.mock_app.cp_table_location = self.excel_path
+        self.mock_app.cp_gas_url = ""
+        self.mock_app._cp_last_mtime = 0
         self.mock_app.cp_df = None
         self.mock_app.marketplace_target.get.return_value = "Shopee"
         self.mock_app.cus_purchase_time.get.return_value = "14:00"
-        self.mock_app.bot = MagicMock()
-        self.mock_app.driver = MagicMock()
+        self.mock_app.correct_sku_pattern.return_value = []
+        self.mock_bot.driver = MagicMock()
+        self.mock_bot.wait50 = MagicMock()
 
-        self.reconciler = POSPricingReconciler(self.mock_app)
+        self.reconciler = POSPricingReconciler(self.mock_bot)
 
     def test_dual_source_cp_loader_multi_sheet_read_and_sync(self):
         """ทดสอบว่า DualSourceCPLoader สามารถโหลดและบันทึกแท็บ conflict_resolver แยกชีตได้อย่างสมบูรณ์"""
@@ -115,6 +120,61 @@ class TestConflictResolverAndLiveFilter(unittest.TestCase):
         loaded_conf = loader.load_conflict_resolver_df()
         self.assertEqual(loaded_conf.iloc[0]["admin_selection"], "DC2609300024")
         self.assertEqual(loaded_conf.iloc[0]["status"], "APPROVED")
+
+    def test_marketplace_isolation_in_candidate_search(self):
+        """ทดสอบว่า find_all_cp_candidates_from_excel แยกแยะ Marketplace และกันการปนสูตรข้ามแพลตฟอร์ม"""
+        df_mp = pd.DataFrame([
+            {
+                "sku": "TEST-SKU",
+                "sale_price": 500,
+                "marketplace": "TIKTOK",
+                "cp_name": "TT_ONLY_COUPON",
+                "suggested_cp": "TT_ONLY_COUPON",
+                "usage_start_date": "2026-10-01",
+                "usage_end_date": "2026-10-31"
+            },
+            {
+                "sku": "TEST-SKU",
+                "sale_price": 500,
+                "marketplace": "SHOPEE",
+                "cp_name": "SHP_ONLY_COUPON",
+                "suggested_cp": "SHP_ONLY_COUPON",
+                "usage_start_date": "2026-10-01",
+                "usage_end_date": "2026-10-31"
+            },
+            {
+                "sku": "TEST-SKU",
+                "sale_price": 500,
+                "marketplace": "",  # Universal legacy
+                "cp_name": "GLOBAL_COUPON",
+                "suggested_cp": "GLOBAL_COUPON",
+                "usage_start_date": "2026-10-01",
+                "usage_end_date": "2026-10-31"
+            }
+        ])
+        mp_excel_path = os.path.join(self.temp_dir, "test_mp_cp_data.xlsx")
+        df_mp.to_excel(mp_excel_path, sheet_name='cp_data', index=False)
+
+        self.mock_app.cp_table_location = mp_excel_path
+        self.mock_app.cp_df = None
+        self.mock_app.marketplace_target.get.return_value = "SHOPEE"
+        loader = DualSourceCPLoader(gas_url="", local_excel_path=mp_excel_path)
+        self.reconciler._dual_cp_loader = loader
+        self.reconciler.app.cp_df = None
+
+        # 1. เมื่อเปิดในโหมด SHOPEE: ต้องเลือก SHP_ONLY_COUPON และไม่ปนกับ TT_ONLY_COUPON
+        cands_shp = self.reconciler.find_all_cp_candidates_from_excel("TEST-SKU", 500, "15/10/2026")
+        found_shp = [c.get("cp_name") for c in cands_shp]
+        self.assertIn("SHP_ONLY_COUPON", found_shp)
+        self.assertNotIn("TT_ONLY_COUPON", found_shp, "TikTok coupon must NOT leak into Shopee candidate pool!")
+
+        # 2. เมื่อเปิดในโหมด LAZADA (ไม่มีสูตรเฉพาะ): ต้อง fallback ไปใช้ GLOBAL_COUPON ได้อย่างถูกต้อง
+        self.mock_app.marketplace_target.get.return_value = "LAZADA"
+        cands_lzd = self.reconciler.find_all_cp_candidates_from_excel("TEST-SKU", 500, "15/10/2026")
+        found_lzd = [c.get("cp_name") for c in cands_lzd]
+        self.assertIn("GLOBAL_COUPON", found_lzd)
+        self.assertNotIn("TT_ONLY_COUPON", found_lzd)
+        self.assertNotIn("SHP_ONLY_COUPON", found_lzd)
 
 
 if __name__ == '__main__':

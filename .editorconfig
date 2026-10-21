@@ -1,0 +1,9 @@
+root = true
+
+# Thai comments must stay readable: always read and write UTF-8, never cp874.
+[*]
+charset = utf-8
+
+[*.py]
+indent_style = space
+indent_size = 4

@@ -153,12 +153,18 @@ class DualSourceCPLoader:
         price_mask = (df[price_col] - target_price).abs() <= 0.05
         matched = df[sku_mask & price_mask]
 
+        target_mp = str(record_dict.get('marketplace', '') or '').strip().upper()
+        if target_mp and 'marketplace' in df.columns:
+            mp_mask = (df['marketplace'].astype(str).str.strip().str.upper() == target_mp)
+            if (sku_mask & price_mask & mp_mask).any():
+                matched = df[sku_mask & price_mask & mp_mask]
+
         if matched.empty:
             return False
 
         # ตรวจสอบฟิลด์สำคัญที่ส่งมา หากมีฟิลด์ใดที่มีค่าใหม่หรือค่าไม่ตรงกับในแถว ให้ถือว่าไม่ใช่ duplicate
         fields_to_check = [
-            'cp_name', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date',
+            'marketplace', 'cp_name', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date',
             'suggested_remark', 'suggested_oc_amount', 'suggested_dc_amount',
             'usage_start_date', 'usage_end_date', 'last_order_id',
             'last_used_cp', 'last_adjustment_method', 'last_actual_price',
@@ -294,7 +300,11 @@ class DualSourceCPLoader:
                     return 1 if (s and s not in ('nan', 'none', '<na>', 'null', '-', '')) else 0
                 combined['_prio'] = combined['admin_selection'].apply(_has_admin)
                 combined = combined.sort_values(by=['_prio'], ascending=False).drop(columns=['_prio'])
-            combined = combined.drop_duplicates(subset=['sku', 'sale_price'], keep='first')
+            dedup_subset = ['sku']
+            if 'marketplace' in combined.columns:
+                dedup_subset.append('marketplace')
+            dedup_subset.append('sale_price')
+            combined = combined.drop_duplicates(subset=dedup_subset, keep='first')
         return combined.reset_index(drop=True)
 
     def push_conflict_record(self, record_dict: Dict[str, Any]) -> bool:
@@ -326,12 +336,13 @@ class DualSourceCPLoader:
             return False
         try:
             headers = [
-                'sku', 'sale_price', 'candidates', 'candidates_count',
+                'sku', 'marketplace', 'sale_price', 'candidates', 'candidates_count',
                 'candidate_1', 'candidate_2', 'candidate_3',
                 'suggested_winner', 'reason', 'admin_selection', 'status', 'last_updated'
             ]
             norm = {str(k).strip().lower(): v for k, v in dict(record_dict).items()}
             sku = str(norm.get('sku', '')).strip().upper()
+            target_mp = str(norm.get('marketplace', '') or '').strip().upper()
             if not sku:
                 return False
             try:
@@ -370,6 +381,7 @@ class DualSourceCPLoader:
             if not df_conf.empty and 'sku' in df_conf.columns:
                 for idx, row in df_conf.iterrows():
                     r_sku = str(row.get('sku', '')).strip().upper()
+                    r_mp = str(row.get('marketplace', '') or '').strip().upper() if 'marketplace' in df_conf.columns else ""
                     r_price = _price_of(row.get('sale_price', ''))
                     import math
                     price_ok = True
@@ -378,7 +390,8 @@ class DualSourceCPLoader:
                             price_ok = abs(r_price - price) <= 0.05
                     except Exception:
                         price_ok = True
-                    if r_sku == sku and price_ok:
+                    mp_ok = (not target_mp or not r_mp or r_mp == target_mp)
+                    if r_sku == sku and price_ok and mp_ok:
                         found = idx
                         break
 
@@ -475,6 +488,13 @@ class DualSourceCPLoader:
         df.columns = [str(c).strip().lower() for c in df.columns]
         if 'sku' in df.columns:
             df.loc[:, 'sku'] = [str(v).strip().upper() for v in df['sku']]
+        if 'marketplace' in df.columns:
+            def _clean_mp(v):
+                if pd.isna(v) or v is None:
+                    return ""
+                s = str(v).strip().upper()
+                return "" if s in ('-', 'NAN', 'NONE', '<NA>', 'NULL') else s
+            df.loc[:, 'marketplace'] = [_clean_mp(v) for v in df['marketplace']]
         if 'sale_price' in df.columns:
             df.loc[:, 'sale_price'] = pd.to_numeric(df['sale_price'], errors='coerce')
         for col in ['admin_selection', 'suggested_winner', 'status', 'reason']:
@@ -635,6 +655,8 @@ class DualSourceCPLoader:
             if _canon_src in combined.columns:
                 combined.loc[:, _canon_dst] = [_canon_fn(v) for v in combined[_canon_src]]
         dedup_subset = ['sku']
+        if 'marketplace' in combined.columns:
+            dedup_subset.append('marketplace')
         if 'sale_price' in combined.columns:
             dedup_subset.append('sale_price')
         elif 'expected_price' in combined.columns:
@@ -666,6 +688,15 @@ class DualSourceCPLoader:
         for num_col in ['sale_price', 'expected_price', 'last_actual_price', 'pattern_discount']:
             if num_col in df.columns:
                 df.loc[:, num_col] = pd.to_numeric(df[num_col], errors='coerce')
+
+        # Clean marketplace column
+        if 'marketplace' in df.columns:
+            def _clean_mp(v):
+                if pd.isna(v) or v is None:
+                    return ""
+                s = str(v).strip().upper()
+                return "" if s in ('-', 'NAN', 'NONE', '<NA>', 'NULL') else s
+            df.loc[:, 'marketplace'] = [_clean_mp(v) for v in df['marketplace']]
 
         # Clean adjustment columns (oc_amount, dc_amount) as strings preserving space-separated amounts (e.g. '5 4')
         for adj_col in ['oc_amount', 'dc_amount', 'suggested_oc_amount', 'suggested_dc_amount']:

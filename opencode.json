@@ -1,7 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": ["AGENTS.md"],
+  "instructions": [
+    "AGENTS.md"
+  ],
   "lsp": true,
+  "plugin": [
+    "@falentio/opencode-pstack@0.7.0"
+  ],
   "mcp": {
     "typesafe-docs": {
       "type": "remote",
@@ -11,7 +16,11 @@
     },
     "jev": {
       "type": "local",
-      "command": ["npx", "-y", "jev-judge-mcp"],
+      "command": [
+        "npx",
+        "-y",
+        "jev-judge-mcp"
+      ],
       "enabled": true,
       "timeout": 30000,
       "environment": {

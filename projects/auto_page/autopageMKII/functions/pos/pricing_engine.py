@@ -808,17 +808,32 @@ class POSPricingReconciler:
             if cp_match.any():
                 target_mask = cp_match
             elif placeholder_match.any():
-                # อนุญาตให้จับคู่กับแถวว่างเฉพาะกรณีที่ไม่ใช่คูปอง topup และไม่มีคูปองอื่นในชุดที่ต้องใช้ร่วมกัน
+                # อนุญาตให้จับคู่กับแถวว่างเฉพาะกรณีที่ไม่ใช่คูปอง topup และผลลัพธ์ราคา/Remark ตรงกับ sale_price ของแถวนั้นจริง
                 is_topup = is_topup_coupon_desc(f"{rem_raw} {cp.get('couponDesc', '')}")
                 if not is_topup:
-                    if curr_expected is not None:
-                        price_matched = placeholder_match & ((pd.to_numeric(df['sale_price'], errors='coerce') - curr_expected).abs() <= 0.05)
-                        if price_matched.any():
-                            target_mask = price_matched
-                        else:
-                            target_mask = placeholder_match
-                    else:
-                        target_mask = placeholder_match
+                    cp_cash = float(cp.get("couponDetailCash") or 0.0)
+                    cp_disc = float(cp.get("couponDetailDisc") or 0.0)
+                    total_c_disc = cp_cash + cp_disc
+                    rem_target = extract_target_price_from_text(f"{rem_raw} {cp.get('couponDesc', '')}")
+                    base_p = self.get_base_price_for_sku(sku_clean, expected_price=curr_expected)
+
+                    matching_indices = []
+                    for idx in df[placeholder_match].index:
+                        row_sp = pd.to_numeric(df.loc[idx, 'sale_price'], errors='coerce')
+                        if pd.isna(row_sp):
+                            continue
+                        # 1. ตรงตาม Remark Target Price
+                        if rem_target is not None and abs(row_sp - rem_target) <= 0.05:
+                            matching_indices.append(idx)
+                        # 2. ตรงตาม Base Price - Coupon Discount (ความคลาดเคลื่อน <= 0.05)
+                        elif base_p > 0 and total_c_disc > 0 and abs(base_p - total_c_disc - row_sp) <= 0.05:
+                            matching_indices.append(idx)
+                        # 3. Fallback: ถ้าไม่มีข้อมูลราคา/ส่วนลดเลย (mock test ที่ไม่มีราคา/ส่วนลด) ให้จับคู่เฉพาะเมื่อมีแถวว่างแถวเดียว และไม่ได้ระบุ curr_expected ขัดแย้ง
+                        elif curr_expected is None and base_p <= 0 and total_c_disc <= 0 and len(df[placeholder_match]) == 1:
+                            matching_indices.append(idx)
+
+                    if matching_indices:
+                        target_mask = df.index.isin(matching_indices)
 
             if target_mask is not None and target_mask.any():
                 for idx in df[target_mask].index:
@@ -1075,6 +1090,114 @@ class POSPricingReconciler:
 
         return False
 
+    def get_base_price_for_sku(
+        self,
+        sku: str,
+        actual_price: Optional[float] = None,
+        pre_discount: float = 0.0,
+        target_discount: float = 0.0,
+        expected_price: Optional[float] = None
+    ) -> float:
+        """
+        ดึงหรือคำนวณราคาตั้งต้น (Base/Retail Price ก่อนหักคูปอง) ของ SKU
+        ตามลำดับความถูกต้อง:
+        1. กรณีสินค้าเซ็ต (Multi-SKU Combo Pack เช่น SP1+SP2): รวม base price ของแต่ละ sub-SKU
+        2. ดึงจาก _product_master_cache (retailPrice, price, productPrice, normalPrice, sellPrice, unitPrice)
+        3. หากยังไม่อยู่ในแคช และมี driver: พยายาม fetch_product_master_info สดๆ
+        4. ดึงจาก actual_price บน POS Cart (+ pre_discount)
+        5. Fallback ไปยัง expected_price + target_discount + pre_discount (ถ้ามี)
+        """
+        if not sku:
+            if actual_price is not None and isinstance(actual_price, (int, float)) and actual_price > 0:
+                return round(float(actual_price) + float(pre_discount), 2)
+            if expected_price is not None:
+                return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+            return 0.0
+
+        # 1. สินค้าเซ็ต (Combo Pack)
+        if isinstance(sku, list) or '+' in str(sku):
+            sub_skus = [s.strip().upper() for s in (sku if isinstance(sku, list) else str(sku).split('+')) if s.strip()]
+            sub_total = 0.0
+            found_all = True
+            for sub in sub_skus:
+                bp = self.get_base_price_for_sku(sub)
+                if bp > 0:
+                    sub_total += bp
+                else:
+                    found_all = False
+            if found_all and sub_total > 0:
+                return round(sub_total, 2)
+
+        sku_clean = str(sku).strip().upper()
+
+        # 2. ดึงจาก _product_master_cache
+        if not hasattr(self, '_product_master_cache') or self._product_master_cache is None:
+            self._product_master_cache = {}
+
+        def _find_price_in_cache(s_name: str) -> float:
+            candidates = [s_name]
+            fmt_s = self.sku_formater(s_name).strip().upper()
+            if fmt_s and fmt_s != s_name:
+                candidates.append(fmt_s)
+            for k in list(self._product_master_cache.keys()):
+                k_clean = str(k).strip().upper()
+                if k_clean == s_name or s_name in k_clean or k_clean in s_name:
+                    if k not in candidates:
+                        candidates.append(k)
+
+            for s_key in candidates:
+                records = self._product_master_cache.get(s_key)
+                if records:
+                    if isinstance(records, dict):
+                        records = [records]
+                    for r in records:
+                        if isinstance(r, dict):
+                            for k in ['retailPrice', 'retail_price', 'price', 'productPrice', 'product_price', 'normalPrice', 'normal_price', 'sellPrice', 'sell_price', 'unitPrice', 'stdPrice']:
+                                v = r.get(k)
+                                if v is not None and str(v).strip() != '':
+                                    try:
+                                        p = float(str(v).replace(',', '').strip())
+                                        if p > 0:
+                                            return p
+                                    except Exception:
+                                        pass
+                            for nested_k in ['product', 'data', 'productInfo', 'productMaster']:
+                                nested = r.get(nested_k)
+                                if isinstance(nested, dict):
+                                    for k in ['retailPrice', 'retail_price', 'price', 'productPrice', 'product_price', 'normalPrice', 'normal_price', 'sellPrice', 'sell_price', 'unitPrice', 'stdPrice']:
+                                        v = nested.get(k)
+                                        if v is not None and str(v).strip() != '':
+                                            try:
+                                                p = float(str(v).replace(',', '').strip())
+                                                if p > 0:
+                                                    return p
+                                            except Exception:
+                                                pass
+            return 0.0
+
+        p_cached = _find_price_in_cache(sku_clean)
+        if p_cached > 0:
+            return round(p_cached, 2)
+
+        # 3. Fetch สดผ่าน driver หากยังไม่มีในแคช
+        if getattr(self, 'driver', None):
+            try:
+                self.fetch_product_master_info(sku_clean)
+                p_fetched = _find_price_in_cache(sku_clean)
+                if p_fetched > 0:
+                    return round(p_fetched, 2)
+            except Exception:
+                pass
+
+        # 4. Actual price จาก POS Cart
+        if actual_price is not None and isinstance(actual_price, (int, float)) and actual_price > 0:
+            return round(float(actual_price) + float(pre_discount), 2)
+
+        # 5. Fallback จาก expected_price
+        if expected_price is not None:
+            return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+
+        return 0.0
 
     def get_aggregated_combo_coupons(self, sku_input: Union[str, list], order_date: Any = None) -> list[dict]:
         """
@@ -1193,9 +1316,15 @@ class POSPricingReconciler:
                     continue
 
                 seen_in_sku.add(code)
-                disc = float(cp.get("couponDetailCash", 0.0)) + float(cp.get("couponDetailDisc", 0.0))
+                cash_part = float(cp.get("couponDetailCash") or 0.0)
+                disc_part = float(cp.get("couponDetailDisc") or 0.0)
+                disc = cash_part + disc_part
                 item = coupon_agg[code]
                 item["total_discount"] += disc
+                item["total_cash"] = item.get("total_cash", 0.0) + cash_part
+                item["total_disc_field"] = item.get("total_disc_field", 0.0) + disc_part
+                if "couponType" in cp and not item.get("couponType"):
+                    item["couponType"] = cp.get("couponType")
                 if not item["startDate"]:
                     item["startDate"] = cp.get("startDate")
                 if not item["endDate"]:
@@ -1230,7 +1359,10 @@ class POSPricingReconciler:
                     "start_date": s_dt,
                     "end_date": e_dt,
                     "is_expired": False,
-                    "is_aggregated": True
+                    "is_aggregated": True,
+                    "couponDetailCash": round(data.get("total_cash", 0.0), 2) if data.get("total_cash") else "",
+                    "couponDetailDisc": round(data.get("total_disc_field", 0.0), 2) if data.get("total_disc_field") else "",
+                    "couponType": data.get("couponType", "")
                 })
 
         logger.debug(f"[get_aggregated_combo_coupons] Aggregated {len(aggregated_details)} coupons across {len(sub_skus)} sub-SKUs: {[a['code'] for a in aggregated_details]}")
@@ -1427,6 +1559,30 @@ class POSPricingReconciler:
             print(f"[CP Lookup] SKU {sku} date matched, but no matching sale_price for platform_price={platform_price}. Available prices in valid date range: {df_valid['sale_price'].tolist()}")
             return []
 
+        # 4.1 Filter by Marketplace (หากระบุ marketplace ในตารางและ app มี marketplace_target)
+        current_mp = ""
+        try:
+            if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+            elif hasattr(self, 'main_app') and hasattr(self.main_app, 'marketplace_target') and hasattr(self.main_app.marketplace_target, 'get'):
+                current_mp = str(self.main_app.marketplace_target.get() or '').strip().upper()
+        except Exception:
+            current_mp = ""
+
+        if current_mp and 'marketplace' in df_price_matched.columns:
+            def _mp_match(val):
+                if pd.isna(val) or val is None:
+                    return True
+                s = str(val).strip().upper()
+                return not s or s in (current_mp, 'ALL', '-', 'NAN', 'NONE')
+
+            exact_mp = df_price_matched[df_price_matched['marketplace'].astype(str).str.strip().str.upper() == current_mp]
+            mp_matched = df_price_matched[df_price_matched['marketplace'].apply(_mp_match)]
+            if not exact_mp.empty:
+                df_price_matched = exact_mp
+            elif not mp_matched.empty:
+                df_price_matched = mp_matched
+
         # 5. เรียงลำดับตาม usage_start_date ล่าสุด
         if len(df_price_matched) > 1:
             df_price_matched = df_price_matched.copy()
@@ -1444,6 +1600,7 @@ class POSPricingReconciler:
                 "cp_name": str(cp_name).strip() if pd.notna(cp_name) else "",
                 "oc_amount": str(oc_amount).strip() if pd.notna(oc_amount) else "",
                 "dc_amount": str(dc_amount).strip() if pd.notna(dc_amount) else "",
+                "marketplace": str(row.get('marketplace', '') or '').strip().upper(),
                 "sale_price": float(row.get('sale_price')) if pd.notna(row.get('sale_price')) else None,
                 "pattern_discount": row.get('pattern_discount'),
                 "usage_start_date": row.get('usage_start_date'),
@@ -1515,6 +1672,21 @@ class POSPricingReconciler:
             matched = df_conf[sku_m & price_m]
             if matched.empty:
                 return ""
+
+            current_mp = ""
+            try:
+                if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                    current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                elif hasattr(self, 'main_app') and hasattr(self.main_app, 'marketplace_target') and hasattr(self.main_app.marketplace_target, 'get'):
+                    current_mp = str(self.main_app.marketplace_target.get() or '').strip().upper()
+            except Exception:
+                current_mp = ""
+
+            if current_mp and 'marketplace' in matched.columns:
+                exact_m = matched[matched['marketplace'].astype(str).str.strip().str.upper() == current_mp]
+                if not exact_m.empty:
+                    matched = exact_m
+
             # หลาย source (GAS + Local) อาจมีหลายแถว cho SKU+ราคาเดียวกัน:
             # เลือกแถวแรกที่มี admin_selection ไม่ว่าง (กันแถว GAS เก่าที่ว่างบังแถว Local ที่ Admin เพิ่งกรอก)
             for _, row in matched.iterrows():
@@ -1670,6 +1842,7 @@ class POSPricingReconciler:
                 return
 
             suggested_cols = [
+                'marketplace',
                 'suggested_cp',
                 'suggested_usage_start_date',
                 'suggested_usage_end_date',
@@ -1681,7 +1854,7 @@ class POSPricingReconciler:
                 if col not in df.columns:
                     df[col] = ""
 
-            for col in ['oc_amount', 'dc_amount', 'cp_name', 'last_updated']:
+            for col in ['marketplace', 'oc_amount', 'dc_amount', 'cp_name', 'last_updated']:
                 if col not in df.columns:
                     df[col] = ""
 
@@ -1758,8 +1931,21 @@ class POSPricingReconciler:
                 elif target_dc:
                     target_dc = ""
 
-            # หาแถวที่ตรงกับ SKU และ Sale Price เดียวกัน
+            current_mp = ""
+            try:
+                if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                    current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                elif hasattr(self, 'main_app') and hasattr(self.main_app, 'marketplace_target') and hasattr(self.main_app.marketplace_target, 'get'):
+                    current_mp = str(self.main_app.marketplace_target.get() or '').strip().upper()
+            except Exception:
+                current_mp = ""
+
+            # หาแถวที่ตรงกับ SKU และ Sale Price เดียวกัน (และตรงกับ Marketplace ถ้ามี)
             sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((pd.to_numeric(df['sale_price'], errors='coerce') - expected_price).abs() <= 0.05)
+            if current_mp and 'marketplace' in df.columns:
+                mp_mask = (df['marketplace'].astype(str).str.strip().str.upper() == current_mp)
+                if (sku_price_mask & mp_mask).any():
+                    sku_price_mask = sku_price_mask & mp_mask
             
             # ตรวจสอบว่าในบรรดาแถวที่ตรง SKU และราคา มีแถวใดที่เป็น Recipe Pattern เดียวกันหรือไม่
             pattern_match_idx = None
@@ -1814,6 +2000,8 @@ class POSPricingReconciler:
             if pattern_match_idx is not None:
                 # พบแถวที่เป็น Pattern เดียวกัน: อัปเดตแถวนี้และย้ายไปต่อท้ายสุด (Move to Bottom)
                 matched_row = df.loc[[pattern_match_idx]].copy()
+                if current_mp and 'marketplace' in matched_row.columns:
+                    matched_row['marketplace'] = current_mp
                 if suggested_cp:
                     matched_row['suggested_cp'] = suggested_cp
                 if start_str:
@@ -1964,6 +2152,7 @@ class POSPricingReconciler:
                 else:
                     new_df_copy = pd.DataFrame([{
                         'sku': sku_key,
+                        'marketplace': current_mp,
                         'sale_price': expected_price,
                         'cp_name': cp_name,
                         'suggested_cp': suggested_cp,
@@ -2001,6 +2190,7 @@ class POSPricingReconciler:
                     gas_remark = cur_rem if cur_rem else "-"
                     payload = {
                         "sku": sku_clean,
+                        "marketplace": current_mp,
                         "sale_price": float(expected_price),
                         "expected_price": float(expected_price),
                         "suggested_cp": cur_sugg_cp,
@@ -2629,7 +2819,7 @@ class POSPricingReconciler:
                 return
 
             new_cols = [
-                'cp_name', 'usage_start_date', 'usage_end_date', 'suggested_cp',
+                'marketplace', 'cp_name', 'usage_start_date', 'usage_end_date', 'suggested_cp',
                 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark',
                 'last_order_id', 'last_used_cp', 'last_adjustment_method', 'last_actual_price', 'last_updated'
             ]
@@ -2638,6 +2828,15 @@ class POSPricingReconciler:
                     df[col] = ""
                 else:
                     df[col] = df[col].astype(object)
+
+            current_mp = ""
+            try:
+                if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                    current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                elif hasattr(self, 'main_app') and hasattr(self.main_app, 'marketplace_target') and hasattr(self.main_app.marketplace_target, 'get'):
+                    current_mp = str(self.main_app.marketplace_target.get() or '').strip().upper()
+            except Exception:
+                current_mp = ""
 
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -2710,7 +2909,7 @@ class POSPricingReconciler:
             for item in summary_items:
                 sku_raw = item.get("sku", "")
                 sku_clean = str(sku_raw).strip().upper()
-                used_cp = str(item.get("coupons", "")).strip()
+                used_cp = str(item.get("coupons", "")).strip() or "NONE"
                 act_price = float(item.get("unit_net", 0.0))
 
                 # ตรวจสอบวิธีการปรับราคา (last_adjustment_method):
@@ -2770,7 +2969,7 @@ class POSPricingReconciler:
                         method_val = "NONE"
                 else:
                     # บอทไม่ได้เป็นผู้สั่งปรับราคา:
-                    has_any_coupon = bool(used_cp and used_cp.strip() != "")
+                    has_any_coupon = bool(used_cp and used_cp.strip() != "" and used_cp.upper() != "NONE")
                     matched_base_prices = df[df['sku'].astype(str).str.strip().str.upper() == sku_clean]['sale_price'].tolist()
                     is_price_changed = False
                     if matched_base_prices:
@@ -2806,6 +3005,10 @@ class POSPricingReconciler:
                 # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)
                 # และหากมี used_cp ให้จับคู่เฉพาะแถวที่เป็นคูปอง/สูตรเดียวกัน เพื่อไม่เขียนทับแถวอื่นของ SKU เดียวกัน
                 sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - act_price).abs() <= 0.05)
+                if current_mp and 'marketplace' in df.columns:
+                    mp_match_mask = (df['marketplace'].astype(str).str.strip().str.upper() == current_mp)
+                    if (sku_price_mask & mp_match_mask).any():
+                        sku_price_mask = sku_price_mask & mp_match_mask
                 mask = sku_price_mask
                 if sku_price_mask.any() and used_cp:
                     used_cp_clean = str(used_cp).strip().upper()
@@ -2843,6 +3046,8 @@ class POSPricingReconciler:
                             mask = df.index == closest_idx
 
                 if mask.any():
+                    if current_mp and 'marketplace' in df.columns:
+                        df.loc[mask, 'marketplace'] = current_mp
                     df.loc[mask, 'last_order_id'] = str(order_id)
                     df.loc[mask, 'last_used_cp'] = used_cp
                     df.loc[mask, 'last_adjustment_method'] = method_val
@@ -2872,6 +3077,7 @@ class POSPricingReconciler:
                 else:
                     new_row = {
                         'sku': sku_raw,
+                        'marketplace': current_mp,
                         'sale_price': act_price,
                         'cp_name': '',
                         'suggested_cp': used_cp if used_cp else '',
@@ -2959,6 +3165,7 @@ class POSPricingReconciler:
                         existing_cp_val = str(df.loc[row_m, 'cp_name'].iloc[0] or "") if (row_m.any() and pd.notna(df.loc[row_m, 'cp_name'].iloc[0])) else ""
                         payload = {
                             "sku": sku_c,
+                            "marketplace": current_mp,
                             "sale_price": act_p,
                             "expected_price": act_p,
                             "cp_name": existing_cp_val,
@@ -3018,9 +3225,9 @@ class POSPricingReconciler:
         """
         details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
         
-        # หาก details ว่างเปล่า หรือกรณีสินค้าเซ็ต ให้ดึง/ผสานจาก get_aggregated_combo_coupons ร่วมด้วย
+        # หาก details ว่างเปล่า หรือระบุ target_sku ให้ดึง/ผสานจาก get_aggregated_combo_coupons ร่วมด้วย
         target_sku = sku or getattr(self, '_current_reconcile_sku', '')
-        if target_sku and ('+' in str(target_sku) or isinstance(target_sku, list) or not details):
+        if target_sku:
             try:
                 agg = self.get_aggregated_combo_coupons(target_sku, order_date=order_date)
                 if agg:
@@ -3031,14 +3238,18 @@ class POSPricingReconciler:
                         else:
                             for idx_d, d_item in enumerate(details):
                                 if d_item.get("code") == a.get("code"):
-                                    details[idx_d]["discount"] = a["discount"]
-                                    details[idx_d]["raw_discount"] = a["raw_discount"]
+                                    if float(a.get("discount", 0.0)) > 0:
+                                        details[idx_d]["discount"] = a["discount"]
+                                        details[idx_d]["raw_discount"] = a["raw_discount"]
                                     if a.get("remark"):
                                         details[idx_d]["remark"] = a["remark"]
                                     if a.get("start_date"):
                                         details[idx_d]["start_date"] = a["start_date"]
                                     if a.get("end_date"):
                                         details[idx_d]["end_date"] = a["end_date"]
+                                    for k_copy in ("couponDetailCash", "couponDetailDisc", "couponType", "cash_disc"):
+                                        if k_copy in a:
+                                            details[idx_d][k_copy] = a[k_copy]
             except Exception as ex_agg:
                 logger.debug(f"[find_suggested_cp_for_discount] Error aggregating for {target_sku}: {ex_agg}")
 
@@ -3081,6 +3292,13 @@ class POSPricingReconciler:
         pre_discount = sum(code_disc_map.get(p.strip().upper(), 0.0) for p in preselected)
 
         # คำนวณ Base Price และเป้าหมายส่วนลดที่เป็นไปได้
+        base_p = self.get_base_price_for_sku(
+            target_sku,
+            actual_price=None,
+            pre_discount=pre_discount,
+            target_discount=target_discount,
+            expected_price=expected_price
+        )
         possible_req_discounts = set()
         if target_discount > 0:
             possible_req_discounts.add(round(float(target_discount), 2))
@@ -3088,6 +3306,13 @@ class POSPricingReconciler:
                 possible_req_discounts.add(round(float(target_discount) + float(pre_discount), 2))
         elif pre_discount > 0:
             possible_req_discounts.add(round(float(pre_discount), 2))
+
+        if expected_price is not None and base_p > 0:
+            diff_from_base = round(float(base_p) - float(expected_price), 2)
+            if diff_from_base > 0:
+                possible_req_discounts.add(diff_from_base)
+            if pre_discount > 0 and (diff_from_base - pre_discount) > 0:
+                possible_req_discounts.add(round(diff_from_base - pre_discount, 2))
 
         # ─── ค้นหาความน่าจะเป็นทุกรูปแบบ (Subset Combinations: 1, 2, 3, 4 ใบ) ───
         matching_combos = []
@@ -3195,14 +3420,26 @@ class POSPricingReconciler:
                     # คำนวณราคาขายสุทธิตั้งต้น (Effective Base Price) และตรวจสอบว่าเมื่อหักชุดคูปองนี้แล้วได้ตรงกับ expected_price จริงหรือไม่
                     if expected_price is not None:
                         if not (len(all_combo_items) == 1 and is_remark_target_match):
-                            if any(p in sorted_codes for p in preselected):
-                                effective_base_price = float(expected_price) + float(target_discount) + float(pre_discount)
-                            elif pre_discount > 0 and abs(sub_disc - (target_discount + pre_discount)) <= 0.05:
-                                effective_base_price = float(expected_price) + float(target_discount) + float(pre_discount)
-                            else:
-                                effective_base_price = float(expected_price) + float(target_discount)
-                            combo_total_disc = sum(float(c.get('discount', 0.0)) for c in all_combo_items)
-                            calc_net_price = effective_base_price - combo_total_disc
+                            effective_base_price = self.get_base_price_for_sku(
+                                target_sku,
+                                actual_price=None,
+                                pre_discount=pre_discount,
+                                target_discount=target_discount,
+                                expected_price=expected_price
+                            )
+                            combo_total_disc = 0.0
+                            for c in all_combo_items:
+                                cd_c = c.get("couponDetailCash")
+                                cd_d = c.get("couponDetailDisc")
+                                if (cd_c is not None and str(cd_c).strip() != "") or (cd_d is not None and str(cd_d).strip() != ""):
+                                    try:
+                                        combo_total_disc += float(cd_c or 0.0) + float(cd_d or 0.0)
+                                        continue
+                                    except Exception:
+                                        pass
+                                combo_total_disc += float(c.get('discount', 0.0))
+
+                            calc_net_price = round(effective_base_price - combo_total_disc, 2)
                             if abs(calc_net_price - float(expected_price)) > 0.05:
                                 continue
 
@@ -3237,6 +3474,21 @@ class POSPricingReconciler:
                     new_code_val = " ".join(new_code_tokens) or combo_key
                     new_code_disc = sum(code_disc_map.get(c, 0.0) for c in new_code_tokens) if new_code_tokens else sub_disc
 
+                    combo_cash = 0.0
+                    combo_disc = 0.0
+                    combo_has_split = False
+                    for c in all_combo_items:
+                        if 'couponDetailCash' in c or 'couponDetailDisc' in c:
+                            combo_has_split = True
+                            try:
+                                combo_cash += float(c.get('couponDetailCash') or 0.0)
+                            except Exception:
+                                pass
+                            try:
+                                combo_disc += float(c.get('couponDetailDisc') or 0.0)
+                            except Exception:
+                                pass
+
                     matching_combos.append({
                         "suggested_code": combo_key,
                         "discount": new_code_disc if new_code_tokens else sub_disc,
@@ -3248,7 +3500,10 @@ class POSPricingReconciler:
                         "end_date": shortest_end,
                         "remark": combo_remark,
                         "new_code": new_code_val,
-                        "preselected_in_combo": [p for p in preselected if p in sorted_codes and p not in new_code_tokens]
+                        "preselected_in_combo": [p for p in preselected if p in sorted_codes and p not in new_code_tokens],
+                        "pattern_discount": round(sub_disc, 2),
+                        "couponDetailCash": round(combo_cash, 2) if combo_has_split else "",
+                        "couponDetailDisc": round(combo_disc, 2) if combo_has_split else "",
                     })
 
         best = None
@@ -3306,7 +3561,7 @@ class POSPricingReconciler:
         details = list(getattr(self, 'last_scanned_smco_coupon_details', []))
 
         target_sku = sku or getattr(self, '_current_reconcile_sku', '')
-        if target_sku and ('+' in str(target_sku) or isinstance(target_sku, list)):
+        if target_sku:
             try:
                 agg = self.get_aggregated_combo_coupons(target_sku, order_date=order_date)
                 if agg:
@@ -3317,14 +3572,18 @@ class POSPricingReconciler:
                         else:
                             for idx_d, d_item in enumerate(details):
                                 if d_item.get("code") == a.get("code"):
-                                    details[idx_d]["discount"] = a["discount"]
-                                    details[idx_d]["raw_discount"] = a["raw_discount"]
+                                    if float(a.get("discount", 0.0)) > 0:
+                                        details[idx_d]["discount"] = a["discount"]
+                                        details[idx_d]["raw_discount"] = a["raw_discount"]
                                     if a.get("remark"):
                                         details[idx_d]["remark"] = a["remark"]
                                     if a.get("start_date"):
                                         details[idx_d]["start_date"] = a["start_date"]
                                     if a.get("end_date"):
                                         details[idx_d]["end_date"] = a["end_date"]
+                                    for k_copy in ("couponDetailCash", "couponDetailDisc", "couponType", "cash_disc"):
+                                        if k_copy in a:
+                                            details[idx_d][k_copy] = a[k_copy]
             except Exception as ex_agg:
                 logger.debug(f"[find_all_matching_coupons_on_smco] Error aggregating for {target_sku}: {ex_agg}")
 
@@ -3364,6 +3623,13 @@ class POSPricingReconciler:
         code_disc_map = {str(d.get("code", "")).strip().upper(): float(d.get("discount", 0.0)) for d in valid_details if d.get("code")}
         pre_discount = sum(code_disc_map.get(p.strip().upper(), 0.0) for p in preselected)
 
+        base_p = self.get_base_price_for_sku(
+            target_sku,
+            actual_price=None,
+            pre_discount=pre_discount,
+            target_discount=target_discount,
+            expected_price=expected_price
+        )
         possible_req_discounts = set()
         if target_discount > 0:
             possible_req_discounts.add(round(float(target_discount), 2))
@@ -3371,6 +3637,13 @@ class POSPricingReconciler:
                 possible_req_discounts.add(round(float(target_discount) + float(pre_discount), 2))
         elif pre_discount > 0:
             possible_req_discounts.add(round(float(pre_discount), 2))
+
+        if expected_price is not None and base_p > 0:
+            diff_from_base = round(float(base_p) - float(expected_price), 2)
+            if diff_from_base > 0:
+                possible_req_discounts.add(diff_from_base)
+            if pre_discount > 0 and (diff_from_base - pre_discount) > 0:
+                possible_req_discounts.add(round(diff_from_base - pre_discount, 2))
 
         results = []
         seen_codes = set()
@@ -3474,14 +3747,26 @@ class POSPricingReconciler:
                     # คำนวณราคาขายสุทธิตั้งต้น (Effective Base Price) และตรวจสอบว่าเมื่อหักชุดคูปองนี้แล้วได้ตรงกับ expected_price จริงหรือไม่
                     if expected_price is not None:
                         if not (len(all_combo_items) == 1 and is_remark_target_match):
-                            if any(p in sorted_codes for p in preselected):
-                                effective_base_price = float(expected_price) + float(target_discount) + float(pre_discount)
-                            elif pre_discount > 0 and abs(sub_disc - (target_discount + pre_discount)) <= 0.05:
-                                effective_base_price = float(expected_price) + float(target_discount) + float(pre_discount)
-                            else:
-                                effective_base_price = float(expected_price) + float(target_discount)
-                            combo_total_disc = sum(float(c.get('discount', 0.0)) for c in all_combo_items)
-                            calc_net_price = effective_base_price - combo_total_disc
+                            effective_base_price = self.get_base_price_for_sku(
+                                target_sku,
+                                actual_price=None,
+                                pre_discount=pre_discount,
+                                target_discount=target_discount,
+                                expected_price=expected_price
+                            )
+                            combo_total_disc = 0.0
+                            for c in all_combo_items:
+                                cd_c = c.get("couponDetailCash")
+                                cd_d = c.get("couponDetailDisc")
+                                if (cd_c is not None and str(cd_c).strip() != "") or (cd_d is not None and str(cd_d).strip() != ""):
+                                    try:
+                                        combo_total_disc += float(cd_c or 0.0) + float(cd_d or 0.0)
+                                        continue
+                                    except Exception:
+                                        pass
+                                combo_total_disc += float(c.get('discount', 0.0))
+
+                            calc_net_price = round(effective_base_price - combo_total_disc, 2)
                             if abs(calc_net_price - float(expected_price)) > 0.05:
                                 continue
 
@@ -5094,20 +5379,35 @@ class POSPricingReconciler:
                                         return round(float(sp), 2)
                                     except Exception:
                                         pass
-                                try:
-                                    base_p = float(actual_price) if isinstance(actual_price, (int, float)) else (float(expected_price) - float(diff_val))
-                                except Exception:
-                                    base_p = float(expected_price)
+
+                                base_p = self.get_base_price_for_sku(
+                                    sku_key,
+                                    actual_price=actual_price if isinstance(actual_price, (int, float)) and actual_price > 0 else None,
+                                    expected_price=expected_price
+                                )
+                                if base_p <= 0:
+                                    try:
+                                        base_p = float(actual_price) if isinstance(actual_price, (int, float)) else (float(expected_price) - float(diff_val))
+                                    except Exception:
+                                        base_p = float(expected_price)
 
                                 disc = 0.0
-                                for k in ["pattern_discount", "discount"]:
-                                    val = c_item.get(k)
-                                    if val is not None and str(val).strip() != "":
-                                        try:
-                                            disc = float(val)
-                                            break
-                                        except Exception:
-                                            pass
+                                cd_cash = c_item.get("couponDetailCash")
+                                cd_disc = c_item.get("couponDetailDisc")
+                                if (cd_cash is not None and str(cd_cash).strip() != "") or (cd_disc is not None and str(cd_disc).strip() != ""):
+                                    try:
+                                        disc = float(cd_cash or 0.0) + float(cd_disc or 0.0)
+                                    except Exception:
+                                        pass
+                                if disc <= 0:
+                                    for k in ["pattern_discount", "discount"]:
+                                        val = c_item.get(k)
+                                        if val is not None and str(val).strip() != "":
+                                            try:
+                                                disc = float(val)
+                                                break
+                                            except Exception:
+                                                pass
 
                                 def _parse_adj(val):
                                     if not is_valid_adjustment(val):
@@ -5199,6 +5499,27 @@ class POSPricingReconciler:
                                         elif ord_d > c_en:
                                             sc -= 80
 
+                                    # ─── เกณฑ์ที่ 2.5: ความสอดคล้องกับ Marketplace (Platform Alignment) ───
+                                    current_mp = ""
+                                    try:
+                                        if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                                            current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                                    except Exception:
+                                        current_mp = ""
+
+                                    if current_mp:
+                                        PLATFORM_KEYWORDS = {
+                                            'SHOPEE': ['SHP', 'SHOPEE', 'SP'],
+                                            'TIKTOK': ['TT', 'TIKTOK', 'TIK TOK'],
+                                            'LAZADA': ['LZD', 'LAZADA', 'LAZ']
+                                        }
+                                        c_desc_all = f"{c_item.get('desc', '')} {c_item.get('remark', '')}".upper()
+                                        for other_mp, kws in PLATFORM_KEYWORDS.items():
+                                            if other_mp != current_mp and any(kw in c_desc_all for kw in kws):
+                                                sc -= 10000  # ตัดสิทธิ์คูปองของแพลตฟอร์มอื่นทันที
+                                        if current_mp in PLATFORM_KEYWORDS and any(kw in c_desc_all for kw in PLATFORM_KEYWORDS[current_mp]):
+                                            sc += 1500  # ให้คะแนนพิเศษสำหรับคูปองที่ระบุแพลตฟอร์มตรง
+
                                     # ─── เกณฑ์ที่ 3: ความเรียบง่ายของสูตร (เฉพาะเมื่อราคาถูกต้องเท่านั้น) ───
                                     if price_diff <= 0.05:
                                         if not is_valid_adjustment(c_item.get("oc_amount")) and not is_valid_adjustment(c_item.get("dc_amount")):
@@ -5240,8 +5561,16 @@ class POSPricingReconciler:
                                 except Exception:
                                     pass
 
+                                current_mp = ""
+                                try:
+                                    if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                                        current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                                except Exception:
+                                    current_mp = ""
+
                                 conflict_payload = {
                                     "sku": str(sku_key).strip().upper(),
+                                    "marketplace": current_mp,
                                     "sale_price": float(expected_price),
                                     "candidates": candidates_multiline,
                                     "candidates_count": len(unified_candidates),

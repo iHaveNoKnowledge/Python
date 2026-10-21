@@ -13,10 +13,13 @@ from selenium.common.exceptions import (
     InvalidSessionIdException
 )
 from webdriver_manager.chrome import ChromeDriverManager
+from autopage_config import DEFAULT_CHROME_DEBUG_HOST, DEFAULT_CHROME_DEBUG_PORT, RuntimeConfig
 from functions.network_response_utils import NetworkResponseCapture
 
-CHROME_DEBUG_HOST = "localhost"
-CHROME_DEBUG_PORT = 8989
+# ค่า default ของทั้งโปรเจกต์ — ค่าที่ใช้จริงต่อ instance มาจาก RuntimeConfig
+# (เก็บ constant ไว้ให้โค้ดเดิมที่ import ไปใช้ยังทำงานได้)
+CHROME_DEBUG_HOST = DEFAULT_CHROME_DEBUG_HOST
+CHROME_DEBUG_PORT = DEFAULT_CHROME_DEBUG_PORT
 
 # ข้อความที่บอกว่าแค่ session ตาย (Chrome ตัวจริงอาจยังอยู่ -> attach ใหม่ได้)
 _DEAD_SESSION_KEYWORDS = (
@@ -54,8 +57,10 @@ def classify_connection_error(err) -> str:
     return "other"
 
 
-def is_chrome_debug_port_alive(host: str = CHROME_DEBUG_HOST, port: int = CHROME_DEBUG_PORT, timeout: float = 2.0) -> bool:
+def is_chrome_debug_port_alive(host: str = None, port: int = None, timeout: float = 2.0) -> bool:
     """เช็คว่า Chrome ตัวจริงยังเปิด debug port อยู่ไหม (ยังไม่ตายทั้งเบราว์เซอร์)"""
+    host = host or CHROME_DEBUG_HOST
+    port = port or CHROME_DEBUG_PORT
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return True
@@ -63,11 +68,13 @@ def is_chrome_debug_port_alive(host: str = CHROME_DEBUG_HOST, port: int = CHROME
         return False
 
 class BrowserManager:
-    def __init__(self, app, bot_instance, logger_instance=logger, max_memory_mb=70):
+    def __init__(self, app, bot_instance, logger_instance=logger, max_memory_mb=70, config=None):
         self.app = app
         self.bot = bot_instance
         self.logger = logger_instance
         self.max_memory_mb = max_memory_mb
+        # อ่าน env ตอนสร้าง instance (หลัง load_dotenv) ไม่ใช่ตอน import
+        self.config = config or RuntimeConfig.from_env()
         
         #/ State tracking
         self.operation_count = 0
@@ -87,11 +94,15 @@ class BrowserManager:
     def setup_chrome(self):
         opt = Options()
         opt.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-        opt.add_experimental_option("debuggerAddress", "localhost:8989")
+        opt.add_experimental_option("debuggerAddress", self.config.chrome_debugger_address)
         opt.add_argument("--disable-popup-blocking")
+        self.logger.info(
+            f"browser attach host={self.config.chrome_debug_host} "
+            f"port={self.config.chrome_debug_port} worker={self.config.worker_id}"
+        )
 
         try:
-            print("Connecting to existing Chrome at localhost:8989...")
+            print(f"Connecting to existing Chrome at {self.config.chrome_debugger_address}...")
             driver = webdriver.Chrome(options=opt)
             print("Driver connected successfully!")
             return driver
@@ -135,9 +146,9 @@ class BrowserManager:
             self.app.update_log("🔄 Reconnecting to browser...")
 
             # เช็คก่อนว่า Chrome ตัวจริงยังอยู่ไหม จะได้บอก user ถูกว่าแก้ตรงไหน
-            if not is_chrome_debug_port_alive():
-                msg = (f"❌ Chrome ไม่ได้เปิด debug port {CHROME_DEBUG_HOST}:{CHROME_DEBUG_PORT} "
-                       "อาจปิด/crash ไปแล้ว กรุณาเปิด Chrome ใหม่ด้วย --remote-debugging-port=8989 แล้วกดรันอีกครั้ง")
+            if not is_chrome_debug_port_alive(self.config.chrome_debug_host, self.config.chrome_debug_port):
+                msg = (f"❌ Chrome ไม่ได้เปิด debug port {self.config.chrome_debug_host}:{self.config.chrome_debug_port} "
+                       f"อาจปิด/crash ไปแล้ว กรุณาเปิด Chrome ใหม่ด้วย --remote-debugging-port={self.config.chrome_debug_port} แล้วกดรันอีกครั้ง")
                 print(msg)
                 self.logger.error(msg)
                 self.app.update_log(msg)

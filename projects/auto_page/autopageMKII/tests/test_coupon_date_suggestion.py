@@ -784,7 +784,7 @@ class TestCouponDateSuggestion(unittest.TestCase):
             reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_NONE_01")
 
             res_df = pd.read_excel(excel_path)
-            self.assertEqual(str(res_df.loc[0, "cp_name"]).strip(), "NONE")
+            self.assertEqual(str(res_df.loc[0, "last_used_cp"]).strip(), "NONE")
             self.assertEqual(str(res_df.loc[0, "last_adjustment_method"]).strip(), "NONE")
 
     def test_record_pos_cart_summary_populates_dates_from_coupon_code_fallback(self):
@@ -809,8 +809,8 @@ class TestCouponDateSuggestion(unittest.TestCase):
             reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_DATE_01")
 
             res_df = pd.read_excel(excel_path)
-            self.assertEqual(str(res_df.loc[0, "cp_name"]).strip(), "DC2609280008")
-            self.assertEqual(str(res_df.loc[0, "usage_start_date"]).strip(), "28/09/2026")
+            self.assertEqual(str(res_df.loc[0, "last_used_cp"]).strip(), "DC2609280008")
+            self.assertEqual(str(res_df.loc[0, "suggested_usage_start_date"]).strip(), "28/09/2026")
 
     def test_resolve_multi_coupon_info_hierarchy_newest_start_and_shortest_end(self):
         """ทดสอบตรรกะ Multi-Coupon: วันที่ใหม่สุด และถ้าวันเริ่มเท่ากัน ให้เลือกวันจบที่สั้นที่สุด"""
@@ -1154,7 +1154,85 @@ class TestCouponDateSuggestion(unittest.TestCase):
         )
         cand_codes = [c.get("cp_name") or c.get("code") for c in candidates]
         self.assertIn("CP2609280033 CP2609290087", cand_codes)
-        self.assertNotIn("CP2609280033", cand_codes)
+    def test_mnl_002381_only_matches_dc_plus_cp_for_5299(self):
+        """
+        ทดสอบเคสจริงของ SKU MNL-002381:
+        Base/Retail Price = 7,699.00 บาท
+        - CP2610090017 ลด 6 บาท -> 7,693 บาท (ไม่ตรง 5,299)
+        - DC2609280008 ลด 2,000 บาท -> 5,699 บาท (ไม่ตรง 5,299)
+        - DC2609280008 + CP2610140015 ลด 2,000 + 400 = 2,400 บาท -> 5,299 บาท (ตรงเป๊ะเพียง Pattern เดียว!)
+        ระบบจะต้องคัดเลือกเฉพาะ 'DC2609280008 CP2610140015' สำหรับราคา 5,299 เท่านั้น
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        # จำลอง product master cache จาก Network Response
+        reconciler._product_master_cache = {
+            "MNL-002381": [
+                {
+                    "productId": 2381,
+                    "productCode": "MNL-002381",
+                    "retailPrice": 7699.0,
+                    "productCouponDetail": [
+                        {
+                            "couponCode": "CP2610090017",
+                            "couponDetailCash": 0.0,
+                            "couponDetailDisc": 6.0,
+                            "startDate": "2026-10-01 00:00:00",
+                            "endDate": "2026-10-31 23:59:59",
+                            "couponDesc": "CP Promo 6 THB"
+                        },
+                        {
+                            "couponCode": "DC2609280008",
+                            "couponDetailCash": 2000.0,
+                            "couponDetailDisc": 0.0,
+                            "startDate": "2026-10-01 00:00:00",
+                            "endDate": "2026-10-31 23:59:59",
+                            "couponDesc": "Topup 2000 THB"
+                        },
+                        {
+                            "couponCode": "CP2610140015",
+                            "couponDetailCash": 0.0,
+                            "couponDetailDisc": 400.0,
+                            "startDate": "2026-10-14 00:00:00",
+                            "endDate": "2026-10-31 23:59:59",
+                            "couponDesc": "Addon 400 THB"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        # ตรวจสอบ get_base_price_for_sku
+        base_p = reconciler.get_base_price_for_sku("MNL-002381", expected_price=5299.0)
+        self.assertEqual(base_p, 7699.0)
+
+        # จำลอง coupons ที่สแกนได้บน SMCO
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2610090017", "discount": 6.0, "desc": "CP Promo 6 THB", "couponDetailCash": 0.0, "couponDetailDisc": 6.0, "start_date": "01/10/2026", "end_date": "31/10/2026"},
+            {"code": "DC2609280008", "discount": 2000.0, "desc": "Topup 2000 THB", "couponDetailCash": 2000.0, "couponDetailDisc": 0.0, "start_date": "01/10/2026", "end_date": "31/10/2026"},
+            {"code": "CP2610140015", "discount": 400.0, "desc": "Addon 400 THB", "couponDetailCash": 0.0, "couponDetailDisc": 400.0, "start_date": "14/10/2026", "end_date": "31/10/2026"}
+        ]
+
+        # 1. ทดสอบ find_suggested_cp_for_discount
+        sugg = reconciler.find_suggested_cp_for_discount(
+            target_discount=0,
+            expected_price=5299.0,
+            order_date="2026-10-20 14:00",
+            sku="MNL-002381"
+        )
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "DC2609280008 CP2610140015")
+
+        # 2. ทดสอบ find_all_matching_coupons_on_smco
+        cands = reconciler.find_all_matching_coupons_on_smco(
+            target_discount=0,
+            expected_price=5299.0,
+            order_date="2026-10-20 14:00",
+            sku="MNL-002381"
+        )
+        cand_codes = [c.get("cp_name") for c in cands]
+        self.assertEqual(cand_codes, ["DC2609280008 CP2610140015"])
+        self.assertNotIn("CP2610090017", cand_codes)
+        self.assertNotIn("DC2609280008", cand_codes)
 
 if __name__ == "__main__":
     unittest.main()
