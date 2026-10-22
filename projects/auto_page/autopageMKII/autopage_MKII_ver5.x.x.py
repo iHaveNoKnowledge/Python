@@ -366,6 +366,7 @@ class MyApp:
         self.is_accel_mode_activated = BooleanVar(value=False)
         self.is_seller_voucher_popup = BooleanVar(value=False)
         self.is_auto_invoice_mode = BooleanVar(value=False)
+        self.is_gas_sync_enabled = BooleanVar(value=False)
         self.table_location = ""
         self.lazada_output_path = ""
         self.cp_df = None
@@ -1191,6 +1192,24 @@ class MyApp:
                 fg="#FFF"
             )
 
+    def gas_sync_toggle(self):
+        """Toggle callback for GAS Sync switch (Silent, dynamic label)"""
+        is_enabled = bool(self.is_gas_sync_enabled.get())
+        if is_enabled:
+            self.gas_sync_switch.configure(
+                text="GAS Sync: ON",
+                text_color="#85e89d"
+            )
+        else:
+            self.gas_sync_switch.configure(
+                text="GAS Sync: OFF",
+                text_color="#aaaaaa"
+            )
+        # Notify bot pricing reconciler loader if present
+        if hasattr(self, 'bot') and hasattr(self.bot, 'pricing_reconciler'):
+            if hasattr(self.bot.pricing_reconciler, '_sync_dual_loader_gas_flag'):
+                self.bot.pricing_reconciler._sync_dual_loader_gas_flag()
+
     #! น่าจะไม่ได้ใช้ deprecated
     # def seller_voucher_popup_toggle(self):
     #     self.is_seller_voucher_popup.set(not self.is_seller_voucher_popup.get())
@@ -1492,6 +1511,17 @@ class MyApp:
             self.cp_file_frame, text="open", command=lambda: self.open_file_by_default(self.cp_table_location),
             fg_color="#2b5b84", hover_color="#1e3f5c", width=45, height=28)
         self.open_cp_file_btn.grid(row=0, column=2, padx=(0, 5))
+
+        self.gas_sync_switch = CTkSwitch(
+            self.cp_file_frame,
+            text="GAS Sync: OFF",
+            variable=self.is_gas_sync_enabled,
+            command=self.gas_sync_toggle,
+            progress_color="#2da44e",
+            text_color="#aaaaaa",
+            font=CTkFont(family="tahoma", size=11, weight="bold")
+        )
+        self.gas_sync_switch.grid(row=0, column=3, padx=(5, 5))
 
         # * Order_details_frame !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # * > Current Order display component

@@ -615,9 +615,9 @@ class POSPricingReconciler:
 
     def __init__(self, bot):
         self.bot = bot
-        self.app = bot.app
-        self.driver = bot.driver
-        self.wait50 = bot.wait50
+        self.app = getattr(bot, 'app', bot)
+        self.driver = getattr(bot, 'driver', None)
+        self.wait50 = getattr(bot, 'wait50', None)
         self._last_recorded_order_id: Optional[str] = None
         self.last_expected_prices: Dict[str, float] = {}
         self._applied_adjustments: Dict[str, Set[str]] = {}
@@ -641,10 +641,23 @@ class POSPricingReconciler:
             from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
             self._dual_cp_loader = DualSourceCPLoader(
                 gas_url=gas_url or DEFAULT_GAS_URL,
-                local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None
+                local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None,
+                enable_gas_sync=self._is_gas_sync_enabled()
             )
         except Exception:
             self._dual_cp_loader = None
+
+    def _is_gas_sync_enabled(self) -> bool:
+        if not hasattr(self, 'app') or self.app is None:
+            return False
+        var = getattr(self.app, 'is_gas_sync_enabled', None)
+        if var is None:
+            return False
+        return bool(var.get() if hasattr(var, 'get') else var)
+
+    def _sync_dual_loader_gas_flag(self) -> None:
+        if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+            self._dual_cp_loader.enable_gas_sync = self._is_gas_sync_enabled()
 
     # ══════════════════════════════════════════════════════════════════════════
     # HELPER UTILITIES
@@ -1465,12 +1478,14 @@ class POSPricingReconciler:
                 from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
                 self._dual_cp_loader = DualSourceCPLoader(
                     gas_url=gas_url or DEFAULT_GAS_URL,
-                    local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None
+                    local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None,
+                    enable_gas_sync=self._is_gas_sync_enabled()
                 )
             except Exception as e:
                 self._dual_cp_loader = None
 
         if self._dual_cp_loader:
+            self._sync_dual_loader_gas_flag()
             if excel_path and self._dual_cp_loader.local_excel_path != excel_path:
                 self._dual_cp_loader.local_excel_path = excel_path
             df = self._dual_cp_loader.load_cp_df()
@@ -1659,7 +1674,8 @@ class POSPricingReconciler:
                     from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
                     loader = DualSourceCPLoader(
                         gas_url=gas_url or DEFAULT_GAS_URL,
-                        local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None
+                        local_excel_path=excel_path if (excel_path and os.path.exists(excel_path)) else None,
+                        enable_gas_sync=self._is_gas_sync_enabled()
                     )
                     self._dual_cp_loader = loader
                 except Exception:
@@ -1669,6 +1685,7 @@ class POSPricingReconciler:
                     excel_path = getattr(self.app, 'cp_table_location', '') if hasattr(self, 'app') else ''
                     if excel_path and os.path.exists(excel_path) and getattr(loader, 'local_excel_path', None) != excel_path:
                         loader.local_excel_path = excel_path
+                    self._sync_dual_loader_gas_flag()
                 except Exception:
                     pass
             df_conf = loader.load_conflict_resolver_df()
@@ -1844,12 +1861,15 @@ class POSPricingReconciler:
                     from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
                     self._dual_cp_loader = DualSourceCPLoader(
                         gas_url=getattr(self.app, 'cp_gas_url', None) or DEFAULT_GAS_URL,
-                        local_excel_path=excel_path
+                        local_excel_path=excel_path,
+                        enable_gas_sync=self._is_gas_sync_enabled()
                     )
                 except Exception:
                     self._dual_cp_loader = None
             elif excel_path and self._dual_cp_loader.local_excel_path != excel_path:
                 self._dual_cp_loader.local_excel_path = excel_path
+
+            self._sync_dual_loader_gas_flag()
 
             try:
                 df = pd.read_excel(excel_path)
@@ -3189,12 +3209,15 @@ class POSPricingReconciler:
                         from functions.pos.cp_data_loader import DualSourceCPLoader, DEFAULT_GAS_URL
                         self._dual_cp_loader = DualSourceCPLoader(
                             gas_url=getattr(self.app, 'cp_gas_url', None) or DEFAULT_GAS_URL,
-                            local_excel_path=excel_path
+                            local_excel_path=excel_path,
+                            enable_gas_sync=self._is_gas_sync_enabled()
                         )
                     except Exception:
                         self._dual_cp_loader = None
                 elif excel_path and self._dual_cp_loader.local_excel_path != excel_path:
                     self._dual_cp_loader.local_excel_path = excel_path
+
+                self._sync_dual_loader_gas_flag()
 
                 if self._dual_cp_loader:
                     for it in summary_items:

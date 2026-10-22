@@ -72,6 +72,18 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-10-22
+
+- [X] **[Dual-Source CP Data: Pure Local vs GAS Sync Toggle Switch Architecture]**:
+  - **Dynamic Toggle Switch UI**: เพิ่มสวิตช์ `CTkSwitch` สำหรับสลับโหมดการทำงานระหว่าง **Pure Local (ออฟไลน์ 100%)** และ **GAS Sync (Cloud Google Sheet)** ไว้ที่แถวเดียวกับ `CP Data` (`self.cp_file_frame` คอลัมน์ 3 ถัดจากปุ่ม "open")
+  - **Default Local-Only Safety**: เมื่อเปิดโปรแกรม สถานะเริ่มต้นของสวิตช์จะเป็น **OFF** เสมอ (`is_gas_sync_enabled = False`) เพื่อความปลอดภัยสูงสุดและป้องกันการยิง API คลาวด์โดยไม่ตั้งใจ
+  - **Zero Network Pure Local Mode**: เมื่อปิดสวิตช์ (`enable_gas_sync = False`):
+    - `fetch_from_gas()` และ `fetch_conflict_resolver_gas()` จะคืนค่าเป็น DataFrame ว่างเปล่าทันทีโดยไม่สร้าง HTTP GET request (0 latency, 0 network activity)
+    - `push_record_to_gas()` และ `push_conflict_record()` จะข้ามการส่ง HTTP POST ขึ้น Google Sheet ทันที และบันทึกคูปองใหม่หรือ conflict ลงไฟล์ Local Excel (`tables/cp_data.xlsx`) ในเครื่องเท่านั้น
+  - **Dynamic Label Feedback**: ป้ายกำกับบนสวิตช์จะเปลี่ยนเป็น `"GAS Sync: OFF"` (สีเทา) เมื่อปิด และ `"GAS Sync: ON"` (สีเขียว) เมื่อเปิด โดยทำงานแบบเงียบ (Silent) ไม่รบกวนกล่องข้อความ UI Log
+  - **Synchronized Pricing Engine Reconciler**: ใน `POSPricingReconciler` จะซิงค์สถานะ `enable_gas_sync` ของ `DualSourceCPLoader` ให้ตรงกับตัวแปรบนหน้าต่าง GUI ทุกครั้งที่มีการสลับสวิตช์หรือเรียกฟังก์ชันบันทึกราคา
+  - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน [test_cp_data_gas_toggle.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_cp_data_gas_toggle.py) (ผ่าน 100%)
+
 ### [ver5.x.x] - 2026-10-12
 
 - [X] **[Preselected Top-up + Add-on Pairing & Authoritative Date Preservation (`MNL-002309`)]**:

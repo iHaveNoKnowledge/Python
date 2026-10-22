@@ -74,20 +74,35 @@ class DualSourceCPLoader:
         gas_url: str = DEFAULT_GAS_URL,
         local_excel_path: Optional[str] = None,
         cache_ttl_seconds: int = 120,
-        request_timeout: int = 8
+        request_timeout: int = 8,
+        enable_gas_sync: bool = True
     ):
         self.gas_url = gas_url
         self.local_excel_path = local_excel_path
         self.cache_ttl_seconds = cache_ttl_seconds
         self.request_timeout = request_timeout
+        self._enable_gas_sync = bool(enable_gas_sync)
         
         self._cached_df: Optional[pd.DataFrame] = None
         self._last_fetch_time: float = 0
         self._last_local_mtime: float = 0
 
+    @property
+    def enable_gas_sync(self) -> bool:
+        return self._enable_gas_sync
+
+    @enable_gas_sync.setter
+    def enable_gas_sync(self, val: bool) -> None:
+        val_bool = bool(val)
+        if getattr(self, '_enable_gas_sync', None) != val_bool:
+            self._enable_gas_sync = val_bool
+            # Invalidate cache so next fetch reflects the newly switched mode
+            self._last_fetch_time = 0
+            self._cached_df = None
+
     def fetch_from_gas(self) -> pd.DataFrame:
         """Fetch CP data from Google Apps Script Web App (GET)"""
-        if not self.gas_url:
+        if not self._enable_gas_sync or not self.gas_url:
             return pd.DataFrame()
             
         try:
@@ -226,7 +241,7 @@ class DualSourceCPLoader:
         By default (is_async=True), executes in a background daemon thread so POS operations
         are not blocked by Google Apps Script network roundtrips.
         """
-        if not self.gas_url:
+        if not self._enable_gas_sync or not self.gas_url:
             return False
 
         # 🔍 ข้ามการยิง POST หากข้อมูลตรงกับที่มีอยู่ในตารางแล้ว 100%
@@ -253,7 +268,7 @@ class DualSourceCPLoader:
 
     def fetch_conflict_resolver_gas(self) -> pd.DataFrame:
         """Fetch conflict resolver data from Google Apps Script Web App (GET ?sheet=conflict_resolver)"""
-        if not self.gas_url:
+        if not self._enable_gas_sync or not self.gas_url:
             return pd.DataFrame()
         try:
             resp = requests.get(f"{self.gas_url}?sheet=conflict_resolver", timeout=self.request_timeout)
@@ -309,7 +324,7 @@ class DualSourceCPLoader:
 
     def push_conflict_record(self, record_dict: Dict[str, Any]) -> bool:
         """Push a conflict record to Google Sheet tab 'conflict_resolver' via GAS (POST)"""
-        if not self.gas_url:
+        if not self._enable_gas_sync or not self.gas_url:
             return False
         payload = dict(record_dict)
         payload['sheet'] = 'conflict_resolver'
