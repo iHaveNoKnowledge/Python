@@ -796,12 +796,13 @@ class POSPricingReconciler:
 
             cp_match = sku_mask & (
                 df['cp_name'].apply(lambda v: _code_in_field(c_code, v)) |
-                df['suggested_cp'].apply(lambda v: _code_in_field(c_code, v))
+                (df['suggested_cp'].apply(lambda v: _code_in_field(c_code, v)) & ~df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False))
             )
 
             placeholder_match = sku_mask & (
                 (df['cp_name'].isna() | df['cp_name'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none'])) &
-                (df['suggested_cp'].isna() | df['suggested_cp'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none']))
+                (df['suggested_cp'].isna() | df['suggested_cp'].astype(str).str.strip().str.lower().isin(['', 'nan', '<na>', 'null', '-', 'none'])) &
+                (~df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False))
             )
 
             target_mask = None
@@ -2011,7 +2012,15 @@ class POSPricingReconciler:
                                    and canonical_adj_pattern(r_sugg_oc) == canonical_adj_pattern(target_sugg_oc)
                                    and canonical_adj_pattern(r_sugg_dc) == canonical_adj_pattern(target_sugg_dc))
 
-                    if is_placeholder or (is_same_cp and is_same_adj):
+                    # กรณีที่ 3: แถวเดิมเป็นแถวที่แจ้งว่า "ไม่มี pattern" สำหรับราคานี้
+                    # และการบันทึกรอบนี้ก็เป็นการแจ้งเตือนว่า "ไม่มี pattern" เหมือนกัน (หรือไม่มีการระบุ suggested_cp)
+                    is_no_pattern_match = False
+                    if (not target_cp and not target_oc and not target_dc) or ("ไม่มี pattern" in remark_str):
+                        row_rem = str(row.get('suggested_remark', '') or '')
+                        if "ไม่มี pattern" in row_rem or is_placeholder:
+                            is_no_pattern_match = True
+
+                    if is_placeholder or is_no_pattern_match or (is_same_cp and is_same_adj):
                         pattern_match_idx = idx
                         break
 
@@ -2020,12 +2029,17 @@ class POSPricingReconciler:
                 matched_row = df.loc[[pattern_match_idx]].copy()
                 if current_mp and 'marketplace' in matched_row.columns:
                     matched_row['marketplace'] = current_mp
-                if suggested_cp:
-                    matched_row['suggested_cp'] = suggested_cp
-                if start_str:
-                    matched_row['suggested_usage_start_date'] = start_str
-                if end_str:
-                    matched_row['suggested_usage_end_date'] = end_str
+                if "ไม่มี pattern" in remark_str or (not target_cp and not target_oc and not target_dc and not target_sugg_oc and not target_sugg_dc):
+                    matched_row['suggested_cp'] = ""
+                    matched_row['suggested_usage_start_date'] = ""
+                    matched_row['suggested_usage_end_date'] = ""
+                else:
+                    if suggested_cp:
+                        matched_row['suggested_cp'] = suggested_cp
+                    if start_str:
+                        matched_row['suggested_usage_start_date'] = start_str
+                    if end_str:
+                        matched_row['suggested_usage_end_date'] = end_str
                 
                 existing_rem = str(matched_row['suggested_remark'].iloc[0] or "").strip()
                 existing_rem_price = extract_target_price_from_text(existing_rem)

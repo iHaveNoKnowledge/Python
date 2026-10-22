@@ -850,6 +850,53 @@ class TestCouponDateSuggestion(unittest.TestCase):
             self.assertEqual(sent_payload.get("suggested_oc_amount"), "40")
             self.assertEqual(sent_payload.get("last_adjustment_method"), "OC")
 
+    def test_no_pattern_row_not_contaminated_by_product_master_and_deduplicated(self):
+        """ทดสอบว่าแถวที่บันทึกว่า 'ไม่มี pattern' จะไม่ถูก Product Master ยัด suggested_cp ใส่ และเมื่อบันทึกซ้ำจะไม่สร้างแถวเบิ้ล"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {
+                    "sku": "MNL-002577",
+                    "sale_price": 9051.0,
+                    "cp_name": "",
+                    "suggested_cp": "",
+                    "suggested_remark": "ไม่มี pattern, cp/dcที่พบ: 1 อัน"
+                }
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            reconciler = POSPricingReconciler(self.mock_bot)
+
+            # 1. Product Master ส่งข้อมูลคูปอง DC2609280008 มา -> ต้องไม่ปนเปื้อนลงในแถว 'ไม่มี pattern'
+            pm_data = [{
+                "productCode": "MNL-002577",
+                "couponCode": "DC2609280008",
+                "couponDesc": "promotion xdt xmn period 01-31 oct 2026 topup all store dc months all brand",
+                "startDate": "2026-10-01 00:00:00",
+                "endDate": "2026-10-31 00:00:00"
+            }]
+            reconciler.sync_product_master_coupon_dates_to_excel("MNL-002577", pm_data)
+
+            res_df = pd.read_excel(excel_path)
+            self.assertEqual(len(res_df), 1)
+            # suggested_cp ต้องยังคงว่างเปล่า ไม่ถูกยัด DC2609280008
+            self.assertTrue(pd.isna(res_df.loc[0, "suggested_cp"]) or str(res_df.loc[0, "suggested_cp"]).strip() == "")
+            self.assertIn("ไม่มี pattern", str(res_df.loc[0, "suggested_remark"]))
+
+            # 2. บันทึกคำเตือนไม่พบคูปองซ้ำอีกรอบสำหรับ SKU และราคาเดิม -> ต้องอัปเดตแถวเดิม ไม่สร้างแถวใหม่
+            reconciler.add_missing_cp_to_excel(
+                "MNL-002577",
+                9051.0,
+                suggested_cp="",
+                remark="ไม่มี pattern, cp/dcที่พบ: 1 อัน"
+            )
+
+            res_df2 = pd.read_excel(excel_path)
+            self.assertEqual(len(res_df2), 1, "ต้องไม่มีการสร้างแถวซ้ำเบิ้ล (ต้องมีแค่ 1 แถว)")
+            self.assertTrue(pd.isna(res_df2.loc[0, "suggested_cp"]) or str(res_df2.loc[0, "suggested_cp"]).strip() == "")
+
     def test_resolve_multi_coupon_info_hierarchy_newest_start_and_shortest_end(self):
         """ทดสอบตรรกะ Multi-Coupon: วันที่ใหม่สุด และถ้าวันเริ่มเท่ากัน ให้เลือกวันจบที่สั้นที่สุด"""
         reconciler = POSPricingReconciler(self.mock_bot)
