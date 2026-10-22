@@ -2522,12 +2522,15 @@ class POSPricingReconciler:
                         for m_mask in t_masks[1:]:
                             combined_mask = combined_mask | m_mask
                         if combined_mask.any():
-                            valid_rem_mask = combined_mask & (
-                                cp_df['suggested_remark'].notna()
-                                & ~cp_df['suggested_remark'].astype(str).str.strip().isin(['', '-', 'nan', '<na>'])
-                                & ~cp_df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
-                            )
-                            target_df = cp_df[valid_rem_mask] if valid_rem_mask.any() else cp_df[combined_mask]
+                            if 'suggested_remark' in cp_df.columns:
+                                valid_rem_mask = combined_mask & (
+                                    cp_df['suggested_remark'].notna()
+                                    & ~cp_df['suggested_remark'].astype(str).str.strip().isin(['', '-', 'nan', '<na>'])
+                                    & ~cp_df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
+                                )
+                                target_df = cp_df[valid_rem_mask] if valid_rem_mask.any() else cp_df[combined_mask]
+                            else:
+                                target_df = cp_df[combined_mask]
                             row = target_df.iloc[0]
                             s_val = row.get('usage_start_date') if 'usage_start_date' in row else row.get('suggested_usage_start_date')
                             e_val = row.get('usage_end_date') if 'usage_end_date' in row else row.get('suggested_usage_end_date')
@@ -2839,6 +2842,7 @@ class POSPricingReconciler:
             new_cols = [
                 'marketplace', 'cp_name', 'usage_start_date', 'usage_end_date', 'suggested_cp',
                 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark',
+                'oc_amount', 'dc_amount', 'suggested_oc_amount', 'suggested_dc_amount',
                 'last_order_id', 'last_used_cp', 'last_adjustment_method', 'last_actual_price', 'last_updated'
             ]
             for col in new_cols:
@@ -3092,6 +3096,19 @@ class POSPricingReconciler:
                     else:
                         stale_no_pattern = mask & df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
                         df.loc[stale_no_pattern, 'suggested_remark'] = ""
+
+                    if oc_fill:
+                        if 'suggested_oc_amount' in df.columns:
+                            df.loc[mask, 'suggested_oc_amount'] = oc_fill
+                        if 'oc_amount' in df.columns:
+                            empty_oc = mask & (df['oc_amount'].isna() | df['oc_amount'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
+                            df.loc[empty_oc, 'oc_amount'] = oc_fill
+                    if dc_fill:
+                        if 'suggested_dc_amount' in df.columns:
+                            df.loc[mask, 'suggested_dc_amount'] = dc_fill
+                        if 'dc_amount' in df.columns:
+                            empty_dc = mask & (df['dc_amount'].isna() | df['dc_amount'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
+                            df.loc[empty_dc, 'dc_amount'] = dc_fill
                 else:
                     new_row = {
                         'sku': sku_raw,
@@ -3104,6 +3121,10 @@ class POSPricingReconciler:
                         'suggested_usage_start_date': auto_s_str,
                         'suggested_usage_end_date': auto_e_str,
                         'suggested_remark': auto_rem,
+                        'oc_amount': oc_fill,
+                        'dc_amount': dc_fill,
+                        'suggested_oc_amount': oc_fill,
+                        'suggested_dc_amount': dc_fill,
                         'last_order_id': str(order_id),
                         'last_used_cp': used_cp,
                         'last_adjustment_method': method_val,
@@ -3181,6 +3202,41 @@ class POSPricingReconciler:
                         m_val = str(df.loc[row_m, 'last_adjustment_method'].iloc[0]) if (row_m.any() and 'last_adjustment_method' in df.columns) else ""
                         
                         existing_cp_val = str(df.loc[row_m, 'cp_name'].iloc[0] or "") if (row_m.any() and pd.notna(df.loc[row_m, 'cp_name'].iloc[0])) else ""
+                        item_rem, item_start_dt, item_end_dt = "", None, None
+                        if used_c:
+                            item_rem, item_start_dt, item_end_dt = self.resolve_multi_coupon_info(
+                                used_c, expected_price=act_p, sku=sku_c
+                            )
+                        item_s_str = format_smart_datetime_str(item_start_dt) if item_start_dt else ""
+                        item_e_str = format_smart_datetime_str(item_end_dt) if item_end_dt else ""
+
+                        item_oc_fill = ""
+                        item_dc_fill = ""
+                        try:
+                            amt_map = getattr(self, '_applied_amounts', None) or {}
+                            amt_entry = amt_map.get(sku_c, {})
+                            if not amt_entry:
+                                for k, v in amt_map.items():
+                                    if k in sku_c or sku_c in k:
+                                        amt_entry = v
+                                        break
+                            if isinstance(amt_entry, dict):
+                                item_oc_fill = " ".join([str(x) for x in (amt_entry.get("OC") or []) if str(x).strip()])
+                                item_dc_fill = " ".join([str(x) for x in (amt_entry.get("DC") or []) if str(x).strip()])
+                        except Exception:
+                            item_oc_fill, item_dc_fill = "", ""
+
+                        if row_m.any():
+                            m_row = df.loc[row_m].iloc[0]
+                            if not item_oc_fill:
+                                item_oc_fill = str(m_row.get('suggested_oc_amount') or m_row.get('oc_amount') or '').strip()
+                                if item_oc_fill.lower() in ('nan', '<na>', 'none', '-', 'null'):
+                                    item_oc_fill = ""
+                            if not item_dc_fill:
+                                item_dc_fill = str(m_row.get('suggested_dc_amount') or m_row.get('dc_amount') or '').strip()
+                                if item_dc_fill.lower() in ('nan', '<na>', 'none', '-', 'null'):
+                                    item_dc_fill = ""
+
                         payload = {
                             "sku": sku_c,
                             "marketplace": current_mp,
@@ -3190,9 +3246,13 @@ class POSPricingReconciler:
                             "usage_start_date": "",
                             "usage_end_date": "",
                             "suggested_cp": used_c if used_c else "",
-                            "suggested_usage_start_date": auto_s_str,
-                            "suggested_usage_end_date": auto_e_str,
-                            "suggested_remark": auto_rem,
+                            "suggested_usage_start_date": item_s_str or auto_s_str,
+                            "suggested_usage_end_date": item_e_str or auto_e_str,
+                            "suggested_remark": item_rem or auto_rem,
+                            "oc_amount": item_oc_fill,
+                            "dc_amount": item_dc_fill,
+                            "suggested_oc_amount": item_oc_fill,
+                            "suggested_dc_amount": item_dc_fill,
                             "last_order_id": str(order_id),
                             "last_used_cp": used_c,
                             "last_adjustment_method": m_val,
@@ -3201,9 +3261,14 @@ class POSPricingReconciler:
                             "action": "AUTO_LEARN_SUCCESS"
                         }
                         if row_m.any():
-                            m_row = df.loc[row_m].iloc[0]
-                            for col in ['usage_start_date', 'usage_end_date', 'suggested_cp', 'suggested_usage_start_date', 'suggested_usage_end_date', 'suggested_remark', 'addtion_cp', 'oc_amount', 'dc_amount', 'couponDetailCash', 'couponDetailDisc']:
-                                if col in m_row and pd.notna(m_row[col]) and str(m_row[col]).strip() and col not in payload:
+                            for col in [
+                                'usage_start_date', 'usage_end_date', 'suggested_cp',
+                                'suggested_usage_start_date', 'suggested_usage_end_date',
+                                'suggested_remark', 'addtion_cp', 'oc_amount', 'dc_amount',
+                                'suggested_oc_amount', 'suggested_dc_amount',
+                                'couponDetailCash', 'couponDetailDisc'
+                            ]:
+                                if col in m_row and pd.notna(m_row[col]) and str(m_row[col]).strip() and (col not in payload or not payload[col]):
                                     payload[col] = str(m_row[col]).strip()
 
                         # ตรวจสอบและ sanitize suggested_remark หากราคาที่ระบุใน remark ขัดแย้งกับราคาขายจริง

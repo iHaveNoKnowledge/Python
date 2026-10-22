@@ -812,6 +812,44 @@ class TestCouponDateSuggestion(unittest.TestCase):
             self.assertEqual(str(res_df.loc[0, "last_used_cp"]).strip(), "DC2609280008")
             self.assertEqual(str(res_df.loc[0, "suggested_usage_start_date"]).strip(), "28/09/2026")
 
+    def test_record_pos_cart_summary_populates_oc_and_dc_amounts(self):
+        """ทดสอบว่าเมื่อบอทมีการปรับ OC หรือ DC ยอด oc_amount / suggested_oc_amount จะถูกบันทึกลง cp_data และส่งใน GAS payload"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {"sku": "MNL-002216", "sale_price": 1963.0, "cp_name": "DC2609280008", "usage_start_date": "", "usage_end_date": ""}
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002216", "ราคาขายสุทธิ": 1963.0}]
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+            reconciler._applied_adjustments = {"MNL-002216": {"OC"}}
+            reconciler._applied_amounts = {"MNL-002216": {"OC": [40]}}
+            reconciler.scrape_pos_cart_items = MagicMock(return_value=[
+                {"sku": "MNL-002216", "unit_net": 1963.0, "coupons": "DC2609280008"}
+            ])
+
+            mock_loader = MagicMock()
+            reconciler._dual_cp_loader = mock_loader
+
+            reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_OC_01")
+
+            res_df = pd.read_excel(excel_path)
+            self.assertEqual(str(res_df.loc[0, "last_adjustment_method"]).strip(), "OC")
+            self.assertEqual(str(res_df.loc[0, "suggested_oc_amount"]).strip(), "40")
+            self.assertEqual(str(res_df.loc[0, "oc_amount"]).strip(), "40")
+
+            # ตรวจสอบ payload ที่ส่งขึ้น GAS
+            self.assertTrue(mock_loader.push_record_to_gas.called)
+            sent_payload = mock_loader.push_record_to_gas.call_args[0][0]
+            self.assertEqual(sent_payload.get("sku"), "MNL-002216")
+            self.assertEqual(sent_payload.get("oc_amount"), "40")
+            self.assertEqual(sent_payload.get("suggested_oc_amount"), "40")
+            self.assertEqual(sent_payload.get("last_adjustment_method"), "OC")
+
     def test_resolve_multi_coupon_info_hierarchy_newest_start_and_shortest_end(self):
         """ทดสอบตรรกะ Multi-Coupon: วันที่ใหม่สุด และถ้าวันเริ่มเท่ากัน ให้เลือกวันจบที่สั้นที่สุด"""
         reconciler = POSPricingReconciler(self.mock_bot)
