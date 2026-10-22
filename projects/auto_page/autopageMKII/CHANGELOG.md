@@ -84,6 +84,10 @@
   - **Synchronized Pricing Engine Reconciler**: ใน `POSPricingReconciler` จะซิงค์สถานะ `enable_gas_sync` ของ `DualSourceCPLoader` ให้ตรงกับตัวแปรบนหน้าต่าง GUI ทุกครั้งที่มีการสลับสวิตช์หรือเรียกฟังก์ชันบันทึกราคา
   - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน [test_cp_data_gas_toggle.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_cp_data_gas_toggle.py) (ผ่าน 100%)
 
+- [X] **[CP Data Redundant Entry Sanitization & Accel Mode Test Batch Verification]**:
+  - **Redundant Recipe Sanitization**: ทำความสะอาดและลบแถวสูตรคูปองที่ซ้ำซ้อน/คลาดเคลื่อนใน `tables/cp_data.xlsx` (เช่น แถว `MNL-002412` ราคา 2,839 บาท ที่มี `suggested_cp` ค้าง) เพื่อให้คงเหลือเฉพาะ Pattern ที่ถูกต้องตามสูตรโปรโมชั่นจริง
+  - **Accel Mode Test Batch Execution**: ทดสอบการประมวลผลออเดอร์จริงผ่าน `tables/Accel_mode_test.xlsx` พร้อมตรวจสอบการบันทึกสถานะ `Completed_Orders` และ `Processed_Logs` อย่างสมบูรณ์
+
 ### [ver5.x.x] - 2026-10-12
 
 - [X] **[Preselected Top-up + Add-on Pairing & Authoritative Date Preservation (`MNL-002309`)]**:
