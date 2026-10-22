@@ -360,8 +360,85 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
             mock_oc.assert_not_called()
 
 
+    def test_mnl_002309_pricing_calculation_and_candidate_discovery(self):
+        """
+        ทดสอบกรณี SKU MNL-002309 ตามรายงานคำนวณราคาผิดพลาด:
+        - ราคาต้น (base price) จาก prop 'price' ใน getProductMasterInfoPOSV3.htm คือ 14,195.00
+        - คูปอง CP2609280033 (ลด 2,000) ทำให้ราคาเป็น 12,195.00
+        - คูปอง CP2609290087 (ลด 2,000) ทำให้ราคาเป็น 12,195.00
+        - คูปองคู่ CP2609280033 CP2609290087 (ลด 4,000) ทำให้ราคาเป็น 10,195.00
+        - เมื่อยิงสินค้าลง POS แล้วมี preselected CP2609280033 (ราคาขึ้น 12,195.00) และลูกค้าซื้อราคา 10,195.00 (target_discount 2,000)
+          ระบบต้องไม่แนะนำคูปองเดี่ยว (CP2609280033 หรือ CP2609290087) สำหรับราคา 10,195.00
+          และต้องจับคู่ได้เฉพาะสูตรคู่ CP2609280033 CP2609290087 เพียงสูตรเดียวเท่านั้น
+        """
+        sku = "MNL-002309"
+        # 1. จำลอง Network Response จาก /getProductMasterInfoPOSV3.htm ที่มี prop "price": 14195.0
+        response_data = [{
+            "priceListDetailId": 214592,
+            "productCode": sku,
+            "price": 14195.0,
+            "baseAmt": 13266.36,
+            "marginAmt": 2586.36,
+            "avgStockCostAmt": 10680.0,
+            "productCouponDetail": [
+                {
+                    "couponId": 143001,
+                    "couponCode": "CP2609280033",
+                    "discountAmt": 2000.0,
+                    "couponDetailRemark": "promotion xmn samsung topup",
+                    "startDate": "2026-10-01 00:00:00",
+                    "endDate": "2026-10-31 23:59:59"
+                },
+                {
+                    "couponId": 143002,
+                    "couponCode": "CP2609290087",
+                    "discountAmt": 2000.0,
+                    "couponDetailRemark": "promotion xmn samsung addon",
+                    "startDate": "2026-10-01 00:00:00",
+                    "endDate": "2026-10-31 23:59:59"
+                }
+            ]
+        }]
+        self.reconciler.record_product_master_response(sku, response_data)
+
+        # ตรวจสอบ get_product_base_price
+        self.assertEqual(self.reconciler.get_product_base_price(sku), 14195.0)
+
+        # 2. จำลองคูปองที่สแกนพบบน SMCO
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {"code": "CP2609280033", "discount": 2000.0, "desc": "Topup 2000", "is_selected": True},
+            {"code": "CP2609290087", "discount": 2000.0, "desc": "Addon 2000", "is_selected": False},
+        ]
+        self.reconciler.last_preselected_smco_coupons = ["CP2609280033"]
+
+        # 3. ทดสอบการค้นหาคูปองสำหรับราคาลูกค้าซื้อ 10,195.00 (ส่วนต่างจากหน้าจอ 12,195 คือ target_discount = 2,000)
+        cands = self.reconciler.find_all_matching_coupons_on_smco(
+            target_discount=2000.0,
+            expected_price=10195.0,
+            order_date="2026-10-22",
+            sku=sku
+        )
+
+        # ต้องได้ candidate เดียวคือ 'CP2609280033 CP2609290087' และต้องไม่มีคูปองเดี่ยวที่ลดได้แค่ 12,195 หลุดมาเด็ดขาด
+        self.assertEqual(len(cands), 1)
+        self.assertEqual(cands[0]["cp_name"], "CP2609280033 CP2609290087")
+
+        # 4. ทดสอบ find_suggested_cp_for_discount
+        sugg = self.reconciler.find_suggested_cp_for_discount(
+            target_discount=2000.0,
+            expected_price=10195.0,
+            order_date="2026-10-22",
+            sku=sku
+        )
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "CP2609280033 CP2609290087")
+        self.assertEqual(sugg["preselected_codes"], ["CP2609280033"])
+        self.assertEqual(sugg["new_code"], "CP2609290087")
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

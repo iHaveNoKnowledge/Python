@@ -1111,7 +1111,13 @@ class POSPricingReconciler:
             if actual_price is not None and isinstance(actual_price, (int, float)) and actual_price > 0:
                 return round(float(actual_price) + float(pre_discount), 2)
             if expected_price is not None:
-                return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+                if target_discount > 0:
+                    if pre_discount > 0 and target_discount > pre_discount:
+                        return round(float(expected_price) + float(target_discount), 2)
+                    return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+                elif pre_discount > 0:
+                    return round(float(expected_price) + float(pre_discount), 2)
+                return round(float(expected_price), 2)
             return 0.0
 
         # 1. สินค้าเซ็ต (Combo Pack)
@@ -1195,9 +1201,21 @@ class POSPricingReconciler:
 
         # 5. Fallback จาก expected_price
         if expected_price is not None:
-            return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+            if target_discount > 0:
+                if pre_discount > 0 and target_discount > pre_discount:
+                    return round(float(expected_price) + float(target_discount), 2)
+                return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+            elif pre_discount > 0:
+                return round(float(expected_price) + float(pre_discount), 2)
+            return round(float(expected_price), 2)
 
         return 0.0
+
+    def get_product_base_price(self, sku: str) -> Optional[float]:
+        """Alias สำหรับดึง Base Price ของ SKU จาก get_base_price_for_sku"""
+        bp = self.get_base_price_for_sku(sku)
+        return bp if bp > 0 else None
+
 
     def get_aggregated_combo_coupons(self, sku_input: Union[str, list], order_date: Any = None) -> list[dict]:
         """

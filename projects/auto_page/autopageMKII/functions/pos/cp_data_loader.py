@@ -611,7 +611,10 @@ class DualSourceCPLoader:
                                 if pd.notna(price_j) and abs(float(price_i) - float(price_j)) <= 0.05:
                                     cp_j = str(r_j.get('cp_name', '') or '').strip()
                                     sugg_j = str(r_j.get('suggested_cp', '') or '').strip()
-                                    if canonical_cp_pattern(cp_j) == canonical_cp_pattern(sugg_i) and canonical_cp_pattern(sugg_i) != "" or (cp_j and canonical_cp_pattern(sugg_j) == canonical_cp_pattern(sugg_i) and canonical_cp_pattern(sugg_i) != ""):
+                                    sugg_tokens = set(sugg_i.split())
+                                    cp_j_tokens = set(cp_j.split())
+                                    is_subset_match = bool(cp_j and sugg_tokens and sugg_tokens.issubset(cp_j_tokens))
+                                    if (canonical_cp_pattern(cp_j) == canonical_cp_pattern(sugg_i) and canonical_cp_pattern(sugg_i) != "") or (cp_j and canonical_cp_pattern(sugg_j) == canonical_cp_pattern(sugg_i) and canonical_cp_pattern(sugg_i) != "") or is_subset_match:
                                         ghost_drops.append(combined.index[i])
                                         break
                 if ghost_drops:
