@@ -1211,16 +1211,14 @@ class POSPricingReconciler:
 
         # 4. Actual price จาก POS Cart
         if actual_price is not None and isinstance(actual_price, (int, float)) and actual_price > 0:
-            return round(float(actual_price) + float(pre_discount), 2)
+            return round(float(actual_price), 2)
 
         # 5. Fallback จาก expected_price
         if expected_price is not None:
             if target_discount > 0:
-                if pre_discount > 0 and target_discount > pre_discount:
-                    return round(float(expected_price) + float(target_discount), 2)
-                return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
-            elif pre_discount > 0:
-                return round(float(expected_price) + float(pre_discount), 2)
+                if pre_discount > 0 and target_discount <= pre_discount:
+                    return round(float(expected_price) + float(target_discount) + float(pre_discount), 2)
+                return round(float(expected_price) + float(target_discount), 2)
             return round(float(expected_price), 2)
 
         return 0.0
@@ -3134,15 +3132,12 @@ class POSPricingReconciler:
                     if oc_fill:
                         if 'suggested_oc_amount' in df.columns:
                             df.loc[mask, 'suggested_oc_amount'] = oc_fill
-                        if 'oc_amount' in df.columns:
-                            empty_oc = mask & (df['oc_amount'].isna() | df['oc_amount'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
-                            df.loc[empty_oc, 'oc_amount'] = oc_fill
+                        # หมายเหตุ: กรณี OC ให้เก็บไว้ที่ช่องแนะนำ (suggested_oc_amount) เท่านั้น
+                        # ไม่เติมลงช่องจริง oc_amount หรือ cp_name เพื่อให้เป็นเพียงค่า suggest ให้ User/Admin ตรวจสอบ
                     if dc_fill:
                         if 'suggested_dc_amount' in df.columns:
                             df.loc[mask, 'suggested_dc_amount'] = dc_fill
-                        if 'dc_amount' in df.columns:
-                            empty_dc = mask & (df['dc_amount'].isna() | df['dc_amount'].astype(str).str.strip().isin(['', '-', 'nan', '<na>']))
-                            df.loc[empty_dc, 'dc_amount'] = dc_fill
+                        # เช่นกันสำหรับ DC เก็บที่ช่องแนะนำ ไม่เติมลงช่องจริง dc_amount
                 else:
                     new_row = {
                         'sku': sku_raw,
@@ -3155,8 +3150,8 @@ class POSPricingReconciler:
                         'suggested_usage_start_date': auto_s_str,
                         'suggested_usage_end_date': auto_e_str,
                         'suggested_remark': auto_rem,
-                        'oc_amount': oc_fill,
-                        'dc_amount': dc_fill,
+                        'oc_amount': '',
+                        'dc_amount': '',
                         'suggested_oc_amount': oc_fill,
                         'suggested_dc_amount': dc_fill,
                         'last_order_id': str(order_id),
@@ -3286,8 +3281,8 @@ class POSPricingReconciler:
                             "suggested_usage_start_date": item_s_str or auto_s_str,
                             "suggested_usage_end_date": item_e_str or auto_e_str,
                             "suggested_remark": item_rem or auto_rem,
-                            "oc_amount": item_oc_fill,
-                            "dc_amount": item_dc_fill,
+                            "oc_amount": str(m_row.get('oc_amount') or '').strip() if (row_m.any() and pd.notna(m_row.get('oc_amount')) and str(m_row.get('oc_amount')).lower() not in ('nan', '<na>', 'none', '-', 'null')) else "",
+                            "dc_amount": str(m_row.get('dc_amount') or '').strip() if (row_m.any() and pd.notna(m_row.get('dc_amount')) and str(m_row.get('dc_amount')).lower() not in ('nan', '<na>', 'none', '-', 'null')) else "",
                             "suggested_oc_amount": item_oc_fill,
                             "suggested_dc_amount": item_dc_fill,
                             "last_order_id": str(order_id),
@@ -3331,7 +3326,8 @@ class POSPricingReconciler:
         require_seller_voucher: bool = False,
         order_date: Any = None,
         expected_price: Optional[float] = None,
-        sku: Optional[str] = None
+        sku: Optional[str] = None,
+        actual_price: Optional[float] = None
     ) -> Optional[dict]:
         """
         คำนวณหาคูปอง (ตัวเดียว หรือคู่ผสม) จากรายการคูปองที่สแกนได้บนหน้าเว็บ SMCO
@@ -3414,7 +3410,7 @@ class POSPricingReconciler:
         # คำนวณ Base Price และเป้าหมายส่วนลดที่เป็นไปได้
         base_p = self.get_base_price_for_sku(
             target_sku,
-            actual_price=None,
+            actual_price=actual_price,
             pre_discount=pre_discount,
             target_discount=target_discount,
             expected_price=expected_price
@@ -3424,8 +3420,6 @@ class POSPricingReconciler:
             possible_req_discounts.add(round(float(target_discount), 2))
             if pre_discount > 0:
                 possible_req_discounts.add(round(float(target_discount) + float(pre_discount), 2))
-        elif pre_discount > 0:
-            possible_req_discounts.add(round(float(pre_discount), 2))
 
         if expected_price is not None and base_p > 0:
             diff_from_base = round(float(base_p) - float(expected_price), 2)
@@ -3542,7 +3536,7 @@ class POSPricingReconciler:
                         if not (len(all_combo_items) == 1 and is_remark_target_match):
                             effective_base_price = self.get_base_price_for_sku(
                                 target_sku,
-                                actual_price=None,
+                                actual_price=actual_price,
                                 pre_discount=pre_discount,
                                 target_discount=target_discount,
                                 expected_price=expected_price
@@ -3669,7 +3663,8 @@ class POSPricingReconciler:
         expected_price: Optional[float] = None,
         order_date: Any = None,
         sku: Optional[str] = None,
-        require_seller_voucher: bool = False
+        require_seller_voucher: bool = False,
+        actual_price: Optional[float] = None
     ) -> list[dict]:
         """
         สแกนหาคูปองทั้งหมด (ทั้งเดี่ยวและคอมโบ CP/DC ทุกรูปแบบ โดยไม่เอา OC/DC ปรับมือ)
@@ -3745,7 +3740,7 @@ class POSPricingReconciler:
 
         base_p = self.get_base_price_for_sku(
             target_sku,
-            actual_price=None,
+            actual_price=actual_price,
             pre_discount=pre_discount,
             target_discount=target_discount,
             expected_price=expected_price
@@ -3755,8 +3750,6 @@ class POSPricingReconciler:
             possible_req_discounts.add(round(float(target_discount), 2))
             if pre_discount > 0:
                 possible_req_discounts.add(round(float(target_discount) + float(pre_discount), 2))
-        elif pre_discount > 0:
-            possible_req_discounts.add(round(float(pre_discount), 2))
 
         if expected_price is not None and base_p > 0:
             diff_from_base = round(float(base_p) - float(expected_price), 2)
@@ -3869,7 +3862,7 @@ class POSPricingReconciler:
                         if not (len(all_combo_items) == 1 and is_remark_target_match):
                             effective_base_price = self.get_base_price_for_sku(
                                 target_sku,
-                                actual_price=None,
+                                actual_price=actual_price,
                                 pre_discount=pre_discount,
                                 target_discount=target_discount,
                                 expected_price=expected_price
@@ -5145,7 +5138,8 @@ class POSPricingReconciler:
 
                         if not sv_ok:
                             sugg_info = self.find_suggested_cp_for_discount(
-                                seller_voucher, require_seller_voucher=True, order_date=purchased_date, expected_price=expected_price, sku=sku_key
+                                seller_voucher, require_seller_voucher=True, order_date=purchased_date, expected_price=expected_price, sku=sku_key,
+                                actual_price=actual_price
                             )
                             suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ((sv_chosen.get("code") if sv_chosen else ""))
                             if not sugg_info and sv_chosen:
@@ -5297,41 +5291,65 @@ class POSPricingReconciler:
                                         except Exception as ex_cp:
                                             print(f"Error applying candidate coupons in diff > 0: {ex_cp}")
 
-                            # 1.3 ถ้าไม่มี candidate ในตารางเลย ให้สแกนดูบน SMCO ก่อนว่ามีคูปองที่ Remark ระบุราคาตรงกับ expected_price หรือไม่
+                            # 1.3 ถ้าไม่มี candidate ในตารางเลย
+                            # เมื่อราคาที่ได้จาก response / POS ต่ำกว่าราคาที่ต้องออกบิล (diff_val > 0)
+                            # คูปองส่วนลดทั่วไปไม่สามารถเพิ่มราคาได้ (เว้นแต่คูปองระบุ Remark ราคาเป้าหมายตรงๆ)
+                            # ถ้าไม่มีคูปองระบุ Remark ตรงราคา ให้ถือเป็นเคส Overcharge ทันที
                             else:
                                 direct_smco_cands = self.find_all_matching_coupons_on_smco(
-                                    0, expected_price=expected_price, order_date=purchased_date, sku=sku_key
+                                    0, expected_price=expected_price, order_date=purchased_date, sku=sku_key,
+                                    actual_price=actual_price
                                 )
                                 sugg_info = self.find_suggested_cp_for_discount(
-                                    0, expected_price=expected_price, order_date=purchased_date, sku=sku_key
+                                    0, expected_price=expected_price, order_date=purchased_date, sku=sku_key,
+                                    actual_price=actual_price
                                 )
-                                suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
-                                if direct_smco_cands or sugg_info:
-                                    self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                                # ตรวจสอบว่าพบคูปองที่ Remark ระบุราคาเป้าหมายตรงกับ expected_price จริงๆ หรือไม่
+                                remark_match_cand = None
+                                if direct_smco_cands:
+                                    for c in direct_smco_cands:
+                                        if c.get("is_remark_target_match"):
+                                            remark_match_cand = c
+                                            break
+                                if not remark_match_cand and sugg_info and sugg_info.get("score", 0) >= 100000000:
+                                    remark_match_cand = sugg_info
+
+                                if remark_match_cand:
+                                    suggested_cp_code = remark_match_cand.get("suggested_code") or remark_match_cand.get("code") or ""
+                                    self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, remark_match_cand)
                                     log_msg = (
-                                        f"ℹ️ พบคูปองแนะนำ [{suggested_cp_code}] บน SMCO ที่ตรงกับราคา {expected_price} สำหรับ SKU: {sku_key} "
-                                        f"(ราคาต่ำกว่าอาจเกิดจาก Auto Top-up) -> หยุดเพื่อให้ตรวจสอบก่อนทำการ Overcharge"
+                                        f"ℹ️ พบคูปองแนะนำ [{suggested_cp_code}] บน SMCO ที่ระบุราคาตรงกับ {expected_price} สำหรับ SKU: {sku_key} "
+                                        f"-> หยุดเพื่อให้ตรวจสอบก่อนทำการ Overcharge"
                                     )
                                     logger.info(log_msg)
                                     self.app.update_log(log_msg)
                                     self._raise_missing_cp_guide(
                                         item, sku_key, actual_price, expected_price, purchased_date,
-                                        has_entry=False, suggested_cp_info=sugg_info
+                                        has_entry=False, suggested_cp_info=remark_match_cand
                                     )
                                 elif seller_voucher > 0:
                                     self.app.update_log(
                                         f"ℹ️ ออเดอร์มี Seller Voucher แต่ไม่มีการระบุ oc_amount ใน cp_data.xlsx สำหรับ SKU: {sku_key} (ส่วนต่าง: +{diff_val:,.2f} บาท) -> ไม่ทำการ Overcharge อัตโนมัติ เพื่อความปลอดภัย"
                                     )
                                 else:
-                                    # ไม่มีคูปองใดๆ ที่ตรงกับราคานี้ทั้งในตารางและบน SMCO จึงทำการ Overcharge ตามส่วนต่าง
-                                    self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val} บาท (คำนวณจากส่วนต่าง)")
+                                    # ราคาที่ได้จาก response / POS ต่ำกว่า expected_price -> ปรับราคาขึ้น (Overcharge) ได้เลยทันที
+                                    raw_pre = getattr(self, 'last_preselected_smco_coupons', None) or []
+                                    topup_code = " ".join(raw_pre) if raw_pre else ""
+
+                                    self.app.update_log(
+                                        f"⚡ ราคาต้นบน POS ({actual_price:,.2f}) ต่ำกว่าราคาที่ต้องออกบิล ({expected_price:,.2f}) "
+                                        f"-> ปรับราคาขึ้น (Overcharge) สำหรับ SKU: {sku_key} จำนวน {diff_val:,.2f} บาท ทันที"
+                                        + (f" (มีคูปอง Top-up: {topup_code})" if topup_code else "")
+                                    )
                                     self.smco_set_overcharge_product(sku_key, str(diff_val))
-                                    # บันทึก suggested OC อัตโนมัติ (เคสยิงมาแล้วราคาต่ำกว่าแล้วปรับขึ้นทันที)
+                                    time.sleep(0.5)
+
+                                    # บันทึก suggested OC พร้อมคูปอง Top-up ลงตาราง cp_data เพื่อให้ออเดอร์ถัดไปมีข้อมูลพร้อม
                                     try:
                                         self._record_missing_cp_with_dates(
                                             sku_key, expected_price,
-                                            suggested_cp_code="",
+                                            suggested_cp_code=topup_code,
                                             remark=f"ยิงต่ำกว่า {float(diff_val):,.2f} แล้ว OC ทันที (auto-suggest)",
                                             suggested_oc_amount=str(diff_val),
                                         )
@@ -5349,13 +5367,15 @@ class POSPricingReconciler:
 
                         target_discount = abs(float(diff_val))
                         sugg_info = self.find_suggested_cp_for_discount(
-                            target_discount, require_seller_voucher=False, order_date=purchased_date, expected_price=expected_price, sku=sku_key
+                            target_discount, require_seller_voucher=False, order_date=purchased_date, expected_price=expected_price, sku=sku_key,
+                            actual_price=actual_price
                         )
                         suggested_cp_code = sugg_info["suggested_code"] if sugg_info else ""
 
                         # สแกนหาคูปองตรงทั้งหมดที่ปรากฏบน SMCO ขณะนี้ (Realtime SMCO candidate discovery)
                         direct_smco_candidates = self.find_all_matching_coupons_on_smco(
-                            target_discount, expected_price=expected_price, order_date=purchased_date, sku=sku_key, require_seller_voucher=False
+                            target_discount, expected_price=expected_price, order_date=purchased_date, sku=sku_key, require_seller_voucher=False,
+                            actual_price=actual_price
                         )
 
                         # รวมชุดตัวเลือกทั้งหมด (จากตาราง CP Data + คูปองใหม่ที่พบสดๆ บน SMCO)

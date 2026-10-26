@@ -840,13 +840,14 @@ class TestCouponDateSuggestion(unittest.TestCase):
             res_df = pd.read_excel(excel_path)
             self.assertEqual(str(res_df.loc[0, "last_adjustment_method"]).strip(), "OC")
             self.assertEqual(str(res_df.loc[0, "suggested_oc_amount"]).strip(), "40")
-            self.assertEqual(str(res_df.loc[0, "oc_amount"]).strip(), "40")
+            # กรณี OC ยอดจะอยู่เฉพาะใน suggested_oc_amount โดยไม่เขียนลงช่องจริง oc_amount
+            self.assertTrue(pd.isna(res_df.loc[0, "oc_amount"]) or str(res_df.loc[0, "oc_amount"]).strip() in ("", "nan"))
 
             # ตรวจสอบ payload ที่ส่งขึ้น GAS
             self.assertTrue(mock_loader.push_record_to_gas.called)
             sent_payload = mock_loader.push_record_to_gas.call_args[0][0]
             self.assertEqual(sent_payload.get("sku"), "MNL-002216")
-            self.assertEqual(sent_payload.get("oc_amount"), "40")
+            self.assertEqual(sent_payload.get("oc_amount"), "")
             self.assertEqual(sent_payload.get("suggested_oc_amount"), "40")
             self.assertEqual(sent_payload.get("last_adjustment_method"), "OC")
 

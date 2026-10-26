@@ -435,6 +435,59 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
         self.assertEqual(sugg["preselected_codes"], ["CP2609280033"])
         self.assertEqual(sugg["new_code"], "CP2609290087")
 
+    def test_mnl_002390_overcharge_when_price_below_expected(self):
+        """
+        ทดสอบกรณี SKU MNL-002390:
+        - ราคาต้นจาก response / POS คือ 2,849.00 บาท
+        - ราคาเป้าหมายที่ต้องออกบิลคือ 2,908.00 บาท
+        - บน SMCO มีคูปอง Top-up DC2609280008 (ลด 400.0) ติดอยู่
+        - ระบบต้องไม่แนะนำ DC2609280008 ว่าลดได้ 2,908.00 พอดีเป๊ะ
+          (เพราะราคาต้น 2,849 ต่ำกว่าราคาเป้าหมาย 2,908 ไม่มีคูปองใดลดแล้วได้ 2,908)
+        - ต้องคืนค่า None เพื่อให้ระบบเข้าสู่ขั้นตอน Overcharge +59.00 บาท
+        """
+        sku = "MNL-002390"
+        response_data = [{
+            "priceListDetailId": 99999,
+            "productCode": sku,
+            "price": 2849.0,
+            "productCouponDetail": [
+                {
+                    "couponId": 143003,
+                    "couponCode": "DC2609280008",
+                    "discountAmt": 400.0,
+                    "couponDetailRemark": "promotion topup",
+                    "startDate": "2026-10-01 00:00:00",
+                    "endDate": "2026-10-31 23:59:59"
+                }
+            ]
+        }]
+        self.reconciler.record_product_master_response(sku, response_data)
+
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {"code": "DC2609280008", "discount": 400.0, "desc": "Topup 400", "is_selected": True},
+        ]
+        self.reconciler.last_preselected_smco_coupons = ["DC2609280008"]
+
+        # find_suggested_cp_for_discount ต้องไม่แนะนำ DC2609280008 มั่วๆ สำหรับราคา 2908
+        sugg = self.reconciler.find_suggested_cp_for_discount(
+            target_discount=0.0,
+            expected_price=2908.0,
+            order_date="2026-10-22",
+            sku=sku,
+            actual_price=2849.0
+        )
+        self.assertIsNone(sugg)
+
+        # find_all_matching_coupons_on_smco ต้องไม่คืน DC2609280008 ว่าเป็น candidate ที่ลดได้ 2908
+        cands = self.reconciler.find_all_matching_coupons_on_smco(
+            target_discount=0.0,
+            expected_price=2908.0,
+            order_date="2026-10-22",
+            sku=sku,
+            actual_price=2849.0
+        )
+        self.assertEqual(len(cands), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
