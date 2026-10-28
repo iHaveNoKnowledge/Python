@@ -154,7 +154,7 @@ class AccelMode:
             wb = load_workbook(path, read_only=True)
             sheet_names = wb.sheetnames
             wb.close()
-            valid_sheets = [s for s in sheet_names if s not in ['Failed_Orders', 'Completed_Orders', 'Processed_Logs']]
+            valid_sheets = [s for s in sheet_names if s not in ['Failed_Orders', 'Completed_Orders', 'Processed_Logs', 'Price_Mismatch_Summary']]
             if valid_sheets:
                 for s in valid_sheets:
                     if s.lower() == 'sheet1':
@@ -1559,7 +1559,7 @@ class AccelMode:
                             target_width = max(max_len + 4, 24)
                         elif header_val == 'timestamp':
                             target_width = max(max_len + 3, 20)
-                        elif header_val in ('status', 'bill_no', 'price'):
+                        elif header_val in ('status', 'bill_no', 'price', 'expected_price'):
                             target_width = max(max_len + 4, 15)
                         elif header_val in ('failed_category', 'error_category'):
                             target_width = max(max_len + 4, 18)
@@ -1567,6 +1567,10 @@ class AccelMode:
                             target_width = min(max(max_len + 4, 25), 70)
                         elif header_val in ('tracking', 'sn'):
                             target_width = max(max_len + 4, 20)
+                        elif header_val == 'sku_pattern':
+                            target_width = max(max_len + 4, 32)
+                        elif header_val == 'remaining_failed_count':
+                            target_width = max(max_len + 4, 24)
                         else:
                             target_width = min(max(max_len + 3, 12), 50)
 
@@ -1676,13 +1680,183 @@ class AccelMode:
             print(f"Error recording to Processed_Logs sheet: {e}")
             logger.error(f"Error recording to Processed_Logs sheet: {e}")
 
-    def record_failed_order(self, order, reason, category=None):
-        """Record failed order into Processed_Logs and Failed_Orders sheet in Accel Excel file.
+    def _format_price_for_excel(self, price_val):
+        """จัดรูปแบบราคาสำหรับบันทึกลง Excel ให้อยู่ในรูปแบบที่ตรงกันระหว่างชีต"""
+        if price_val is None or str(price_val).strip() == "" or str(price_val).strip().lower() == "nan":
+            return ""
+        try:
+            f = float(str(price_val).replace(',', '').strip())
+            return f"{f:g}" if f.is_integer() else f"{f:.2f}"
+        except (ValueError, TypeError):
+            return str(price_val).strip()
+
+    def _resolve_expected_price_for_sku(self, sku_key, item_dict=None, app_obj=None):
+        """ค้นหาหรือคำนวณ expected_price สำหรับ SKU ที่กำหนด"""
+        app = app_obj or getattr(self, 'main_app', None) or getattr(self, 'app', None)
+        if app and hasattr(app, 'financials') and app.financials:
+            if hasattr(app.financials, 'item_expected_prices') and isinstance(app.financials.item_expected_prices, dict):
+                if sku_key in app.financials.item_expected_prices:
+                    try:
+                        return round(float(app.financials.item_expected_prices[sku_key]), 2)
+                    except (ValueError, TypeError):
+                        pass
+            if hasattr(app.financials, 'total_amount') and app.financials.total_amount:
+                try:
+                    return round(float(app.financials.total_amount), 2)
+                except (ValueError, TypeError):
+                    pass
+
+        if item_dict:
+            try:
+                price_val = float(str(item_dict.get('ราคาขายสุทธิ', item_dict.get('ราคาขาย', item_dict.get('unitPrice', 0)))).replace(',', ''))
+                qty_val = float(str(item_dict.get('จำนวน', item_dict.get('QTY', 1))).replace(',', ''))
+                discount = float(str(item_dict.get('ส่วนลดจาก Shopee', item_dict.get('ส่วนลด', 0))).replace(',', ''))
+                if qty_val <= 0:
+                    qty_val = 1.0
+                return round((price_val + discount) / qty_val, 2)
+            except Exception:
+                pass
+
+        if app:
+            for attr in ['final_price', 'cus_total_payment', 'final_payment']:
+                if hasattr(app, attr):
+                    val = getattr(app, attr)
+                    if hasattr(val, 'get'):
+                        val = val.get()
+                    try:
+                        clean_v = float(str(val).replace(',', '').strip())
+                        if clean_v > 0:
+                            return round(clean_v, 2)
+                    except (ValueError, TypeError):
+                        pass
+
+        return 0.0
+
+    def _extract_price_mismatch_items(self, reason, explicit_sku=None, explicit_price=None, explicit_items=None):
+        """สกัดรายการ SKU Pattern และ expected_price สำหรับเคส PRICE_MISMATCH
+
+        Returns:
+            list of dict: [{'sku_pattern': str, 'expected_price': Any}]
+        """
+        if explicit_items:
+            res = []
+            for it in explicit_items:
+                if isinstance(it, dict) and 'sku_pattern' in it:
+                    res.append(it)
+                elif isinstance(it, (list, tuple)) and len(it) >= 2:
+                    res.append({'sku_pattern': str(it[0]).strip(), 'expected_price': it[1]})
+            if res:
+                return res
+
+        if explicit_sku:
+            p_val = explicit_price if explicit_price is not None else self._resolve_expected_price_for_sku(str(explicit_sku).strip())
+            return [{'sku_pattern': str(explicit_sku).strip(), 'expected_price': p_val}]
+
+        # 1. ตรวจสอบ pattern [SKU: ...] ใน reason
+        sku_in_reason = re.findall(r'\[SKU:\s*([^\]]+)\]', str(reason))
+        if sku_in_reason:
+            raw_sku = sku_in_reason[0].strip()
+            exp_price = self._resolve_expected_price_for_sku(raw_sku)
+            return [{'sku_pattern': raw_sku, 'expected_price': exp_price}]
+
+        # 2. ดึงจาก items ของคำสั่งซื้อปัจจุบันใน main_app
+        app_obj = getattr(self, 'main_app', None) or getattr(self, 'app', None)
+        if app_obj:
+            order_items = getattr(app_obj, 'items', []) or []
+            if order_items:
+                valid_items = []
+                for it in order_items:
+                    raw_sku = str(it.get('เลขอ้างอิง SKU (SKU Reference No.)') or it.get('sellerSku') or it.get('sku') or '').strip()
+                    if not raw_sku:
+                        continue
+                    # ข้าม SKU ค่าจัดส่ง (เช่น SV0-000101)
+                    if raw_sku.upper().startswith('SV0-') or raw_sku.upper() == 'SV0-000101':
+                        continue
+                    exp_price = self._resolve_expected_price_for_sku(raw_sku, item_dict=it, app_obj=app_obj)
+                    valid_items.append({'sku_pattern': raw_sku, 'expected_price': exp_price})
+
+                # ถ้า reason มีการระบุ SKU เจาะจง ให้คัดเฉพาะ SKU นั้น
+                if len(valid_items) > 1:
+                    matched_specific = [v for v in valid_items if v['sku_pattern'] in str(reason)]
+                    if matched_specific:
+                        return matched_specific
+
+                if valid_items:
+                    return valid_items
+
+        return []
+
+    def _update_price_mismatch_summary(self, items_to_record):
+        """บันทึกหรืออัปเดตชีต Price_Mismatch_Summary ในไฟล์ Accel
+        พร้อมใส่สูตร COUNTIFS เชื่อมกับชีต Processed_Logs เพื่อคำนวณยอดคงค้างอัตโนมัติ
+
+        Columns: [sku_pattern, expected_price, remaining_failed_count]
+        """
+        if not self.accel_file_dir or not os.path.exists(self.accel_file_dir):
+            return
+
+        sheet_name = 'Price_Mismatch_Summary'
+        try:
+            wb = load_workbook(self.accel_file_dir)
+            if sheet_name not in wb.sheetnames:
+                ws = wb.create_sheet(title=sheet_name)
+                ws.append(['sku_pattern', 'expected_price', 'remaining_failed_count'])
+            else:
+                ws = wb[sheet_name]
+
+            # ตรวจสอบรายการ (sku_pattern, expected_price) เดิมที่มีอยู่แล้วในชีต
+            existing_pairs = set()
+            for r_idx in range(2, ws.max_row + 1):
+                s_val = str(ws.cell(row=r_idx, column=1).value or '').strip()
+                p_val = ws.cell(row=r_idx, column=2).value
+                if s_val and p_val is not None:
+                    p_fmt = self._format_price_for_excel(p_val)
+                    existing_pairs.add((s_val, p_fmt))
+
+            has_new = False
+            for it in items_to_record:
+                sku_pat = str(it.get('sku_pattern', '')).strip()
+                exp_p = it.get('expected_price')
+                if not sku_pat or exp_p is None:
+                    continue
+                p_fmt = self._format_price_for_excel(exp_p)
+                pair_key = (sku_pat, p_fmt)
+                if pair_key not in existing_pairs:
+                    next_row = ws.max_row + 1
+                    # สูตร COUNTIFS เชื่อมกับ Processed_Logs
+                    # Processed_Logs: G=status, H=error_category, I=remark, E=price
+                    formula = (
+                        f'=COUNTIFS(Processed_Logs!G:G, "Failed", '
+                        f'Processed_Logs!H:H, "PRICE_MISMATCH", '
+                        f'Processed_Logs!I:I, "*[SKU: " & A{next_row} & "]*", '
+                        f'Processed_Logs!E:E, B{next_row})'
+                    )
+                    ws.cell(row=next_row, column=1, value=sku_pat)
+                    ws.cell(row=next_row, column=2, value=p_fmt)
+                    ws.cell(row=next_row, column=3, value=formula)
+                    existing_pairs.add(pair_key)
+                    has_new = True
+
+            wb.save(self.accel_file_dir)
+            wb.close()
+
+            if has_new:
+                self._apply_excel_formatting(self.accel_file_dir)
+                print(f"Updated Price_Mismatch_Summary in {self.accel_file_dir}")
+        except Exception as e:
+            print(f"Error updating Price_Mismatch_Summary: {e}")
+            logger.error(f"Error updating Price_Mismatch_Summary: {e}")
+
+    def record_failed_order(self, order, reason, category=None, sku_pattern=None, price=None, mismatched_items=None):
+        """Record failed order into Processed_Logs, Failed_Orders, and Price_Mismatch_Summary sheet in Accel Excel file.
 
         Args:
             order: order object or string
             reason: reason string
             category: optional explicit category name. If None, classified automatically via classify_failed_reason.
+            sku_pattern: optional explicit SKU pattern string
+            price: optional explicit price value
+            mismatched_items: optional explicit list of dicts [{'sku_pattern': str, 'expected_price': Any}]
         """
         if hasattr(order, 'get'):
             order_str = order.get()
@@ -1713,19 +1887,53 @@ class AccelMode:
 
         actual_category = str(category).strip() if category else classify_failed_reason(reason)
 
+        items_to_record = []
+        if actual_category == "PRICE_MISMATCH":
+            items_to_record = self._extract_price_mismatch_items(
+                reason, explicit_sku=sku_pattern, explicit_price=price, explicit_items=mismatched_items
+            )
+
+        now_ts_str = time.strftime("%Y-%m-%d %H:%M:%S")
+
         # 1. บันทึกลง Processed_Logs (Single Source of Truth)
-        unified_failed_row = [{
-            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-            'tracking': tracking_val,
-            'orders': order_str,
-            'status': "Failed",
-            'bill_no': "",
-            'price': "",
-            'sn': "",
-            'error_category': actual_category,
-            'remark': str(reason)
-        }]
-        self._record_to_processed_logs(unified_failed_row, order_str)
+        if actual_category == "PRICE_MISMATCH" and items_to_record:
+            unified_failed_rows = []
+            for it in items_to_record:
+                s_pat = it['sku_pattern']
+                exp_p = it.get('expected_price')
+                rem_txt = str(reason)
+                if f"[SKU: {s_pat}]" not in rem_txt:
+                    rem_txt = f"[SKU: {s_pat}] {rem_txt}"
+
+                unified_failed_rows.append({
+                    'timestamp': now_ts_str,
+                    'tracking': tracking_val,
+                    'orders': order_str,
+                    'status': "Failed",
+                    'bill_no': "",
+                    'price': self._format_price_for_excel(exp_p),
+                    'sn': "",
+                    'error_category': actual_category,
+                    'remark': rem_txt
+                })
+        else:
+            unified_failed_rows = [{
+                'timestamp': now_ts_str,
+                'tracking': tracking_val,
+                'orders': order_str,
+                'status': "Failed",
+                'bill_no': "",
+                'price': self._format_price_for_excel(price) if price is not None else "",
+                'sn': "",
+                'error_category': actual_category,
+                'remark': str(reason)
+            }]
+
+        self._record_to_processed_logs(unified_failed_rows, order_str)
+
+        # อัปเดตชีต Price_Mismatch_Summary เมื่อเป็น PRICE_MISMATCH
+        if actual_category == "PRICE_MISMATCH" and items_to_record:
+            self._update_price_mismatch_summary(items_to_record)
 
         # 2. บันทึกลง Failed_Orders เดิม (Backward Compatibility)
         try:
@@ -1760,15 +1968,29 @@ class AccelMode:
             # จัดเรียงคอลัมน์เดิมให้ตรงโครงสร้างใหม่ [timestamp, failed_category, orders, failed_reason]
             failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
 
-            new_row = pd.DataFrame([{
-                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                'failed_category': actual_category,
-                'orders': order_str,
-                'failed_reason': str(reason)
-            }])
+            new_rows = []
+            if actual_category == "PRICE_MISMATCH" and items_to_record:
+                for it in items_to_record:
+                    s_pat = it['sku_pattern']
+                    rem_txt = str(reason)
+                    if f"[SKU: {s_pat}]" not in rem_txt:
+                        rem_txt = f"[SKU: {s_pat}] {rem_txt}"
+                    new_rows.append({
+                        'timestamp': now_ts_str,
+                        'failed_category': actual_category,
+                        'orders': order_str,
+                        'failed_reason': rem_txt
+                    })
+            else:
+                new_rows.append({
+                    'timestamp': now_ts_str,
+                    'failed_category': actual_category,
+                    'orders': order_str,
+                    'failed_reason': str(reason)
+                })
 
             # บันทึกเป็น Append-Only Log ใน Failed_Orders เพื่อเก็บประวัติทุกรอบที่เกิดข้อผิดพลาด
-            failed_df = pd.concat([failed_df, new_row], ignore_index=True)
+            failed_df = pd.concat([failed_df, pd.DataFrame(new_rows)], ignore_index=True)
             failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
 
             self._save_df_to_excel(failed_df, 'Failed_Orders')

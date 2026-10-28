@@ -129,12 +129,23 @@ class ProductManager:
         # * 1) ดึง SKU ทั้งหมดที่แสดงบนหน้า POS
         sku_elements = self.driver.find_elements(By.XPATH, self.XPATH_SKU_TEXTS)
         qty_elements = self.driver.find_elements(By.XPATH, self.XPATH_QTY_DISPLAY)
+        if not sku_elements:
+            # Fallback สำหรับกรณีอยู่หน้าท้าย (Payment Page) ที่ตารางสินค้าหน้าแรกติด ng-hide
+            sku_elements = self.driver.find_elements(
+                By.XPATH, "//span[contains(@ng-click, 'productNameChangeChk')]//u"
+            )
+            qty_elements = self.driver.find_elements(
+                By.XPATH, "//span[contains(@class, 'col-sm-4') and contains(@class, 'ng-binding')]"
+            )
+
         pos_data: dict[str, int] = {}
         for sku_el, qty_el in zip(sku_elements, qty_elements):
             try:
-                sku_text = sku_el.text.strip()
-                qty_text = qty_el.text.strip()
-                pos_data[sku_text] = pos_data.get(sku_text, 0) + int(qty_text)
+                sku_text = (sku_el.get_attribute("textContent") or sku_el.text or "").strip()
+                qty_text = (qty_el.get_attribute("textContent") or qty_el.text or "").strip()
+                if not sku_text:
+                    continue
+                pos_data[sku_text] = pos_data.get(sku_text, 0) + int(qty_text or 0)
             except Exception as e:
                 print(f"[ProductManager.verify_item_qty] parse error: {e}")
 

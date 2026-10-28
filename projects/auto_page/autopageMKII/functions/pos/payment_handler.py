@@ -389,6 +389,24 @@ class POSPaymentHandler:
 
                         # กรณีที่ 2: ตรวจสอบว่าผู้ใช้กดปุ่ม Finish Order ในโปรแกรม (CTk GUI) หรือไม่
                         if self.app.is_finish_order_triggered.get():
+                            # บล็อกการกดปุ่มชำระเงินหากมี SKU ไม่ตรงในโหมด Manual
+                            if not is_auto_inv:
+                                pm = getattr(self.bot, 'ProductManager', None)
+                                if pm and hasattr(pm, 'verify_item_qty'):
+                                    try:
+                                        qty_chk = pm.verify_item_qty()
+                                        if isinstance(qty_chk, dict) and any(
+                                            not v.get("ok", True)
+                                            for v in qty_chk.values()
+                                            if isinstance(v, dict)
+                                        ):
+                                            print("❌ [Payment Guard] ตรวจพบ SKU ยังไม่ตรง บล็อกการคลิก Finish Order")
+                                            self.app.update_log("❌ ตรวจพบ SKU บน POS ไม่ตรงกับ Order กรุณาแก้ไขก่อนกดชำระเงิน")
+                                            self.app.is_finish_order_triggered.set(False)
+                                            continue
+                                    except Exception as sku_guard_err:
+                                        print("Error in SKU finish_order guard:", sku_guard_err)
+
                             try:
                                 verification = self.verify_final_page_elements(
                                     expected_po=self.cus_order,
@@ -972,21 +990,42 @@ class POSPaymentHandler:
         return float(balance_text) if balance_text else 0.0
 
     def prompt_price_mismatch_dialog(
-        self, target_price: float, pos_price: float, diff: float
+        self,
+        target_price: float,
+        pos_price: float,
+        diff: float,
+        mismatched_skus: Optional[list[str]] = None,
     ) -> bool:
         """
-        แสดง Pop-up แจ้งเตือนยอดเงินไม่ตรง และถามว่าต้องการย้อนกลับไปหน้าแรกหรือไม่
+        แสดง Pop-up แจ้งเตือนยอดเงินไม่ตรง หรือ SKU ไม่ตรง และถามว่าต้องการย้อนกลับไปหน้าแรกหรือไม่
         ดึงหน้าต่างขึ้นมาแทรกด้านหน้าสุด (Topmost & Focus Force) เพื่อไม่ให้โดนโปรแกรมอื่นบัง
         """
-        title = "⚠️ ยอดเงินไม่ตรงกับราคาที่ต้องออกบิล!"
-        diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
-        message = (
-            "⚠️ ตรวจพบยอดเงินไม่ตรงกับคำสั่งซื้อ!\n\n"
-            f"• ราคาที่ต้องออกบิล (ลูกค้าจ่าย):  {target_price:,.2f} บาท\n"
-            f"• ราคาที่ทำมาจากหน้าแรก (POS):    {pos_price:,.2f} บาท\n"
-            f"• ส่วนต่าง:                      {diff_sign} บาท\n\n"
-            "ต้องการให้บอทย้อนกลับไปหน้าแรก (Page 1) เพื่อแก้ไขราคาให้ถูกต้องหรือไม่?"
-        )
+        has_sku_err = bool(mismatched_skus)
+        has_price_err = abs(diff) >= 0.01
+
+        if has_sku_err and has_price_err:
+            title = "⚠️ ตรวจพบ SKU และยอดเงินไม่ตรงกับคำสั่งซื้อ!"
+        elif has_sku_err:
+            title = "⚠️ ตรวจพบรายการสินค้า (SKU) ไม่ตรงกับคำสั่งซื้อ!"
+        else:
+            title = "⚠️ ยอดเงินไม่ตรงกับราคาที่ต้องออกบิล!"
+
+        msg_lines = ["⚠️ ตรวจพบข้อมูลสินค้าหรือราคาไม่ตรงกับคำสั่งซื้อ!\n"]
+
+        if has_sku_err:
+            msg_lines.append("📋 รายการสินค้า / SKU ที่ผิดปกติบน POS:")
+            msg_lines.extend(mismatched_skus)
+            msg_lines.append("")
+
+        if has_price_err:
+            diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
+            msg_lines.append("💰 ยอดเงินไม่ตรง:")
+            msg_lines.append(f"• ราคาที่ต้องออกบิล (ลูกค้าจ่าย):  {target_price:,.2f} บาท")
+            msg_lines.append(f"• ราคาที่ทำมาจากหน้าแรก (POS):    {pos_price:,.2f} บาท")
+            msg_lines.append(f"• ส่วนต่าง:                      {diff_sign} บาท\n")
+
+        msg_lines.append("ต้องการให้บอทย้อนกลับไปหน้าแรก (Page 1) เพื่อแก้ไขให้ถูกต้องหรือไม่?")
+        message = "\n".join(msg_lines)
 
         result_holder = [False]
         done_event = threading.Event()
@@ -1063,8 +1102,8 @@ class POSPaymentHandler:
 
     def check_and_prompt_price_mismatch(self, final_price: float) -> bool:
         """
-        ตรวจสอบยอดเงินในโหมด Manual หากไม่ตรงกับยอดที่ต้องออกบิล จะแสดง Pop-up แจ้งเตือน
-        และให้ทางเลือกย้อนกลับไปหน้าแรก (Page 1) เพื่อแก้ไขราคา
+        ตรวจสอบ SKU และยอดเงินในโหมด Manual หากไม่ตรงกับคำสั่งซื้อ จะแสดง Pop-up แจ้งเตือน
+        และให้ทางเลือกย้อนกลับไปหน้าแรก (Page 1) เพื่อแก้ไข
         """
         is_auto_inv = bool(
             hasattr(self.app, 'is_auto_invoice_mode')
@@ -1073,14 +1112,38 @@ class POSPaymentHandler:
         if is_auto_inv:
             return False
 
+        # 1. ตรวจสอบ SKU และจำนวนสินค้าผ่าน ProductManager (ถ้ามี)
+        mismatched_skus: list[str] = []
+        pm = getattr(self.bot, 'ProductManager', None)
+        if pm and hasattr(pm, 'verify_item_qty'):
+            try:
+                qty_res = pm.verify_item_qty()
+                if isinstance(qty_res, dict):
+                    for sku, info in qty_res.items():
+                        if isinstance(info, dict) and not info.get("ok", True):
+                            exp = info.get("expected", 0)
+                            act = info.get("actual", "NOT_FOUND")
+                            if exp == 0:
+                                mismatched_skus.append(f"• {sku}: ไม่ได้สั่งใน Order แต่พบบน POS (เกิน {act} ชิ้น)")
+                            elif act == "NOT_FOUND":
+                                mismatched_skus.append(f"• {sku}: ต้องการ {exp} ชิ้น แต่ไม่พบบน POS (ยิงไม่ติด/ขาด)")
+                            else:
+                                mismatched_skus.append(f"• {sku}: ต้องการ {exp} ชิ้น แต่บน POS มี {act} ชิ้น")
+            except Exception as pm_err:
+                print("Cannot verify item qty in check_and_prompt_price_mismatch:", pm_err)
+
+        # 2. ตรวจสอบยอดเงินคงเหลือ (Remaining Balance)
         try:
             time.sleep(0.3)
             balance_val = self.get_remaining_balance()
         except Exception as b_err:
             print("Cannot read remaining balance:", b_err)
-            return False
+            balance_val = 0.0
 
-        if abs(balance_val) < 0.01:
+        price_mismatch = abs(balance_val) >= 0.01
+
+        # หากทั้ง SKU และราคาถูกต้อง -> ไม่ต้องเตือน
+        if not mismatched_skus and not price_mismatch:
             return False
 
         target_price = float(final_price)
@@ -1088,31 +1151,48 @@ class POSPaymentHandler:
         diff = round(balance_val, 2)
         diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
 
-        warn_log = (
-            f"⚠️ [Price Mismatch] ยอดเงินไม่ตรง! "
-            f"ต้องออกบิล: {target_price:,.2f} บ. | "
-            f"บน POS (หน้าแรก): {pos_price:,.2f} บ. | "
-            f"ส่วนต่าง: {diff_sign} บ."
-        )
-        print(warn_log)
-        self.app.update_log(warn_log)
-        logger.warning(f"Order: {self.cus_order} - {warn_log}")
+        if mismatched_skus:
+            warn_sku_log = f"⚠️ [SKU Mismatch] พบสินค้าไม่ตรง: {'; '.join(mismatched_skus)}"
+            print(warn_sku_log)
+            self.app.update_log(warn_sku_log)
+            logger.warning(f"Order: {self.cus_order} - {warn_sku_log}")
 
-        should_return = self.prompt_price_mismatch_dialog(
-            target_price=target_price, pos_price=pos_price, diff=diff
-        )
+        if price_mismatch:
+            warn_log = (
+                f"⚠️ [Price Mismatch] ยอดเงินไม่ตรง! "
+                f"ต้องออกบิล: {target_price:,.2f} บ. | "
+                f"บน POS (หน้าแรก): {pos_price:,.2f} บ. | "
+                f"ส่วนต่าง: {diff_sign} บ."
+            )
+            print(warn_log)
+            self.app.update_log(warn_log)
+            logger.warning(f"Order: {self.cus_order} - {warn_log}")
+
+        if mismatched_skus:
+            should_return = self.prompt_price_mismatch_dialog(
+                target_price=target_price,
+                pos_price=pos_price,
+                diff=diff,
+                mismatched_skus=mismatched_skus,
+            )
+        else:
+            should_return = self.prompt_price_mismatch_dialog(
+                target_price=target_price,
+                pos_price=pos_price,
+                diff=diff,
+            )
 
         if should_return:
-            self.app.update_log("🔙 ผู้ใช้เลือกย้อนกลับไปหน้าแรกเพื่อแก้ไขราคา...")
+            self.app.update_log("🔙 ผู้ใช้เลือกย้อนกลับไปหน้าแรกเพื่อแก้ไขข้อมูล/ราคา...")
             logger.info(
-                f"Order: {self.cus_order} - User confirmed returning to page 1 to fix price mismatch."
+                f"Order: {self.cus_order} - User confirmed returning to page 1 to fix SKU/price mismatch."
             )
             self.return_to_first_page()
             self.last_page = None
             return True
         else:
             self.app.update_log(
-                "⚠️ ผู้ใช้เลือกไม่ออกบิล/อยู่หน้าชำระเงินต่อ โปรดตรวจสอบราคาก่อนกดชำระเงิน"
+                "⚠️ ผู้ใช้เลือกไม่ออกบิล/อยู่หน้าชำระเงินต่อ โปรดตรวจสอบสินค้าและราคาก่อนกดชำระเงิน"
             )
             return False
 

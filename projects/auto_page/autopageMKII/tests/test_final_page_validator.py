@@ -295,6 +295,81 @@ class TestFinalPageValidator(unittest.TestCase):
         )
         self.handler.return_to_first_page.assert_not_called()
 
+    def test_check_and_prompt_sku_mismatch_ink_set(self):
+        """เมื่อ SKU หมึกเซ็ตย่อยขาดไป 1 ตัว -> ต้องแสดง popup เตือน SKU และส่งกลับ True เมื่อกดยืนยัน"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = False
+        self.handler.get_remaining_balance = MagicMock(return_value=0.0)
+        
+        # จำลอง ProductManager.verify_item_qty ตรวจพบหมึกเซ็ต SP2-001846 ขาด
+        mock_pm = MagicMock()
+        mock_pm.verify_item_qty.return_value = {
+            "SP2-001845": {"expected": 1, "actual": 1, "ok": True},
+            "SP2-001846": {"expected": 1, "actual": "NOT_FOUND", "ok": False},
+            "SP2-001847": {"expected": 1, "actual": 1, "ok": True},
+            "SP2-001848": {"expected": 1, "actual": 1, "ok": True},
+        }
+        self.mock_bot.ProductManager = mock_pm
+
+        self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
+        self.handler.return_to_first_page = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=1500.0)
+
+        self.assertTrue(res)
+        self.handler.prompt_price_mismatch_dialog.assert_called_once()
+        call_kwargs = self.handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertEqual(call_kwargs["target_price"], 1500.0)
+        self.assertIn("SP2-001846", call_kwargs["mismatched_skus"][0])
+        self.handler.return_to_first_page.assert_called_once()
+
+    def test_check_and_prompt_sku_mismatch_shipping_sv0(self):
+        """เมื่อค่าขนส่ง SV0-000101 ไม่พบบน POS -> ต้องแสดง popup เตือน SKU ขนส่ง"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = False
+        self.handler.get_remaining_balance = MagicMock(return_value=0.0)
+
+        mock_pm = MagicMock()
+        mock_pm.verify_item_qty.return_value = {
+            "SV0-000101": {"expected": 1, "actual": "NOT_FOUND", "ok": False},
+            "PR2-000123": {"expected": 1, "actual": 1, "ok": True},
+        }
+        self.mock_bot.ProductManager = mock_pm
+
+        self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
+        self.handler.return_to_first_page = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=500.0)
+
+        self.assertFalse(res)
+        self.handler.prompt_price_mismatch_dialog.assert_called_once()
+        call_kwargs = self.handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertIn("SV0-000101", call_kwargs["mismatched_skus"][0])
+        self.handler.return_to_first_page.assert_not_called()
+
+    def test_check_and_prompt_both_sku_and_price_mismatch(self):
+        """เมื่อมีทั้ง SKU ไม่ตรง และยอดเงินไม่ตรง -> ต้องแสดง popup สรุปทั้งสองรายการพร้อมกัน"""
+        self.mock_app.is_auto_invoice_mode.get.return_value = False
+        self.handler.get_remaining_balance = MagicMock(return_value=120.0)
+
+        mock_pm = MagicMock()
+        mock_pm.verify_item_qty.return_value = {
+            "SP2-001845": {"expected": 1, "actual": 0, "ok": False},
+        }
+        self.mock_bot.ProductManager = mock_pm
+
+        self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
+        self.handler.return_to_first_page = MagicMock()
+
+        res = self.handler.check_and_prompt_price_mismatch(final_price=1000.0)
+
+        self.assertTrue(res)
+        self.handler.prompt_price_mismatch_dialog.assert_called_once()
+        call_kwargs = self.handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertEqual(call_kwargs["target_price"], 1000.0)
+        self.assertEqual(call_kwargs["diff"], 120.0)
+        self.assertEqual(call_kwargs["pos_price"], 1120.0)
+        self.assertIn("SP2-001845", call_kwargs["mismatched_skus"][0])
+        self.handler.return_to_first_page.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
