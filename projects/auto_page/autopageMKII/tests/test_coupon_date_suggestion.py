@@ -1320,6 +1320,66 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertNotIn("CP2610090017", cand_codes)
         self.assertNotIn("DC2609280008", cand_codes)
 
+    def test_pw1_000651_filters_expired_flash_sale_coupon_by_order_date(self):
+        """
+        PW1-000651: DC2610090008 campaign date is Flash Sale 9-12 Oct 26 (despite SMCO API endDate being 12/11/2026).
+        When order date is 2026-10-30 08:33 (after Oct 12),
+        DC2610090008 should be filtered out, leaving only CP2609250003 CP2610240004.
+        """
+        reconciler = POSPricingReconciler(self.mock_bot)
+        reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609250003",
+                "discount": 0.0,
+                "desc": "Main coupon",
+                "couponDetailCash": 0.0,
+                "couponDetailDisc": 0.0,
+                "start_date": "25/09/2026",
+                "end_date": "31/10/2026"
+            },
+            {
+                "code": "DC2610090008",
+                "discount": 100.0,
+                "desc": "Promotion AIP_APW Shopee Flash Sale วันที่ 9-12 Oct 26 (Add-On)",
+                "couponDetailCash": 100.0,
+                "couponDetailDisc": 0.0,
+                "start_date": "09/10/2026",
+                "end_date": "12/11/2026"
+            },
+            {
+                "code": "CP2610240004",
+                "discount": 100.0,
+                "desc": "Promotion Shopee Payday วันที่ 24-31 Oct 26",
+                "couponDetailCash": 0.0,
+                "couponDetailDisc": 100.0,
+                "start_date": "24/10/2026",
+                "end_date": "31/10/2026"
+            }
+        ]
+
+        cands = reconciler.find_all_matching_coupons_on_smco(
+            target_discount=100.0,
+            expected_price=1699.0,
+            order_date="2026-10-30 08:33",
+            sku="PW1-000651"
+        )
+        cand_codes = [c.get("cp_name") for c in cands]
+        self.assertIn("CP2609250003 CP2610240004", cand_codes)
+        self.assertNotIn("CP2609250003 DC2610090008", cand_codes)
+        self.assertNotIn("DC2610090008", cand_codes)
+
+        # เมื่อมี pre-coupon 'CP2609250003' ติดอยู่ ระบบจะต้องแนะนำ 'CP2609250003 CP2610240004'
+        reconciler.last_preselected_smco_coupons = ["CP2609250003"]
+        sugg = reconciler.find_suggested_cp_for_discount(
+            target_discount=100.0,
+            expected_price=1699.0,
+            order_date="2026-10-30 08:33",
+            sku="PW1-000651"
+        )
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "CP2609250003 CP2610240004")
+
+
 if __name__ == "__main__":
     unittest.main()
 

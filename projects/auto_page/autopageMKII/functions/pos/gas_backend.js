@@ -316,8 +316,9 @@ function doPost(e) {
           var isBothEmptyCp = (targetCpCanon === "" && canonCp(rowCp) === "" && canonCp(rowSuggCp) === "");
           var isSameAdj = (canonAdj(rowOc) === targetOcCanon && canonAdj(rowDc) === targetDcCanon
             && canonAdj(rowSuggOc) === targetSuggOcCanon && canonAdj(rowSuggDc) === targetSuggDcCanon);
+          var isAutoAdj = (String(rowOc).trim().toUpperCase() === "AUTO" || String(rowDc).trim().toUpperCase() === "AUTO");
 
-          if (isPlaceholder || ((isSameCp || isBothEmptyCp) && isSameAdj)) {
+          if (isPlaceholder || ((isSameCp || isBothEmptyCp) && (isSameAdj || isAutoAdj))) {
             // Marketplace Isolation Matching:
             // 1. Exact match (SHOPEE == SHOPEE) -> foundRow2 ทันที
             // 2. Fallback match (แถวเดิมยังไม่มี MP หรือเป็น ALL) -> จด fallbackRow2 ไว้ แล้วหาต่อ

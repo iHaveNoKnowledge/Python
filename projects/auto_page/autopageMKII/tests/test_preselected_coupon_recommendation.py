@@ -1,5 +1,12 @@
+import os
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if PROJECT_DIR not in sys.path:
+    sys.path.insert(0, PROJECT_DIR)
+
 from functions.pos.pricing_engine import POSPricingReconciler
 
 
@@ -487,6 +494,110 @@ class TestPreselectedCouponRecommendation(unittest.TestCase):
             actual_price=2849.0
         )
         self.assertEqual(len(cands), 0)
+
+
+
+    def test_mnl_002168_preselected_topup_and_addon_combination_matches_expected(self):
+        """
+        Verify SKU MNL-002168 (Amount: 53,267.00).
+        With preselected Topup CP2609280033 (24,000), actual_price is 29,267.00 on POS Cart.
+        Target expected_price is 25,867.00 (diff: 3,400.00).
+        System must compute base price 53,267.00 and find combo CP2609280033 CP2609290087.
+        """
+        sku = "MNL-002168"
+        self.reconciler.last_preselected_smco_coupons = ["CP2609280033"]
+        self.reconciler.last_scanned_smco_coupon_details = [
+            {
+                "code": "CP2609280033",
+                "discount": 24000.0,
+                "couponDetailCash": 24000.0,
+                "couponDetailDisc": 0.0,
+                "desc": "promotion xmn samsung period 1-31 oct 26 topup all store bg250023",
+                "is_topup": True,
+                "is_selected": True,
+                "start_date": "01/10/2026",
+                "end_date": "31/10/2026"
+            },
+            {
+                "code": "CP2609290087",
+                "discount": 3400.0,
+                "couponDetailCash": 0.0,
+                "couponDetailDisc": 3400.0,
+                "desc": "promotion xmn samsung period 1-31 oct 2026 addon online bg250023",
+                "is_addon": True,
+                "start_date": "01/10/2026",
+                "end_date": "31/10/2026"
+            }
+        ]
+
+        # 1. Base price must be 53,267.00 (29,267 + 24,000)
+        base_p = self.reconciler.get_base_price_for_sku(
+            sku,
+            actual_price=29267.0,
+            pre_discount=24000.0,
+            target_discount=3400.0,
+            expected_price=25867.0
+        )
+        self.assertEqual(base_p, 53267.0)
+
+        # 2. find_suggested_cp_for_discount must suggest CP2609280033 CP2609290087
+        sugg = self.reconciler.find_suggested_cp_for_discount(
+            target_discount=3400.0,
+            require_seller_voucher=False,
+            order_date="2026-10-30",
+            expected_price=25867.0,
+            sku=sku,
+            actual_price=29267.0
+        )
+        self.assertIsNotNone(sugg)
+        self.assertEqual(sugg["suggested_code"], "CP2609280033 CP2609290087")
+
+        # 3. find_all_matching_coupons_on_smco must find CP2609280033 CP2609290087
+        direct_cands = self.reconciler.find_all_matching_coupons_on_smco(
+            target_discount=3400.0,
+            expected_price=25867.0,
+            order_date="2026-10-30",
+            sku=sku,
+            require_seller_voucher=False,
+            actual_price=29267.0
+        )
+        cand_names = [c["cp_name"] for c in direct_cands]
+        self.assertIn("CP2609280033 CP2609290087", cand_names)
+
+    def test_mnl_002168_historical_product_prices_selects_active_date_price(self):
+        historical_prices = [
+            {
+                'price': 49990.0,
+                'startDate': 'May 1, 2026 12:00:00 AM',
+                'endDate': 'Aug 1, 2026 12:00:00 AM',
+                'activeFlag': True,
+                'statusNameEn': 'Approved',
+                'ctrlName': 'Shopee',
+                'priceCtrlCode': 'OnlineSHP1',
+                'dataOfbranchStore': [{'branchId': 180, 'storeId': 208}]
+            },
+            {
+                'price': 53267.0,
+                'startDate': 'Oct 3, 2026 10:59:01 PM',
+                'endDate': 'Dec 31, 2030 11:56:59 PM',
+                'activeFlag': True,
+                'statusNameEn': 'Approved',
+                'ctrlName': 'Shopee',
+                'priceCtrlCode': 'OnlineSHP1',
+                'dataOfbranchStore': [{'branchId': 180, 'storeId': 208}]
+            }
+        ]
+        self.reconciler._product_master_cache = {
+            'MNL-002168': [{
+                'productCode': 'MNL-002168',
+                'price': None,
+                'productPrices': historical_prices
+            }]
+        }
+        self.reconciler.get_smco_session_context = MagicMock(return_value={'branch_id': 180, 'store_id': 208})
+        bp = self.reconciler.get_base_price_for_sku('MNL-002168', order_date='2026-10-29 11:33')
+        self.assertEqual(bp, 53267.0)
+
 
 
 if __name__ == "__main__":

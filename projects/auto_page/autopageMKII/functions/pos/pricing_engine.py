@@ -337,16 +337,30 @@ def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[Union[datetime.dat
 def is_coupon_valid_for_order(c_dict: dict, order_date: Any = None) -> bool:
     """
     ตรวจสอบว่าคูปองไม่หมดอายุ และครอบคลุมวันที่สั่งซื้อหรือไม่ (start_date <= order_date <= end_date)
+    รองรับทั้งการตรวจสอบช่วงวันจาก desc/remark ที่ระบุแคมเปญเจาะจง (เช่น 'Flash Sale วันที่ 9-12 Oct 26')
+    และช่วงวันจากฟิลด์ start_date/end_date โดยตรง
     """
     if c_dict.get("is_expired"):
         return False
     parsed_order_date = parse_smart_date(order_date) if order_date else None
     if parsed_order_date is None:
         return True
-    s = c_dict.get("start_date")
-    e = c_dict.get("end_date")
-    if not s and not e:
-        s, e = extract_coupon_date_range(c_dict.get("desc", ""))
+
+    # 1. ตรวจสอบช่วงวันจาก desc หรือ remark ถ้ามีระบุไว้อย่างชัดเจนในข้อความแคมเปญ
+    desc_text = f"{c_dict.get('desc', '')} {c_dict.get('remark', '')} {c_dict.get('couponDesc', '')} {c_dict.get('couponDetailRemark', '')}".strip()
+    if desc_text:
+        s_desc, e_desc = extract_coupon_date_range(desc_text)
+        if s_desc and parsed_order_date < s_desc:
+            return False
+        if e_desc and parsed_order_date > e_desc:
+            return False
+
+    # 2. ตรวจสอบช่วงวันจากฟิลด์ start_date และ end_date
+    s = c_dict.get("start_date") or c_dict.get("startDate") or c_dict.get("usage_start_date") or c_dict.get("suggested_usage_start_date")
+    e = c_dict.get("end_date") or c_dict.get("endDate") or c_dict.get("usage_end_date") or c_dict.get("suggested_usage_end_date")
+    if not s and not e and desc_text:
+        s, e = extract_coupon_date_range(desc_text)
+
     s_cmp = parse_smart_date(s)
     e_cmp = parse_smart_date(e)
     if s_cmp and parsed_order_date < s_cmp:
@@ -403,12 +417,21 @@ def is_valid_adjustment(amount_str: Any) -> bool:
     """ตรวจสอบว่าค่าการปรับราคา (OC/DC) มีตัวเลขที่ถูกต้องและมากกว่า 0 หรือไม่"""
     if not amount_str or str(amount_str).strip() == "" or str(amount_str).strip().upper() == "NONE":
         return False
+    if str(amount_str).strip().lower() == "auto":
+        return False
     tokens = str(amount_str).split()
     for token in tokens:
         clean = token.replace('-', '').replace('+', '').split('.')[0].strip()
         if clean.isdigit() and int(clean) > 0:
             return True
     return False
+
+
+def is_auto_adjustment(amount_str: Any) -> bool:
+    """ตรวจสอบว่าเป็นคำสั่งคำนวณส่วนต่างอัตโนมัติ (auto) หรือไม่ (เช็คแบบ case-insensitive)"""
+    if amount_str is None:
+        return False
+    return str(amount_str).strip().lower() == "auto"
 
 
 def is_seller_voucher_desc(desc: Any) -> bool:
@@ -672,7 +695,10 @@ class POSPricingReconciler:
         if not hasattr(self, '_product_master_cache') or self._product_master_cache is None:
             self._product_master_cache = {}
         if isinstance(response_data, dict):
-            response_data = [response_data]
+            if isinstance(response_data.get('data'), list):
+                response_data = response_data['data']
+            else:
+                response_data = [response_data]
             
         sku_clean = str(sku).strip().upper()
         self._product_master_cache[sku_clean] = response_data
@@ -1110,17 +1136,25 @@ class POSPricingReconciler:
         actual_price: Optional[float] = None,
         pre_discount: float = 0.0,
         target_discount: float = 0.0,
-        expected_price: Optional[float] = None
+        expected_price: Optional[float] = None,
+        order_date: Any = None
     ) -> float:
         """
         ดึงหรือคำนวณราคาตั้งต้น (Base/Retail Price ก่อนหักคูปอง) ของ SKU
         ตามลำดับความถูกต้อง:
         1. กรณีสินค้าเซ็ต (Multi-SKU Combo Pack เช่น SP1+SP2): รวม base price ของแต่ละ sub-SKU
         2. ดึงจาก _product_master_cache (retailPrice, price, productPrice, normalPrice, sellPrice, unitPrice)
+           โดยจับคู่ความตรงของสาขา/ร้านค้า (branchId, storeId), Marketplace (priceCtrlCode), และช่วงวันที่ (startDate-endDate)
         3. หากยังไม่อยู่ในแคช และมี driver: พยายาม fetch_product_master_info สดๆ
         4. ดึงจาก actual_price บน POS Cart (+ pre_discount)
         5. Fallback ไปยัง expected_price + target_discount + pre_discount (ถ้ามี)
         """
+        if order_date is None and hasattr(self, 'app') and hasattr(self.app, 'cus_purchase_time') and hasattr(self.app.cus_purchase_time, 'get'):
+            try:
+                order_date = self.app.cus_purchase_time.get()
+            except Exception:
+                order_date = None
+
         if not sku:
             if actual_price is not None and isinstance(actual_price, (int, float)) and actual_price > 0:
                 return round(float(actual_price) + float(pre_discount), 2)
@@ -1140,7 +1174,7 @@ class POSPricingReconciler:
             sub_total = 0.0
             found_all = True
             for sub in sub_skus:
-                bp = self.get_base_price_for_sku(sub)
+                bp = self.get_base_price_for_sku(sub, order_date=order_date)
                 if bp > 0:
                     sub_total += bp
                 else:
@@ -1165,6 +1199,97 @@ class POSPricingReconciler:
                     if k not in candidates:
                         candidates.append(k)
 
+            # ดึง session context (branch_id, store_id) จาก JWT Token / AngularJS
+            ctx = self.get_smco_session_context() if hasattr(self, 'get_smco_session_context') else {}
+            target_br = ctx.get("branch_id")
+            target_st = ctx.get("store_id")
+
+            # Marketplace ปัจจุบัน
+            mp_target = ""
+            try:
+                if hasattr(self, 'app') and hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                    mp_target = str(self.app.marketplace_target.get() or '').strip().upper()
+            except Exception:
+                mp_target = ""
+
+            target_dt = parse_smart_datetime(order_date) if order_date else None
+            scored_prices = []
+
+            def _check_price_item(d: dict):
+                if not isinstance(d, dict):
+                    return
+                price_val = None
+                for k in ['retailPrice', 'retail_price', 'price', 'productPrice', 'product_price', 'normalPrice', 'normal_price', 'sellPrice', 'sell_price', 'unitPrice', 'stdPrice']:
+                    v = d.get(k)
+                    if v is not None and str(v).strip() != '':
+                        try:
+                            p = float(str(v).replace(',', '').strip())
+                            if p > 0:
+                                price_val = p
+                                break
+                        except Exception:
+                            pass
+                if price_val is None:
+                    return
+
+                # ความตรงกับสาขา / ร้านค้า
+                b_stores = d.get("dataOfbranchStore") or []
+                store_match = 0
+                if b_stores and isinstance(b_stores, list) and (target_br is not None or target_st is not None):
+                    for bs in b_stores:
+                        if isinstance(bs, dict):
+                            b_id = bs.get("branchId")
+                            s_id = bs.get("storeId")
+                            br_ok = (target_br is None) or (b_id is None) or (str(b_id).strip() == str(target_br).strip())
+                            st_ok = (target_st is None) or (s_id is None) or (str(s_id).strip() == str(target_st).strip())
+                            if br_ok and st_ok:
+                                store_match = 2
+                                break
+                            elif br_ok or st_ok:
+                                store_match = 1
+
+                # ความตรงกับ Marketplace
+                ctrl_code = str(d.get("priceCtrlCode") or "").strip().upper()
+                ctrl_name = str(d.get("ctrlName") or "").strip().upper()
+                ctrl_desc = str(d.get("ctrlDesc") or "").strip().upper()
+                mp_match = 0
+                if mp_target:
+                    if mp_target in ctrl_code or mp_target in ctrl_name or mp_target in ctrl_desc:
+                        mp_match = 2
+                    elif ("SHP" in ctrl_code and "SHOPEE" in mp_target) or ("LAZ" in ctrl_code and "LAZADA" in mp_target) or ("TIK" in ctrl_code and "TIKTOK" in mp_target):
+                        mp_match = 2
+
+                # ช่วงวันที่ของราคา
+                s_raw = d.get("startDate") or d.get("start_date")
+                e_raw = d.get("endDate") or d.get("end_date")
+                s_dt = parse_smart_datetime(s_raw) or parse_smart_date(s_raw) if s_raw else None
+                e_dt = parse_smart_datetime(e_raw) or parse_smart_date(e_raw) if e_raw else None
+
+                date_score = 0
+                if target_dt:
+                    if s_dt and e_dt:
+                        if s_dt <= target_dt <= e_dt:
+                            date_score = 3
+                        elif target_dt >= s_dt:
+                            date_score = 1
+                    elif s_dt and target_dt >= s_dt:
+                        date_score = 2
+                    elif not s_dt and not e_dt:
+                        date_score = 1
+                else:
+                    now_dt = datetime.datetime.now()
+                    if s_dt and e_dt and s_dt <= now_dt <= e_dt:
+                        date_score = 2
+                    elif s_dt and now_dt >= s_dt:
+                        date_score = 1
+
+                is_active = 1 if d.get("activeFlag") is True else 0
+                is_approved = 1 if str(d.get("statusNameEn", "")).strip().lower() == "approved" else 0
+                start_ts = s_dt.timestamp() if s_dt else 0.0
+
+                score = (store_match, mp_match, date_score, is_approved, is_active, start_ts)
+                scored_prices.append((score, price_val, d))
+
             for s_key in candidates:
                 records = self._product_master_cache.get(s_key)
                 if records:
@@ -1172,27 +1297,20 @@ class POSPricingReconciler:
                         records = [records]
                     for r in records:
                         if isinstance(r, dict):
-                            for k in ['retailPrice', 'retail_price', 'price', 'productPrice', 'product_price', 'normalPrice', 'normal_price', 'sellPrice', 'sell_price', 'unitPrice', 'stdPrice']:
-                                v = r.get(k)
-                                if v is not None and str(v).strip() != '':
-                                    try:
-                                        p = float(str(v).replace(',', '').strip())
-                                        if p > 0:
-                                            return p
-                                    except Exception:
-                                        pass
-                            for nested_k in ['product', 'data', 'productInfo', 'productMaster']:
+                            _check_price_item(r)
+                            for nested_k in ['product', 'data', 'productInfo', 'productMaster', 'priceListDetail', 'priceList', 'prices', 'productPrices']:
                                 nested = r.get(nested_k)
                                 if isinstance(nested, dict):
-                                    for k in ['retailPrice', 'retail_price', 'price', 'productPrice', 'product_price', 'normalPrice', 'normal_price', 'sellPrice', 'sell_price', 'unitPrice', 'stdPrice']:
-                                        v = nested.get(k)
-                                        if v is not None and str(v).strip() != '':
-                                            try:
-                                                p = float(str(v).replace(',', '').strip())
-                                                if p > 0:
-                                                    return p
-                                            except Exception:
-                                                pass
+                                    nested = [nested]
+                                if isinstance(nested, list):
+                                    for sub_item in nested:
+                                        if isinstance(sub_item, dict):
+                                            _check_price_item(sub_item)
+
+            if scored_prices:
+                scored_prices.sort(key=lambda x: x[0], reverse=True)
+                return scored_prices[0][1]
+
             return 0.0
 
         p_cached = _find_price_in_cache(sku_clean)
@@ -1209,9 +1327,16 @@ class POSPricingReconciler:
             except Exception:
                 pass
 
-        # 4. Actual price จาก POS Cart
+        # 4. Actual price จาก POS Cart (+ pre_discount ของคูปองที่เลือกอยู่แล้ว)
         if actual_price is not None and isinstance(actual_price, (int, float)) and actual_price > 0:
-            return round(float(actual_price), 2)
+            eff_pre = float(pre_discount) if pre_discount > 0 else 0.0
+            if eff_pre <= 0.0:
+                raw_pre = getattr(self, 'last_preselected_smco_coupons', None) or []
+                scanned_details = getattr(self, 'last_scanned_smco_coupon_details', None) or []
+                if raw_pre and scanned_details:
+                    code_map = {str(d.get("code", "")).strip().upper(): float(d.get("discount", 0.0)) for d in scanned_details if d.get("code")}
+                    eff_pre = sum(code_map.get(str(p).strip().upper(), 0.0) for p in raw_pre)
+            return round(float(actual_price) + eff_pre, 2)
 
         # 5. Fallback จาก expected_price
         if expected_price is not None:
@@ -1345,10 +1470,19 @@ class POSPricingReconciler:
                     logger.debug(f"[get_aggregated_combo_coupons] Skipping coupon {code} due to branch/store mismatch (branch_id={branch_id}, store_id={store_id})")
                     continue
 
+                # ตรวจสอบวันที่สั่งซื้อของลูกค้า (ถ้ามีระบุ) ให้กรองคูปองที่หมดอายุหรือยังไม่ถึงกำหนดออก
+                if order_date and not is_coupon_valid_for_order(cp, order_date):
+                    logger.debug(f"[get_aggregated_combo_coupons] Skipping expired/invalid coupon {code} for order_date {order_date}")
+                    continue
+
                 seen_in_sku.add(code)
                 cash_part = float(cp.get("couponDetailCash") or 0.0)
                 disc_part = float(cp.get("couponDetailDisc") or 0.0)
                 disc = cash_part + disc_part
+                if disc <= 0.0:
+                    disc = float(cp.get("discountAmt") or cp.get("discount") or cp.get("amount") or cp.get("discAmt") or cp.get("disc") or 0.0)
+                    if disc > 0.0:
+                        disc_part = disc
                 item = coupon_agg[code]
                 item["total_discount"] += disc
                 item["total_cash"] = item.get("total_cash", 0.0) + cash_part
@@ -1644,6 +1778,7 @@ class POSPricingReconciler:
         active_candidates = [
             c for c in candidates
             if c.get("cp_name") or is_valid_adjustment(c.get("oc_amount")) or is_valid_adjustment(c.get("dc_amount"))
+            or is_auto_adjustment(c.get("oc_amount")) or is_auto_adjustment(c.get("dc_amount"))
             or str(c.get("cp_name")).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
         ]
         return active_candidates
@@ -2287,7 +2422,8 @@ class POSPricingReconciler:
         coupon_cash: Any = None,
         coupon_disc: Any = None,
         suggested_oc_amount: str = "",
-        suggested_dc_amount: str = ""
+        suggested_dc_amount: str = "",
+        order_date: Any = None
     ) -> None:
         """บันทึก SKU ที่ยังไม่มี CP ลงไฟล์ Excel พร้อมวันที่ และ Remark ถ้ามีข้อมูล sugg_info โดยรักษาความถูกต้องของแต่ละ Pattern"""
         kwargs = {"suggested_cp": suggested_cp_code}
@@ -2344,12 +2480,20 @@ class POSPricingReconciler:
         # ส่งต่อส่วนลดราย pattern (ถ้ามี) เพื่อให้แต่ละแถวเห็นยอดของตัวเอง
         if pattern_discount is not None:
             kwargs["pattern_discount"] = pattern_discount
+        elif sugg_info and sugg_info.get("pattern_discount") is not None:
+            kwargs["pattern_discount"] = sugg_info.get("pattern_discount")
+        elif sugg_info and sugg_info.get("total_discount") is not None:
+            kwargs["pattern_discount"] = sugg_info.get("total_discount")
         elif sugg_info and sugg_info.get("discount") is not None:
             kwargs["pattern_discount"] = sugg_info.get("discount")
         if coupon_cash is not None:
             kwargs["coupon_cash"] = coupon_cash
+        elif sugg_info and sugg_info.get("couponDetailCash") is not None:
+            kwargs["coupon_cash"] = sugg_info.get("couponDetailCash")
         if coupon_disc is not None:
             kwargs["coupon_disc"] = coupon_disc
+        elif sugg_info and sugg_info.get("couponDetailDisc") is not None:
+            kwargs["coupon_disc"] = sugg_info.get("couponDetailDisc")
 
         # ถ้าไม่มี remark และไม่พบคูปองที่จับคู่ได้ ให้บันทึก remark แจ้งว่าไม่มี pattern พร้อมระบุจำนวน cp/dc ที่พบบนหน้าจอ
         if not kwargs.get("remark") and not suggested_cp_code:
@@ -2398,6 +2542,20 @@ class POSPricingReconciler:
                 except Exception:
                     pass
                 return
+
+        # กรองวันที่สั่งซื้อของลูกค้า: หากระบุ order_date และเป็นการแนะนำ (cp_name ว่าง)
+        # ตรวจสอบว่าช่วงวันครอบคลุมวันที่สั่งซื้อของลูกค้าหรือไม่ หากหมดอายุแล้วหรือยังไม่ถึงวันเริ่ม ให้ข้ามการบันทึก
+        if order_date and not cp_name:
+            p_order_d = parse_smart_date(order_date)
+            if p_order_d:
+                chk_s = parse_smart_date(kwargs.get("start_date") or start_date)
+                chk_e = parse_smart_date(kwargs.get("end_date") or end_date)
+                if chk_s and p_order_d < chk_s:
+                    logger.info(f"⏭️ ข้ามการบันทึก {sku_key} แนะนำ [{suggested_cp_code}] ลง cp_data เพราะยังไม่ถึงวันเริ่ม ({chk_s} > {p_order_d})")
+                    return
+                if chk_e and p_order_d > chk_e:
+                    logger.info(f"⏭️ ข้ามการบันทึก {sku_key} แนะนำ [{suggested_cp_code}] ลง cp_data เพราะหมดอายุแล้ว ({chk_e} < {p_order_d})")
+                    return
 
         self.add_missing_cp_to_excel(sku_key, expected_price, **kwargs)
 
@@ -3413,7 +3571,8 @@ class POSPricingReconciler:
             actual_price=actual_price,
             pre_discount=pre_discount,
             target_discount=target_discount,
-            expected_price=expected_price
+            expected_price=expected_price,
+            order_date=order_date
         )
         possible_req_discounts = set()
         if target_discount > 0:
@@ -3539,7 +3698,8 @@ class POSPricingReconciler:
                                 actual_price=actual_price,
                                 pre_discount=pre_discount,
                                 target_discount=target_discount,
-                                expected_price=expected_price
+                                expected_price=expected_price,
+                                order_date=order_date
                             )
                             combo_total_disc = 0.0
                             for c in all_combo_items:
@@ -3603,9 +3763,14 @@ class POSPricingReconciler:
                             except Exception:
                                 pass
 
+                    total_combo_disc = sum(float(c.get('discount', 0.0)) for c in all_combo_items)
+                    if total_combo_disc <= 0:
+                        total_combo_disc = sub_disc
+
                     matching_combos.append({
                         "suggested_code": combo_key,
                         "discount": new_code_disc if new_code_tokens else sub_disc,
+                        "total_discount": round(total_combo_disc, 2),
                         "type": "single" if len(sorted_codes) == 1 else "combo",
                         "score": base_score,
                         "s_val": s_val,
@@ -3615,7 +3780,7 @@ class POSPricingReconciler:
                         "remark": combo_remark,
                         "new_code": new_code_val,
                         "preselected_in_combo": [p for p in preselected if p in sorted_codes and p not in new_code_tokens],
-                        "pattern_discount": round(sub_disc, 2),
+                        "pattern_discount": round(total_combo_disc, 2),
                         "couponDetailCash": round(combo_cash, 2) if combo_has_split else "",
                         "couponDetailDisc": round(combo_disc, 2) if combo_has_split else "",
                     })
@@ -3648,6 +3813,11 @@ class POSPricingReconciler:
             "preselected_codes": pre_codes_list,
             "new_code": new_code_val,
             "discount": best["discount"],
+            "incremental_discount": best["discount"],
+            "total_discount": best.get("total_discount", best["discount"]),
+            "pattern_discount": best.get("pattern_discount", best.get("total_discount", best["discount"])),
+            "couponDetailCash": best.get("couponDetailCash", ""),
+            "couponDetailDisc": best.get("couponDetailDisc", ""),
             "type": best["type"],
             "start_date": final_start,
             "end_date": final_end,
@@ -3743,7 +3913,8 @@ class POSPricingReconciler:
             actual_price=actual_price,
             pre_discount=pre_discount,
             target_discount=target_discount,
-            expected_price=expected_price
+            expected_price=expected_price,
+            order_date=order_date
         )
         possible_req_discounts = set()
         if target_discount > 0:
@@ -3865,7 +4036,8 @@ class POSPricingReconciler:
                                 actual_price=actual_price,
                                 pre_discount=pre_discount,
                                 target_discount=target_discount,
-                                expected_price=expected_price
+                                expected_price=expected_price,
+                                order_date=order_date
                             )
                             combo_total_disc = 0.0
                             for c in all_combo_items:
@@ -3914,6 +4086,10 @@ class POSPricingReconciler:
                             except Exception:
                                 pass
 
+                    total_combo_disc = sum(float(c.get('discount', 0.0)) for c in all_combo_items)
+                    if total_combo_disc <= 0:
+                        total_combo_disc = sub_disc
+
                     results.append({
                         "cp_name": combo_code,
                         "oc_amount": "",
@@ -3925,7 +4101,7 @@ class POSPricingReconciler:
                         # เก็บส่วนลดของ pattern นี้ (cash+disc รวม) เพื่อให้ตอนบันทึก
                         # cp_data แต่ละแถวเห็นส่วนลดของตัวเอง ไม่ใช่แค่ sale_price
                         # เดียวกันทุกแถวแล้วแยกไม่ออกว่าแต่ละ cp ลดเท่าไร
-                        "pattern_discount": round(sub_disc, 2),
+                        "pattern_discount": round(total_combo_disc, 2),
                         "couponDetailCash": round(combo_cash, 2) if combo_has_split else "",
                         "couponDetailDisc": round(combo_disc, 2) if combo_has_split else "",
                     })
@@ -4233,7 +4409,7 @@ class POSPricingReconciler:
             print(f"[get_existing_panel_coupons] Error: {e}")
         return found_codes
 
-    def scan_matching_cp_candidates_on_smco(self, item_no: int, cp_candidates: list, required_seller_voucher: float = 0.0) -> list:
+    def scan_matching_cp_candidates_on_smco(self, item_no: int, cp_candidates: list, required_seller_voucher: float = 0.0, order_date: Any = None) -> list:
         """
         สแกนดูคูปองทั้งหมดบนหน้าต่าง Modal ของ SMCO แล้วจับคู่กับ cp_candidates
         ส่งกลับ list ของ candidate ที่พบคูปองบนหน้าเว็บ SMCO จริง (หรือ candidate ที่ไม่จำเป็นต้องใช้ CP)
@@ -4547,15 +4723,17 @@ class POSPricingReconciler:
                 if raw_sku_ref and (not hasattr(self, '_product_master_cache') or not self._product_master_cache or raw_sku_ref.strip().upper() not in self._product_master_cache):
                     self.fetch_product_master_info(raw_sku_ref)
 
-                agg_coupons = self.get_aggregated_combo_coupons(raw_sku_ref or demonic_ordered_items_list)
+                agg_coupons = self.get_aggregated_combo_coupons(raw_sku_ref or demonic_ordered_items_list, order_date=order_date)
                 if agg_coupons:
                     logger.info(f"[scan_matching_cp_candidates_on_smco] Merging {len(agg_coupons)} aggregated combo coupons for {raw_sku_ref}: {[c.get('code') for c in agg_coupons]}")
                     agg_map = {c["code"]: c for c in agg_coupons}
                     for sc in scanned_details:
                         code = sc.get("code")
                         if code in agg_map:
-                            sc["discount"] = agg_map[code]["discount"]
-                            sc["raw_discount"] = agg_map[code]["raw_discount"]
+                            agg_d = float(agg_map[code].get("discount", 0.0))
+                            if agg_d > 0:
+                                sc["discount"] = agg_d
+                                sc["raw_discount"] = agg_map[code]["raw_discount"]
                             sc["is_aggregated"] = True
                             if agg_map[code].get("remark"):
                                 sc["remark"] = agg_map[code]["remark"]
@@ -4635,8 +4813,8 @@ class POSPricingReconciler:
             for cand in cp_candidates:
                 cp_name = cand.get("cp_name", "")
                 is_bypass = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
-                has_oc = is_valid_adjustment(cand.get("oc_amount", ""))
-                has_dc = is_valid_adjustment(cand.get("dc_amount", ""))
+                has_oc = is_valid_adjustment(cand.get("oc_amount", "")) or is_auto_adjustment(cand.get("oc_amount", ""))
+                has_dc = is_valid_adjustment(cand.get("dc_amount", "")) or is_auto_adjustment(cand.get("dc_amount", ""))
                 has_cp = bool(cp_name and not is_bypass and str(cp_name).strip() != "")
 
                 # หากไม่มีทั้ง CP, OC, DC และไม่ใช่ Bypass (แถวว่างเปล่าทั้งหมด) -> ข้ามทันที
@@ -4650,6 +4828,9 @@ class POSPricingReconciler:
 
                 if not cp_name or is_bypass or str(cp_name).strip() == "":
                     # ชุดที่ไม่มีคูปอง (มีแต่ OC/DC หรือ bypass) ถือว่า match ได้
+                    if order_date and not is_coupon_valid_for_order(cand, order_date):
+                        logger.debug(f"[scan_matching_cp_candidates_on_smco] Candidate without CP skipped: invalid for order_date {order_date}")
+                        continue
                     matched_candidates.append(cand)
                 else:
                     raw_tokens = [t.strip().upper() for part in str(cp_name).split(',') for t in part.split() if t.strip()]
@@ -4691,6 +4872,9 @@ class POSPricingReconciler:
                         all_tokens_in_smco = False
 
                     if all_tokens_in_smco:
+                        if order_date and not is_coupon_valid_for_order(cand, order_date):
+                            logger.info(f"[scan_matching_cp_candidates_on_smco] Candidate {cand.get('cp_name')} skipped: invalid for order_date {order_date}")
+                            continue
                         matched_candidates.append(cand)
 
             return matched_candidates
@@ -5015,12 +5199,19 @@ class POSPricingReconciler:
         def is_valid_adjustment(amount_str: Any) -> bool:
             if not amount_str or str(amount_str).strip() == "" or str(amount_str).strip().upper() == "NONE":
                 return False
+            if str(amount_str).strip().lower() == "auto":
+                return False
             tokens = str(amount_str).split()
             for token in tokens:
                 clean = token.replace('-', '').replace('+', '').split('.')[0].strip()
                 if clean.isdigit() and int(clean) > 0:
                     return True
             return False
+
+        def is_auto_adjustment(amount_str: Any) -> bool:
+            if amount_str is None:
+                return False
+            return str(amount_str).strip().lower() == "auto"
 
         # ตรวจสอบสถานะโหมด Auto Invoice และยอด Seller Voucher ของออเดอร์
         is_auto_inv = False
@@ -5102,26 +5293,17 @@ class POSPricingReconciler:
                         )
                         logger.info(f"[Admin Override] SKU {sku_key} price {expected_price}: applying [{admin_override_cp}] (bypass date check)")
                         oc_admin, dc_admin = self._lookup_oc_dc_for_pattern(sku_key, expected_price, admin_override_cp)
-                        if oc_admin:
-                            self.app.update_log(f"⚡ [Admin Override] ปรับราคาขึ้น (Overcharge): {oc_admin} บาท")
+                        admin_cand = {
+                            "cp_name": admin_override_cp,
+                            "oc_amount": oc_admin,
+                            "dc_amount": dc_admin,
+                            "source": "ADMIN"
+                        }
                         try:
-                            if oc_admin:
-                                self.smco_set_overcharge_product(sku_key, str(oc_admin))
-                                time.sleep(0.5)
-                            self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, admin_override_cp)
-                            if dc_admin:
-                                try:
-                                    item_qty = int(item.get('จำนวน', 1))
-                                except Exception:
-                                    item_qty = 1
-                                self.app.update_log(f"📉 [Admin Override] ปรับราคาลด (Discount): {dc_admin} x {item_qty}")
-                                self.smco_set_discount_product(sku_key, str(dc_admin), qty=item_qty)
+                            self.apply_chosen_pricing_candidate(item, sku_key, item_no_1indexed, admin_cand, expected_price, purchased_date)
                         except Exception as ex_admin:
-                            print(f"[Admin Override] Error applying admin coupons: {ex_admin}")
-                            try:
-                                self.cp_sonic_blow_process(item_no_1indexed, admin_override_cp)
-                            except Exception:
-                                pass
+                            print(f"[Admin Override] Error applying admin candidate: {ex_admin}")
+                            raise
                         time.sleep(0.5)
                         continue
 
@@ -5151,7 +5333,7 @@ class POSPricingReconciler:
                                     "suggested_remark": sv_chosen.get("remark") or sv_chosen.get("desc") or ""
                                 }
                             has_entry = len(cp_candidates) > 0
-                            self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                            self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info, order_date=purchased_date)
 
                             if sv_status == "NOT_FOUND":
                                 log_msg = (
@@ -5217,7 +5399,7 @@ class POSPricingReconciler:
                                     self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cand.get('cp_name')})")
                                     bypassed = True
                                     break
-                                elif is_valid_adjustment(cand.get("oc_amount", "")):
+                                elif is_valid_adjustment(cand.get("oc_amount", "")) or is_auto_adjustment(cand.get("oc_amount", "")):
                                     oc_amount_to_apply = str(cand.get("oc_amount", "")).strip()
                                     matched_cand = cand
                                     self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_to_apply} บาท")
@@ -5280,16 +5462,8 @@ class POSPricingReconciler:
 
                             # 1.2 ถ้า candidate มีการระบุ oc_amount ชัดเจนในตาราง -> ปรับราคาขึ้นตาม oc_amount และใส่คูปอง (ถ้ามี)
                             elif oc_amount_to_apply is not None:
-                                self.smco_set_overcharge_product(sku_key, str(oc_amount_to_apply))
-                                if matched_cand and matched_cand.get("cp_name"):
-                                    cand_cp_name = str(matched_cand.get("cp_name", "")).strip()
-                                    is_bp = cand_cp_name.upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
-                                    if not is_bp and cand_cp_name:
-                                        self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปองที่เหลือ [{cand_cp_name}] สำหรับ SKU: {sku_key}...")
-                                        try:
-                                            self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cand_cp_name)
-                                        except Exception as ex_cp:
-                                            print(f"Error applying candidate coupons in diff > 0: {ex_cp}")
+                                cand_to_run = matched_cand or {"oc_amount": oc_amount_to_apply}
+                                self.apply_chosen_pricing_candidate(item, sku_key, item_no_1indexed, cand_to_run, expected_price, purchased_date)
 
                             # 1.3 ถ้าไม่มี candidate ในตารางเลย
                             # เมื่อราคาที่ได้จาก response / POS ต่ำกว่าราคาที่ต้องออกบิล (diff_val > 0)
@@ -5317,7 +5491,7 @@ class POSPricingReconciler:
 
                                 if remark_match_cand:
                                     suggested_cp_code = remark_match_cand.get("suggested_code") or remark_match_cand.get("code") or ""
-                                    self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, remark_match_cand)
+                                    self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, remark_match_cand, order_date=purchased_date)
                                     log_msg = (
                                         f"ℹ️ พบคูปองแนะนำ [{suggested_cp_code}] บน SMCO ที่ระบุราคาตรงกับ {expected_price} สำหรับ SKU: {sku_key} "
                                         f"-> หยุดเพื่อให้ตรวจสอบก่อนทำการ Overcharge"
@@ -5362,7 +5536,8 @@ class POSPricingReconciler:
 
                         # สแกนดูว่าในบรรดา candidates จากตาราง มีกี่ชุดที่พบคูปองบนหน้าเว็บ SMCO จริง
                         available_candidates = self.scan_matching_cp_candidates_on_smco(
-                            item_no_1indexed, cp_candidates or [], required_seller_voucher=0.0
+                            item_no_1indexed, cp_candidates or [], required_seller_voucher=0.0,
+                            order_date=purchased_date
                         )
 
                         target_discount = abs(float(diff_val))
@@ -5386,7 +5561,8 @@ class POSPricingReconciler:
                             d_cp = str(direct_cand.get("cp_name", "")).strip().upper()
                             t_tokens = set(t_cp.split())
                             d_tokens = set(d_cp.split())
-                            has_adj = is_valid_adjustment(table_cand.get("oc_amount")) or is_valid_adjustment(table_cand.get("dc_amount"))
+                            has_adj = (is_valid_adjustment(table_cand.get("oc_amount")) or is_valid_adjustment(table_cand.get("dc_amount"))
+                                       or is_auto_adjustment(table_cand.get("oc_amount")) or is_auto_adjustment(table_cand.get("dc_amount")))
                             # ถ้าตารางมีปรับราคา OC/DC ร่วมด้วย ถือว่าเป็นคนละสูตรกับคูปองลดตรงๆ บน SMCO
                             if has_adj:
                                 return False
@@ -5400,7 +5576,7 @@ class POSPricingReconciler:
                         # ─── CASE 0: ไม่พบชุดใดที่ใช้ได้บน SMCO เลย ───
                         if len(unified_candidates) == 0:
                             has_entry = len(cp_candidates) > 0
-                            self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                            self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info, order_date=purchased_date)
                             log_msg = f"❌ ไม่พบชุด CP/DC ใดที่ตรงกับในระบบ SMCO สำหรับ SKU: {sku_key} (วันที่: {purchased_date}, ราคาที่ต้องออก: {expected_price}) -> หยุดปรับราคาและสร้างคำถาม"
 
                             logger.warning(log_msg)
@@ -5411,7 +5587,7 @@ class POSPricingReconciler:
                         elif len(unified_candidates) == 1:
                             # หาก 1 ชุดนี้เป็นคูปองใหม่ที่พบเฉพาะบน SMCO แต่ยังไม่เคยระบุในตาราง cp_data.xlsx
                             if unified_candidates[0].get("source") == "SMCO" and len(available_candidates) == 0:
-                                self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                                self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info, order_date=purchased_date)
                                 log_msg = f"ℹ️ พบคูปองแนะนำ [{suggested_cp_code}] บน SMCO สำหรับ SKU: {sku_key} แต่ยังไม่ได้บันทึกใน cp_data.xlsx -> หยุดเพื่อให้ตรวจสอบก่อน"
                                 logger.info(log_msg)
                                 self.app.update_log(log_msg)
@@ -5428,46 +5604,14 @@ class POSPricingReconciler:
                                 continue
 
                             has_valid_cp = bool(cp_name and not is_bypass_signal and cp_name.strip() != "")
-                            has_valid_oc = is_valid_adjustment(oc_amount_str)
-                            has_valid_dc = is_valid_adjustment(dc_amount_str)
+                            has_valid_oc = is_valid_adjustment(oc_amount_str) or is_auto_adjustment(oc_amount_str)
+                            has_valid_dc = is_valid_adjustment(dc_amount_str) or is_auto_adjustment(dc_amount_str)
 
                             if not (has_valid_cp or has_valid_oc or has_valid_dc):
-                                self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info)
+                                self._record_missing_cp_with_dates(sku_key, expected_price, suggested_cp_code, sugg_info, order_date=purchased_date)
                                 self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True, suggested_cp_info=sugg_info)
 
-                            if has_valid_cp:
-                                self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
-                                try:
-                                    cp_ok = self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cp_name)
-                                    if not cp_ok:
-                                        log_err = f"❌ เกิดข้อผิดพลาดขณะกดเลือกคูปอง [{cp_name}] บน SMCO สำหรับ SKU: {sku_key}"
-                                        logger.error(log_err)
-                                        self.app.update_log(log_err)
-                                        self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
-                                    time.sleep(0.5)
-                                except Exception as check_err:
-                                    print(f"Error checking and filtering cp/dc tooltips: {check_err}")
-                                    cp_ok = self.cp_sonic_blow_process(item_no_1indexed, cp_name)
-                                    if not cp_ok:
-                                        log_err = f"❌ เกิดข้อผิดพลาดขณะกดเลือกคูปอง [{cp_name}] บน SMCO สำหรับ SKU: {sku_key}"
-                                        logger.error(log_err)
-                                        self.app.update_log(log_err)
-                                        self._raise_missing_cp_guide(item, sku_key, actual_price, expected_price, purchased_date, has_entry=True)
-                                    time.sleep(0.5)
-
-                            if has_valid_oc:
-                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
-                                self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
-                                time.sleep(0.5)
-
-                            if has_valid_dc:
-                                item_qty = int(item.get('จำนวน', 1))
-                                total_dc = float(dc_amount_str) * item_qty
-                                self.app.update_log(f"📉 ปรับราคาลด (Discount): {dc_amount_str} x {item_qty} = {total_dc} บาท")
-                                self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=item_qty)
-                                time.sleep(0.5)
-
-                            self.app.update_log(f"✅ ใช้ชุด CP/DC สำหรับ SKU: {sku_key} สำเร็จ")
+                            self.apply_chosen_pricing_candidate(item, sku_key, item_no_1indexed, chosen_cand, expected_price, purchased_date)
 
                         # ─── CASE 2: พบชุดที่ตรงบน SMCO มากกว่า 1 ชุด (Ambiguity Detected -> Conflict Resolver) ───
                         else:
@@ -5523,7 +5667,8 @@ class POSPricingReconciler:
                                 base_p = self.get_base_price_for_sku(
                                     sku_key,
                                     actual_price=actual_price if isinstance(actual_price, (int, float)) and actual_price > 0 else None,
-                                    expected_price=expected_price
+                                    expected_price=expected_price,
+                                    order_date=purchased_date
                                 )
                                 if base_p <= 0:
                                     try:
@@ -5566,6 +5711,11 @@ class POSPricingReconciler:
                                 if cand.get("source") != "SMCO":
                                     continue
 
+                                # กรองวันที่สั่งซื้อของลูกค้า: ตรวจสอบว่า candidate นี้ครอบคลุมวันที่สั่งซื้อหรือไม่
+                                if purchased_date and not is_coupon_valid_for_order(cand, purchased_date):
+                                    logger.info(f"⏭️ ข้ามการบันทึก pattern [{cand.get('cp_name')}] ลง cp_data เนื่องจากไม่อยู่ในช่วงวันที่สั่งซื้อ ({purchased_date})")
+                                    continue
+
                                 c_cp = str(cand.get("cp_name", "") or "").strip()
                                 c_oc = str(cand.get("oc_amount", "") or "").strip()
                                 c_dc = str(cand.get("dc_amount", "") or "").strip()
@@ -5591,6 +5741,18 @@ class POSPricingReconciler:
                                     sku=sku_key
                                 )
 
+                                # ตรวจสอบเพิ่มเติมกับ resolved_start และ resolved_end ว่าครอบคลุมวันที่สั่งซื้อหรือไม่
+                                parsed_p_date = parse_smart_date(purchased_date)
+                                if parsed_p_date:
+                                    r_s = parse_smart_date(resolved_start)
+                                    r_e = parse_smart_date(resolved_end)
+                                    if (r_s and parsed_p_date < r_s) or (r_e and parsed_p_date > r_e):
+                                        logger.info(
+                                            f"⏭️ ข้ามการบันทึก pattern [{c_cp}] ลง cp_data เนื่องจากช่วงวัน "
+                                            f"[{resolved_start} - {resolved_end}] ไม่ครอบคลุมวันที่สั่งซื้อ ({purchased_date})"
+                                        )
+                                        continue
+
                                 self._record_missing_cp_with_dates(
                                     sku_key=sku_key,
                                     expected_price=target_rec_price,
@@ -5606,7 +5768,8 @@ class POSPricingReconciler:
                                     remark=resolved_rem,
                                     pattern_discount=cand.get("pattern_discount", cand.get("discount")),
                                     coupon_cash=cand.get("couponDetailCash"),
-                                    coupon_disc=cand.get("couponDetailDisc")
+                                    coupon_disc=cand.get("couponDetailDisc"),
+                                    order_date=purchased_date
                                 )
 
                             # 3. เลือกตัวที่จะนำไปใช้งาน: หากมี Admin Selection ให้ใช้ตาม Admin; หากยังไม่มี ให้ใช้ Smart Suggested Winner
@@ -5739,43 +5902,288 @@ class POSPricingReconciler:
 
                             # 4. ดำเนินการออกบิลต่อด้วย chosen_cand โดยไม่อุดตัน (Proceed Smoothly)
                             cp_name = chosen_cand.get("cp_name", "")
-                            oc_amount_str = chosen_cand.get("oc_amount", "")
-                            dc_amount_str = chosen_cand.get("dc_amount", "")
                             is_bypass_signal = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
 
                             if is_bypass_signal:
                                 self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cp_name})")
                                 continue
 
-                            has_valid_cp = bool(cp_name and not is_bypass_signal and cp_name.strip() != "")
-                            has_valid_oc = is_valid_adjustment(oc_amount_str)
-                            has_valid_dc = is_valid_adjustment(dc_amount_str)
+                            self.apply_chosen_pricing_candidate(item, sku_key, item_no_1indexed, chosen_cand, expected_price, purchased_date)
 
-                            if has_valid_cp:
-                                self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
-                                try:
-                                    cp_ok = self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cp_name)
-                                    if not cp_ok:
-                                        cp_ok = self.cp_sonic_blow_process(item_no_1indexed, cp_name)
-                                    time.sleep(0.5)
-                                except Exception as check_err:
-                                    print(f"Error applying coupon in conflict resolver: {check_err}")
-                                    self.cp_sonic_blow_process(item_no_1indexed, cp_name)
-                                    time.sleep(0.5)
+    def apply_chosen_pricing_candidate(
+        self,
+        item: dict,
+        sku_key: str,
+        item_no_1indexed: int,
+        chosen_cand: dict,
+        expected_price: float,
+        purchased_date: str
+    ) -> bool:
+        """
+        ดำเนินการเลือกคูปองและปรับราคา OC/DC ตาม Candidate ที่เลือก
+        รองรับการคำนวณส่วนต่างอัตโนมัติ (คำว่า 'auto' ในช่อง oc_amount หรือ dc_amount)
+        โดยคำนวณส่วนต่างต่อ 1 หน่วย (Qty=1) เสมอ เพื่อป้องกันส่วนลดทวีคูณตามจำนวนชิ้น
+        พร้อมทั้งอัปเดตบันทึกค่าจริงแทนที่ 'auto' ใน cp_data.xlsx และ Google Sheet (GAS)
+        """
+        cp_name = str(chosen_cand.get("cp_name", "") or "").strip()
+        oc_amount_str = str(chosen_cand.get("oc_amount", "") or "").strip()
+        dc_amount_str = str(chosen_cand.get("dc_amount", "") or "").strip()
+        is_bypass_signal = cp_name.upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
 
-                            if has_valid_oc:
-                                self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
-                                self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
-                                time.sleep(0.5)
+        if is_bypass_signal:
+            self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cp_name})")
+            return True
 
-                            if has_valid_dc:
-                                item_qty = int(item.get('จำนวน', 1))
-                                total_dc = float(dc_amount_str) * item_qty
-                                self.app.update_log(f"📉 ปรับราคาลด (Discount): {dc_amount_str} x {item_qty} = {total_dc} บาท")
-                                self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=item_qty)
-                                time.sleep(0.5)
+        has_valid_cp = bool(cp_name and not is_bypass_signal)
+        is_auto_oc = is_auto_adjustment(oc_amount_str)
+        is_auto_dc = is_auto_adjustment(dc_amount_str)
+        has_numeric_oc = is_valid_adjustment(oc_amount_str)
+        has_numeric_dc = is_valid_adjustment(dc_amount_str)
 
-                            self.app.update_log(f"✅ ใช้ชุด CP/DC สำหรับ SKU: {sku_key} สำเร็จ")
+        try:
+            item_qty = int(item.get('จำนวน', 1))
+            if item_qty <= 0:
+                item_qty = 1
+        except Exception:
+            item_qty = 1
+
+        # 1. กดเลือกคูปองบนหน้า POS Cart หากระบุไว้
+        if has_valid_cp:
+            self.app.update_log(f"🔍 ตรวจสอบและเลือกคูปอง [{cp_name}] สำหรับ SKU: {sku_key}...")
+            try:
+                cp_ok = self.apply_candidate_coupons_if_missing(item_no_1indexed, sku_key, cp_name)
+                if not cp_ok:
+                    cp_ok = self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                time.sleep(0.5)
+            except Exception as check_err:
+                print(f"Error checking and applying candidate coupon [{cp_name}]: {check_err}")
+                self.cp_sonic_blow_process(item_no_1indexed, cp_name)
+                time.sleep(0.5)
+
+        # 2. ปรับราคาขึ้น (Overcharge) กรณีระบุยอดคงที่
+        if has_numeric_oc:
+            self.app.update_log(f"⚡ ปรับราคาขึ้น (Overcharge) จากข้อมูลแคมเปญ: {oc_amount_str} บาท")
+            self.smco_set_overcharge_product(sku_key, str(oc_amount_str))
+            time.sleep(0.5)
+
+        # 3. ปรับราคาขึ้นอัตโนมัติ (Auto Overcharge) เมื่อระบุ "auto"
+        if is_auto_oc:
+            time.sleep(0.5)
+            re_res = self.bot.ProductManager.verify_item_price()
+            pos_info = (re_res or {}).get(sku_key, {}) if isinstance(re_res, dict) else {}
+            actual_unit_price = pos_info.get("actual")
+
+            if actual_unit_price == "NOT_FOUND" or not isinstance(actual_unit_price, (int, float)):
+                err_msg = f"❌ [Auto OC Error] ไม่สามารถอ่านราคาปัจจุบันบน POS สำหรับ SKU: {sku_key} เพื่อคำนวณส่วนต่างได้"
+                self.app.update_log(err_msg)
+                raise ValueError(err_msg)
+
+            actual_unit_price = float(actual_unit_price)
+            # คำนวณส่วนต่างต่อ 1 หน่วย (Qty=1) เสมอ (expected - actual: ค่าบวกแปลว่าราคาบน POS ยังต่ำกว่าเป้าหมาย ต้องปรับขึ้น)
+            rem_diff = round(float(expected_price) - actual_unit_price, 2)
+            self.app.update_log(
+                f"🔍 [Auto OC] ตรวจสอบราคาต่อหน่วย (Qty=1): POS={actual_unit_price:,.2f}, เป้าหมาย={float(expected_price):,.2f} -> ส่วนต่าง={rem_diff:+,.2f} บาท"
+            )
+
+            if rem_diff > 0.05:
+                oc_val_str = f"{rem_diff:g}"
+                self.app.update_log(f"⚡ [Auto OC] ปรับราคาขึ้น (Overcharge): {oc_val_str} บาท/ชิ้น")
+                self.smco_set_overcharge_product(sku_key, oc_val_str)
+                time.sleep(0.5)
+                self.update_auto_adjustment_in_cp_data(sku_key, expected_price, cp_name, resolved_oc=oc_val_str)
+                chosen_cand["oc_amount"] = oc_val_str
+            elif abs(rem_diff) <= 0.05:
+                self.app.update_log("✅ [Auto OC] ราคาบน POS ตรงกับเป้าหมายแล้ว ไม่ต้องปรับราคาขึ้น")
+                self.update_auto_adjustment_in_cp_data(sku_key, expected_price, cp_name, resolved_oc="")
+                chosen_cand["oc_amount"] = ""
+            else:
+                err_msg = (
+                    f"❌ [Auto OC Error] ราคาบน POS ({actual_unit_price:,.2f} บาท) "
+                    f"สูงกว่าราคาเป้าหมาย ({float(expected_price):,.2f} บาท) สำหรับ SKU: {sku_key} "
+                    f"(ส่วนต่าง: {-rem_diff:+,.2f} บาท/ชิ้น) -> ไม่สามารถปรับราคาขึ้นได้"
+                )
+                self.app.update_log(err_msg)
+                logger.error(err_msg)
+                raise ValueError(err_msg)
+
+        # 4. ปรับราคาลด (Discount) กรณีระบุยอดคงที่
+        if has_numeric_dc:
+            total_dc = float(dc_amount_str) * item_qty
+            self.app.update_log(f"📉 ปรับราคาลด (Discount): {dc_amount_str} x {item_qty} = {total_dc:,.2f} บาท")
+            self.smco_set_discount_product(sku_key, str(dc_amount_str), qty=item_qty)
+            time.sleep(0.5)
+
+        # 5. ปรับราคาลดอัตโนมัติ (Auto Discount) เมื่อระบุ "auto"
+        if is_auto_dc:
+            time.sleep(0.5)
+            re_res = self.bot.ProductManager.verify_item_price()
+            pos_info = (re_res or {}).get(sku_key, {}) if isinstance(re_res, dict) else {}
+            actual_unit_price = pos_info.get("actual")
+
+            if actual_unit_price == "NOT_FOUND" or not isinstance(actual_unit_price, (int, float)):
+                err_msg = f"❌ [Auto DC Error] ไม่สามารถอ่านราคาปัจจุบันบน POS สำหรับ SKU: {sku_key} เพื่อคำนวณส่วนต่างได้"
+                self.app.update_log(err_msg)
+                raise ValueError(err_msg)
+
+            actual_unit_price = float(actual_unit_price)
+            # คำนวณส่วนต่างต่อ 1 หน่วย (Qty=1) เสมอ (actual - expected: ค่าบวกแปลว่าราคาบน POS ยังแพงกว่าเป้าหมาย ต้องลดเพิ่ม)
+            rem_diff = round(actual_unit_price - float(expected_price), 2)
+            self.app.update_log(
+                f"🔍 [Auto DC] ตรวจสอบราคาต่อหน่วย (Qty=1): POS={actual_unit_price:,.2f}, เป้าหมาย={float(expected_price):,.2f} -> ส่วนต่าง={rem_diff:+,.2f} บาท"
+            )
+
+            if rem_diff > 0.05:
+                dc_val_str = f"{rem_diff:g}"
+                total_dc = rem_diff * item_qty
+                self.app.update_log(f"📉 [Auto DC] ปรับราคาลด (Discount): {dc_val_str} x {item_qty} = {total_dc:,.2f} บาท")
+                self.smco_set_discount_product(sku_key, dc_val_str, qty=item_qty)
+                time.sleep(0.5)
+                self.update_auto_adjustment_in_cp_data(sku_key, expected_price, cp_name, resolved_dc=dc_val_str)
+                chosen_cand["dc_amount"] = dc_val_str
+            elif abs(rem_diff) <= 0.05:
+                self.app.update_log("✅ [Auto DC] ราคาบน POS ตรงกับเป้าหมายแล้วหลังใส่คูปอง ไม่ต้องลดเพิ่ม")
+                self.update_auto_adjustment_in_cp_data(sku_key, expected_price, cp_name, resolved_dc="")
+                chosen_cand["dc_amount"] = ""
+            else:
+                err_msg = (
+                    f"❌ [Auto DC Error] ราคาบน POS หลังใส่คูปอง ({actual_unit_price:,.2f} บาท) "
+                    f"ต่ำกว่าราคาเป้าหมาย ({float(expected_price):,.2f} บาท) สำหรับ SKU: {sku_key} "
+                    f"(ส่วนต่างเกิน: {abs(rem_diff):,.2f} บาท/ชิ้น) -> คูปองลดเกิน ไม่สามารถใส่ส่วนลดเพิ่มได้"
+                )
+                self.app.update_log(err_msg)
+                logger.error(err_msg)
+                raise ValueError(err_msg)
+
+        self.app.update_log(f"✅ ใช้ชุด CP/DC สำหรับ SKU: {sku_key} สำเร็จ")
+        return True
+
+    def update_auto_adjustment_in_cp_data(
+        self,
+        sku_key: str,
+        expected_price: float,
+        cp_name: str = "",
+        resolved_oc: Optional[str] = None,
+        resolved_dc: Optional[str] = None
+    ) -> None:
+        """
+        อัปเดตบันทึกค่า oc_amount หรือ dc_amount ที่คำนวณได้อัตโนมัติ (แทนที่คำว่า 'auto')
+        ลงใน self.app.cp_df, บันทึกลงไฟล์ Excel (cp_data.xlsx) และซิงก์ขึ้น Google Sheet (GAS)
+        """
+        sku_clean = str(sku_key).strip().upper()
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 1. อัปเดตในหน่วยความจำ self.app.cp_df
+        matched_idx = None
+        if getattr(self.app, 'cp_df', None) is not None and not self.app.cp_df.empty:
+            df = self.app.cp_df
+            sku_mask = df['sku'].astype(str).str.strip().str.upper() == sku_clean
+            price_mask = (pd.to_numeric(df['sale_price'], errors='coerce') - float(expected_price)).abs() <= 0.05
+            matching_rows = df[sku_mask & price_mask]
+
+            for idx in matching_rows.index:
+                row = df.loc[idx]
+                r_cp = str(row.get('cp_name', '') or '').strip()
+                r_oc = str(row.get('oc_amount', '') or '').strip().lower()
+                r_dc = str(row.get('dc_amount', '') or '').strip().lower()
+
+                # เปรียบเทียบ cp_name แบบไม่สนลำดับ
+                cp_match = (canonical_cp_pattern(r_cp) == canonical_cp_pattern(cp_name)) or (not r_cp and not cp_name)
+                auto_match = (resolved_oc is not None and r_oc == "auto") or (resolved_dc is not None and r_dc == "auto")
+                if cp_match and auto_match:
+                    matched_idx = idx
+                    break
+
+            if matched_idx is not None:
+                if resolved_oc is not None:
+                    self.app.cp_df.loc[matched_idx, 'oc_amount'] = resolved_oc
+                if resolved_dc is not None:
+                    self.app.cp_df.loc[matched_idx, 'dc_amount'] = resolved_dc
+                if 'last_updated' in self.app.cp_df.columns:
+                    self.app.cp_df.loc[matched_idx, 'last_updated'] = now_str
+                self.app.update_log(
+                    f"💾 [Auto Override] อัปเดตค่าที่คำนวณได้ลงใน Memory: SKU={sku_key}, ราคา={expected_price}, "
+                    f"OC={resolved_oc if resolved_oc is not None else '-'}, DC={resolved_dc if resolved_dc is not None else '-'}"
+                )
+
+        # 2. บันทึกลงไฟล์ Excel (cp_data.xlsx)
+        excel_path = getattr(self.app, 'cp_table_location', '')
+        if not excel_path or not os.path.exists(excel_path):
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            for cand in [
+                os.path.join(base_dir, "tables", "cp_data.xlsx"),
+                os.path.join(base_dir, "assets", "tables", "cp_data.xlsx")
+            ]:
+                if os.path.exists(cand):
+                    excel_path = cand
+                    break
+
+        if excel_path and os.path.exists(excel_path):
+            try:
+                if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader and getattr(self.app, 'cp_df', None) is not None:
+                    self._dual_cp_loader.sync_to_local_excel(self.app.cp_df)
+                else:
+                    df_excel = pd.read_excel(excel_path)
+                    s_mask = df_excel['sku'].astype(str).str.strip().str.upper() == sku_clean
+                    p_mask = (pd.to_numeric(df_excel['sale_price'], errors='coerce') - float(expected_price)).abs() <= 0.05
+                    for idx in df_excel[s_mask & p_mask].index:
+                        r_cp = str(df_excel.loc[idx, 'cp_name'] or '').strip()
+                        r_oc = str(df_excel.loc[idx, 'oc_amount'] or '').strip().lower()
+                        r_dc = str(df_excel.loc[idx, 'dc_amount'] or '').strip().lower()
+                        cp_match = (canonical_cp_pattern(r_cp) == canonical_cp_pattern(cp_name)) or (not r_cp and not cp_name)
+                        auto_match = (resolved_oc is not None and r_oc == "auto") or (resolved_dc is not None and r_dc == "auto")
+                        if cp_match and auto_match:
+                            if resolved_oc is not None:
+                                df_excel.loc[idx, 'oc_amount'] = resolved_oc
+                            if resolved_dc is not None:
+                                df_excel.loc[idx, 'dc_amount'] = resolved_dc
+                            if 'last_updated' in df_excel.columns:
+                                df_excel.loc[idx, 'last_updated'] = now_str
+                            break
+                    df_excel.to_excel(excel_path, index=False)
+                    format_cp_excel(excel_path)
+
+                if os.path.exists(excel_path):
+                    self.app._cp_last_mtime = os.path.getmtime(excel_path)
+                self.app.update_log(f"💾 [Auto Override] เซฟทับค่า 'auto' ลงไฟล์ {os.path.basename(excel_path)} เรียบร้อย")
+            except Exception as ex_save:
+                logger.warning(f"[update_auto_adjustment_in_cp_data] Error saving to Excel: {ex_save}")
+
+        # 3. ซิงก์ขึ้น Google Sheet ผ่าน GAS
+        try:
+            if hasattr(self, '_dual_cp_loader') and self._dual_cp_loader:
+                current_mp = ""
+                try:
+                    if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                        current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                except Exception:
+                    current_mp = ""
+
+                gas_record = {
+                    "sku": sku_key,
+                    "marketplace": current_mp,
+                    "sale_price": float(expected_price),
+                    "cp_name": cp_name,
+                    "last_updated": now_str
+                }
+                if resolved_oc is not None:
+                    gas_record["oc_amount"] = resolved_oc
+                if resolved_dc is not None:
+                    gas_record["dc_amount"] = resolved_dc
+
+                # หากมี start_date / end_date ในแถวเดิม ให้นำติดไปด้วย
+                if matched_idx is not None and getattr(self.app, 'cp_df', None) is not None:
+                    r_orig = self.app.cp_df.loc[matched_idx]
+                    s_d = r_orig.get('usage_start_date') or r_orig.get('suggested_usage_start_date')
+                    e_d = r_orig.get('usage_end_date') or r_orig.get('suggested_usage_end_date')
+                    if pd.notna(s_d):
+                        gas_record["usage_start_date"] = str(s_d)
+                    if pd.notna(e_d):
+                        gas_record["usage_end_date"] = str(e_d)
+
+                self._dual_cp_loader.push_record_to_gas(gas_record, is_async=True)
+                self.app.update_log(f"☁️ [Auto Override] ส่งคำขออัปเดตขึ้น Google Sheet (GAS) เรียบร้อย")
+        except Exception as ex_gas:
+            logger.warning(f"[update_auto_adjustment_in_cp_data] Error syncing to GAS: {ex_gas}")
 
     def _raise_ambiguous_cp_guide(self, item: dict, sku_key: str, actual_price: Any, expected_price: Any, purchased_date: str, candidate_list: list, suggested_cp_info: Optional[dict] = None) -> None:
         """แจ้งเตือนและจัดรูปแบบข้อความขอวิธีปรับราคาเมื่อพบคูปองที่ตรงเงื่อนไขซ้ำซ้อนกันมากกว่า 1 ชุด"""

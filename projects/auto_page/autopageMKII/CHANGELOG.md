@@ -88,6 +88,35 @@
   - **Redundant Recipe Sanitization**: ทำความสะอาดและลบแถวสูตรคูปองที่ซ้ำซ้อน/คลาดเคลื่อนใน `tables/cp_data.xlsx` (เช่น แถว `MNL-002412` ราคา 2,839 บาท ที่มี `suggested_cp` ค้าง) เพื่อให้คงเหลือเฉพาะ Pattern ที่ถูกต้องตามสูตรโปรโมชั่นจริง
   - **Accel Mode Test Batch Execution**: ทดสอบการประมวลผลออเดอร์จริงผ่าน `tables/Accel_mode_test.xlsx` พร้อมตรวจสอบการบันทึกสถานะ `Completed_Orders` และ `Processed_Logs` อย่างสมบูรณ์
 
+### [ver5.x.x] - 2026-10-30
+
+- [X] **[Order Date Filtering & Campaign Period Guard for CP Patterns (`PW1-000651`)]**:
+  - **Root Cause Resolution**: แก้ไขปัญหาที่ `cp_data.xlsx` บันทึก 2 patterns ซ้ำซ้อนสำหรับ SKU `PW1-000651` (ราคา 1,699 บาท) โดยมี pattern เก่า `CP2609250003 DC2610090008` ปรากฏอยู่ทั้งที่คูปอง `DC2610090008` เป็นโปรโมชัน Flash Sale ที่หมดอายุไปแล้วตั้งแต่วันที่ 12 Oct 26:
+    - ใน API SMCO (`getProductMasterInfoPOSV3.htm`) ตัวคูปอง `DC2610090008` ระบบลง `endDate` เป็น `12/11/2026` แต่ในข้อความ Remark/Description ระบุว่า `"Promotion AIP_APW Shopee Flash Sale วันที่ 9-12 Oct 26 (Add-On)"`
+    - เพิ่มการตรวจสอบช่วงวันที่จริงจากข้อความ Description/Remark ด้วย `extract_coupon_date_range()` ใน `is_coupon_valid_for_order()` โดยหากวันสั่งซื้อของลูกค้า (`order_date` เช่น 30 ต.ค.) เลยช่วงวันสิ้นสุดแคมเปญ Flash Sale (12 ต.ค.) จะถือว่าคูปองหมดอายุทันที แม้ฟิลด์ `endDate` ใน API ของ SMCO จะยังไม่หมดอายุ
+    - ใน `reconcile_and_verify()` และ `_record_missing_cp_with_dates()` เพิ่มการกรองด้วย `purchased_date` (วันที่ลูกค้าสั่งซื้อ) อย่างเข้มงวด ทั้งก่อนคัดเลือก candidate และก่อนบันทึกลงไฟล์ `cp_data.xlsx` ป้องกันไม่ให้บันทึก pattern ที่ไม่อยู่ในช่วงวันสั่งซื้อของลูกค้า
+    - คลีนแถวคูปองที่หมดอายุใน `cp_data.xlsx` สำหรับ `PW1-000651 1699` คงเหลือเฉพาะ pattern ปัจจุบันที่ถูกต้องเพียงรายการเดียวคือ `CP2609250003 CP2610240004` (24/10/2026 - 31/10/2026)
+  - **Unit Test Coverage**: เพิ่มเทสเคส `test_pw1_000651_filters_expired_flash_sale_coupon_by_order_date` ใน [test_coupon_date_suggestion.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_coupon_date_suggestion.py) ผ่าน 100%
+
+
+- [X] **[POS Cart Effective Base Price Fix with Preselected Discounts (`MNL-002168`)]**:
+  - **Root Cause Resolution**: แก้ไขปัญหาที่บอทรายงาน `"ไม่มี pattern, cp/dcที่พบ: 5 อัน"` สำหรับออเดอร์ SKU `MNL-002168` ราคา 25,867 บาท (Base Price 53,267.00 บาท) ที่มีคูปอง Topup `CP2609280033` (24,000 บาท) เลือกอยู่บนตะกร้า POS:
+    - ใน `POSPricingReconciler.get_base_price_for_sku()` ขั้นตอนที่ 4 เดิมคืนค่า `actual_price` (29,267.00) โดยไม่ได้บวกส่วนลดของคูปองที่เลือกอยู่แล้ว (`pre_discount` 24,000.00 บาท) กลับเข้าไป ทำให้ฐานราคาตั้งต้นถูกเข้าใจผิดว่าเป็น 29,267.00 แทนที่จะเป็น 53,267.00
+    - เมื่อนำคอมโบ `CP2609280033` (24,000) + `CP2609290087` (3,400) รวมส่วนลด 27,400 มาคำนวณราคาสุทธิ `calc_net_price = effective_base_price - combo_total_disc` จะได้ $29,267 - 27,400 = 1,867$ บาท ซึ่งไม่ตรงกับ `expected_price` (25,867 บาท) ส่งผลให้ชุดคูปองที่ถูกต้องถูกปฏิเสธทิ้งทั้งหมด
+    - แก้ไขให้ขั้นตอนที่ 4 ใน `get_base_price_for_sku()` บวก `eff_pre` (จาก `pre_discount` หรือ `last_preselected_smco_coupons`) กลับเข้าสู่ `actual_price` เสมอ คืนค่าฐานราคาตั้งต้นที่ถูกต้อง 53,267.00 บาท
+    - **SMCO API `discountAmt` Fallback**: ใน `get_aggregated_combo_coupons()` เพิ่มการอ่านฟิลด์ `discountAmt` (เช่น 24,000 และ 3,400) จาก `productCouponDetail` เพิ่มเติมจาก `couponDetailCash`/`couponDetailDisc` ป้องกันปัญหามูลค่าคูปองกลายเป็น 0.0 เมื่อดึงผ่าน API SMCO
+    - **Discount Protection Guard**: ใน `scan_matching_cp_candidates_on_smco()` เพิ่มการตรวจสอบไม่ให้คูปองที่สแกนจากหน้าเว็บ (มีส่วนลดถูกต้องอยู่แล้ว) ถูกทับด้วยค่า 0.0 จาก API
+    - **Historical ProductPrices Date & Store Filtering**: ใน API Response `getProductMasterInfoPOSV3.htm` ราคาจริงไม่ได้อยู่ที่ฟิลด์ `price` ระดับบนสุด (ซึ่งเป็น `None`) แต่อยู่ในอาเรย์ `productPrices` ซึ่งเก็บประวัติราคาย้อนหลังกว่า 208 รายการ เดิมระบบดึงรายการแรกที่พบซึ่งเป็นราคาเก่า 49,990 บาท ทำให้คำนวณส่วนลดผิดพลาด ปรับปรุงให้ `_find_price_in_cache()` คัดเลือกราคาโดยตรวจสอบ `branchId`, `storeId`, Marketplace (`priceCtrlCode`), วันที่สั่งซื้อ (`startDate <= order_date <= endDate`), และสถานะ Approved ทำให้ได้ฐานราคาปัจจุบันที่ถูกต้องคือ 53,267.00 บาท
+    - ส่งผลให้ `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` ตรวจพบชุดคูปอง `"CP2609280033 CP2609290087"` ($53,267 - 27,400 = 25,867$) ได้อย่างสมบูรณ์แบบ
+  - **Unit Test Coverage**: เพิ่มเทสเคส `test_mnl_002168_preselected_topup_and_addon_combination_matches_expected` และ `test_mnl_002168_historical_product_prices_selects_active_date_price` ใน [test_preselected_coupon_recommendation.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_preselected_coupon_recommendation.py) ผ่าน 100%
+
+- [X] **[Auto OC/DC Difference Calculator & In-Place 'auto' Replacement (`cp_data`)]**:
+  - **Auto Adjustment Shortcut (`oc_amount="auto"` / `dc_amount="auto"`)**: เพิ่มความสามารถในการใส่คำว่า `"auto"` (แบบ case-insensitive) ในช่อง `oc_amount` หรือ `dc_amount` ในตาราง `cp_data.xlsx` หรือชีต GAS
+  - **Per-Unit (Qty=1) Invariant Calculation**: คำนวณส่วนต่างระหว่างราคาต่อหน่วยบน POS (`actual_unit_price`) กับราคาต่อหน่วยเป้าหมาย (`expected_price`) โดยตรึงเป็น Qty=1 เสมอ เพื่อป้องกันปัญหาส่วนลดทวีคูณหรือเบิ้ลตามจำนวนชิ้น (`item_qty`) เมื่อเรียก `smco_set_discount_product(sku, dc_val, qty=item_qty)`
+  - **Automatic In-Place Overwrite**: เมื่อคำนวณและปรับราคาสำเร็จ บอทจะทำการบันทึกยอดเงินจริง (เช่น `101`) ทับคำว่า `"auto"` ในหน่วยความจำ `self.app.cp_df`, ไฟล์ Excel `cp_data.xlsx` และส่งคำขออัปเดตขึ้น Google Sheet (GAS) ทันที เพื่อให้ออเดอร์ถัดไปสามารถดึงคูปอง + ส่วนลดคงที่ไปใช้งานได้เลยโดยไม่ต้องคำนวณซ้ำ
+  - **Negative Difference Guard (คูปองลดเกินราคาเป้าหมาย)**: หากใส่คูปองแล้ว ราคาบน POS หล่นไปต่ำกว่าราคาเป้าหมาย (`diff < 0`) จะบล็อกไม่ให้ใส่ส่วนลดเพิ่ม, ไม่เขียนทับคำว่า `"auto"` และหยุดการทำงานพร้อมแจ้ง Error อย่างชัดเจนเพื่อความปลอดภัย
+  - **GAS Backend Sync Support (`gas_backend.js`)**: เพิ่มตัวตรวจจับ `isAutoAdj` เพื่อให้ระบบ Google Apps Script สามารถระบุแถวเดิมที่มีค่า `"AUTO"` และอัปเดตทับแถวนั้นทันที แทนที่จะแทรกเป็นแถวใหม่
+
 ### [ver5.x.x] - 2026-10-12
 
 - [X] **[Preselected Top-up + Add-on Pairing & Authoritative Date Preservation (`MNL-002309`)]**:
