@@ -243,7 +243,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_price_mismatch_ignored_in_auto_inv(self):
         """ในโหมด Auto Invoice Mode ต้องไม่แสดง popup เตือน manual price mismatch"""
         self.mock_app.is_auto_invoice_mode.get.return_value = True
-        self.handler.get_remaining_balance = MagicMock(return_value=150.0)
+        self.handler._get_remaining_balance = MagicMock(return_value=150.0)
         self.handler.prompt_price_mismatch_dialog = MagicMock()
 
         res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
@@ -253,7 +253,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_price_mismatch_ignored_when_balance_is_zero(self):
         """เมื่อยอด balance เป็น 0.00 (ราคาตรงกัน) ต้องไม่แสดง popup"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler.get_remaining_balance = MagicMock(return_value=0.0)
+        self.handler._get_remaining_balance = MagicMock(return_value=0.0)
         self.handler.prompt_price_mismatch_dialog = MagicMock()
 
         res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
@@ -263,7 +263,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_price_mismatch_returns_to_page1_when_user_confirms(self):
         """เมื่อราคาไม่ตรง และ user ยืนยันย้อนกลับ (Yes) -> ต้องเรียก return_to_first_page และคืนค่า True"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler.get_remaining_balance = MagicMock(return_value=100.0)  # ยอดเกินมา 100
+        self.handler._get_remaining_balance = MagicMock(return_value=100.0)  # ยอดเกินมา 100
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
         self.handler.return_to_first_page = MagicMock()
 
@@ -281,7 +281,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_price_mismatch_stays_when_user_declines(self):
         """เมื่อราคาไม่ตรง และ user ปฏิเสธ (No) -> ต้องไม่เรียก return_to_first_page และคืนค่า False"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler.get_remaining_balance = MagicMock(return_value=-50.0)  # ยอดขาดไป 50
+        self.handler._get_remaining_balance = MagicMock(return_value=-50.0)  # ยอดขาดไป 50
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
         self.handler.return_to_first_page = MagicMock()
 
@@ -298,7 +298,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_sku_mismatch_ink_set(self):
         """เมื่อ SKU หมึกเซ็ตย่อยขาดไป 1 ตัว -> ต้องแสดง popup เตือน SKU และส่งกลับ True เมื่อกดยืนยัน"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler.get_remaining_balance = MagicMock(return_value=0.0)
+        self.handler._get_remaining_balance = MagicMock(return_value=0.0)
         
         # จำลอง ProductManager.verify_item_qty ตรวจพบหมึกเซ็ต SP2-001846 ขาด
         mock_pm = MagicMock()
@@ -325,7 +325,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_sku_mismatch_shipping_sv0(self):
         """เมื่อค่าขนส่ง SV0-000101 ไม่พบบน POS -> ต้องแสดง popup เตือน SKU ขนส่ง"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler.get_remaining_balance = MagicMock(return_value=0.0)
+        self.handler._get_remaining_balance = MagicMock(return_value=0.0)
 
         mock_pm = MagicMock()
         mock_pm.verify_item_qty.return_value = {
@@ -348,7 +348,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_both_sku_and_price_mismatch(self):
         """เมื่อมีทั้ง SKU ไม่ตรง และยอดเงินไม่ตรง -> ต้องแสดง popup สรุปทั้งสองรายการพร้อมกัน"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler.get_remaining_balance = MagicMock(return_value=120.0)
+        self.handler._get_remaining_balance = MagicMock(return_value=120.0)
 
         mock_pm = MagicMock()
         mock_pm.verify_item_qty.return_value = {

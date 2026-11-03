@@ -169,8 +169,10 @@ class POSPaymentHandler:
                         # 1. Collect and apply Tracking Number & Order No to Remark Modal
                         time.sleep(0.75)
                         remark_text = self.cus_order
-                        is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
-                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+                        is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(
+                            hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
+                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode')
+                                           and self.app.is_auto_invoice_mode.get())
 
                         if getattr(self.app, 'tracking_from_data_complete', False):
                             print(f"Tracking จาก data ครบ: {self.app.tracking_from_data} ข้าม collect_tracking")
@@ -181,20 +183,25 @@ class POSPaymentHandler:
                         else:
                             expected_tracking_count = (
                                 len(self.app.filter_data)
-                                if hasattr(self.app, 'filter_data') and self.app.filter_data is not None and not getattr(self.app.filter_data, 'empty', True)
-                                else None
-                            )
+                                if
+                                hasattr(self.app, 'filter_data') and self.app.filter_data is
+                                not None and not getattr(self.app.filter_data, 'empty', True) else None)
                             try:
-                                self.bot.tracking_manager.collect_tracking(remark_text, expected_count=expected_tracking_count)
+                                self.bot.tracking_manager.collect_tracking(
+                                    remark_text, expected_count=expected_tracking_count)
                             except Exception as track_err:
                                 if is_auto_inv:
-                                    print(f"Tracking collection failed in auto_inv: {track_err}, returning SMCO to first page and logging failed order...")
+                                    print(
+                                        f"Tracking collection failed in auto_inv: {track_err}, returning SMCO to first page and logging failed order...")
                                     marketplace = self.app.marketplace_target.get() if hasattr(self.app, 'marketplace_target') else "Marketplace"
-                                    fail_msg = f"เลข Tracking บน {marketplace} ไม่ครบตามจำนวน Package หรือหาไม่พบ: {track_err}"
+                                    fail_msg = f"เลข Tracking บน {marketplace}  ไม่ครบตามจำนวน Package หรือหาไม่พบ: {
+                                        track_err} "
                                     return self._handle_auto_inv_accel_abort(fail_msg, category="TRACKING_ERROR")
                                 else:
-                                    print(f"Tracking collection failed in manual mode: {track_err}. Staying on payment page without returning...")
-                                    self.app.update_log(f"⚠️ {track_err} -> ไม่พบ Tracking (โหมด Manual: อยู่หน้าชำระเงินต่อ ไม่ย้อนกลับ)")
+                                    print(
+                                        f"Tracking collection failed in manual mode: {track_err}. Staying on payment page without returning...")
+                                    self.app.update_log(
+                                        f"⚠️ {track_err} -> ไม่พบ Tracking (โหมด Manual: อยู่หน้าชำระเงินต่อ ไม่ย้อนกลับ)")
                                     self.bot.tracking_manager.trackings = []
 
                         # กรอก Order ไปที่ cnRemark และ modal (ref1RemarkTemp), Tracking ไปที่ ref2/ref3RemarkTemp
@@ -204,7 +211,8 @@ class POSPaymentHandler:
                         time.sleep(0.75)
                         final_price = 0
                         if self.app.marketplace_target.get() == 'SHOPEE':
-                            final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
+                            final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
+                                           ) - self.app.cus_seller_voucher.get()
                             try:
                                 channel_key = f"{self.bot.operation_states.get('purchased_channel')}"
                                 channel = self.bot.channel_options.get(channel_key, "SHOPEE")
@@ -226,7 +234,8 @@ class POSPaymentHandler:
 
                         # 4. Fill PO No.
                         try:
-                            po_no_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                            po_no_input_element = self.driver.find_element(
+                                By.XPATH, "//input[@id='textbox81037000102']")
                             self.bot.js_input_value(po_no_input_element, self.cus_order)
                         except Exception as e:
                             print("Cannot fill PO No:", e)
@@ -249,14 +258,16 @@ class POSPaymentHandler:
 
                         # 6. Fill Customer Name into textbox81037000101
                         cus_name_val = self.app.cus_name.get() if self.app.cus_name.get() else self.cus_order
-                        final_cus_name_input_element = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+                        final_cus_name_input_element = self.driver.find_element(
+                            By.XPATH, "//input[@id='textbox81037000101']")
                         self.bot.js_input_value(final_cus_name_input_element, cus_name_val)
 
                     except Exception as err:
                         print("Final page form filling failed, skip to waiting for price:", err)
                         if is_auto_inv:
                             cat = "TRACKING_ERROR" if "tracking" in str(err).lower() else "GENERAL_ERROR"
-                            return self._handle_auto_inv_accel_abort(f"เกิดข้อผิดพลาดในการกรอกข้อมูลหน้าท้าย: {err}", category=cat)
+                            return self._handle_auto_inv_accel_abort(
+                                f"เกิดข้อผิดพลาดในการกรอกข้อมูลหน้าท้าย: {err} ", category=cat)
                         break
 
                     # 7. Enter final price into ripCash00
@@ -276,12 +287,16 @@ class POSPaymentHandler:
                     self.app.is_bot_browser_busy.set(False)
                     print("กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มเขียว หรือกดย้อนกลับไปหน้าที่ 1")
                     if not self.bot.tracking_manager.trackings:
-                        self.app.update_log("⚠️ ไม่พบเลข Tracking: กรอกข้อมูลอื่นหน้าท้ายเรียบร้อยแล้ว รอผู้ใช้ตรวจสอบ/ใส่ tracking และกดปุ่มชำระเงิน (ปุ่มเขียว)")
+                        self.app.update_log(
+                            "⚠️ ไม่พบเลข Tracking: กรอกข้อมูลอื่นหน้าท้ายเรียบร้อยแล้ว รอผู้ใช้ตรวจสอบ/ใส่ tracking และกดปุ่มชำระเงิน (ปุ่มเขียว)")
                     else:
-                        self.app.update_log("✅ กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มชำระเงิน (ปุ่มเขียว) หรือกดย้อนกลับไปหน้า 1")
+                        self.app.update_log(
+                            "✅ กรอกข้อมูลหน้าท้ายเรียบร้อย: รอผู้ใช้กดปุ่มชำระเงิน (ปุ่มเขียว) หรือกดย้อนกลับไปหน้า 1")
 
                     # 8. Test Mode Guard: Checkpoint 4 (หยุดหลังกรอกหน้าท้าย - ก่อนกดปุ่มเขียว)
-                    if hasattr(self.bot, 'should_stop_at_test_checkpoint') and self.bot.should_stop_at_test_checkpoint("4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"):
+                    if hasattr(
+                            self.bot, 'should_stop_at_test_checkpoint') and self.bot.should_stop_at_test_checkpoint(
+                            "4. หลังกรอกหน้าท้าย (ก่อนกดปุ่มเขียว)"):
                         verification = self.verify_final_page_elements(
                             expected_po=self.cus_order,
                             expected_cus_name=cus_name_val,
@@ -296,13 +311,16 @@ class POSPaymentHandler:
 
                         # ตรวจสอบเงื่อนไข Auto-advance: Test Mode + Accel Mode + Auto Invoice Mode คู่กัน
                         is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get())
-                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+                        is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode')
+                                           and self.app.is_auto_invoice_mode.get())
                         is_auto_advance = is_accel and is_auto_inv
 
                         if is_auto_advance:
                             if is_all_ok:
-                                self.app.update_log("🚀 [Test Mode + Accel] ผลการ Test หน้าท้ายผ่าน (All OK)! กำลังบันทึกผลและกดย้อนกลับเพื่อเริ่ม Order ถัดไป...")
-                                logger.info(f"Order: {self.cus_order} - Test Mode Checkpoint 4 passed in Accel+AutoInv mode. Auto-advancing to next order.")
+                                self.app.update_log(
+                                    "🚀 [Test Mode + Accel] ผลการ Test หน้าท้ายผ่าน (All OK)! กำลังบันทึกผลและกดย้อนกลับเพื่อเริ่ม Order ถัดไป...")
+                                logger.info(
+                                    f"Order: {self.cus_order} - Test Mode Checkpoint 4 passed in Accel+AutoInv mode. Auto-advancing to next order.")
 
                                 # 1. บันทึกผลการทดสอบลงไฟล์ Accel
                                 try:
@@ -342,14 +360,17 @@ class POSPaymentHandler:
                                 return True
                             else:
                                 # Test ไม่ผ่าน: หยุดการทำงานทันทีเพื่อให้ผู้ใช้ตรวจสอบจุดผิดพลาด
-                                err_details = [k for k, v in verification.items() if k != 'all_ok' and isinstance(v, dict) and not v.get('ok', False)]
+                                err_details = [
+                                    k for k, v in verification.items()
+                                    if k != 'all_ok' and isinstance(v, dict) and not v.get('ok', False)]
                                 msg_fail = f"❌ [Test Mode Checkpoint 4] ข้อมูลหน้าท้ายไม่ครบถ้วน ({err_details}) บอทหยุดเพื่อให้ผู้ใช้ตรวจสอบ"
                                 print(msg_fail)
                                 self.app.update_log(msg_fail)
                                 logger.error(f"Order: {self.cus_order} - {msg_fail}")
 
                                 if hasattr(self.app, 'report_manager'):
-                                    self.app.report_manager.finish_order(self.cus_order, overall_status="FAILED", note=str(err_details))
+                                    self.app.report_manager.finish_order(
+                                        self.cus_order, overall_status="FAILED", note=str(err_details))
 
                                 if hasattr(self.app, 'is_accel_mode_activated'):
                                     self.app.is_accel_mode_activated.set(False)
@@ -401,7 +422,8 @@ class POSPaymentHandler:
                                             if isinstance(v, dict)
                                         ):
                                             print("❌ [Payment Guard] ตรวจพบ SKU ยังไม่ตรง บล็อกการคลิก Finish Order")
-                                            self.app.update_log("❌ ตรวจพบ SKU บน POS ไม่ตรงกับ Order กรุณาแก้ไขก่อนกดชำระเงิน")
+                                            self.app.update_log(
+                                                "❌ ตรวจพบ SKU บน POS ไม่ตรงกับ Order กรุณาแก้ไขก่อนกดชำระเงิน")
                                             self.app.is_finish_order_triggered.set(False)
                                             continue
                                     except Exception as sku_guard_err:
@@ -481,14 +503,17 @@ class POSPaymentHandler:
                                     print(f"❌ {err_msg}")
                                     self.app.update_log(f"❌ {err_msg}")
                                     logger.error(f"Order: {self.cus_order} - {err_msg}")
-                                    is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
-                                    is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode') and self.app.is_auto_invoice_mode.get())
+                                    is_accel = bool(hasattr(self.app, 'is_accel_mode') and self.app.is_accel_mode.get()) or bool(
+                                        hasattr(self.app, 'is_accel_mode_activated') and self.app.is_accel_mode_activated.get())
+                                    is_auto_inv = bool(hasattr(self.app, 'is_auto_invoice_mode')
+                                                       and self.app.is_auto_invoice_mode.get())
                                     if is_auto_inv:
-                                        return self._handle_auto_inv_accel_abort(err_msg, category="VERIFICATION_FAILED")
+                                        return self._handle_auto_inv_accel_abort(
+                                            err_msg, category="VERIFICATION_FAILED")
                                     elif "balance" in failed_fields:
                                         bal_val = verification.get("balance", {}).get("value")
                                         if bal_val is None:
-                                            bal_val = self.get_remaining_balance()
+                                            bal_val = self._get_remaining_balance()
                                         pos_price = round(final_price + bal_val, 2)
                                         diff = round(bal_val, 2)
                                         should_return = self.prompt_price_mismatch_dialog(
@@ -715,7 +740,6 @@ class POSPaymentHandler:
             except Exception as e:
                 print(f"Failed to recover CN Remark: {e}")
 
-
     def final_popup_handler(self, is_etax: bool = False, operation_obj: Any = None) -> bool:
         """
         Monitors for the SweetAlert2 popup after clicking the green payment button.
@@ -908,7 +932,8 @@ class POSPaymentHandler:
             # 3. ลองส่งปุ่ม ESC (Keyboard fallback)
             if not back_clicked:
                 try:
-                    from selenium.webdriver.common.action_chains import ActionChains
+                    from selenium.webdriver.common.action_chains import \
+                        ActionChains
                     from selenium.webdriver.common.keys import Keys
                     ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
                     print("Sent ESC key to return from payment page")
@@ -972,20 +997,15 @@ class POSPaymentHandler:
 
         return False
 
-    def get_remaining_balance(self) -> float:
+    def _get_remaining_balance(self) -> float:
         """
         อ่านค่ายอดคงเหลือ (Remaining Balance) จาก wrimagecard-lightGray บนหน้าชำระเงิน
         """
         balance_el = None
-        try:
-            balance_el = self.driver.find_element(
-                By.XPATH, "//div[contains(@class, 'wrimagecard-lightGray')]"
-            )
-        except Exception:
-            balance_el = self.driver.find_element(
-                By.XPATH,
-                "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']",
-            )
+        balance_el = self.driver.find_element(
+            By.XPATH, "//span[@class='col-xs-6 font-base font-color-base text-right ng-binding']"
+        )
+
         balance_text = (balance_el.text or "").strip().replace(",", "")
         return float(balance_text) if balance_text else 0.0
 
@@ -1135,12 +1155,12 @@ class POSPaymentHandler:
         # 2. ตรวจสอบยอดเงินคงเหลือ (Remaining Balance)
         try:
             time.sleep(0.3)
-            balance_val = self.get_remaining_balance()
+            balance_val: float = self._get_remaining_balance()
         except Exception as b_err:
             print("Cannot read remaining balance:", b_err)
-            balance_val = 0.0
+            balance_val: float = 0.0
 
-        price_mismatch = abs(balance_val) >= 0.01
+        price_mismatch: float = abs(balance_val) >= 0.01
 
         # หากทั้ง SKU และราคาถูกต้อง -> ไม่ต้องเตือน
         if not mismatched_skus and not price_mismatch:
@@ -1195,6 +1215,3 @@ class POSPaymentHandler:
                 "⚠️ ผู้ใช้เลือกไม่ออกบิล/อยู่หน้าชำระเงินต่อ โปรดตรวจสอบสินค้าและราคาก่อนกดชำระเงิน"
             )
             return False
-
-
-

@@ -6040,6 +6040,9 @@ class Bot_POS:
 
         self.app.is_bot_browser_busy.set(True)
         self.is_forbid = False
+        # Reset per-order skip state so a previous order cannot make this one
+        # look skipped after operation_start() completes.
+        self.is_skip = False
         is_etax = False
         self.is_old_tax_form = False
         self.cus_code = ""
@@ -6466,8 +6469,8 @@ class Bot_POS:
             # self.app.search_complete.set()
             # return
 
-            # * Add SKU จากไฟล์ Accel mode
-            # if self.app.is_accel_mode_activated.get():
+            # * Read the loaded Accel file when present. Missing-SN rejection is
+            # enforced by accel_fill_sku only in auto invoice mode.
             if len(self.app.accel_mode.accel_df_state) > 0:
                 try:
                     self.app.accel_mode.accel_fill_sku(self.driver, self.operation_thread)

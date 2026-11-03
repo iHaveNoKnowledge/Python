@@ -72,6 +72,14 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-11-03
+
+- [x] **[Bot life cycle when using Accel file in normal mode]**:
+  - **Bot stop working when no sn accroding to ordered SKU**: แก้บัคเนื่องจากมีการตัด order ออกเป็น "จบการทำงาน" เมื่อไม่มี SN ที่ใช้ได้ ใน manual mode ซึ่งจริงๆแล้ว manual mode มันไม่ควรตัดจบแต่ควรไปต่อด้วย user แบบ manual ส่วนการตัดจบมันเปน พฤติกรรมของ auto_inv mode เท่านั้น
+
+- [] **[pop-up แจ้งเตือนราคาผิดก่อนกดปุ่มเขียว]**:
+  - **ดึง xpath ผิด**: แก้ไข xpath ให้ถูกต้อง เนื่องจากไปดึงมาจากข้างปุ่มเขียวหน้าสุดท้าย จริงๆมันต้องไปดึงหน้าแรก ที่ช่อง total amt: 
+
 ### [ver5.x.x] - 2026-10-22
 
 - [X] **[Dual-Source CP Data: Pure Local vs GAS Sync Toggle Switch Architecture]**:
