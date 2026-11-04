@@ -62,6 +62,7 @@ class POSPaymentHandler:
                 title_attribute = ""
                 is_final_page_displayed = False
 
+                # / ตรวจสอบการเข้าหน้าท้ายว่าติดปัญหาไหม
                 while not self.bot.operation_thread.is_set():
                     try:
                         # 1. ตรวจสอบว่าหน้าสุดท้าย (Payment / ชำระเงิน) โผล่มาหรือยัง
@@ -278,7 +279,7 @@ class POSPaymentHandler:
                     except Exception as e:
                         print("auto_final_price broken:", e)
 
-                    # 7.1 Check price mismatch in Manual Mode (not auto_inv)
+                    # / 7.1 Check price mismatch in Manual Mode (not auto_inv)
                     if not is_auto_inv:
                         returned = self.check_and_prompt_price_mismatch(final_price)
                         if returned:
@@ -304,9 +305,9 @@ class POSPaymentHandler:
                         )
                         is_all_ok = bool(verification.get("all_ok"))
                         status_text = "✅ ครบถ้วน (All OK)" if is_all_ok else "❌ ไม่ครบถ้วน"
-                        print(f"🔬 [Test Mode Checkpoint 4] Final page verification: {status_text} -> {verification}")
+                        print(f"[Test Mode Checkpoint 4] Final page verification: {status_text} -> {verification}")
                         self.app.update_log(
-                            f"🔬 [Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text}"
+                            f"[Test Mode] ตรวจสอบหน้าท้ายก่อนกดปุ่มเขียว: {status_text}"
                         )
 
                         # ตรวจสอบเงื่อนไข Auto-advance: Test Mode + Accel Mode + Auto Invoice Mode คู่กัน
@@ -516,13 +517,21 @@ class POSPaymentHandler:
                                             bal_val = self._get_remaining_balance()
                                         pos_price = round(final_price + bal_val, 2)
                                         diff = round(bal_val, 2)
-                                        should_return = self.prompt_price_mismatch_dialog(
-                                            target_price=final_price, pos_price=pos_price, diff=diff
-                                        )
+                                        dialog_kwargs = {
+                                            "target_price": final_price,
+                                            "pos_price": pos_price,
+                                            "diff": diff,
+                                        }
+                                        order_no = self._get_active_order_no()
+                                        if order_no:
+                                            dialog_kwargs["order_no"] = order_no
+                                        should_return = self.prompt_price_mismatch_dialog(**dialog_kwargs)
                                         if should_return:
                                             self.return_to_first_page()
+                                            self._set_your_turn_if_back_on_first_page(wait_seconds=3.0)
                                             self.last_page = None
                                             break
+                                        self._set_your_turn_if_back_on_first_page(wait_seconds=3.0)
                             except Exception as e:
                                 print(f"Verification and payment submission failed: {e}")
                                 logger.error(f"Verification and payment error: {e}")
@@ -1002,12 +1011,75 @@ class POSPaymentHandler:
         อ่านค่ายอดคงเหลือ (Remaining Balance) จาก wrimagecard-lightGray บนหน้าชำระเงิน
         """
         balance_el = None
-        balance_el = self.driver.find_element(
-            By.XPATH, "//span[@class='col-xs-6 font-base font-color-base text-right ng-binding']"
-        )
+        try:
+            balance_el = self.driver.find_element(
+                By.XPATH, "//div[contains(@class, 'wrimagecard-lightGray')]"
+            )
+        except Exception:
+            balance_el = self.driver.find_element(
+                By.XPATH,
+                "//div[@class='col-sm-12    wrimagecard-lightGray wrimagecard-topimage ng-binding']",
+            )
+        # balance_el = self.driver.find_element(
+        #     By.XPATH, "//span[@class='col-xs-6 font-base font-color-base text-right ng-binding']"
+        # )
 
         balance_text = (balance_el.text or "").strip().replace(",", "")
         return float(balance_text) if balance_text else 0.0
+
+    def _get_active_order_no(self) -> str:
+        """Return the order ID only when the active DataFrame matches the running order."""
+        order_no = getattr(self.app, "order", "")
+        if not isinstance(order_no, str):
+            return ""
+        order_no = order_no.strip()
+        if not order_no:
+            return ""
+
+        order_df = getattr(self.app, "filter_data", None)
+        try:
+            if order_df is None or order_df.empty:
+                return ""
+            order_col = "หมายเลขคำสั่งซื้อ"
+            if order_col not in order_df.columns:
+                return ""
+            dataframe_orders = {
+                str(value).strip()
+                for value in order_df[order_col].dropna().tolist()
+                if str(value).strip()
+            }
+            # A mismatch means the selected DataFrame may belong to a previous order.
+            if dataframe_orders != {order_no}:
+                return ""
+        except Exception:
+            return ""
+        return order_no
+
+    def _set_your_turn_if_back_on_first_page(self, wait_seconds: float = 0.0) -> bool:
+        """Set the bot idle once the POS first page is visible again."""
+        deadline = time.monotonic() + max(0.0, wait_seconds)
+        while True:
+            try:
+                first_page_elements = self.driver.find_elements(
+                    By.CSS_SELECTOR, "#select2-salePersonSearch-container"
+                )
+                if any(element.is_displayed() for element in first_page_elements):
+                    break
+            except Exception:
+                pass
+
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.2)
+
+        # check_threads derives the visible status from this flag; setting only the
+        # label would be overwritten as long as the browser remained marked busy.
+        try:
+            if hasattr(self.app, "is_bot_browser_busy"):
+                self.app.is_bot_browser_busy.set(False)
+        except Exception as busy_err:
+            print(f"Could not clear browser busy status after returning to POS first page: {busy_err}")
+        return True
 
     def prompt_price_mismatch_dialog(
         self,
@@ -1015,6 +1087,7 @@ class POSPaymentHandler:
         pos_price: float,
         diff: float,
         mismatched_skus: Optional[list[str]] = None,
+        order_no: str = "",
     ) -> bool:
         """
         แสดง Pop-up แจ้งเตือนยอดเงินไม่ตรง หรือ SKU ไม่ตรง และถามว่าต้องการย้อนกลับไปหน้าแรกหรือไม่
@@ -1024,22 +1097,25 @@ class POSPaymentHandler:
         has_price_err = abs(diff) >= 0.01
 
         if has_sku_err and has_price_err:
-            title = "⚠️ ตรวจพบ SKU และยอดเงินไม่ตรงกับคำสั่งซื้อ!"
+            title = "ตรวจพบสินค้า/ค่าขนส่งและยอดเงินไม่ตรงกับคำสั่งซื้อ!"
         elif has_sku_err:
-            title = "⚠️ ตรวจพบรายการสินค้า (SKU) ไม่ตรงกับคำสั่งซื้อ!"
+            title = "ตรวจพบรายการสินค้า/ค่าขนส่งไม่ตรงกับคำสั่งซื้อ!"
         else:
-            title = "⚠️ ยอดเงินไม่ตรงกับราคาที่ต้องออกบิล!"
+            title = "ยอดเงินไม่ตรงกับราคาที่ต้องออกบิล!"
 
-        msg_lines = ["⚠️ ตรวจพบข้อมูลสินค้าหรือราคาไม่ตรงกับคำสั่งซื้อ!\n"]
+        msg_lines = ["ตรวจพบข้อมูลสินค้าหรือราคาไม่ตรงกับคำสั่งซื้อ!"]
+        if order_no:
+            msg_lines.append(f"เลข Order: {order_no}")
+        msg_lines.append("")
 
         if has_sku_err:
-            msg_lines.append("📋 รายการสินค้า / SKU ที่ผิดปกติบน POS:")
+            msg_lines.append("รายการสินค้า / ค่าขนส่งที่ผิดปกติบน POS:")
             msg_lines.extend(mismatched_skus)
             msg_lines.append("")
 
         if has_price_err:
             diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
-            msg_lines.append("💰 ยอดเงินไม่ตรง:")
+            msg_lines.append("ยอดเงินไม่ตรง:")
             msg_lines.append(f"• ราคาที่ต้องออกบิล (ลูกค้าจ่าย):  {target_price:,.2f} บาท")
             msg_lines.append(f"• ราคาที่ทำมาจากหน้าแรก (POS):    {pos_price:,.2f} บาท")
             msg_lines.append(f"• ส่วนต่าง:                      {diff_sign} บาท\n")
@@ -1143,7 +1219,25 @@ class POSPaymentHandler:
                         if isinstance(info, dict) and not info.get("ok", True):
                             exp = info.get("expected", 0)
                             act = info.get("actual", "NOT_FOUND")
-                            if exp == 0:
+                            if info.get("is_shipping_charge"):
+                                expected_shipping = float(info.get("expected_price", 0) or 0)
+                                actual_shipping = info.get("actual_price", "NOT_FOUND")
+                                if act == "NOT_FOUND":
+                                    mismatched_skus.append(
+                                        f"• ค่าขนส่ง Order {expected_shipping:,.2f} บาท: "
+                                        "ไม่พบรหัส SV0-000101 บน POS (ยังไม่ได้ใส่ค่าขนส่ง)"
+                                    )
+                                elif actual_shipping == "NOT_FOUND":
+                                    mismatched_skus.append(
+                                        f"• พบ SV0-000101 แต่ยังอ่านยอดค่าขนส่งจาก POS ไม่ได้ "
+                                        f"(Order ต้องเป็น {expected_shipping:,.2f} บาท)"
+                                    )
+                                else:
+                                    mismatched_skus.append(
+                                        f"• ค่าขนส่ง Order {expected_shipping:,.2f} บาท "
+                                        f"แต่ SV0-000101 บน POS เป็น {float(actual_shipping):,.2f} บาท"
+                                    )
+                            elif exp == 0:
                                 mismatched_skus.append(f"• {sku}: ไม่ได้สั่งใน Order แต่พบบน POS (เกิน {act} ชิ้น)")
                             elif act == "NOT_FOUND":
                                 mismatched_skus.append(f"• {sku}: ต้องการ {exp} ชิ้น แต่ไม่พบบน POS (ยิงไม่ติด/ขาด)")
@@ -1160,19 +1254,19 @@ class POSPaymentHandler:
             print("Cannot read remaining balance:", b_err)
             balance_val: float = 0.0
 
-        price_mismatch: float = abs(balance_val) >= 0.01
+        price_mismatch: bool = abs(balance_val) >= 0.01
 
         # หากทั้ง SKU และราคาถูกต้อง -> ไม่ต้องเตือน
         if not mismatched_skus and not price_mismatch:
             return False
 
         target_price = float(final_price)
-        pos_price = round(target_price + balance_val, 2)
+        pos_price = round(target_price - balance_val, 2)
         diff = round(balance_val, 2)
-        diff_sign = f"+{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
+        diff_sign = f"{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
 
         if mismatched_skus:
-            warn_sku_log = f"⚠️ [SKU Mismatch] พบสินค้าไม่ตรง: {'; '.join(mismatched_skus)}"
+            warn_sku_log = f"⚠️ [Item/Shipping Mismatch] พบสินค้า/ค่าขนส่งไม่ตรง: {'; '.join(mismatched_skus)}"
             print(warn_sku_log)
             self.app.update_log(warn_sku_log)
             logger.warning(f"Order: {self.cus_order} - {warn_sku_log}")
@@ -1188,18 +1282,22 @@ class POSPaymentHandler:
             self.app.update_log(warn_log)
             logger.warning(f"Order: {self.cus_order} - {warn_log}")
 
+        order_no = self._get_active_order_no()
+        dialog_kwargs = {"order_no": order_no} if order_no else {}
         if mismatched_skus:
             should_return = self.prompt_price_mismatch_dialog(
                 target_price=target_price,
                 pos_price=pos_price,
                 diff=diff,
                 mismatched_skus=mismatched_skus,
+                **dialog_kwargs,
             )
         else:
             should_return = self.prompt_price_mismatch_dialog(
                 target_price=target_price,
                 pos_price=pos_price,
                 diff=diff,
+                **dialog_kwargs,
             )
 
         if should_return:
@@ -1208,10 +1306,15 @@ class POSPaymentHandler:
                 f"Order: {self.cus_order} - User confirmed returning to page 1 to fix SKU/price mismatch."
             )
             self.return_to_first_page()
+            self._set_your_turn_if_back_on_first_page(wait_seconds=3.0)
             self.last_page = None
             return True
         else:
-            self.app.update_log(
-                "⚠️ ผู้ใช้เลือกไม่ออกบิล/อยู่หน้าชำระเงินต่อ โปรดตรวจสอบสินค้าและราคาก่อนกดชำระเงิน"
-            )
+            is_back_on_first_page = self._set_your_turn_if_back_on_first_page(wait_seconds=3.0)
+            if is_back_on_first_page:
+                self.app.update_log("🔙 ตรวจพบว่าผู้ใช้ย้อนกลับไปหน้าแรกแล้ว สถานะพร้อมให้ผู้ใช้ดำเนินการต่อ")
+            else:
+                self.app.update_log(
+                    "⚠️ ผู้ใช้เลือกไม่ออกบิล/อยู่หน้าชำระเงินต่อ โปรดตรวจสอบสินค้าและราคาก่อนกดชำระเงิน"
+                )
             return False

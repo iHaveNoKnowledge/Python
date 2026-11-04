@@ -72,7 +72,16 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
-### [ver5.x.x] - 2026-11-03
+### [ver5.3.0] - 2026-11-04
+
+- [X] **[Payment Mismatch Dialog Order Context & Your Turn Status]**:
+  - เพิ่มเลข Order ใน dialog โดยตรวจให้ตรงกับ `filter_data` ของ order ที่กำลังทำ เพื่อป้องกันการแสดงเลขจาก order เก่า
+  - เมื่อตรวจพบว่ากลับมาหน้าแรก POS แล้วหลังปิด dialog หรือกดย้อนกลับ ให้รีเซ็ต `is_bot_browser_busy` เพื่อแสดงสถานะ **Your Turn** สีเขียว
+- [X] **[Shopee Shipping Charge Validation & Lazada Exclusion]**:
+  - ตรวจ `SV0-000101` ในฐานะรหัสค่าขนส่ง โดยเทียบการมีอยู่และยอดบน POS กับ `ค่าจัดส่งที่ชำระโดยผู้ซื้อ` ของ order ปัจจุบันจาก `filter_data`; แจ้งกรณีไม่พบรหัสหรือยอดไม่ตรง
+  - ตรวจค่าส่งนี้เฉพาะ Shopee ซึ่งเป็น marketplace ที่เพิ่มค่าขนส่งลง POS; Lazada ไม่ต้องมี `SV0-000101` และไม่แจ้งเตือนเมื่อไม่มีรหัสนี้
+
+### [ver5.3.0] - 2026-11-03
 
 - [x] **[Bot life cycle when using Accel file in normal mode]**:
   - **Bot stop working when no sn accroding to ordered SKU**: แก้บัคเนื่องจากมีการตัด order ออกเป็น "จบการทำงาน" เมื่อไม่มี SN ที่ใช้ได้ ใน manual mode ซึ่งจริงๆแล้ว manual mode มันไม่ควรตัดจบแต่ควรไปต่อด้วย user แบบ manual ส่วนการตัดจบมันเปน พฤติกรรมของ auto_inv mode เท่านั้น
@@ -80,7 +89,7 @@
 - [] **[pop-up แจ้งเตือนราคาผิดก่อนกดปุ่มเขียว]**:
   - **ดึง xpath ผิด**: แก้ไข xpath ให้ถูกต้อง เนื่องจากไปดึงมาจากข้างปุ่มเขียวหน้าสุดท้าย จริงๆมันต้องไปดึงหน้าแรก ที่ช่อง total amt: 
 
-### [ver5.x.x] - 2026-10-22
+### [ver5.3.0] - 2026-10-22
 
 - [X] **[Dual-Source CP Data: Pure Local vs GAS Sync Toggle Switch Architecture]**:
   - **Dynamic Toggle Switch UI**: เพิ่มสวิตช์ `CTkSwitch` สำหรับสลับโหมดการทำงานระหว่าง **Pure Local (ออฟไลน์ 100%)** และ **GAS Sync (Cloud Google Sheet)** ไว้ที่แถวเดียวกับ `CP Data` (`self.cp_file_frame` คอลัมน์ 3 ถัดจากปุ่ม "open")
@@ -96,7 +105,7 @@
   - **Redundant Recipe Sanitization**: ทำความสะอาดและลบแถวสูตรคูปองที่ซ้ำซ้อน/คลาดเคลื่อนใน `tables/cp_data.xlsx` (เช่น แถว `MNL-002412` ราคา 2,839 บาท ที่มี `suggested_cp` ค้าง) เพื่อให้คงเหลือเฉพาะ Pattern ที่ถูกต้องตามสูตรโปรโมชั่นจริง
   - **Accel Mode Test Batch Execution**: ทดสอบการประมวลผลออเดอร์จริงผ่าน `tables/Accel_mode_test.xlsx` พร้อมตรวจสอบการบันทึกสถานะ `Completed_Orders` และ `Processed_Logs` อย่างสมบูรณ์
 
-### [ver5.x.x] - 2026-10-30
+### [ver5.3.0] - 2026-10-30
 
 - [X] **[Order Date Filtering & Campaign Period Guard for CP Patterns (`PW1-000651`)]**:
   - **Root Cause Resolution**: แก้ไขปัญหาที่ `cp_data.xlsx` บันทึก 2 patterns ซ้ำซ้อนสำหรับ SKU `PW1-000651` (ราคา 1,699 บาท) โดยมี pattern เก่า `CP2609250003 DC2610090008` ปรากฏอยู่ทั้งที่คูปอง `DC2610090008` เป็นโปรโมชัน Flash Sale ที่หมดอายุไปแล้วตั้งแต่วันที่ 12 Oct 26:
@@ -125,7 +134,7 @@
   - **Negative Difference Guard (คูปองลดเกินราคาเป้าหมาย)**: หากใส่คูปองแล้ว ราคาบน POS หล่นไปต่ำกว่าราคาเป้าหมาย (`diff < 0`) จะบล็อกไม่ให้ใส่ส่วนลดเพิ่ม, ไม่เขียนทับคำว่า `"auto"` และหยุดการทำงานพร้อมแจ้ง Error อย่างชัดเจนเพื่อความปลอดภัย
   - **GAS Backend Sync Support (`gas_backend.js`)**: เพิ่มตัวตรวจจับ `isAutoAdj` เพื่อให้ระบบ Google Apps Script สามารถระบุแถวเดิมที่มีค่า `"AUTO"` และอัปเดตทับแถวนั้นทันที แทนที่จะแทรกเป็นแถวใหม่
 
-### [ver5.x.x] - 2026-10-12
+### [ver5.3.0] - 2026-10-12
 
 - [X] **[Preselected Top-up + Add-on Pairing & Authoritative Date Preservation (`MNL-002309`)]**:
   - **Preselected Top-up + Add-on Combination**: แก้ไขตรรกะการจับคู่คูปองใน `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` เมื่อสินค้าบน POS มีคูปอง Auto Top-up ติดมาแล้ว (เช่น `CP2609280033` ลด 2,000 บาท ทำให้ราคาตั้งต้น 14,195 ลดเหลือ 12,195) และต้องการลดราคาเพิ่มอีก 2,000 บาทเพื่อเข้าสู่เป้าหมาย 10,195:
@@ -140,7 +149,7 @@
     - ป้องกันปัญหาคูปองที่สแกนจาก Modal มีเฉพาะ Start Date จาก regex รหัสคูปองแต่ไม่มี End Date
     - ในชุด Combination หลายใบ จะคำนวณ `start_date` เป็นวันเริ่มที่ใหม่ที่สุด และ `end_date` เป็นวันหมดอายุที่สั้นที่สุดของทุกคูปองในชุดอย่างแม่นยำ
 
-### [ver5.x.x] - 2026-10-10
+### [ver5.3.0] - 2026-10-10
 
 - [X] **[Standalone Coupon Separation & Universal SMCO Live Fetch Fix]**:
   - **Standalone vs Combined Preselected Resolution (`MNL-002358`)**: ปรับปรุงเงื่อนไขใน `find_suggested_cp_for_discount()` ไม่ให้พ่วง `preselected` (เช่น `CP2609290086`) เข้ามาอัตโนมัติ เมื่อคูปองที่ค้นพบ (เช่น `CP2610090037`) ให้ส่วนลดเต็มจำนวนจากราคาตั้งต้น (`abs(sub_disc - (target_discount + pre_discount)) <= 0.05`) หรือเป็นคูปองที่มี Remark ระบุราคาขายเป้าหมายตรงกับ `expected_price` (`is_remark_target_match = True`) ระบบจะแนะนำคูปองเดี่ยวๆ พร้อมสั่ง Deselect คูปอง Auto Top-up ส่วนเกินออก ทำให้ราคาจบตรง 2,157 บาทพอดี ไม่ลดซ้ำซ้อน
@@ -213,7 +222,7 @@
   - **Cloud-to-Local Auto Sync (`sync_to_local_excel`)**: เพิ่มระบบซิงค์ข้อมูลจาก Google Sheets กลับลงมายัง Local Excel (`cp_data.xlsx`) อัตโนมัติเมื่อมีการโหลดข้อมูลผ่าน `load_cp_df()` ทำให้ข้อมูลฝั่ง Local เป็นปัจจุบันตรงกับบนคลาวด์เสมอ
   - เพิ่มชุดทดสอบ Unit Test ครอบคลุมใน [test_realtime_ambiguity_and_remark.py](file:///c:/Users/Satawad_Ta/Documents/GitHub/Python/projects/auto_page/autopageMKII/tests/test_realtime_ambiguity_and_remark.py)
 
-### [ver5.x.x] - 2026-10-10
+### [ver5.3.0] - 2026-10-10
 
 - [X] **[Manual Invoice Mode Accel Processed_Logs & SN Deduction Support]** รองรับการตัด SN และบันทึกผลการออกบิลลงชีต `Processed_Logs` ของไฟล์ Accel สำหรับการออกบิลแบบ Manual:
   - แก้ไขเงื่อนไขใน `autopage_MKII_ver5.x.x.py` ที่ฟังก์ชัน `_update_accel_on_complete`, จุดดักจับข้อผิดพลาดระหว่างยืนยันบิล (Final popup), จุด submit retry, จุดยกเลิกคำสั่งซื้อ และจุดค้นหาออเดอร์ (`order_search`)
@@ -225,7 +234,7 @@
   - ปรับปรุง `find_all_matching_coupons_on_smco()` ให้คำนวณและรวมคูปอง Preselected (เช่น `DC...`) กับคูปองเสริม (เช่น `CP...`) เป็นชุดคอมโบเดี่ยวที่ได้ราคาสุทธิถูกต้อง
   - เคลียร์ข้อความ Remark "ไม่มี pattern..." ออกจากตาราง `cp_data` เมื่อยิงสินค้าสำเร็จ เพื่อไม่ให้มีข้อความเตือนตกค้างในระบบ
 
-### [ver5.x.x] - 2026-10-05
+### [ver5.3.0] - 2026-10-05
 
 
 - [X] **[Pricing Engine Real-Time SMCO Candidate Discovery & Multi-Recipe Ambiguity Protection (Strict Safety)]** เพิ่มระบบตรวจจับโปรโมชั่น/คูปองใหม่บนเว็บ SMCO แบบ Real-time และระบบป้องกันความคลุมเครือของสูตรคูปอง:
@@ -255,7 +264,7 @@
     - หากผู้ใช้เลือก "No": บอทจะคงสถานะไว้บนหน้าชำระเงิน และระบบจะบล็อกไม่ให้กดปุ่มชำระเงินเขียว (`#btnPayment`) ผ่านปุ่ม Finish Order ใน GUI จนกว่ายอดเงินจะถูกต้อง
   - เพิ่ม Unit Test ครอบคลุม 4 กรณีใน `tests/test_final_page_validator.py`
 
-### [ver5.x.x] - 2026-10-02
+### [ver5.3.0] - 2026-10-02
 
 - [X] **[Pricing Engine Preselected Coupon Isolation & Panel Scrape Guard]** แก้ไขปัญหาคูปองจาก SKU อื่นหรือออเดอร์ก่อนหน้า (เช่น `CP2609290081`) หลุดมารายงานเป็น "คูปองเริ่มต้นที่ติดมากับสินค้า" และติดไปในคำแนะนำ `suggested_cp`:
   - ปรับปรุง `find_suggested_cp_for_discount()` ให้ตรวจสอบและกรอง `preselected_codes` เทียบกับ `valid_detail_codes` ของ SKU ปัจจุบันเสมอ หากคูปองไม่ได้มีอยู่ในรายการของ SKU นั้นจริง จะถูกตัดทิ้งทันที
@@ -292,7 +301,7 @@
   - ตรึงแนว (Freeze Panes) ไว้ที่คอลัมน์ `orders` (เซลล์ `D2` ตรึง Header และคอลัมน์ A, B, C: `timestamp`, `tracking`, `orders`) ทุกครั้งที่มีการเปิด/อ่านไฟล์ Excel เข้าสู่ State (`_read_accel_file_to_state`) และทุกครั้งที่มีการบันทึกผลลัพธ์
   - ปรับปรุงฟังก์ชัน `_apply_excel_formatting()` ให้คำนวณตำแหน่งคอลัมน์ `orders` แบบ Dynamic และเซ็ต `freeze_panes` อย่างแม่นยำ
 
-### [ver5.x.x] - 2026-10-01
+### [ver5.3.0] - 2026-10-01
 
 - [X] **[Accel Mode Unified Result Sheet - `Processed_Logs` & Retry Auto-Resolve]** ปรับปรุงโครงสร้างชีตผลลัพธ์ของ Accel Mode ให้ยุบรวม `Completed_Orders` และ `Failed_Orders` เข้าด้วยกันเป็นชีตเดียว `Processed_Logs` แบบ Single Source of Truth:
   - กำหนด 9 คอลัมน์มาตรฐาน: `['timestamp', 'tracking', 'orders', 'status', 'bill_no', 'price', 'sn', 'error_category', 'remark']`
@@ -319,7 +328,7 @@
     - *กรณีราคาเริ่มต้นต่ำกว่าราคาซื้อ (`diff > 0`)*: ปรับเพิ่มราคา (Overcharge) ได้ทันทีตามส่วนต่าง
     - *กรณีราคาเริ่มต้นสูงกว่าราคาซื้อ (`diff < 0`)*: บังคับค้นหาและเลือก Campaign Coupon (CP) พร้อมตรวจสอบ `oc_amount`/`dc_amount` อย่างเข้มงวด หากราคาหลังหักล้างยังไม่ตรงกับราคาเป้าหมาย ระบบจะปฏิเสธการแก้ราคาอัตโนมัติและแจ้งเตือนส่งต่อให้ทีม Production ทันทีเพื่อความถูกต้องของบัญชี
 
-### [ver5.x.x] - 2026-09-24
+### [ver5.3.0] - 2026-09-24
 
 - [X] **[Accel Mode Multi-SKU Modal Two-Loop Refactoring]** ปรับปรุงโครงสร้างของ `_fill_multi_sku_modal()` ใน `accel_mode.py` ให้แยกเป็น 2 Loops อิสระอย่างชัดเจน (Loop กรอก และ Loop ตรวจสอบ/Reject):
   - **Loop 1 (ลูปการกรอก Serial)**: วนลูปกรอก SN ลงในช่องว่าง (`ng-empty`) จนกระทั่งไม่มีช่องว่างเหลือ (`if not empty_inputs: break`) โดยตัดการยุ่งเกี่ยวกับ Checkbox ออกจากกระบวนการกรอก เพื่อเตรียมพร้อมเข้าสู่ขั้นตอนตรวจสอบ
@@ -334,7 +343,7 @@
         - กดปุ่ม Void โดยระบุ XPath เจาะจง `//div[@class='pull-right']/button[@id='_deleteInsertSerial']` (และคลิกที่ `span`) เพื่อป้องกันการชนกับปุ่มซ้ำที่ซ่อนอยู่ใน DOM ของโมดูลอื่น
         - หน่วงเวลา 1.0 วินาที เพื่อให้ระบบเคลียร์แถวเสียและแสดงช่องว่างใหม่ แล้วหลุดจาก Loop 2 วนกลับไปเข้า **Loop 1** เพื่อกรอก SN ตัวใหม่แทนที่
 
-### [ver5.x.x] - 2026-09-29
+### [ver5.3.0] - 2026-09-29
 
 - [X] **[Dual-Source CP Loader & Google Apps Script Sync]** เพิ่มโมดูล `DualSourceCPLoader` (`functions/pos/cp_data_loader.py`) รองรับการอ่านและเขียนข้อมูลคูปอง/ส่วนต่างราคาแบบ Real-time ระหว่าง Cloud Google Sheets (ผ่าน Google Apps Script Web App) และ Local Excel (`cp_data.xlsx`):
   - ระบบ In-Memory TTL Cache (120s) และ Fallback ใช้งาน Local Excel อัตโนมัติเมื่อ Offline
@@ -345,7 +354,7 @@
   - ตัดข้ามออเดอร์และบันทึกลง `Failed_Orders` ทันทีหากจำนวน SN ไม่เพียงพอกับ QTY ในคำสั่งซื้อ ประหยัดเวลาและป้องกันการค้างหน้า POS
 - [X] **[Accel Multi-QTY Modal Fill Loop Fix]** แก้ไขลูปการกรอก Serial Number ในหน้าต่าง Modal (`_fill_multi_sku_modal`) ให้วนกรอกครบทุกแถวจนถึง `target_qty` โดยกด `ENTER` ให้ AngularJS สร้างแถวใหม่อย่างต่อเนื่องก่อนเข้าสู่ลูปตรวจสอบสถานะความถูกต้อง (เขียว/แดง)
 
-### [ver5.x.x] - 2026-09-16
+### [ver5.3.0] - 2026-09-16
 
 - [X] **[Accel Mode Multi-QTY Serial Number Modal Flow & Combo Aggregation]** ปรับปรุงระบบกรอก Serial Number (SN) บน SMCO POS ใน Accel Mode ให้รองรับ SKU ที่มี QTY > 1 และสินค้าชุด Combo อย่างสมบูรณ์ แก้ไขปัญหา SN ถูกล้างทิ้งฟรีเมื่อมี SN เสีย:
   - **ปัญหาเดิม**: เมื่อ SKU ต้องการกรอก SN มากกว่า 1 ตัว บอทใช้วิธียิง SN ทีละตัวผ่านช่องค้นหาบนหัวเว็บ SMCO หากตัวแรกผ่านแต่ตัวที่สองไม่ผ่าน กลไกจัดการข้อผิดพลาดเดิมจะไปกดปุ่มถังขยะสีแดง (`btn-danger`) บนตารางตะกร้าสินค้า ซึ่งลบสินค้าทั้งแถวทิ้ง ทำให้ SN ตัวแรกที่ถูกต้องถูกระบบ SMCO ล้างทิ้งไปด้วย และเสียโควตา SN ไปฟรี
@@ -377,7 +386,7 @@
   - ปรับปรุงเงื่อนไขใน [payment_handler.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/functions/pos/payment_handler.py>) และ [autopage_MKII_ver5.x.x.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py>) (`record_failed_with_checkpoint`)
   - เพิ่มชุดทดสอบใน [test_shopee_tracking_mismatch_accel.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/tests/test_shopee_tracking_mismatch_accel.py>) ครอบคลุมทั้งโหมด Manual และ Auto Invoice ผ่านฉลุย 100%
 
-### [ver5.x.x] - 2026-10-10
+### [ver5.3.0] - 2026-10-10
 
 - [X] **[Auto Add SKU Network Interception & Coupon Dates Auto-Sync]** ดักจับข้อมูลช่วงวันและคูปองจริง (`startDate`, `endDate`) จาก Network Response `/getProductMasterInfoPOSV3.htm` เมื่อยิงสินค้า (Auto Add SKU):
   - เพิ่มเมธอด `sync_product_master_coupon_dates_to_excel` ใน `functions/pos/pricing_engine.py` สกัด `startDate`, `endDate`, `couponCode`, `remark` จาก `productCouponDetail` ใน response ที่ดักจับได้ทันที
@@ -386,7 +395,7 @@
   - ปรับปรุง `record_pos_cart_summary_to_excel`: ให้เขียนทับ `suggested_usage_start_date` และ `suggested_usage_end_date` ด้วยช่วงวันจริงจาก Network Response เสมอ เพื่อขจัดปัญหาวันที่ค้างจากการเดา Regex เดิม
   - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านครบ 23 ข้อ 100%
 
-### [ver5.x.x] - 2026-09-30
+### [ver5.3.0] - 2026-09-30
 
 - [X] **[Suggested CP DateTime, Remark & 1-to-1 Column Alignment]** ปรับปรุงระบบบันทึกคูปองแนะนำ (`suggested_cp`) ให้รองรับการเก็บเวลา (Time), Remark และจัดลำดับคอลัมน์ตรงกับคอลัมน์ใช้งานจริง:
   - เพิ่ม `parse_smart_datetime` และ `format_smart_datetime_str` รักษาข้อมูลเวลา (Time เช่น `17/09/2026 00:00:01`, `30/09/2026 23:59:59`) จาก SMCO API และข้อความคูปอง
@@ -405,14 +414,14 @@
   - ผสานรายการคูปองที่คำนวณส่วนลดรวมแล้วเข้าสู่ `scan_matching_cp_candidates_on_smco` และ `find_suggested_cp_for_discount` ทำให้ระบบสามารถจับคู่และแนะนำ `suggested_cp` สำหรับสินค้าชุดได้แม่นยำ 100% แม้ใน Remark จะไม่ได้ระบุราคาเป้าหมายไว้
   - เพิ่มชุดทดสอบอัตโนมัติใน `tests/test_coupon_date_suggestion.py` ผ่านฉลุย 100%
 
-### [ver5.x.x] - 2026-09-15
+### [ver5.3.0] - 2026-09-15
 
 - [X] **[Address Dropdown Exact Match Priority]** แก้ไขปัญหาการเลือก อำเภอ/เขต/จังหวัด ใน `select_li_from_dropdown` ผิดพลาดเมื่อคำค้นหาเป็นคำย่อยของคำอื่น (เช่น ค้นหา "วัฒนา" แต่ระบบไปเลือก "ทวีวัฒนา"):
   - ปรับปรุงตรรกะใน [autopage_MKII_ver5.x.x.py](<file:///c:/Users/ONLINE_MIS/Desktop/Trans-am%2031-01-2022/Projects/python/Python/projects/auto_page/autopageMKII/autopage_MKII_ver5.x.x.py>) ให้ตรวจสอบและคลิกรายการที่เป็น Exact Match (`txt == th_val or txt == en_val`) ก่อนเสมอในรอบแรก เพื่อป้องกันปัญหา Substring Match ที่ทำให้คำค้นหาสั้นไปจับคู่โดนคำยาวที่อยู่ลำดับก่อนหน้า
   - หากไม่พบ Exact Match จะเลือกตาม Index จาก API (`matched_item_idx`) ซึ่งตรงกับลำดับรายการที่แสดงใน Select2 Dropdown ของ SMCO
   - คง Fallback ด้วย Partial Match และ `Keys.ENTER` ไว้เฉพาะกรณีที่ Index เกินขอบเขตของตัวเลือกใน DOM
 
-### [ver5.x.x] - 2026-09-11
+### [ver5.3.0] - 2026-09-11
 
 - [X] **[Test Mode Accel Auto-Advance on Pass]** เพิ่มระบบข้ามไปออเดอร์ถัดไปอัตโนมัติใน Test Mode เมื่อเปิดรันคู่กับ Accel Mode + Auto Invoice:
   - หาก `is_testing == True` และรันบน `is_accel_mode == True` คู่กับ `is_auto_invoice_mode == True`:

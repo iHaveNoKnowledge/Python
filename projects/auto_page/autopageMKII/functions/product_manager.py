@@ -62,6 +62,117 @@ class ProductManager:
         self.bot = bot
         self.shipping_dict = {}
 
+    @staticmethod
+    def _parse_money(value):
+        """Parse a displayed POS amount without losing decimal precision."""
+        match = re.search(r"-?\d[\d,]*(?:\.\d+)?", str(value or ""))
+        if not match:
+            return None
+        try:
+            return float(match.group(0).replace(",", ""))
+        except (TypeError, ValueError):
+            return None
+
+    def _get_current_order_shipping_cost(self):
+        """Read shipping from the filtered row(s) for the order currently being processed."""
+        marketplace = getattr(self.app, "marketplace_target", None)
+        try:
+            marketplace_name = str(marketplace.get()).strip().upper() if marketplace else ""
+            # POS shipping product SV0-000101 is intentionally added for Shopee only.
+            if marketplace_name and marketplace_name != "SHOPEE":
+                return 0.0
+        except Exception:
+            pass
+
+        order_df = getattr(self.app, "filter_data", None)
+        if order_df is not None:
+            try:
+                order_col = "หมายเลขคำสั่งซื้อ"
+                shipping_col = "ค่าจัดส่งที่ชำระโดยผู้ซื้อ"
+                current_order = str(getattr(self.app, "order", "")).strip()
+                if order_df.empty or order_col not in order_df.columns or shipping_col not in order_df.columns:
+                    return None
+                dataframe_orders = {
+                    str(value).strip()
+                    for value in order_df[order_col].dropna().tolist()
+                    if str(value).strip()
+                }
+                if not current_order or dataframe_orders != {current_order}:
+                    return None
+
+                values = set()
+                for value in order_df[shipping_col].dropna().tolist():
+                    amount = self._parse_money(value)
+                    if amount is not None:
+                        values.add(round(amount, 2))
+                if len(values) > 1:
+                    print(f"[ProductManager] Conflicting shipping amounts for order {current_order}: {values}")
+                    return None
+                return next(iter(values), 0.0)
+            except Exception as e:
+                print(f"[ProductManager] Cannot read shipping from active order DataFrame: {e}")
+                return None
+
+        # Compatibility for callers that do not have a filtered order DataFrame.
+        try:
+            raw_ship = self.app.cus_ship_cost.get()
+            return self._parse_money(raw_ship) if raw_ship else 0.0
+        except Exception:
+            return 0.0
+
+    def _get_pos_shipping_line(self, sku_elements=None):
+        """Return (quantity, amount) for SV0-000101 currently shown on the POS."""
+        shipping_qty = 0
+        shipping_amount = 0.0
+        amount_found = False
+        shipping_code = "SV0-000101"
+
+        # Product cards expose the same SKU and price elements used by add_shipping_cost().
+        try:
+            item_elements = self.driver.find_elements(
+                By.CSS_SELECTOR, ".col-sm-12.panel.panel-default.ng-scope"
+            )
+            for item_element in item_elements:
+                try:
+                    sku_element = item_element.find_element(By.CSS_SELECTOR, "u.ng-binding")
+                    sku_text = (sku_element.get_attribute("textContent") or sku_element.text or "").strip()
+                    if sku_text.upper() != shipping_code:
+                        continue
+
+                    shipping_qty += 1
+                    price_element = item_element.find_element(
+                        By.XPATH, ".//span[@class='font-color-base ng-binding']"
+                    )
+                    raw_price = price_element.get_attribute("textContent") or price_element.text
+                    amount = self._parse_money(raw_price)
+                    if amount is not None:
+                        shipping_amount += amount
+                        amount_found = True
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[ProductManager] Cannot inspect POS shipping cards: {e}")
+
+        # Fallback to the parallel SKU/price lists when card markup differs.
+        if not amount_found and sku_elements:
+            try:
+                price_elements = self.driver.find_elements(By.XPATH, self.XPATH_UNIT_PRICE)
+                for sku_element, price_element in zip(sku_elements, price_elements):
+                    sku_text = (
+                        sku_element.get_attribute("textContent") or sku_element.text or ""
+                    ).strip()
+                    if sku_text.upper() != shipping_code:
+                        continue
+                    raw_price = price_element.get_attribute("textContent") or price_element.text
+                    amount = self._parse_money(raw_price)
+                    if amount is not None:
+                        shipping_amount += amount
+                        amount_found = True
+            except Exception as e:
+                print(f"[ProductManager] Cannot read POS shipping amount from price list: {e}")
+
+        return shipping_qty, (shipping_amount if amount_found else None)
+
     # ══════════════════════════════════════════════════════════════════════════
     # [x]  AUTO ADD ALL ITEMS  (ย้ายมาจาก Bot_POS.fn())
     # ══════════════════════════════════════════════════════════════════════════
@@ -168,12 +279,8 @@ class ProductManager:
                     return result
 
         # * รวมค่าขนส่งที่อาจจะมีอยู่ใน input data ด้วย (ถ้ามี) เพราะในหน้าย pos มันยิงค่าขนส่งลงไปด้วยต้องเทียบหมดอยู่ละ
-        ship_cost_val = 0.0
-        try:
-            if hasattr(self.app, 'cus_ship_cost'):
-                raw_ship = self.app.cus_ship_cost.get()
-                ship_cost_val = float(raw_ship) if raw_ship else 0.0
-        except Exception:
+        ship_cost_val = self._get_current_order_shipping_cost()
+        if ship_cost_val is None:
             ship_cost_val = 0.0
 
         self.shipping_dict = {
@@ -206,9 +313,52 @@ class ProductManager:
                 f"SKU={sku}  expected={expected}  actual={actual}"
             )
 
+        # SV0-000101 is a shipping charge code. Its presence and amount must match
+        # the shipping fee in this order's filtered DataFrame row(s).
+        shipping_sku = "SV0-000101"
+        shipping_expected_key = next(
+            (sku for sku in expected_qtys if str(sku).strip().upper() == shipping_sku),
+            None,
+        )
+        if ship_cost_val > 0 and shipping_expected_key is not None:
+            pos_shipping_qty, pos_shipping_amount = self._get_pos_shipping_line(sku_elements)
+            expected_shipping_qty = expected_qtys[shipping_expected_key]
+            actual_shipping_qty = sum(
+                qty for sku, qty in pos_data.items()
+                if str(sku).strip().upper() == shipping_sku
+            )
+            if actual_shipping_qty == 0 and pos_shipping_qty > 0:
+                actual_shipping_qty = pos_shipping_qty
+            if actual_shipping_qty == 0:
+                actual_shipping_qty = "NOT_FOUND"
+            qty_ok = actual_shipping_qty == expected_shipping_qty
+            amount_ok = (
+                pos_shipping_amount is not None
+                and abs(pos_shipping_amount - ship_cost_val) < 0.01
+            )
+            result[shipping_expected_key] = {
+                "expected": expected_shipping_qty,
+                "actual": actual_shipping_qty,
+                "ok": qty_ok and amount_ok,
+                "expected_price": round(ship_cost_val, 2),
+                "actual_price": pos_shipping_amount if pos_shipping_amount is not None else "NOT_FOUND",
+                "is_shipping_charge": True,
+            }
+            if not result[shipping_expected_key]["ok"]:
+                print(
+                    f"[ProductManager.verify_item_qty] ❌ Shipping order={current_order} "
+                    f"expected={ship_cost_val:.2f} POS={pos_shipping_amount} "
+                    f"qty={actual_shipping_qty}"
+                )
+
         # ⚠️ [SELF-VERIFICATION GUARD 2] ตรวจจับสินค้าส่วนเกิน/ตกค้างบน POS (Bidirectional Check)
         for pos_sku, actual_qty in pos_data.items():
-            if pos_sku not in expected_qtys:
+            is_expected_shipping = (
+                ship_cost_val > 0
+                and str(pos_sku).strip().upper() == "SV0-000101"
+                and shipping_expected_key is not None
+            )
+            if pos_sku not in expected_qtys and not is_expected_shipping:
                 print(
                     f"❌ [Self-Verification] ตรวจพบสินค้าแปลกปลอม/ตกค้างบน POS: {pos_sku} "
                     f"(จำนวน: {actual_qty}) ซึ่งไม่อยู่ในรายการคำสั่งซื้อของ Order {self.app.order}!"
