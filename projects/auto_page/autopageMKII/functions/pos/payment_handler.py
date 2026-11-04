@@ -233,7 +233,7 @@ class POSPaymentHandler:
 
                         self.app.final_price = final_price
 
-                        # 4. Fill PO No.
+                        #/ 4. Fill PO No.
                         try:
                             po_no_input_element = self.driver.find_element(
                                 By.XPATH, "//input[@id='textbox81037000102']")
