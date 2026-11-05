@@ -35,6 +35,40 @@ class POSPaymentHandler:
     def cus_order(self) -> str:
         return self.app.cus_order.get()
 
+    def _find_payment_input(self, input_code: str, timeout: float = 0.0) -> Optional[WebElement]:
+        """
+        ค้นหา input ของหน้าชำระเงินด้วย Angular inputCode (IP005 = PO No, IP002 = Name)
+        เพราะ id ของ input ถูกสร้างใหม่ทุกครั้งที่ payment row ถูกเพิ่ม จึงต้องรอให้ row โผล่ก่อน
+        """
+        deadline = time.monotonic() + max(0.0, timeout)
+        script = """
+            var code = arguments[0];
+            var inputs = document.querySelectorAll('input');
+            for (var i = 0; i < inputs.length; i++) {
+                var el = inputs[i];
+                if (!(el.offsetWidth || el.offsetHeight || el.getClientRects().length)) continue;
+                try {
+                    var scope = angular.element(el).scope();
+                    if (scope && scope.type && scope.type.inputId &&
+                        scope.type.inputId.inputCode === code) {
+                        return el;
+                    }
+                } catch (err) {}
+            }
+            return null;
+        """
+        while True:
+            try:
+                element = self.driver.execute_script(script, input_code)
+            except Exception as err:
+                print(f"Cannot search payment input {input_code}: {err}")
+                element = None
+            if isinstance(element, WebElement):
+                return element
+            if time.monotonic() >= deadline:
+                return None
+            time.sleep(0.15)
+
     def process_final_payment(self) -> bool:
         """
         Executes the final payment page loop and billing submission.
@@ -214,17 +248,18 @@ class POSPaymentHandler:
                         if self.app.marketplace_target.get() == 'SHOPEE':
                             final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
                                            ) - self.app.cus_seller_voucher.get()
-                            try:
-                                channel_key = f"{self.bot.operation_states.get('purchased_channel')}"
-                                channel = self.bot.channel_options.get(channel_key, "SHOPEE")
-                                print("Payment channel:", channel)
-                                payment_type_btn_element = self.driver.find_element(
-                                    By.XPATH, f"//a//label[text()='{channel}']")
-                                self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
-                            except Exception:
-                                payment_type_btn_element = self.driver.find_element(
-                                    By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
-                                self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
+                            if self._find_payment_input("IP005", timeout=0.0) is None:
+                                try:
+                                    channel_key = f"{self.bot.operation_states.get('purchased_channel')}"
+                                    channel = self.bot.channel_options.get(channel_key, "SHOPEE")
+                                    print("Payment channel:", channel)
+                                    payment_type_btn_element = self.driver.find_element(
+                                        By.XPATH, f"//a//label[text()='{channel}']")
+                                    self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
+                                except Exception:
+                                    payment_type_btn_element = self.driver.find_element(
+                                        By.XPATH, "//a[contains(., 'Transfer') and @ng-click='addPaymentType(btnsubList)']")
+                                    self.driver.execute_script("arguments[0].click();", payment_type_btn_element)
 
                         elif self.app.marketplace_target.get() == 'LAZADA':
                             final_price = self.app.sum_price - self.app.cus_seller_voucher.get()
@@ -235,8 +270,10 @@ class POSPaymentHandler:
 
                         #/ 4. Fill PO No.
                         try:
-                            po_no_input_element = self.driver.find_element(
-                                By.XPATH, "//input[@id='textbox81037000102']")
+                            po_no_input_element = self._find_payment_input("IP005", timeout=6.0)
+                            if po_no_input_element is None:
+                                po_no_input_element = self.driver.find_element(
+                                    By.XPATH, "//input[@id='textbox81037000102']")
                             self.bot.js_input_value(po_no_input_element, self.cus_order)
                         except Exception as e:
                             print("Cannot fill PO No:", e)
@@ -259,8 +296,10 @@ class POSPaymentHandler:
 
                         # 6. Fill Customer Name into textbox81037000101
                         cus_name_val = self.app.cus_name.get() if self.app.cus_name.get() else self.cus_order
-                        final_cus_name_input_element = self.driver.find_element(
-                            By.XPATH, "//input[@id='textbox81037000101']")
+                        final_cus_name_input_element = self._find_payment_input("IP002", timeout=3.0)
+                        if final_cus_name_input_element is None:
+                            final_cus_name_input_element = self.driver.find_element(
+                                By.XPATH, "//input[@id='textbox81037000101']")
                         self.bot.js_input_value(final_cus_name_input_element, cus_name_val)
 
                     except Exception as err:
@@ -607,7 +646,9 @@ class POSPaymentHandler:
 
         # 1. Check PO No.
         try:
-            po_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+            po_el = self._find_payment_input("IP005", timeout=1.0)
+            if po_el is None:
+                po_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
             actual_po = (po_el.get_attribute("value") or "").strip()
             results["po_no"]["value"] = actual_po
             results["po_no"]["ok"] = bool(actual_po) and (
@@ -618,7 +659,9 @@ class POSPaymentHandler:
 
         # 2. Check Customer Name
         try:
-            name_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+            name_el = self._find_payment_input("IP002", timeout=1.0)
+            if name_el is None:
+                name_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
             actual_name = (name_el.get_attribute("value") or "").strip()
             results["cus_name"]["value"] = actual_name
             results["cus_name"]["ok"] = bool(actual_name)
@@ -716,7 +759,9 @@ class POSPaymentHandler:
         if not verification.get("po_no", {}).get("ok", False):
             try:
                 print("⚠️ Auto-recovery: Re-filling PO No...")
-                po_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
+                po_el = self._find_payment_input("IP005", timeout=3.0)
+                if po_el is None:
+                    po_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000102']")
                 self.bot.js_input_value(po_el, self.cus_order)
             except Exception as e:
                 print(f"Failed to recover PO No: {e}")
@@ -725,7 +770,9 @@ class POSPaymentHandler:
         if not verification.get("cus_name", {}).get("ok", False):
             try:
                 print("⚠️ Auto-recovery: Re-filling Customer Name...")
-                name_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
+                name_el = self._find_payment_input("IP002", timeout=3.0)
+                if name_el is None:
+                    name_el = self.driver.find_element(By.XPATH, "//input[@id='textbox81037000101']")
                 self.bot.js_input_value(name_el, cus_name_val)
             except Exception as e:
                 print(f"Failed to recover Customer Name: {e}")

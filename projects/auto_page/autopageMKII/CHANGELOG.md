@@ -12,8 +12,7 @@
 
 ### 🐛 บัค & การปรับปรุงที่กำลังติดตาม (In Progress / Issues)
 
-- [] **[LINE236 payment_handler.py #/ 4. Fill PO No.]**: 
-  - :หา element ไม่เจอทำให้ค่า Po No ไม่โดนกรอก
+- _ไม่มีรายการค้างในขณะนี้_
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
 
@@ -62,6 +61,17 @@
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
+
+### [ver5.3.0] - 2026-11-05
+
+- [X] **[Final Page PO No. Fill Race / Dynamic Payment Input Lookup]**:
+  - **สาเหตุ**: หน้า Payment ยังไม่มี input PO No. จนกว่าจะกดช่องทาง `SHOPEE` แล้ว `addPaymentType()` สร้าง payment row ผ่าน server แบบ async ทำให้ `find_element("//input[@id='textbox81037000102']")` ที่รันทันทีหลังคลิกเจอ `NoSuchElementException` และค่า PO No. ไม่ถูกกรอก
+  - เพิ่ม `_find_payment_input()` ใน `functions/pos/payment_handler.py` ค้นหา input จาก Angular `inputCode` (`IP005` = PO No., `IP002` = Customer Name) และรอ element สูงสุด 6 วินาที แทนการยึด id ที่ถูกสร้างใหม่ทุกครั้ง
+  - ใช้ helper นี้กับ PO No., Customer Name, `verify_final_page_elements()` และ `_recover_missing_elements()` โดยยัง fallback ไปใช้ id เดิม (`textbox81037000102` / `textbox81037000101`) หากอ่าน Angular scope ไม่ได้
+  - เพิ่ม guard กด payment channel เฉพาะเมื่อหน้ายังไม่มีช่อง PO No. ป้องกันการกดซ้ำจนเกิด payment row ซ้ำและ popup `Save Failed: Batch update returned unexpected row count`
+- [X] **[WebDriver Reconnect: Refresh Cached Driver on All Components]**:
+  - **สาเหตุ**: `reconnect_driver()` สร้าง driver ใหม่แล้วอัปเดตแค่ `AutoAddProduct` / `ProductManager` แต่ component อื่นที่ cache `self.driver = bot.driver` ไว้ตอน `__init__` (`MarketplaceScraper`, `POSPaymentHandler`, `POSPricingReconciler`, `SMCOFormHandler`, `CustomerModalTestHandler`) ยังชี้ไปที่ chromedriver port เก่า ทำให้ reconnect ขึ้นสำเร็จแต่รอบถัดไปยิง connection refused ซ้ำ (อาการ "ต่อติดแต่บอทไม่ทำงาน")
+  - เพิ่ม `_refresh_cached_driver()` ใน `functions/browser_manager.py` สแกน instance attributes ของ bot แล้วสลับ `driver`, `wait50`, `wait5`, `wait`, `network_capture` ที่ยังอ้าง old driver ไปเป็น session ใหม่ก่อนเรียก `get_tabs()`
 
 ### [ver5.3.0] - 2026-11-04
 

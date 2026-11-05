@@ -132,6 +132,43 @@ class BrowserManager:
             self.logger.error(f"Driver connection lost: {type(e).__name__}: {e}")
             return False
 
+    def _refresh_cached_driver(self, old_driver, new_driver):
+        """ชี้ driver/wait ของ component ที่ cache ไว้ตอน __init__ ไปที่ session ใหม่
+
+        Component อย่าง MarketplaceScraper, POSPaymentHandler, PricingReconciler,
+        SMCOFormHandler และ CustomerTestHandler เก็บ self.driver = bot.driver ไว้เป็น
+        snapshot ถ้าไม่ refresh หลัง reconnect จะยังยิงไปที่ chromedriver port เก่า
+        (connection refused) ทำให้ดูเหมือน "reconnect สำเร็จแต่ bot ไม่ทำงาน"
+        """
+        try:
+            components = list(vars(self.bot).items())
+        except TypeError:
+            components = []
+
+        refreshed = []
+        for name, obj in components:
+            if obj is None or obj is self.bot:
+                continue
+            try:
+                if getattr(obj, 'driver', None) is not old_driver:
+                    continue
+                obj.driver = new_driver
+                if hasattr(obj, 'wait50'):
+                    obj.wait50 = self.wait50
+                if hasattr(obj, 'wait5'):
+                    obj.wait5 = self.wait5
+                if hasattr(obj, 'wait'):
+                    obj.wait = self.wait50
+                if hasattr(obj, 'network_capture'):
+                    obj.network_capture = self.network_capture
+                refreshed.append(name)
+            except Exception as refresh_err:
+                print(f"Cannot refresh cached driver on {name}: {refresh_err}")
+
+        if refreshed:
+            print(f"Refreshed cached driver on: {', '.join(refreshed)}")
+            self.logger.info(f"Refreshed cached driver on: {', '.join(refreshed)}")
+
     def reconnect_driver(self):
         """
         Reconnect WebDriver หลังจาก connection หาย (เช่น หลัง sleep)
@@ -144,6 +181,7 @@ class BrowserManager:
             print("🔄 Attempting to reconnect WebDriver...")
             self.logger.info("Attempting WebDriver reconnection...")
             self.app.update_log("🔄 Reconnecting to browser...")
+            old_driver = self.driver
 
             # เช็คก่อนว่า Chrome ตัวจริงยังอยู่ไหม จะได้บอก user ถูกว่าแก้ตรงไหน
             if not is_chrome_debug_port_alive(self.config.chrome_debug_host, self.config.chrome_debug_port):
@@ -170,6 +208,9 @@ class BrowserManager:
 
             # อัปเดต NetworkResponseCapture ก่อน (ต้องทำก่อน AutoAddProduct)
             self.network_capture = NetworkResponseCapture(self.driver)
+
+            # อัปเดตทุก component ที่ cache driver เก่าไว้ (marketplace, payment, pricing, smco, ...)
+            self._refresh_cached_driver(old_driver, self.driver)
 
             # อัปเดต AutoAddProduct ถ้ามี
             if hasattr(self.bot, 'AutoAddProduct') and self.bot.AutoAddProduct:
