@@ -62,6 +62,11 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-11-10
+
+- [] **[ทำ gui cp_data management]**:
+  - **สร้าง**: สร้าง gui ครบ 3 หน้า แต่ยังไม่ได้เทสว่าดีจริงไหม
+
 ### [ver5.3.0] - 2026-11-05
 
 - [X] **[Final Page PO No. Fill Race / Dynamic Payment Input Lookup]**:

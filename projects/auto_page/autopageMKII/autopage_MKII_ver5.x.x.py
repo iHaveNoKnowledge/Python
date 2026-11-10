@@ -31,6 +31,7 @@ from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.browser_manager import BrowserManager
+from functions.cp_pattern_viewer import open_cp_pattern_window
 from functions.marketplace_scraper import MarketplaceScraper
 from functions.pos.customer_test_handler import CustomerModalTestHandler
 from functions.pos.frontpage.smcoformhandler import SMCOFormHandler
@@ -1512,6 +1513,11 @@ class MyApp:
             fg_color="#2b5b84", hover_color="#1e3f5c", width=45, height=28)
         self.open_cp_file_btn.grid(row=0, column=2, padx=(0, 5))
 
+        self.cp_pattern_btn = CTkButton(
+            self.cp_file_frame, text="CP Patterns", command=self.open_cp_pattern_viewer,
+            fg_color="#2b5b84", hover_color="#1e3f5c", width=90, height=28)
+        self.cp_pattern_btn.grid(row=0, column=4, padx=(5, 5))
+
         self.gas_sync_switch = CTkSwitch(
             self.cp_file_frame,
             text="GAS Sync: OFF",
@@ -1994,6 +2000,9 @@ class MyApp:
             print(f"[CP Cache] เกิดข้อผิดพลาดในการตรวจสอบ/โหลด CP Data: {e}")
 
         return self.cp_df
+
+    def open_cp_pattern_viewer(self):
+        open_cp_pattern_window(self)
 
     def select_cp_excel(self):
         self.cp_table_location = filedialog.askopenfilename(
