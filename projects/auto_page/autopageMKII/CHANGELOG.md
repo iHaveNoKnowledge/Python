@@ -62,6 +62,23 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-11-11
+
+- [X] **[Accel Excel: error `File is not a zip file` ตอนบันทึกผลลัพธ์]**:
+  - **สาเหตุ**: `_save_df_to_excel()` เขียนทับไฟล์จริงโดยตรง (`pd.ExcelWriter(..., mode='a')` และ `wb.save(path)` เปิดไฟล์ด้วย `'wb'`) จึงมีช่วงที่ไฟล์บนดิสก์ถูก truncate/เขียนค้างครึ่งเดียว ขณะที่ thread อื่นอ่านไฟล์เดียวกัน หรือ `_apply_excel_formatting()` (เขียนทั้งไฟล์ซ้ำหลังทุก save) กำลังโหลด/บันทึกทับอยู่ ทำให้ `zipfile` โยน `BadZipFile: File is not a zip file` (จำลองซ้ำได้: เขียนแบบเดิมพร้อมอ่านพร้อมกันเกิด error 1,930 ครั้ง)
+  - เขียนแบบ atomic: สร้างไฟล์ชั่วคราวในโฟลเดอร์เดียวกัน → `os.replace()` พร้อม retry 600 ms ทำให้ผู้อ่านเห็นได้แค่ไฟล์เก่าหรือไฟล์ใหม่ที่สมบูรณ์ ไม่มีทางเห็นไฟล์ที่เขียนค้างครึ่งเดียว
+  - เพิ่ม `_serialized_accel_access` + `_ACCEL_FILE_LOCK` (RLock) ครอบ read-modify-write ของ `record_failed_order()`, `record_completed_order()`, `_record_to_processed_logs()`, `_update_price_mismatch_summary()`, `reload_accel_file_if_modified()` และ `deduct_accel_file_data()` แก้ปัญหา lost update เมื่อบันทึกหลายชีตพร้อมกัน
+  - เพิ่ม `is_valid_xlsx()` ตรวจก่อนเปิด/บันทึก: ถ้าไฟล์เสียอยู่แล้วจะไม่ถูกเขียนทับ (ข้อมูลเดิมไม่หาย) และ log error หลักครบถ้วน (เดิม `except Exception as e` กลืน error หลัก เหลือแต่ error ของ fallback)
+  - `_save_df_to_excel()` คืนค่า `bool` และตั้ง `excel_save_failed` ถูกต้อง: caller ไม่พิมพ์ "success" ปลอม, fallback ด้วย openpyxl ปิด workbook ใน `finally` และคงลำดับชีตเดิม, ไม่เหลือไฟล์ `.~accel_*.xlsx` ค้าง
+  - เพิ่ม `tests/test_accel_save_atomic.py` (7 เคส: atomic save, ไฟล์เสียไม่ถูกทำลาย, ไฟล์ถูกล็อก, fallback, concurrency/lost update)
+
+- [X] **[CP Pattern Viewer: เงื่อนไข complete / scroll / singleton window]**:
+  - `_row_complete()` นับ `cp_name = "NONE"` เป็นวิธีลดที่ถูกต้อง (ไม่มีคูปอง ใช้ OC/DC แทน) และนับเฉพาะแถวที่มีวิธีลด **และ** มี `usage_start_date` + `usage_end_date` ครบ (complete 3 → 9 แถวใน `tables/cp_data.xlsx`)
+  - ป้าย complete/incomplete อัปเดตทันทีหลังกดบันทึก (`_save_pattern_with_remark(..., state_lbl=...)`)
+  - mouse wheel เลื่อนเฉพาะ `CTkScrollableFrame` ของหน้าต่างที่ pointer อยู่ ผ่าน `winfo_containing()` + `return "break"` ไม่ให้ handler `bind_all` ของแอปหลักไปเลื่อน canvas ผิดหน้าต่าง
+  - หน้าต่าง SKU list / price list / pattern เป็น singleton ต่อ key (`("sku_list",)`, `("price_list", SKU)`, `("pattern", SKU, price)`) เปิดซ้ำจะ focus หน้าต่างเดิมแทนการสร้างใหม่
+  - เพิ่ม `tests/test_cp_pattern_complete.py` (9 เคส)
+
 ### [ver5.x.x] - 2026-11-10
 
 - [] **[ทำ gui cp_data management]**:

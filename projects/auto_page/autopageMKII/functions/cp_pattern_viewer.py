@@ -34,6 +34,107 @@ EDITOR_COLS = [
 _SHEET_NAME = "Sheet1"
 
 _OPEN_WINDOWS: list[dict] = []
+_VIEW_WINDOWS: dict[tuple, ctk.CTkToplevel] = {}
+_SCROLL_BODIES: dict[str, ctk.CTkScrollableFrame] = {}
+
+
+def _focus_existing_view(key: tuple) -> bool:
+    win = _VIEW_WINDOWS.get(key)
+    if win is None:
+        return False
+    try:
+        if not win.winfo_exists():
+            _VIEW_WINDOWS.pop(key, None)
+            return False
+        win.deiconify()
+        win.lift()
+        try:
+            win.focus_force()
+        except Exception:
+            pass
+        try:
+            win.grab_set()
+        except Exception:
+            pass
+        return True
+    except Exception:
+        _VIEW_WINDOWS.pop(key, None)
+        return False
+
+
+def _register_view(key: tuple, win):
+    _VIEW_WINDOWS[key] = win
+
+    def _on_destroy(e):
+        if e.widget is win and _VIEW_WINDOWS.get(key) is win:
+            _VIEW_WINDOWS.pop(key, None)
+
+    win.bind("<Destroy>", _on_destroy, add="+")
+
+
+def _tk_parent(widget):
+    try:
+        parent_path = widget.winfo_parent()
+    except Exception:
+        return None
+    if not parent_path:
+        return None
+    try:
+        return widget.nametowidget(parent_path)
+    except Exception:
+        return None
+
+
+def _registered_top_level(widget):
+    w = widget
+    while w is not None:
+        if str(w) in _SCROLL_BODIES:
+            return w
+        w = _tk_parent(w)
+    return None
+
+
+def _innermost_scroller(widget):
+    w = widget
+    while w is not None:
+        if isinstance(w, ctk.CTkScrollableFrame):
+            return w._parent_canvas
+        if w.__class__.__name__ in ("Text", "Listbox"):
+            return w
+        w = _tk_parent(w)
+    return None
+
+
+def _bind_hover_scroll(win, body: ctk.CTkScrollableFrame):
+    _SCROLL_BODIES[str(win)] = body
+
+    def _on_wheel(event):
+        try:
+            hovered = win.winfo_containing(event.x_root, event.y_root)
+        except Exception:
+            hovered = None
+        top = _registered_top_level(hovered) if hovered is not None else None
+        if top is None:
+            return None
+        scroller = _innermost_scroller(hovered)
+        if scroller is None:
+            scroller = _SCROLL_BODIES[str(top)]._parent_canvas
+        if scroller.__class__.__name__ not in ("Text", "Listbox"):
+            units = -int(event.delta / 6)
+            if units:
+                try:
+                    scroller.yview_scroll(units, "units")
+                except Exception:
+                    pass
+        return "break"
+
+    win.bind("<MouseWheel>", _on_wheel, add="+")
+
+    def _on_destroy(e):
+        if e.widget is win:
+            _SCROLL_BODIES.pop(str(win), None)
+
+    win.bind("<Destroy>", _on_destroy, add="+")
 
 
 def _nonempty(v) -> bool:
@@ -83,9 +184,29 @@ def _price_series(df: pd.DataFrame):
     return pd.Series(pd.to_numeric(df["sale_price"], errors="coerce"), index=df.index, dtype="float64")
 
 
+def _is_no_coupon(v) -> bool:
+    if v is None:
+        return False
+    try:
+        if pd.isna(v):
+            return False
+    except (TypeError, ValueError):
+        pass
+    return str(v).strip().upper() == "NONE"
+
+
+def _has_value(v) -> bool:
+    return _nonempty(v) or _is_no_coupon(v)
+
+
 def _row_complete(row) -> bool:
+    has_discount_method = (
+        _has_value(row.get("cp_name"))
+        or _nonempty(row.get("oc_amount"))
+        or _nonempty(row.get("dc_amount"))
+    )
     return (
-        _nonempty(row.get("cp_name"))
+        has_discount_method
         and _nonempty(row.get("usage_start_date"))
         and _nonempty(row.get("usage_end_date"))
     )
@@ -93,7 +214,7 @@ def _row_complete(row) -> bool:
 
 def _canonical_cp(v) -> str:
     if not _nonempty(v):
-        return ""
+        return "NONE" if _is_no_coupon(v) else ""
     parts = str(v).replace(",", " ").split()
     return " ".join(sorted(p.upper() for p in parts))
 
@@ -306,7 +427,7 @@ def _register(win, refresh):
         if e.widget is win and entry in _OPEN_WINDOWS:
             _OPEN_WINDOWS.remove(entry)
 
-    win.bind("<Destroy>", _on_destroy)
+    win.bind("<Destroy>", _on_destroy, add="+")
 
 
 def _refresh_all(except_win=None):
@@ -337,6 +458,8 @@ def _make_entry(parent, width=120, placeholder=""):
 
 
 def open_cp_pattern_window(app):
+    if _focus_existing_view(("sku_list",)):
+        return
     try:
         app.reload_cp_df_if_modified()
     except Exception as e:
@@ -378,6 +501,8 @@ def open_cp_pattern_window(app):
 
     body = ctk.CTkScrollableFrame(win, fg_color=BG, corner_radius=0)
     body.pack(fill="both", expand=True)
+    _bind_hover_scroll(win, body)
+    _register_view(("sku_list",), win)
 
     footer = ctk.CTkLabel(win, text="", fg_color=HEADER_BG, text_color="#444444",
                           corner_radius=0, font=("tahoma", 10))
@@ -454,6 +579,9 @@ def _price_groups(rows: list[dict]) -> dict:
 
 
 def open_price_list_window(app, sku: str):
+    key = ("price_list", str(sku).strip().upper())
+    if _focus_existing_view(key):
+        return
     win = ctk.CTkToplevel(app.root if hasattr(app, "root") else app)
     win.title(f"-/{sku}")
     win.geometry("560x480")
@@ -490,6 +618,8 @@ def open_price_list_window(app, sku: str):
 
     body = ctk.CTkScrollableFrame(win, fg_color=BG, corner_radius=0)
     body.pack(fill="both", expand=True)
+    _bind_hover_scroll(win, body)
+    _register_view(key, win)
 
     footer = ctk.CTkLabel(win, text="", fg_color=HEADER_BG, text_color="#444444",
                           corner_radius=0, font=("tahoma", 10))
@@ -548,6 +678,9 @@ def _add_new_price(app, sku: str, parent_win=None):
 
 
 def open_pattern_detail_window(app, sku: str, price: float):
+    key = ("pattern", str(sku).strip().upper(), round(float(price), 2))
+    if _focus_existing_view(key):
+        return
     price_str = _fmt_price(price)
     win = ctk.CTkToplevel(app.root if hasattr(app, "root") else app)
     win.title(f"-/{sku}/{price_str}")
@@ -580,6 +713,8 @@ def open_pattern_detail_window(app, sku: str, price: float):
 
     body = ctk.CTkScrollableFrame(win, fg_color=BG, corner_radius=0)
     body.pack(fill="both", expand=True)
+    _bind_hover_scroll(win, body)
+    _register_view(key, win)
 
     footer = ctk.CTkLabel(win, text="", fg_color=HEADER_BG, text_color="#444444",
                           corner_radius=0, font=("tahoma", 10))
@@ -645,7 +780,7 @@ def _delete_pattern(app, sku: str, price: float, rec: dict, no: int):
     _refresh_all()
 
 
-def _save_pattern_with_remark(app, path, excel_row, entries: dict, remark_box, status_lbl, except_win=None):
+def _save_pattern_with_remark(app, path, excel_row, entries: dict, remark_box, status_lbl, except_win=None, state_lbl=None):
     if not path or not os.path.exists(path):
         messagebox.showwarning("CP Data", "ยังไม่ได้เลือกไฟล์ CP Data")
         return
@@ -662,6 +797,10 @@ def _save_pattern_with_remark(app, path, excel_row, entries: dict, remark_box, s
     _force_reload_cp(app)
     _refresh_all(except_win=except_win)
     status_lbl.configure(text="บันทึกแล้ว", text_color=OK_COLOR)
+    if state_lbl is not None:
+        done = _row_complete(values)
+        state_lbl.configure(text="complete" if done else "incomplete",
+                            text_color=OK_COLOR if done else BAD_COLOR)
 
 
 def _build_pattern_card(body, app, sku: str, price: float, rec: dict, index: int, path: str):
@@ -675,9 +814,10 @@ def _build_pattern_card(body, app, sku: str, price: float, rec: dict, index: int
     ctk.CTkLabel(top, text=f"No. {index + 1}", font=("tahoma", 11, "bold"),
                  fg_color="transparent", text_color="#111111").pack(side="left", padx=8)
     state = "complete" if _row_complete(rec) else "incomplete"
-    ctk.CTkLabel(top, text=state, font=("tahoma", 9),
-                 text_color=OK_COLOR if _row_complete(rec) else BAD_COLOR,
-                 fg_color="transparent").pack(side="left", padx=4)
+    state_lbl = ctk.CTkLabel(top, text=state, font=("tahoma", 9),
+                             text_color=OK_COLOR if _row_complete(rec) else BAD_COLOR,
+                             fg_color="transparent")
+    state_lbl.pack(side="left", padx=4)
     ctk.CTkButton(top, text="ลบ", width=50, height=24, fg_color="#c94f4f",
                   hover_color="#a83e3e", text_color="#ffffff",
                   command=lambda r=rec, n=index + 1: _delete_pattern(app, sku, price, r, n)).pack(side="right", padx=8, pady=3)
@@ -749,4 +889,5 @@ def _build_pattern_card(body, app, sku: str, price: float, rec: dict, index: int
                   hover_color="#1e3f5c", text_color="#ffffff",
                   command=lambda: _save_pattern_with_remark(app, path, excel_row, all_entries,
                                                             remark_box, status_lbl,
-                                                            except_win=card.winfo_toplevel())).pack(side="right", padx=4)
+                                                            except_win=card.winfo_toplevel(),
+                                                            state_lbl=state_lbl)).pack(side="right", padx=4)

@@ -1,7 +1,12 @@
 import os
 import re
+import shutil
+import tempfile
+import threading
 import time
 import datetime
+import functools
+import zipfile
 from tkinter import filedialog
 from typing import Any, Dict, List, Optional, Union
 
@@ -103,6 +108,26 @@ def classify_failed_reason(reason: str) -> str:
 
 
 
+_ACCEL_FILE_LOCK = threading.RLock()
+
+
+def _serialized_accel_access(func):
+    """ทำ read-modify-write บนไฟล์ Accel ให้เป็นคิวเดียวกัน (กันเขียนทับกันและกัน)"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with _ACCEL_FILE_LOCK:
+            return func(*args, **kwargs)
+    return wrapper
+
+
+def is_valid_xlsx(path: str) -> bool:
+    """ตรวจว่าไฟล์เป็น .xlsx (zip) ที่สมบูรณ์ ก่อนเปิดด้วย openpyxl/pandas"""
+    try:
+        return bool(path) and os.path.exists(path) and zipfile.is_zipfile(path)
+    except OSError:
+        return False
+
+
 class AccelMode:
     def __init__(self, main_app):
         self.main_app = main_app
@@ -199,6 +224,7 @@ class AccelMode:
         print('self.obj_data_from_accel_file: ', self.obj_data_from_accel_file)
         print(self.CP_list)
 
+    @_serialized_accel_access
     def reload_accel_file_if_modified(self):
         """ตรวจสอบว่าไฟล์ Accel Excel มีการแก้ไขหรือบันทึกใหม่หรือไม่ ถ้ามีจะ reload DataFrame ทันที"""
         if not self.accel_file_dir or not os.path.exists(self.accel_file_dir):
@@ -234,6 +260,7 @@ class AccelMode:
         except Exception as e:
             logger.error(f"เกิดข้อผิดพลาดในการตรวจสอบ/โหลดไฟล์ Accel Excel: {e}")
 
+    @_serialized_accel_access
     def deduct_accel_file_data(self, order, sku_serials=[], remove_order=True, update_memory=True):
         if hasattr(order, 'get'):
             order = order.get()
@@ -281,7 +308,14 @@ class AccelMode:
         try:
             main_sheet = getattr(self, 'main_sheet_name', None) or self._get_main_sheet_name(self.accel_file_dir)
             self.main_sheet_name = main_sheet
-            self._save_df_to_excel(df, main_sheet)
+            if not self._save_df_to_excel(df, main_sheet):
+                self.excel_save_failed = True
+                if update_memory:
+                    self.accel_df_state = df
+                    self.obj_data_from_accel_file = {
+                        col: [str(x).strip() for x in self.accel_df_state[col].dropna().tolist()
+                              if str(x).strip() != 'nan'] for col in self.accel_file_columns}
+                return
             print(f"Successfully updated {self.accel_file_dir}")
             self.excel_save_failed = False
             if os.path.exists(self.accel_file_dir):
@@ -1516,8 +1550,9 @@ class AccelMode:
 
     def _apply_excel_formatting(self, file_path):
         """กำหนด AutoFilter, Freeze Row 1 + Column 'orders' (เช่น D2) และปรับความกว้างคอลัมน์ให้พอดีกับข้อมูลทุก sheet"""
-        if not file_path or not os.path.exists(file_path):
+        if not file_path or not os.path.exists(file_path) or not is_valid_xlsx(file_path):
             return
+        wb = None
         try:
             wb = load_workbook(file_path)
             for ws in wb.worksheets:
@@ -1595,49 +1630,149 @@ class AccelMode:
                                 else:
                                     ws.row_dimensions[r_idx].hidden = False
 
-            wb.save(file_path)
-            wb.close()
+            self._save_workbook_atomic(wb, file_path)
         except Exception as e:
             print(f"Error applying excel formatting (auto_filter/freeze_panes): {e}")
+            logger.error(f"Error applying excel formatting (auto_filter/freeze_panes): {e}")
+        finally:
+            if wb is not None:
+                try:
+                    wb.close()
+                except Exception:
+                    pass
 
-    def _save_df_to_excel(self, target_df, sheet_name):
-        """บันทึก DataFrame ลงในชีตที่กำหนด โดยไม่เขียนทับชีตอื่นๆ ในไฟล์เด็ดขาด"""
-        if not self.accel_file_dir:
-            return
+    @staticmethod
+    def _new_temp_workbook_path(path: str) -> str:
+        fd, tmp_path = tempfile.mkstemp(
+            prefix=".~accel_", suffix=".xlsx", dir=os.path.dirname(os.path.abspath(path)) or ".")
+        os.close(fd)
+        return tmp_path
 
-        if not os.path.exists(self.accel_file_dir):
-            target_df.to_excel(self.accel_file_dir,
-                               sheet_name=sheet_name, index=False)
-            self._apply_excel_formatting(self.accel_file_dir)
-            return
-
-        saved_successfully = False
+    @staticmethod
+    def _remove_quietly(path: str) -> None:
         try:
-            with pd.ExcelWriter(self.accel_file_dir, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-                target_df.to_excel(writer, sheet_name=sheet_name, index=False)
-            saved_successfully = True
-        except Exception as e:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+    @staticmethod
+    def _replace_with_retry(src: str, dst: str, attempts: int = 12, delay: float = 0.05) -> None:
+        """os.replace พร้อม retry สั้นๆ รองรับกรณีมีโปรแกรม/thread อื่นเปิดไฟล์อ่านอยู่ชั่วครู่"""
+        last_error = None
+        for _ in range(attempts):
             try:
-                # Fallback: ใช้ openpyxl แก้ไขเฉพาะชีตที่ต้องการ โดยไม่ลบชีตอื่นทิ้งเด็ดขาด
-                book = load_workbook(self.accel_file_dir)
-                if sheet_name in book.sheetnames:
-                    del book[sheet_name]
-                ws = book.create_sheet(title=sheet_name)
-                # เขียน Header
-                ws.append(target_df.columns.tolist())
-                # เขียนข้อมูลแถว
-                for row in target_df.itertuples(index=False):
-                    ws.append([None if pd.isna(val) else str(val) for val in row])
-                book.save(self.accel_file_dir)
-                book.close()
-                saved_successfully = True
-            except Exception as ex:
-                print(f"Error updating sheet '{sheet_name}' in Excel file: {ex}")
-                logger.error(f"Error updating sheet '{sheet_name}' in Excel file: {ex}")
+                os.replace(src, dst)
+                return
+            except PermissionError as e:
+                last_error = e
+                time.sleep(delay)
+        raise last_error
 
-        if saved_successfully:
-            self._apply_excel_formatting(self.accel_file_dir)
+    def _save_workbook_atomic(self, workbook, path: str) -> None:
+        """บันทึก workbook ลงไฟล์ชั่วคราวในโฟลเดอร์เดียวกันแล้ว os.replace ทับ
 
+        ทำให้ผู้อ่านไฟล์ (pandas/openpyxl จาก thread อื่นหรือโปรแกรมอื่น)
+        ไม่มีทางเห็นไฟล์ที่เขียนค้างอยู่ครึ่งเดียว -> ไม่เกิด 'File is not a zip file'
+        """
+        tmp_path = self._new_temp_workbook_path(path)
+        try:
+            workbook.save(tmp_path)
+            self._replace_with_retry(tmp_path, path)
+        finally:
+            self._remove_quietly(tmp_path)
+
+    @staticmethod
+    def _cell_text(value):
+        if value is None:
+            return None
+        try:
+            if pd.isna(value):
+                return None
+        except (TypeError, ValueError):
+            pass
+        return str(value)
+
+    def _write_sheet_with_openpyxl(self, path: str, target_df, sheet_name: str) -> None:
+        """เขียนเฉพาะชีตที่กำหนดด้วย openpyxl โดยคงชีตอื่นและลำดับชีตเดิมไว้"""
+        book = load_workbook(path)
+        try:
+            if sheet_name in book.sheetnames:
+                sheet_index = book.sheetnames.index(sheet_name)
+                book.remove(book[sheet_name])
+            else:
+                sheet_index = len(book.sheetnames)
+            ws = book.create_sheet(title=sheet_name, index=sheet_index)
+            ws.append([str(col) for col in target_df.columns])
+            for row in target_df.itertuples(index=False):
+                ws.append([self._cell_text(val) for val in row])
+            book.save(path)
+        finally:
+            book.close()
+
+    def _save_df_to_excel(self, target_df, sheet_name) -> bool:
+        """บันทึก DataFrame ลงในชีตที่กำหนด โดยไม่เขียนทับชีตอื่นๆ ในไฟล์เด็ดขาด
+
+        เขียนลงไฟล์ชั่วคราวแล้ว replace ทับไฟล์จริง (atomic) เพื่อกันไฟล์เสียหาย
+        คืนค่า True เมื่อสำเร็จ, False เมื่อล้มเหลว (ไฟล์เดิมยังอยู่ครบ)
+        """
+        if not self.accel_file_dir:
+            return False
+
+        path = os.path.abspath(self.accel_file_dir)
+        with _ACCEL_FILE_LOCK:
+            try:
+                if not os.path.exists(path):
+                    target_df.to_excel(path, sheet_name=sheet_name, index=False)
+                    self._apply_excel_formatting(path)
+                    self.excel_save_failed = False
+                    return True
+
+                if not is_valid_xlsx(path):
+                    message = (
+                        f"ไฟล์ Accel ไม่ใช่ .xlsx ที่สมบูรณ์ (File is not a zip file) จึงยกเลิกการบันทึกชีต "
+                        f"'{sheet_name}' เพื่อไม่ให้ข้อมูลเดิมเสียหาย: {path}"
+                    )
+                    print(message)
+                    logger.error(message)
+                    self.excel_save_failed = True
+                    return False
+
+                tmp_path = self._new_temp_workbook_path(path)
+                try:
+                    shutil.copy2(path, tmp_path)
+                    try:
+                        with pd.ExcelWriter(tmp_path, engine='openpyxl', mode='a',
+                                            if_sheet_exists='replace') as writer:
+                            target_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    except Exception as primary_error:
+                        print(
+                            f"ExcelWriter failed for sheet '{sheet_name}' "
+                            f"({type(primary_error).__name__}: {primary_error}) -> using openpyxl fallback")
+                        logger.warning(
+                            f"ExcelWriter failed for sheet '{sheet_name}' "
+                            f"({type(primary_error).__name__}: {primary_error}) -> using openpyxl fallback")
+                        self._write_sheet_with_openpyxl(tmp_path, target_df, sheet_name)
+                    self._apply_excel_formatting(tmp_path)
+                    self._replace_with_retry(tmp_path, path)
+                finally:
+                    self._remove_quietly(tmp_path)
+
+                self.excel_save_failed = False
+                return True
+            except PermissionError as e:
+                print(f"Permission denied while saving '{sheet_name}': {e}")
+                logger.warning(
+                    f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึกชีต '{sheet_name}' ไม่สำเร็จ: {e}")
+                self.excel_save_failed = True
+                return False
+            except Exception as e:
+                print(f"Error updating sheet '{sheet_name}' in Excel file: {e}")
+                logger.error(f"Error updating sheet '{sheet_name}' in Excel file: {e}")
+                self.excel_save_failed = True
+                return False
+
+    @_serialized_accel_access
     def _record_to_processed_logs(self, rows_data, order_str):
         """บันทึกลงชีต Processed_Logs (ตารางผลลัพธ์รวม Completed และ Failed แบบ Single Source of Truth)
 
@@ -1674,7 +1809,9 @@ class AccelMode:
             processed_df = pd.concat([processed_df, new_df], ignore_index=True)
             processed_df = processed_df[unified_cols]
 
-            self._save_df_to_excel(processed_df, 'Processed_Logs')
+            if not self._save_df_to_excel(processed_df, 'Processed_Logs'):
+                print(f"Failed to record order {order_str} to Processed_Logs sheet.")
+                return
             print(f"Successfully recorded order {order_str} to Processed_Logs sheet.")
         except Exception as e:
             print(f"Error recording to Processed_Logs sheet: {e}")
@@ -1786,6 +1923,7 @@ class AccelMode:
 
         return []
 
+    @_serialized_accel_access
     def _update_price_mismatch_summary(self, items_to_record):
         """บันทึกหรืออัปเดตชีต Price_Mismatch_Summary ในไฟล์ Accel
         พร้อมใส่สูตร COUNTIFS เชื่อมกับชีต Processed_Logs เพื่อคำนวณยอดคงค้างอัตโนมัติ
@@ -1796,6 +1934,11 @@ class AccelMode:
             return
 
         sheet_name = 'Price_Mismatch_Summary'
+        if not is_valid_xlsx(self.accel_file_dir):
+            logger.error(
+                f"ไฟล์ Accel ไม่ใช่ .xlsx ที่สมบูรณ์ (File is not a zip file) จึงข้ามการอัปเดตชีต "
+                f"'{sheet_name}': {self.accel_file_dir}")
+            return
         try:
             wb = load_workbook(self.accel_file_dir)
             if sheet_name not in wb.sheetnames:
@@ -1837,7 +1980,7 @@ class AccelMode:
                     existing_pairs.add(pair_key)
                     has_new = True
 
-            wb.save(self.accel_file_dir)
+            self._save_workbook_atomic(wb, self.accel_file_dir)
             wb.close()
 
             if has_new:
@@ -1847,6 +1990,7 @@ class AccelMode:
             print(f"Error updating Price_Mismatch_Summary: {e}")
             logger.error(f"Error updating Price_Mismatch_Summary: {e}")
 
+    @_serialized_accel_access
     def record_failed_order(self, order, reason, category=None, sku_pattern=None, price=None, mismatched_items=None):
         """Record failed order into Processed_Logs, Failed_Orders, and Price_Mismatch_Summary sheet in Accel Excel file.
 
@@ -1993,7 +2137,9 @@ class AccelMode:
             failed_df = pd.concat([failed_df, pd.DataFrame(new_rows)], ignore_index=True)
             failed_df = failed_df[['timestamp', 'failed_category', 'orders', 'failed_reason']]
 
-            self._save_df_to_excel(failed_df, 'Failed_Orders')
+            if not self._save_df_to_excel(failed_df, 'Failed_Orders'):
+                print(f"Failed to record failed order {order_str} to Failed_Orders sheet.")
+                return
             print(
                 f"Successfully recorded failed order {order_str} [{actual_category}] to Failed_Orders sheet.")
             self.used_serials = []
@@ -2006,6 +2152,7 @@ class AccelMode:
             print(f"Error recording failed order to Excel: {e}")
             logger.error(f"Error recording failed order to Excel: {e}")
 
+    @_serialized_accel_access
     def record_completed_order(
             self, order, tracking="", bill_no="", status="Completed", price="", serials=None, sn=None, pricing_detail=""):
         """Record completed order into Completed_Orders sheet in Accel Excel file.
@@ -2237,7 +2384,9 @@ class AccelMode:
                 [completed_df, pd.DataFrame(new_comp_entry)], ignore_index=True)
             completed_df = completed_df[_col_order]
 
-            self._save_df_to_excel(completed_df, 'Completed_Orders')
+            if not self._save_df_to_excel(completed_df, 'Completed_Orders'):
+                print(f"Failed to record completed order {order_str} to Completed_Orders sheet.")
+                return
             print(
                 f"Successfully recorded completed order {order_str} to Completed_Orders sheet.")
             # ล้าง used_serials เมื่อจบการบันทึก order เพื่อไม่ให้ค้างไปปนกับ order ถัดไป
