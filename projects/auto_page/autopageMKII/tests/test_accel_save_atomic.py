@@ -28,6 +28,11 @@ def _rows(tag, count=2):
     ]
 
 
+_LOG_COLS = ["timestamp", "tracking", "orders", "bill_no", "price",
+             "sn", "status", "error_category", "remark"]
+_FAILED_COLS = ["timestamp", "failed_category", "orders", "failed_reason"]
+
+
 class AccelSaveAtomicTest(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="accel_test_")
@@ -35,8 +40,7 @@ class AccelSaveAtomicTest(unittest.TestCase):
         with pd.ExcelWriter(self.path, engine="openpyxl") as writer:
             pd.DataFrame({"orders": ["ORD-OLD"], "cp": ["NONE"]}).to_excel(
                 writer, sheet_name="Sheet1", index=False)
-            pd.DataFrame(columns=["timestamp", "tracking", "orders", "bill_no", "price",
-                                  "sn", "status", "error_category", "remark"]).to_excel(
+            pd.DataFrame({col: [] for col in _LOG_COLS}).to_excel(
                 writer, sheet_name="Processed_Logs", index=False)
         self.obj = AccelMode(None)
         self.obj.accel_file_dir = self.path
@@ -63,8 +67,7 @@ class AccelSaveAtomicTest(unittest.TestCase):
         self.assertEqual(leftovers, [])
 
     def test_new_sheet_keeps_position(self):
-        self.obj._save_df_to_excel(pd.DataFrame(columns=["timestamp", "failed_category",
-                                                         "orders", "failed_reason"]),
+        self.obj._save_df_to_excel(pd.DataFrame({col: [] for col in _FAILED_COLS}),
                                    "Failed_Orders")
         self.assertEqual(self._sheet_names(),
                          ["Sheet1", "Processed_Logs", "Failed_Orders"])
@@ -82,10 +85,20 @@ class AccelSaveAtomicTest(unittest.TestCase):
         with open(broken, "rb") as handle:
             self.assertEqual(handle.read(), b"not a zip")
 
-    def test_locked_file_keeps_original_intact(self):
+    def test_rename_blocked_falls_back_to_direct_write(self):
+        with mock.patch.object(AccelMode, "_replace_with_retry",
+                               side_effect=PermissionError(32, "in use")):
+            saved = self.obj._save_df_to_excel(pd.DataFrame(_rows("R", 3)), "Processed_Logs")
+
+        self.assertTrue(saved)
+        self.assertFalse(self.obj.excel_save_failed)
+        self.assertTrue(is_valid_xlsx(self.path))
+        self.assertEqual(len(pd.read_excel(self.path, sheet_name="Processed_Logs")), 3)
+
+    def test_fully_locked_file_keeps_original_intact(self):
         with open(self.path, "rb") as handle:
             original = handle.read()
-        with mock.patch.object(AccelMode, "_replace_with_retry",
+        with mock.patch.object(AccelMode, "_commit_temp_file",
                                side_effect=PermissionError(32, "in use")):
             saved = self.obj._save_df_to_excel(pd.DataFrame(_rows("D")), "Processed_Logs")
 

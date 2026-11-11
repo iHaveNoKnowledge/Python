@@ -66,11 +66,12 @@
 
 - [X] **[Accel Excel: error `File is not a zip file` ตอนบันทึกผลลัพธ์]**:
   - **สาเหตุ**: `_save_df_to_excel()` เขียนทับไฟล์จริงโดยตรง (`pd.ExcelWriter(..., mode='a')` และ `wb.save(path)` เปิดไฟล์ด้วย `'wb'`) จึงมีช่วงที่ไฟล์บนดิสก์ถูก truncate/เขียนค้างครึ่งเดียว ขณะที่ thread อื่นอ่านไฟล์เดียวกัน หรือ `_apply_excel_formatting()` (เขียนทั้งไฟล์ซ้ำหลังทุก save) กำลังโหลด/บันทึกทับอยู่ ทำให้ `zipfile` โยน `BadZipFile: File is not a zip file` (จำลองซ้ำได้: เขียนแบบเดิมพร้อมอ่านพร้อมกันเกิด error 1,930 ครั้ง)
-  - เขียนแบบ atomic: สร้างไฟล์ชั่วคราวในโฟลเดอร์เดียวกัน → `os.replace()` พร้อม retry 600 ms ทำให้ผู้อ่านเห็นได้แค่ไฟล์เก่าหรือไฟล์ใหม่ที่สมบูรณ์ ไม่มีทางเห็นไฟล์ที่เขียนค้างครึ่งเดียว
+  - เขียนแบบ atomic: สร้างไฟล์ชั่วคราวในโฟลเดอร์เดียวกัน → `os.replace()` พร้อม retry 150 ms ทำให้ผู้อ่านเห็นได้แค่ไฟล์เก่าหรือไฟล์ใหม่ที่สมบูรณ์ ไม่มีทางเห็นไฟล์ที่เขียนค้างครึ่งเดียว
+  - **Fallback สำหรับไฟล์ที่ถูกเปิดค้าง (LibreOffice/Excel)**: Windows ไม่อนุญาตให้ rename ทับไฟล์ที่มีโปรแกรมอื่นเปิดอยู่ แต่ยังเปิดให้เขียนทับได้ → ถ้า `os.replace()` โดน PermissionError จะ `shutil.copyfile()` เขียนทับโดยตรงต่อทันที (ตรงกับพฤติกรรมเดิมที่ใช้ได้ตอนเปิดไฟล์ค้าง) ทำให้บันทึกผลออเดอร์ต่อได้โดยไม่ต้องปิด LibreOffice
   - เพิ่ม `_serialized_accel_access` + `_ACCEL_FILE_LOCK` (RLock) ครอบ read-modify-write ของ `record_failed_order()`, `record_completed_order()`, `_record_to_processed_logs()`, `_update_price_mismatch_summary()`, `reload_accel_file_if_modified()` และ `deduct_accel_file_data()` แก้ปัญหา lost update เมื่อบันทึกหลายชีตพร้อมกัน
   - เพิ่ม `is_valid_xlsx()` ตรวจก่อนเปิด/บันทึก: ถ้าไฟล์เสียอยู่แล้วจะไม่ถูกเขียนทับ (ข้อมูลเดิมไม่หาย) และ log error หลักครบถ้วน (เดิม `except Exception as e` กลืน error หลัก เหลือแต่ error ของ fallback)
   - `_save_df_to_excel()` คืนค่า `bool` และตั้ง `excel_save_failed` ถูกต้อง: caller ไม่พิมพ์ "success" ปลอม, fallback ด้วย openpyxl ปิด workbook ใน `finally` และคงลำดับชีตเดิม, ไม่เหลือไฟล์ `.~accel_*.xlsx` ค้าง
-  - เพิ่ม `tests/test_accel_save_atomic.py` (7 เคส: atomic save, ไฟล์เสียไม่ถูกทำลาย, ไฟล์ถูกล็อก, fallback, concurrency/lost update)
+  - เพิ่ม `tests/test_accel_save_atomic.py` (8 เคส: atomic save, ไฟล์เสียไม่ถูกทำลาย, rename โดนบล็อกแล้ว fallback เขียนทับ, ไฟล์ถูกล็อกสนิท, fallback, concurrency/lost update)
 
 - [X] **[CP Pattern Viewer: เงื่อนไข complete / scroll / singleton window]**:
   - `_row_complete()` นับ `cp_name = "NONE"` เป็นวิธีลดที่ถูกต้อง (ไม่มีคูปอง ใช้ OC/DC แทน) และนับเฉพาะแถวที่มีวิธีลด **และ** มี `usage_start_date` + `usage_end_date` ครบ (complete 3 → 9 แถวใน `tables/cp_data.xlsx`)

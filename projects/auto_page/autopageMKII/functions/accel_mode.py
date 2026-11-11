@@ -1657,8 +1657,12 @@ class AccelMode:
             pass
 
     @staticmethod
-    def _replace_with_retry(src: str, dst: str, attempts: int = 12, delay: float = 0.05) -> None:
-        """os.replace พร้อม retry สั้นๆ รองรับกรณีมีโปรแกรม/thread อื่นเปิดไฟล์อ่านอยู่ชั่วครู่"""
+    def _replace_with_retry(src: str, dst: str, attempts: int = 3, delay: float = 0.05) -> None:
+        """os.replace พร้อม retry สั้นๆ รองรับกรณีมีโปรแกรม/thread อื่นเปิดไฟล์อ่านอยู่ชั่วครู่
+
+        ถ้าไฟล์ถูกเปิดค้างถาวร (LibreOffice/Excel) จะใช้เวลาไม่เกิน ~150ms แล้วค่อย fallback
+        ไปเขียนทับโดยตรง แทนที่จะรอ retry นานๆ ทุกครั้งที่บันทึก
+        """
         last_error = None
         for _ in range(attempts):
             try:
@@ -1669,8 +1673,23 @@ class AccelMode:
                 time.sleep(delay)
         raise last_error
 
+    def _commit_temp_file(self, tmp_path: str, path: str) -> None:
+        """เอาไฟล์ชั่วคราวไปแทนที่ไฟล์จริง
+
+        ลำดับ: os.replace (atomic) ก่อน เพราะผู้อ่านจะไม่มีทางเห็นไฟล์ครึ่งเดียว
+        แต่ถ้ามีโปรแกรมอื่น (เช่น LibreOffice) เปิดไฟล์ค้างไว้ Windows จะไม่อนุญาต
+        ให้ rename ทับ ทั้งที่ยังเปิดให้เขียนทับได้ -> จึง fallback ไปเขียนทับโดยตรง
+        (ตรงกับพฤติกรรมเดิมที่ใช้ได้ตอนเปิดไฟล์ค้าง)
+        """
+        try:
+            self._replace_with_retry(tmp_path, path)
+        except PermissionError as e:
+            logger.warning(
+                f"rename ทับไฟล์ไม่ได้ (ไฟล์ถูกเปิดอยู่ในโปรแกรมอื่น) -> เขียนทับโดยตรง: {e}")
+            shutil.copyfile(tmp_path, path)
+
     def _save_workbook_atomic(self, workbook, path: str) -> None:
-        """บันทึก workbook ลงไฟล์ชั่วคราวในโฟลเดอร์เดียวกันแล้ว os.replace ทับ
+        """บันทึก workbook ลงไฟล์ชั่วคราวในโฟลเดอร์เดียวกันแล้วแทนที่ไฟล์จริง
 
         ทำให้ผู้อ่านไฟล์ (pandas/openpyxl จาก thread อื่นหรือโปรแกรมอื่น)
         ไม่มีทางเห็นไฟล์ที่เขียนค้างอยู่ครึ่งเดียว -> ไม่เกิด 'File is not a zip file'
@@ -1678,7 +1697,7 @@ class AccelMode:
         tmp_path = self._new_temp_workbook_path(path)
         try:
             workbook.save(tmp_path)
-            self._replace_with_retry(tmp_path, path)
+            self._commit_temp_file(tmp_path, path)
         finally:
             self._remove_quietly(tmp_path)
 
@@ -1754,7 +1773,7 @@ class AccelMode:
                             f"({type(primary_error).__name__}: {primary_error}) -> using openpyxl fallback")
                         self._write_sheet_with_openpyxl(tmp_path, target_df, sheet_name)
                     self._apply_excel_formatting(tmp_path)
-                    self._replace_with_retry(tmp_path, path)
+                    self._commit_temp_file(tmp_path, path)
                 finally:
                     self._remove_quietly(tmp_path)
 
