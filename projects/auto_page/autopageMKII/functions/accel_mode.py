@@ -1083,7 +1083,13 @@ class AccelMode:
 
             if target_serial_btn is not None:
                 # ตรวจสอบว่าปุ่มเป็นสีแดง (ng-redalert) หรือหน่วงเวลารอจนพร้อม
-                btn_class = target_serial_btn.get_attribute("class") or ""
+                try:
+                    btn_class = target_serial_btn.get_attribute("class") or ""
+                except Exception:
+                    # element stale -> ค้นปุ่มใหม่ในรอบถัดไป
+                    target_serial_btn = None
+                    time.sleep(0.5)
+                    continue
                 if "ng-redalert" in btn_class or (time.time() - start_find) > 2.0:
                     break
             time.sleep(0.5)
@@ -1106,10 +1112,15 @@ class AccelMode:
         m_wait = time.time()
         while (time.time() - m_wait) < 15 and not operation_thread.is_set():
             # ตรวจสอบว่า Modal เปิดอยู่จริงบนหน้าจอ (is_displayed == True)
-            modal_inputs = driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]")
-            v_btns = driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']")
-            is_visible_inputs = any(getattr(inp, 'is_displayed', lambda: True)() for inp in modal_inputs) if modal_inputs else False
-            is_visible_verify = any(getattr(btn, 'is_displayed', lambda: True)() for btn in v_btns) if v_btns else False
+            try:
+                modal_inputs = driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]")
+                v_btns = driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']")
+                is_visible_inputs = any(inp.is_displayed() for inp in modal_inputs) if modal_inputs else False
+                is_visible_verify = any(btn.is_displayed() for btn in v_btns) if v_btns else False
+            except Exception:
+                # element stale ระหว่าง render -> ตรวจใหม่ในรอบถัดไป
+                is_visible_inputs = False
+                is_visible_verify = False
 
             if is_visible_inputs or is_visible_verify:
                 modal_opened = True
@@ -1172,11 +1183,15 @@ class AccelMode:
                 # ค้นหาช่อง input ว่าง (ng-empty) บน Modal
                 empty_inputs = []
                 for _ in range(12):  # รอสูงสุดประมาณ 3.5 วินาที เผื่อ Angular กำลัง render แถวใหม่
-                    empty_inputs = driver.find_elements(
-                        By.XPATH,
-                        "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
-                    )
-                    empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
+                    try:
+                        empty_inputs = driver.find_elements(
+                            By.XPATH,
+                            "//input[contains(@ng-model, 'element.serialNo') and contains(@class, 'ng-empty')]"
+                        )
+                        empty_inputs = [inp for inp in empty_inputs if inp.is_displayed()]
+                    except Exception:
+                        # element stale ระหว่าง render -> ค้นใหม่ในรอบถัดไป
+                        empty_inputs = []
                     if empty_inputs:
                         break
                     time.sleep(0.3)
@@ -1204,8 +1219,12 @@ class AccelMode:
                     break
                 logger.warning(f"กรอก SN ได้เพียง {len(modal_filled_sns)}/{target_qty} ตัว ไม่ครบตามจำนวนที่ต้องการ วนค้นหาช่องกรอกใหม่...")
                 # หาก Modal ไม่ได้เปิดอยู่บนหน้าจอจริง ให้ลองคลิกเปิดใหม่
-                modal_inps = driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]")
-                if not any(getattr(inp, 'is_displayed', lambda: True)() for inp in modal_inps):
+                try:
+                    modal_inps = driver.find_elements(By.XPATH, "//input[contains(@ng-model, 'element.serialNo')]")
+                    modal_visible = any(inp.is_displayed() for inp in modal_inps) if modal_inps else False
+                except Exception:
+                    modal_visible = False
+                if not modal_visible:
                     logger.warning(f"Modal กรอก SN ไม่ได้แสดงผลบนหน้าจอ พยายามคลิกปุ่ม Serial ใหม่...")
                     try:
                         target_serial_btn.click()
@@ -1226,12 +1245,16 @@ class AccelMode:
             v_wait_start = time.time()
             verify_ready = False
             while (time.time() - v_wait_start) < 10 and not operation_thread.is_set():
-                v_btns = driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']")
-                if v_btns and v_btns[0].is_displayed():
-                    v_dis = v_btns[0].get_attribute("disabled")
-                    if (v_dis is None or v_dis not in ["true", "disabled"]) and v_btns[0].is_enabled():
-                        verify_ready = True
-                        break
+                try:
+                    v_btns = driver.find_elements(By.XPATH, "//button[@id='_verifyInsertSerial']")
+                    if v_btns and v_btns[0].is_displayed():
+                        v_dis = v_btns[0].get_attribute("disabled")
+                        if (v_dis is None or v_dis not in ["true", "disabled"]) and v_btns[0].is_enabled():
+                            verify_ready = True
+                            break
+                except Exception:
+                    # element stale ระหว่าง Angular re-render -> ค้น element ใหม่ในรอบถัดไป
+                    pass
                 time.sleep(0.3)
 
             logger.info("กำลังกดปุ่มยืนยัน SN ใน Modal (_verifyInsertSerial)...")
@@ -1242,30 +1265,47 @@ class AccelMode:
                 logger.warning(f"กดปุ่ม _verifyInsertSerial ล้มเหลว: {v_err}")
 
             # 2. รอตรวจสอบผลลัพธ์หลัง Verify (แยก 2 ทางเลือก: OK ปลดล็อค หรือ มีแถวสีแดง)
+            #    แถวสีแดงต้องคงอยู่ต่อเนื่อง red_stable_seconds วินาที จึงจะถือว่า fail จริง
+            #    (กัน Angular วาดแถวสีแดงชั่วคราวหลังกด Verify แย่งเส้นทางไปจากปุ่ม OK)
             start_v_wait = time.time()
             v_timeout = 20
+            red_stable_seconds = 3.0
             is_ok_ready = False
             has_red_rows = False
+            red_since = None
 
             while (time.time() - start_v_wait) < v_timeout and not operation_thread.is_set():
                 time.sleep(0.5)
-                ok_btns = driver.find_elements(
-                    By.XPATH,
-                    "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
-                )
-                if ok_btns and ok_btns[0].is_displayed():
-                    btn_dis = ok_btns[0].get_attribute("disabled")
-                    if (btn_dis is None or btn_dis not in ["true", "disabled"]) and ok_btns[0].is_enabled():
-                        is_ok_ready = True
-                        break
+                try:
+                    ok_btns = driver.find_elements(
+                        By.XPATH,
+                        "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
+                    )
+                    if ok_btns and ok_btns[0].is_displayed():
+                        btn_dis = ok_btns[0].get_attribute("disabled")
+                        if (btn_dis is None or btn_dis not in ["true", "disabled"]) and ok_btns[0].is_enabled():
+                            is_ok_ready = True
+                            break
+                except Exception:
+                    # element stale -> ค้นใหม่ในรอบถัดไป
+                    pass
 
-                red_rows = driver.find_elements(
-                    By.XPATH,
-                    "//tr[contains(@class, 'ng-scope') and (contains(@class, 'font-color-secondary-red') or .//p[contains(@class, 'font-color-secondary-red') and normalize-space()!=''])]"
-                )
+                try:
+                    red_rows = driver.find_elements(
+                        By.XPATH,
+                        "//tr[contains(@class, 'ng-scope') and (contains(@class, 'font-color-secondary-red') or .//p[contains(@class, 'font-color-secondary-red') and normalize-space()!=''])]"
+                    )
+                except Exception:
+                    red_rows = []
+
                 if red_rows:
-                    has_red_rows = True
-                    break
+                    if red_since is None:
+                        red_since = time.time()
+                    elif (time.time() - red_since) >= red_stable_seconds:
+                        has_red_rows = True
+                        break
+                else:
+                    red_since = None
 
             # Buffer sleep เพื่อให้ DOM และสถานะปุ่มเสถียร
             time.sleep(1.0)
@@ -1273,14 +1313,22 @@ class AccelMode:
             # ทางเลือกที่ 1: ผ่านทั้งหมด ปุ่ม OK ปลดล็อค
             if is_ok_ready:
                 logger.info(f"ปุ่ม OK พร้อมใช้งาน ยืนยัน SN ทั้ง {len(modal_filled_sns)} ตัวสำเร็จ!")
-                ok_btn = driver.find_element(
-                    By.XPATH,
-                    "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
-                )
-                try:
-                    driver.execute_script("arguments[0].click();", ok_btn)
-                except Exception:
-                    ok_btn.click()
+                ok_clicked = False
+                for ok_attempt in range(3):
+                    try:
+                        ok_btn = driver.find_element(
+                            By.XPATH,
+                            "//button[contains(@class, 'btn-success') and @id='_okInsertSerial']"
+                        )
+                        driver.execute_script("arguments[0].click();", ok_btn)
+                        ok_clicked = True
+                        break
+                    except Exception as ok_err:
+                        logger.warning(f"กดปุ่ม _okInsertSerial ล้มเหลว (รอบ {ok_attempt + 1}/3): {ok_err}")
+                        time.sleep(0.5)
+                if not ok_clicked:
+                    # ค้น element ใหม่ไม่สำเร็จ -> วนลูปไปรอและกด OK ใหม่ ห้าม raise ทิ้งไว้
+                    continue
                 time.sleep(1.0)
 
                 for passed_sn in modal_filled_sns:
@@ -1291,10 +1339,15 @@ class AccelMode:
 
             # ทางเลือกที่ 2: มีแถวไม่ผ่าน (font-color-secondary-red) ปุ่ม OK ยัง disabled
             else:
-                failed_rows = driver.find_elements(
-                    By.XPATH,
-                    "//tr[contains(@class, 'ng-scope') and (contains(@class, 'font-color-secondary-red') or .//p[contains(@class, 'font-color-secondary-red') and normalize-space()!=''])]"
+                red_row_xpath = (
+                    "//tr[contains(@class, 'ng-scope') and "
+                    "(contains(@class, 'font-color-secondary-red') or "
+                    ".//p[contains(@class, 'font-color-secondary-red') and normalize-space()!=''])]"
                 )
+                try:
+                    failed_rows = driver.find_elements(By.XPATH, red_row_xpath)
+                except Exception:
+                    failed_rows = []
 
                 if not failed_rows:
                     logger.warning("ไม่พบแถวที่เป็น font-color-secondary-red และปุ่ม OK ยังไม่พร้อม วนตรวจสอบใหม่...")
@@ -1302,30 +1355,55 @@ class AccelMode:
 
                 logger.warning(f"พบแถวที่เช็ค SN ไม่ผ่านจำนวน {len(failed_rows)} แถว")
                 failed_sns_to_remove = []
+                failed_row_count = len(failed_rows)
 
-                for r in failed_rows:
-                    # 1. อ่านค่า SN จากแถวที่ไม่ผ่านโดยตรง
+                # วนตาม index แล้วค้นแถวใหม่ทุกครั้ง: Angular re-render หลังติ๊ก checkbox
+                # ทำให้ element เดิม stale (StaleElementReferenceException) ห้ามถือ ref ข้ามรอบ
+                for row_idx in range(failed_row_count):
+                    if operation_thread.is_set():
+                        break
                     sn_val = ""
-                    p_sn = r.find_elements(
-                        By.XPATH,
-                        ".//td[.//input[contains(@ng-model, 'element.serialNo')]]//p[normalize-space()!='']"
-                    )
-                    if p_sn:
-                        sn_val = p_sn[0].text.strip()
-                    else:
-                        inp_sn = r.find_elements(By.XPATH, ".//input[contains(@ng-model, 'element.serialNo')]")
-                        if inp_sn:
-                            sn_val = (inp_sn[0].get_attribute("value") or "").strip()
-
-                    # 2. ติ๊ก Checkbox เฉพาะแถวนี้
-                    cb_elems = r.find_elements(By.XPATH, ".//input[@ng-model='element.checkBox']")
-                    if cb_elems:
-                        cb = cb_elems[0]
+                    row_handled = False
+                    for row_attempt in range(3):
                         try:
-                            if not cb.is_selected():
-                                driver.execute_script("arguments[0].click();", cb)
+                            fresh_rows = driver.find_elements(By.XPATH, red_row_xpath)
+                            if row_idx >= len(fresh_rows):
+                                break
+                            r = fresh_rows[row_idx]
+
+                            # 1. อ่านค่า SN จากแถวที่ไม่ผ่านโดยตรง
+                            p_sn = r.find_elements(
+                                By.XPATH,
+                                ".//td[.//input[contains(@ng-model, 'element.serialNo')]]//p[normalize-space()!='']"
+                            )
+                            if p_sn:
+                                sn_val = p_sn[0].text.strip()
+                            else:
+                                inp_sn = r.find_elements(
+                                    By.XPATH, ".//input[contains(@ng-model, 'element.serialNo')]")
+                                if inp_sn:
+                                    sn_val = (inp_sn[0].get_attribute("value") or "").strip()
+
+                            # 2. ติ๊ก Checkbox เฉพาะแถวนี้ (ค้น element ใหม่ก่อนคลิกเสมอ)
+                            cb_elems = r.find_elements(By.XPATH, ".//input[@ng-model='element.checkBox']")
+                            if cb_elems:
+                                cb = cb_elems[0]
+                                if not cb.is_selected():
+                                    driver.execute_script("arguments[0].click();", cb)
+                                    time.sleep(0.2)
+                            row_handled = True
+                            break
                         except Exception as cb_err:
-                            logger.warning(f"ติ๊ก Checkbox แถวสีแดงผิดพลาด: {cb_err}")
+                            logger.warning(
+                                f"ติ๊ก Checkbox แถวสีแดงผิดพลาด (แถว {row_idx + 1}/{failed_row_count}, "
+                                f"รอบ {row_attempt + 1}/3): {cb_err}")
+                            time.sleep(0.4)
+
+                    if not row_handled:
+                        # ห้ามตัด SN ออกจาก Excel ถ้ายังติ๊ก checkbox ไม่สำเร็จ
+                        # (ไม่งั้นแถวแดงค้างใน Modal แต่ SN หายจากไฟล์ -> วนไม่จบ)
+                        logger.warning(f"ข้ามแถวสีแดง {row_idx + 1}/{failed_row_count} ไปก่อน (element ยังไม่เสถียร)")
+                        continue
 
                     if sn_val:
                         failed_sns_to_remove.append(sn_val)

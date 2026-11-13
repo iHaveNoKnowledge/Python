@@ -62,9 +62,21 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-11-12
+
+- [X] **[Accel fill multiple: ไม่กด ok หลังตรวจสอบ sn]**:
+
+  - **สาเหตุ**: หลังกด Verify โค้ดเข้าเส้นทาง "แถวสีแดง" แล้วเก็บ failed_rows ref ไว้ข้ามรอบ — Angular re-render หลังติ๊ก checkbox ทำให้ element เดิม stale exception หลุดออกจากฟังก์ชัน (accel_fill_sku ไม่ได้ catch) จึงไม่มีทางไปกด OK
+  - **แก้**: แถวสีแดง: วนตาม index แล้วค้น element ใหม่ทุกครั้ง + retry 3 รอบ ไม่ถือ ref ข้ามรอบ (accel_mode.py:1362)
+  แถวสีแดงต้องคงอยู่ 3 วินาทีจึงถือว่า fail จริง — แถวสีชั่วคราวหลัง Verify จะไม่แย่งทางจากปุ่ม OK อีก (accel_mode.py:1272)
+  ปุ่ม OK: ค้นใหม่ + retry 3 ครั้ง ถ้าล้มเหลวจะวนลูปใหม่แทนที่จะ raise (accel_mode.py:1316)
+  ป้องกัน stale รอบ polls verify/OK, การเช็ค modal, ค้นช่อง input ว่าง, เช็ค class ปุ่ม Serial
+  ตัด SN จาก Excel เฉพาะแถวที่ติ๊ก checkbox สำเร็จแล้วเท่านั้น กันแถวแดงค้างใน Modal
+
 ### [ver5.x.x] - 2026-11-11
 
 - [X] **[Accel Excel: error `File is not a zip file` ตอนบันทึกผลลัพธ์]**:
+
   - **สาเหตุ**: `_save_df_to_excel()` เขียนทับไฟล์จริงโดยตรง (`pd.ExcelWriter(..., mode='a')` และ `wb.save(path)` เปิดไฟล์ด้วย `'wb'`) จึงมีช่วงที่ไฟล์บนดิสก์ถูก truncate/เขียนค้างครึ่งเดียว ขณะที่ thread อื่นอ่านไฟล์เดียวกัน หรือ `_apply_excel_formatting()` (เขียนทั้งไฟล์ซ้ำหลังทุก save) กำลังโหลด/บันทึกทับอยู่ ทำให้ `zipfile` โยน `BadZipFile: File is not a zip file` (จำลองซ้ำได้: เขียนแบบเดิมพร้อมอ่านพร้อมกันเกิด error 1,930 ครั้ง)
   - เขียนแบบ atomic: สร้างไฟล์ชั่วคราวในโฟลเดอร์เดียวกัน → `os.replace()` พร้อม retry 150 ms ทำให้ผู้อ่านเห็นได้แค่ไฟล์เก่าหรือไฟล์ใหม่ที่สมบูรณ์ ไม่มีทางเห็นไฟล์ที่เขียนค้างครึ่งเดียว
   - **Fallback สำหรับไฟล์ที่ถูกเปิดค้าง (LibreOffice/Excel)**: Windows ไม่อนุญาตให้ rename ทับไฟล์ที่มีโปรแกรมอื่นเปิดอยู่ แต่ยังเปิดให้เขียนทับได้ → ถ้า `os.replace()` โดน PermissionError จะ `shutil.copyfile()` เขียนทับโดยตรงต่อทันที (ตรงกับพฤติกรรมเดิมที่ใช้ได้ตอนเปิดไฟล์ค้าง) ทำให้บันทึกผลออเดอร์ต่อได้โดยไม่ต้องปิด LibreOffice
@@ -72,8 +84,8 @@
   - เพิ่ม `is_valid_xlsx()` ตรวจก่อนเปิด/บันทึก: ถ้าไฟล์เสียอยู่แล้วจะไม่ถูกเขียนทับ (ข้อมูลเดิมไม่หาย) และ log error หลักครบถ้วน (เดิม `except Exception as e` กลืน error หลัก เหลือแต่ error ของ fallback)
   - `_save_df_to_excel()` คืนค่า `bool` และตั้ง `excel_save_failed` ถูกต้อง: caller ไม่พิมพ์ "success" ปลอม, fallback ด้วย openpyxl ปิด workbook ใน `finally` และคงลำดับชีตเดิม, ไม่เหลือไฟล์ `.~accel_*.xlsx` ค้าง
   - เพิ่ม `tests/test_accel_save_atomic.py` (8 เคส: atomic save, ไฟล์เสียไม่ถูกทำลาย, rename โดนบล็อกแล้ว fallback เขียนทับ, ไฟล์ถูกล็อกสนิท, fallback, concurrency/lost update)
-
 - [X] **[CP Pattern Viewer: เงื่อนไข complete / scroll / singleton window]**:
+
   - `_row_complete()` นับ `cp_name = "NONE"` เป็นวิธีลดที่ถูกต้อง (ไม่มีคูปอง ใช้ OC/DC แทน) และนับเฉพาะแถวที่มีวิธีลด **และ** มี `usage_start_date` + `usage_end_date` ครบ (complete 3 → 9 แถวใน `tables/cp_data.xlsx`)
   - ป้าย complete/incomplete อัปเดตทันทีหลังกดบันทึก (`_save_pattern_with_remark(..., state_lbl=...)`)
   - mouse wheel เลื่อนเฉพาะ `CTkScrollableFrame` ของหน้าต่างที่ pointer อยู่ ผ่าน `winfo_containing()` + `return "break"` ไม่ให้ handler `bind_all` ของแอปหลักไปเลื่อน canvas ผิดหน้าต่าง
@@ -82,7 +94,7 @@
 
 ### [ver5.x.x] - 2026-11-10
 
-- [] **[ทำ gui cp_data management]**:
+- [X] **[ทำ gui cp_data management]**:
   - **สร้าง**: สร้าง gui ครบ 3 หน้า แต่ยังไม่ได้เทสว่าดีจริงไหม
 
 ### [ver5.3.0] - 2026-11-05
@@ -157,8 +169,6 @@
   - **GAS Backend Sync Support (`gas_backend.js`)**: เพิ่มตัวตรวจจับ `isAutoAdj` เพื่อให้ระบบ Google Apps Script สามารถระบุแถวเดิมที่มีค่า `"AUTO"` และอัปเดตทับแถวนั้นทันที แทนที่จะแทรกเป็นแถวใหม่
 
 ### [ver5.3.0] - 2026-10-12
-
-
 
 - [X] **[Preselected Top-up + Add-on Pairing & Authoritative Date Preservation (`MNL-002309`)]**:
   - **Preselected Top-up + Add-on Combination**: แก้ไขตรรกะการจับคู่คูปองใน `find_suggested_cp_for_discount()` และ `find_all_matching_coupons_on_smco()` เมื่อสินค้าบน POS มีคูปอง Auto Top-up ติดมาแล้ว (เช่น `CP2609280033` ลด 2,000 บาท ทำให้ราคาตั้งต้น 14,195 ลดเหลือ 12,195) และต้องการลดราคาเพิ่มอีก 2,000 บาทเพื่อเข้าสู่เป้าหมาย 10,195:
