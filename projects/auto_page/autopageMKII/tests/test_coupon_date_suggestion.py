@@ -21,6 +21,7 @@ from functions.pos.pricing_engine import (
     is_coupon_valid_for_order,
     parse_smart_date,
     parse_smart_datetime,
+    strip_bot_auto_suggest_note,
 )
 
 
@@ -851,6 +852,113 @@ class TestCouponDateSuggestion(unittest.TestCase):
             self.assertEqual(sent_payload.get("suggested_oc_amount"), "40")
             self.assertEqual(sent_payload.get("last_adjustment_method"), "OC")
 
+    def test_record_pos_cart_summary_creates_new_row_when_billed_price_differs(self):
+        """ทดสอบว่าเมื่อบิลราคาต่างจากแถวเดิม ระบบต้องสร้างแถวใหม่ตามราคาบิล
+        ไม่เขียน last_*/suggested_* ลงแถวราคาเดิม (แถว = จุดราคาของ SKU)"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {"sku": "MNL-002404", "sale_price": 6453.0, "cp_name": "", "usage_start_date": "",
+                 "usage_end_date": "", "last_order_id": "", "last_used_cp": "", "last_actual_price": ""}
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002404", "ราคาขายสุทธิ": 6503.0}]
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+            reconciler._dual_cp_loader = MagicMock()
+            reconciler.scrape_pos_cart_items = MagicMock(return_value=[
+                {"sku": "MNL-002404", "unit_net": 6503.0, "coupons": "DC2610280002"}
+            ])
+
+            reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_PRICE_01")
+
+            res_df = pd.read_excel(excel_path)
+            self.assertEqual(len(res_df), 2, "ต้องสร้างแถวใหม่สำหรับราคา 6503 ไม่เขียนทับแถว 6453")
+            old_row = res_df[res_df["sale_price"] == 6453.0].iloc[0]
+            new_row = res_df[res_df["sale_price"] == 6503.0].iloc[0]
+
+            # แถวเดิม (ราคา 6453) ห้ามมี history ของบิล 6503
+            for col in ("last_order_id", "last_used_cp", "last_actual_price"):
+                v = old_row.get(col)
+                self.assertTrue(
+                    pd.isna(v) or str(v).strip() in ("", "nan"),
+                    f"{col} ของแถวราคาเดิมต้องว่าง ไม่ใช่ '{v}'"
+                )
+
+            # แถวใหม่ (ราคา 6503) ได้ history ครบ
+            self.assertEqual(str(new_row["last_order_id"]).strip(), "ORDER_TEST_PRICE_01")
+            self.assertEqual(str(new_row["last_used_cp"]).strip(), "DC2610280002")
+            self.assertAlmostEqual(float(new_row["last_actual_price"]), 6503.0, places=2)
+
+    def test_record_pos_cart_summary_gas_payload_not_prefilled_from_wrong_price_row(self):
+        """ทดสอบว่าเมื่อไม่มีแถวตรงราคา payload ที่ push ขึ้น GAS ต้องไม่ prefill
+        cp_name/suggested_* จากแถวราคาผิด (กันข้อมูลผิดราคาแพร่เข้า GAS)"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {"sku": "MNL-002404", "sale_price": 6453.0, "cp_name": "CP2610290064",
+                 "suggested_cp": "CP2610290064", "suggested_oc_amount": "99",
+                 "suggested_remark": "ราคาเซ็ทละ 6453", "usage_start_date": "", "usage_end_date": ""}
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002404", "ราคาขายสุทธิ": 6503.0}]
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+            mock_loader = MagicMock()
+            reconciler._dual_cp_loader = mock_loader
+            reconciler.scrape_pos_cart_items = MagicMock(return_value=[
+                {"sku": "MNL-002404", "unit_net": 6503.0, "coupons": "DC2610280002"}
+            ])
+
+            reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_GAS_01")
+
+            self.assertTrue(mock_loader.push_record_to_gas.called)
+            sent = mock_loader.push_record_to_gas.call_args[0][0]
+            # ราคาใน payload ต้องเป็นราคาบิล
+            self.assertAlmostEqual(float(sent.get("sale_price")), 6503.0, places=2)
+            # ห้าม carry ค่าจากแถว 6453 มาด้วย
+            self.assertEqual(str(sent.get("cp_name") or "").strip(), "")
+            self.assertEqual(str(sent.get("suggested_oc_amount") or "").strip(), "")
+            self.assertEqual(str(sent.get("suggested_remark") or "").strip(), "")
+            # ค่าจากออเดอร์ปัจจุบันต้องมาครบ
+            self.assertEqual(str(sent.get("last_used_cp") or "").strip(), "DC2610280002")
+            self.assertEqual(str(sent.get("last_order_id") or "").strip(), "ORDER_TEST_GAS_01")
+
+    def test_record_pos_cart_summary_skips_record_when_price_zero(self):
+        """ทดสอบว่าหากราคาบิลเป็น 0 (parse ไม่ได้) ระบบต้องไม่เขียน record และไม่สร้างแถว sale_price=0"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "cp_data.xlsx")
+            df = pd.DataFrame([
+                {"sku": "MNL-002999", "sale_price": 100.0, "cp_name": "", "usage_start_date": "",
+                 "usage_end_date": "", "last_order_id": "", "last_used_cp": "", "last_actual_price": ""}
+            ])
+            df.to_excel(excel_path, index=False)
+
+            self.mock_app.cp_table_location = excel_path
+            self.mock_app.cp_df = df
+            self.mock_app.items = [{"เลขอ้างอิง SKU (SKU Reference No.)": "MNL-002999", "ราคาขายสุทธิ": 0}]
+
+            reconciler = POSPricingReconciler(self.mock_bot)
+            mock_loader = MagicMock()
+            reconciler._dual_cp_loader = mock_loader
+            reconciler.scrape_pos_cart_items = MagicMock(return_value=[
+                {"sku": "MNL-002999", "unit_net": 0.0, "coupons": "DC2610280002"}
+            ])
+
+            reconciler.record_pos_cart_summary_to_excel("ORDER_TEST_ZERO_01")
+
+            res_df = pd.read_excel(excel_path)
+            self.assertEqual(len(res_df), 1, "ต้องไม่สร้างแถว sale_price=0")
+            row = res_df.iloc[0]
+            self.assertTrue(pd.isna(row.get("last_order_id")) or str(row.get("last_order_id")).strip() in ("", "nan"))
+            self.assertFalse(mock_loader.push_record_to_gas.called, "ต้องไม่ push record ที่ราคาเป็น 0")
+
     def test_no_pattern_row_not_contaminated_by_product_master_and_deduplicated(self):
         """ทดสอบว่าแถวที่บันทึกว่า 'ไม่มี pattern' จะไม่ถูก Product Master ยัด suggested_cp ใส่ และเมื่อบันทึกซ้ำจะไม่สร้างแถวเบิ้ล"""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -933,6 +1041,53 @@ class TestCouponDateSuggestion(unittest.TestCase):
         self.assertEqual(s2, datetime.date(2026, 9, 15))
         self.assertEqual(e2, datetime.date(2026, 9, 25))
 
+    def test_resolve_multi_coupon_info_ignores_bot_auto_suggest_note(self):
+        """ทดสอบว่าโน้ตอัตโนมัติของบอท (ยิงต่ำกว่า X แล้ว OC ทันที (auto-suggest)) ใน suggested_remark
+        ของแถว cp_df แถวเดียว ต้องไม่ถูกนำมาใช้เป็น remark ของคูปอง
+        (ก่อนแก้: โน้ตของ SKU เดียวถูก propagation ไปยังทุกแถวที่ใช้คูปองตัวเดียวกัน)"""
+        reconciler = POSPricingReconciler(self.mock_bot)
+        bot_note = "ยิงต่ำกว่า 19.00 แล้ว OC ทันที (auto-suggest)"
+        combined_note = "promotion xnn dahua period 1-30 Nov 2026 topup all store BG250007, " + bot_note
+
+        # กรณี 1: cp_df มีแต่แถวที่โน้ตบอท -> ต้องไม่ได้โน้ตบอทเป็น remark
+        self.mock_app.cp_df = pd.DataFrame([
+            {"sku": "MNL-000001", "cp_name": "DC2610280002", "suggested_cp": "DC2610280002",
+             "suggested_remark": bot_note}
+        ])
+        rem1, _, _ = reconciler.resolve_multi_coupon_info("DC2610280002")
+        self.assertNotIn("auto-suggest", str(rem1))
+        self.assertNotIn("ยิงต่ำกว่า", str(rem1))
+
+        # กรณี 2: remark จริงจาก Modal ต้องไม่ถูกทับด้วยโน้ตบอทใน cp_df
+        reconciler.last_scanned_smco_coupon_details = [
+            {"code": "DC2610280002", "remark": "ราคาเซ็ทละ 1449",
+             "start_date": datetime.date(2026, 11, 1), "end_date": datetime.date(2026, 11, 30)}
+        ]
+        rem2, _, _ = reconciler.resolve_multi_coupon_info("DC2610280002")
+        self.assertEqual(str(rem2), "ราคาเซ็ทละ 1449")
+
+        # กรณี 3: remark ที่ปนโน้ตบอท -> ตัดเฉพาะส่วนโน้ตทิ้ง เก็บส่วนคูปองจริงไว้
+        reconciler.last_scanned_smco_coupon_details = []
+        self.mock_app.cp_df = pd.DataFrame([
+            {"sku": "MNL-000002", "cp_name": "DC2610280002", "suggested_cp": "DC2610280002",
+             "suggested_remark": combined_note}
+        ])
+        rem3, _, _ = reconciler.resolve_multi_coupon_info("DC2610280002")
+        self.assertNotIn("auto-suggest", str(rem3))
+        self.assertIn("promotion xnn dahua", str(rem3))
+
+        # กรณี 4: เลือกแถวที่มี remark จริงก่อนแถวที่มีแต่โน้ตบอท
+        self.mock_app.cp_df = pd.DataFrame([
+            {"sku": "MNL-000003", "cp_name": "DC2610280002", "suggested_cp": "DC2610280002",
+             "suggested_remark": bot_note},
+            {"sku": "MNL-000004", "cp_name": "DC2610280002", "suggested_cp": "DC2610280002",
+             "suggested_remark": "Mid Month Special"},
+        ])
+        rem4, _, _ = reconciler.resolve_multi_coupon_info("DC2610280002")
+        self.assertEqual(str(rem4), "Mid Month Special")
+
+        # กรณี 5: strip helper ไม่แตะ remark ปกติ
+        self.assertEqual(strip_bot_auto_suggest_note("ราคาเซ็ทละ 1449"), "ราคาเซ็ทละ 1449")
 
     def test_add_missing_cp_to_excel_updates_empty_placeholder_and_splits_multi_patterns(self):
         """

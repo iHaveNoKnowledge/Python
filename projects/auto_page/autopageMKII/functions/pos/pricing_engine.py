@@ -287,6 +287,26 @@ def extract_target_price_from_text(text: str) -> Optional[float]:
             pass
     return None
 
+
+_BOT_AUTO_SUGGEST_NOTE_RE = re.compile(
+    r'(?:,\s*)?ยิงต่ำกว่า\s*[\d,]+(?:\.\d+)?\s*แล้ว\s*(?:OC|DC)\s*ทันที\s*\(auto-suggest\)',
+    re.IGNORECASE
+)
+
+
+def strip_bot_auto_suggest_note(text: Any) -> str:
+    """ตัดโน้ตอัตโนมัติของบอท (เช่น 'ยิงต่ำกว่า 19.00 แล้ว OC ทันที (auto-suggest)') ออกจาก remark
+    เพื่อไม่ให้โน้ตของ SKU เดียวถูกใช้เป็น remark ของคูปองแล้ว propagation ไปยังแถวอื่นที่ใช้คูปองเดียวกัน"""
+    t = str(text or "")
+    if "(auto-suggest)" not in t:
+        return t
+    t = _BOT_AUTO_SUGGEST_NOTE_RE.sub("", t)
+    t = re.sub(r'\s*,\s*,\s*', ', ', t)
+    t = re.sub(r'^\s*,\s*', '', t)
+    t = re.sub(r'\s*,\s*$', '', t)
+    return t.strip().strip(',').strip()
+
+
 def get_coupon_start_and_end_dates(c: dict) -> tuple[Optional[Union[datetime.datetime, datetime.date]], Optional[Union[datetime.datetime, datetime.date]]]:
     """
     ดึง start_date และ end_date ของคูปอง พร้อมรักษาเวลา (Time) ถ้ามี
@@ -2713,12 +2733,27 @@ class POSPricingReconciler:
                             combined_mask = combined_mask | m_mask
                         if combined_mask.any():
                             if 'suggested_remark' in cp_df.columns:
-                                valid_rem_mask = combined_mask & (
+                                rem_as_str = cp_df['suggested_remark'].astype(str)
+                                rem_stripped = cp_df['suggested_remark'].map(strip_bot_auto_suggest_note)
+                                # แถวที่ remark มีเนื้อหาจริงหลังตัดโน้ต auto-suggest ของบอทออก (ให้ขึ้นก่อน)
+                                # เพื่อไม่ให้แถวที่มีแต่โน้ตบอทถูกหยิบมาเป็น remark ของคูปอง
+                                real_rem_mask = (
                                     cp_df['suggested_remark'].notna()
-                                    & ~cp_df['suggested_remark'].astype(str).str.strip().isin(['', '-', 'nan', '<na>'])
-                                    & ~cp_df['suggested_remark'].astype(str).str.contains('ไม่มี pattern', na=False)
+                                    & rem_stripped.str.strip().ne('')
+                                    & ~rem_as_str.str.strip().isin(['', '-', 'nan', '<na>'])
+                                    & ~rem_as_str.str.contains('ไม่มี pattern', na=False)
                                 )
-                                target_df = cp_df[valid_rem_mask] if valid_rem_mask.any() else cp_df[combined_mask]
+                                any_rem_mask = (
+                                    cp_df['suggested_remark'].notna()
+                                    & ~rem_as_str.str.strip().isin(['', '-', 'nan', '<na>'])
+                                    & ~rem_as_str.str.contains('ไม่มี pattern', na=False)
+                                )
+                                if (combined_mask & real_rem_mask).any():
+                                    target_df = cp_df[combined_mask & real_rem_mask]
+                                elif (combined_mask & any_rem_mask).any():
+                                    target_df = cp_df[combined_mask & any_rem_mask]
+                                else:
+                                    target_df = cp_df[combined_mask]
                             else:
                                 target_df = cp_df[combined_mask]
                             row = target_df.iloc[0]
@@ -2727,6 +2762,21 @@ class POSPricingReconciler:
                             r_val = row.get('suggested_remark') if 'suggested_remark' in row else None
                             if r_val and "ไม่มี pattern" in str(r_val):
                                 r_val = ""
+                            # ไม่เอาโน้ตอัตโนมัติของบอท (auto-suggest) ของ SKU เดียวมาเป็น remark ของคูปอง
+                            # เพราะจะถูก propagation ไปยังทุกแถวที่ใช้คูปองตัวเดียวกัน
+                            r_val = strip_bot_auto_suggest_note(r_val)
+                            if not str(r_val or "").strip():
+                                r_val = ""
+                            existing = token_c_map.get(t)
+                            if (existing is not None
+                                    and str(existing.get("remark") or "").strip()
+                                    and not str(r_val or "").strip()):
+                                # มี remark จริงจากข้อมูลคูปองอยู่แล้ว -> ห้ามทับด้วยค่าว่าง
+                                if not existing.get("startDate") and pd.notna(s_val):
+                                    existing["startDate"] = s_val
+                                if not existing.get("endDate") and pd.notna(e_val):
+                                    existing["endDate"] = e_val
+                                continue
                             token_c_map[t] = {
                                 "code": t,
                                 "desc": str(r_val or "") if (pd.notna(r_val) and str(r_val).strip() != "") else "",
@@ -3124,6 +3174,14 @@ class POSPricingReconciler:
                 used_cp = str(item.get("coupons", "")).strip() or "NONE"
                 act_price = float(item.get("unit_net", 0.0))
 
+                # ราคาไม่ถูกต้อง (parse ไม่ได้/เป็น 0) -> ห้ามเขียน record หรือสร้างแถว (กันแถว sale_price=0 ขยะ)
+                if not (act_price > 0):
+                    logger.warning(
+                        f"[record_pos_cart_summary_to_excel] ข้าม {sku_clean}: "
+                        f"act_price={act_price} ไม่ถูกต้อง — ไม่เขียน last_*/suggested_* เพื่อไม่ให้ขัดกับ sale_price"
+                    )
+                    continue
+
                 # ตรวจสอบวิธีการปรับราคา (last_adjustment_method):
                 is_auto_inv = False
                 try:
@@ -3213,9 +3271,10 @@ class POSPricingReconciler:
                 auto_s_str = format_smart_datetime_str(auto_start_dt) if auto_start_dt else ""
                 auto_e_str = format_smart_datetime_str(auto_end_dt) if auto_end_dt else ""
 
-                # จับคู่แถวเดิม:
-                # 1. เช็ค sku และ sale_price ตรงกับ act_price (ความคลาดเคลื่อน <= 0.05)
-                # และหากมี used_cp ให้จับคู่เฉพาะแถวที่เป็นคูปอง/สูตรเดียวกัน เพื่อไม่เขียนทับแถวอื่นของ SKU เดียวกัน
+                # จับคู่แถวเดิม: ต้องตรงทั้ง sku และ sale_price ≈ act_price (±0.05) เท่านั้น
+                # เหตุผล: แถวใน cp_data คือ "จุดราคา" ของ SKU — ห้ามเขียน last_*/suggested_* ลงแถวราคาอื่น
+                # (เดิมมี fallback จับเฉพาะ sku / ราคาใกล้สุด ทำให้ history ข้ามราคา เช่น บิล 6503 ลงแถว 6453)
+                # หากไม่เจอแถวตรงราคา -> สร้างแถวใหม่ด้านล่าง (ตรงกับพฤติกรรม GAS backend ที่บังคับ price match)
                 sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - act_price).abs() <= 0.05)
                 if current_mp and 'marketplace' in df.columns:
                     mp_match_mask = (df['marketplace'].astype(str).str.strip().str.upper() == current_mp)
@@ -3230,32 +3289,6 @@ class POSPricingReconciler:
                     )
                     if cp_match_mask.any():
                         mask = cp_match_mask
-
-                # 2. ถ้าไม่เจอ เช็ค sku และ sale_price ตรงกับ expected_price
-                if not mask.any() and hasattr(self, 'last_expected_prices') and self.last_expected_prices:
-                    exp_p = self.last_expected_prices.get(sku_clean) or self.last_expected_prices.get(sku_raw)
-                    if exp_p is not None:
-                        exp_sku_price_mask = (df['sku'].astype(str).str.strip().str.upper() == sku_clean) & ((df['sale_price'] - exp_p).abs() <= 0.05)
-                        mask = exp_sku_price_mask
-                        if exp_sku_price_mask.any() and used_cp:
-                            used_cp_clean = str(used_cp).strip().upper()
-                            cp_match_mask = exp_sku_price_mask & (
-                                (df['cp_name'].astype(str).str.strip().str.upper() == used_cp_clean) |
-                                (df['suggested_cp'].astype(str).str.strip().str.upper() == used_cp_clean)
-                            )
-                            if cp_match_mask.any():
-                                mask = cp_match_mask
-
-                # 3. ถ้ายังไม่เจอ เช็คเฉพาะ sku เดียวกัน
-                if not mask.any():
-                    sku_only = (df['sku'].astype(str).str.strip().str.upper() == sku_clean)
-                    if sku_only.any():
-                        matching_indices = df[sku_only].index
-                        if len(matching_indices) == 1:
-                            mask = sku_only
-                        else:
-                            closest_idx = (df.loc[matching_indices, 'sale_price'] - act_price).abs().idxmin()
-                            mask = df.index == closest_idx
 
                 if mask.any():
                     if current_mp and 'marketplace' in df.columns:
@@ -3377,7 +3410,17 @@ class POSPricingReconciler:
                         used_c = it.get('coupons', '').strip()
                         sku_c = str(it.get('sku', '')).strip().upper()
                         act_p = float(it.get('unit_net', 0.0))
-                        
+
+                        # ราคาไม่ถูกต้อง -> ไม่ push (กัน GAS สร้างแถว sale_price=0 หรือเขียนลงแถวผิดราคา)
+                        if not (act_p > 0):
+                            logger.warning(
+                                f"[record_pos_cart_summary GAS] ข้าม {sku_c}: "
+                                f"act_price={act_p} ไม่ถูกต้อง — ไม่ push record"
+                            )
+                            continue
+
+                        # จับคู่เฉพาะ sku + sale_price ≈ act_p (±0.05) — ห้าม fallback จับแถว sku เดียวราคาต่าง
+                        # (ไม่งั้นค่า cp/oc/suggested_* ของแถวผิดราคาจะถูก prefill ไปสร้างแถวใหม่ใน GAS)
                         row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c) & ((df['sale_price'] - act_p).abs() <= 0.05)
                         if row_m.any() and used_c:
                             used_c_clean = str(used_c).strip().upper()
@@ -3387,8 +3430,6 @@ class POSPricingReconciler:
                             )
                             if row_m_cp.any():
                                 row_m = row_m_cp
-                        elif not row_m.any():
-                            row_m = (df['sku'].astype(str).str.strip().str.upper() == sku_c)
                         m_val = str(df.loc[row_m, 'last_adjustment_method'].iloc[0]) if (row_m.any() and 'last_adjustment_method' in df.columns) else ""
                         
                         existing_cp_val = str(df.loc[row_m, 'cp_name'].iloc[0] or "") if (row_m.any() and pd.notna(df.loc[row_m, 'cp_name'].iloc[0])) else ""
@@ -5312,7 +5353,7 @@ class POSPricingReconciler:
                     # ══════════════════════════════════════════════════════════
                     if is_auto_inv and seller_voucher > 0:
                         self.app.update_log(
-                            f"🔍 [Phase 1: Seller Voucher] ค้นหาและตรวจสอบคูปอง Seller Voucher ({seller_voucher:,.2f} บาท) บน SMCO ให้กับ SKU: {sku_key} ก่อนเป็นอันดับแรก..."
+                            f"🔍 [Phase 1: Seller Voucher] ค้นหาและตรวจสอบคูปอง Seller Voucher ({seller_voucher:,.2f} บาท) บน SMCO ให้กับ SKU: {sku_key} "
                         )
                         sv_ok, sv_status, sv_chosen = self.find_and_apply_seller_voucher_on_smco(
                             item_no_1indexed, seller_voucher, cp_candidates=cp_candidates, require_candidate_match=True
@@ -5897,16 +5938,33 @@ class POSPricingReconciler:
                                         print(f"[conflict-local] skip: {_e_local_conf}")
 
                                 self.app.update_log(
-                                    f"💡 [Conflict Resolver] บันทึกข้อขัดแย้งเข้าแท็บ conflict_resolver เรียบร้อยแล้ว -> เลือกใช้สูตรแนะนำ [{suggested_winner_code}] ออกบิลต่ออัตโนมัติ"
+                                    f"💡 [Conflict Resolver] บันทึกข้อขัดแย้งเข้าแท็บ conflict_resolver เรียบร้อยแล้ว -> สูตรที่ระบบแนะนำ: [{suggested_winner_code}]"
                                 )
 
-                            # 4. ดำเนินการออกบิลต่อด้วย chosen_cand โดยไม่อุดตัน (Proceed Smoothly)
+                            # 4. ดำเนินการออกบิลต่อด้วย chosen_cand
                             cp_name = chosen_cand.get("cp_name", "")
                             is_bypass_signal = str(cp_name).strip().upper() in ["NONE", "BYPASS", "NO_CP", "NO CP", "PASSTHROUGH"]
 
                             if is_bypass_signal:
                                 self.app.update_log(f"⏩ ข้ามการปรับราคาสำหรับ SKU: {sku_key} (กำหนดเป็น {cp_name})")
                                 continue
+
+                            # 🛑 บอทห้ามกดเลือกคูปองเองเมื่อสูตรที่ชนะยังไม่ได้ยืนยันในตาราง cp_data
+                            # (พบสดๆ บน SMCO / cp_name ยังว่าง) -> หยุดให้ Admin ยืนยันเหมือน CASE 1
+                            # ยกเว้น Admin อนุมัติผ่าน conflict_resolver แล้ว (admin_cand is not None)
+                            if admin_cand is None and chosen_cand.get("source") == "SMCO":
+                                log_msg = (
+                                    f"⚠️ พบคูปองแนะนำ [{cp_name}] บน SMCO สำหรับ SKU: {sku_key} "
+                                    f"แต่ยังไม่ได้ยืนยันใน cp_data.xlsx (cp_name ยังว่าง) "
+                                    f"-> หยุดเพื่อให้ตรวจสอบก่อน (บันทึกลง suggested_cp แล้ว)"
+                                )
+                                logger.warning(log_msg)
+                                self.app.update_log(log_msg)
+                                self._raise_missing_cp_guide(
+                                    item, sku_key, actual_price, expected_price, purchased_date,
+                                    has_entry=len(cp_candidates) > 0, cp_candidates=cp_candidates,
+                                    suggested_cp_info=sugg_info,
+                                )
 
                             self.apply_chosen_pricing_candidate(item, sku_key, item_no_1indexed, chosen_cand, expected_price, purchased_date)
 

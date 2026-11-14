@@ -12,7 +12,10 @@
 
 ### 🐛 บัค & การปรับปรุงที่กำลังติดตาม (In Progress / Issues)
 
-- _ไม่มีรายการค้างในขณะนี้_
+- [ ] **[cp_data: เคลียร์โน้ตบอทปนใน `suggested_remark` 49 แถว]**:
+  - หลังแก้ logic propagation เสร็จแล้ว (ดู changelog 2026-11-13) — ไฟล์มี 55 แถวที่มี "ยิงต่ำกว่า … (auto-suggest)" โดยเป็นของจริงแค่ 6 แถว (เลขในโน้ตตรงกับ oc) อีก 49 แถวถูก propagation ใส่ รอ confirm ก่อนตัดเฉพาะส่วนโน้ตออก
+- [ ] **[Tests: 2 เคสล้ม + 1 loader error (pre-existing)]**:
+  - `test_seller_voucher_pricing` (2 เคส), `test_cp_date_auto_correction` (loader error) — ล้มอยู่ก่อนแล้ว (ยืนยันซ้ำแล้วด้วย stash โค้ดแล้วรัน) ไม่เกี่ยวกับการแก้รอบนี้ (เคส `test_realtime_ambiguity_and_remark` ที่เคยล้ม แก้แล้วใน changelog 2026-11-13)
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
 
@@ -61,6 +64,26 @@
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
+
+### [ver5.x.x] - 2026-11-13
+
+- [X] **[Conflict Resolver CASE 2: บอทกดเลือกคูปองเองทั้งที่ `cp_name` ยังว่าง]**:
+
+  - **สาเหตุ**: flow `diff < 0` ที่เจอ ≥2 candidate (สูตรจากตาราง + คูปองสดบน SMCO) เข้า CASE 2 แล้ว scoring เลือกผชนะออกมา "ดำเนินการออกบิลต่อด้วย chosen_cand โดยไม่อุดตัน" ทันที — ไม่มี gate หยุดเหมือน CASE 1 (ฟังก์ชัน `_raise_ambiguous_cp_guide` มีอยู่ในไฟล์แต่ไม่เคยถูกเรียก) ทำให้คูปองที่ยังไม่ยืนยันในตารางถูกกดใช้เองตอนออกบิล
+  - **แก้** (`functions/pos/pricing_engine.py`): เพิ่ม gate ก่อนเรียก `apply_chosen_pricing_candidate` — ถ้า `admin_cand is None` และ `chosen_cand.source == "SMCO"` (พบสดๆ บน SMCO ยังไม่ยืนยันใน cp_data) ให้ log เตือนแล้วเรียก `_raise_missing_cp_guide` หยุดออเดอร์เพื่อให้ Admin ยืนยันเหมือน CASE 1 (บันทึก suggested_cp ไว้ก่อนแล้วตามเดิม) — ผู้ชนะที่เป็นสูตรยืนยันแล้ว (TABLE), Admin อนุมัติผ่าน conflict_resolver, สัญญาณ bypass, หรือ candidate ที่มีเฉพาะ OC/DC (ไม่กดคูปอง) ยังออกบิลต่อตามเดิม
+  - **เทสต์**: อัปเดต `tests/test_realtime_ambiguity_and_remark.py::test_ambiguity_detection_halts_order_when_multiple_recipes_found` ให้ตรงพฤติกรรมใหม่ (raise ValueError + record suggested + ไม่ apply) — ไฟล์นี้จากเคย fail 1 เคส (pre-existing) ตอนนี้ 13/13 ผ่าน; ชุด related 83/83 OK, `test_cp_pattern_complete` ผ่าน; เหลือแค่ pre-existing เดิม `test_seller_voucher_pricing` (2) + `test_cp_date_auto_correction` (loader)
+- [X] **[cp_data: `last_order_id` / `last_used_cp` / `last_actual_price` ไม่ตรง `sale_price`]**:
+
+  - **สาเหตุ**: `record_pos_cart_summary_to_excel` มี fallback จับคู่แถวหลวม 2 ชั้น — ชั้นที่ 2 จับด้วยราคา expected และชั้นที่ 3 จับเฉพาะ sku / ราคาใกล้สุดที่สุด ทำให้ history ของบิลราคาหนึ่งถูกเขียนลงแถวราคาอื่น (เช่น บิล 6503 ลงแถว 6453 ของ `MNL-002404`) ทำให้ suggest ไม่ชัดว่าใช้กับราคาไหน; ฝั่ง GAS push ก็มี `row_m = sku only` fallback เติมค่า `cp_name`/`oc`/`suggested_*` จากแถวผิดราคาเข้า payload (ข้อมูลจริง 5 จาก 63 แถวไม่ตรงกัน)
+  - **แก้** (`functions/pos/pricing_engine.py`): local — เขียนเฉพาะแถว `sku` + `sale_price ≈ act_price` (±0.05, คง mp/cp refine) ตัดทั้ง 2 fallback, ไม่เจอแถวตรงราคา -> สร้างแถวใหม่ตามราคาบิล (ตรงกับ `gas_backend.js` ที่บังคับ price match + `appendRow` อยู่แล้ว ไม่ต้องแก้); GAS push — ตัด `row_m = sku only` ไม่ให้ prefill จากแถวผิดราคา; เพิ่ม guard `act_price > 0` ทั้ง 2 เส้นทาง กันสร้าง/เขียนแถว `sale_price=0` ขยะ (แบบ `COA-002069`)
+  - **ข้อมูลเดิม**: ย้าย history 4 แถวไปแถวราคาบิลจริง (3144 / 6503 / 6897 / 11425) และแก้ `COA-002069` `sale_price` 0 → 3000 — ตรวจซ้ำแล้วเหลือ 0 แถวไม่ตรง (backup: `tables/cp_data_backup_20261113_173151.xlsx`)
+  - **เทสต์**: เพิ่ม 3 เคสใน `tests/test_coupon_date_suggestion.py` (ราคาบิลต่าง -> สร้างแถวใหม่ไม่แตะแถวเดิม / ไม่ prefill แถวผิดราคาเข้า GAS payload / ราคา 0 -> ข้ามทั้งเขียนและ push) — รันผ่านทั้งชุด 34/34, suites ที่เกี่ยวข้อง 49/49
+- [X] **[Suggest ปนกัน: โน้ตบอท "ยิงต่ำกว่า … (auto-suggest)" ถูก propagate ไปยังหลายแถว]**:
+
+  - **สาเหตุ**: `resolve_multi_coupon_info` step 3 ดึง `suggested_remark` จากแถวแรกใน `cp_df` ที่แมตช์รหัสคูปอง (`cp_name` / `suggested_cp` / `last_used_cp`) มาใช้เป็น remark ของคูปอง — โน้ตบอทที่เขียนลงแถว SKU เดียวจึงกลายเป็น "remark ของคูปอง" แล้วถูกเขียนซ้ำลงทุกแถวที่ใช้คูปองเดียวกัน (ผ่าน `record_pos_cart_summary_to_excel` และ GAS push) แถมไม่เคยถูกล้าง เพราะ `extract_target_price_from_text` ส regex ไม่เจอ ("ยิงต่ำกว่า 19.00" ไม่มีคำว่า "ราคา…") → guard ล้าง remark ขัดแย้งราคาข้ามไปหมด แถวที่ราคาตรง default อยู่แล้วจึงยังโดนปน
+  - **แก้** (`functions/pos/pricing_engine.py`): เพิ่ม `strip_bot_auto_suggest_note()` ตัดเฉพาะส่วนโน้ตบอทออกจาก remark (เก็บส่วนคูปองจริงไว้ เช่น "promotion …") แล้วใช้ใน step 3 — เลือกแถวที่ remark มีเนื้อหาจริงหลังตัดโน้ตก่อน และถ้าโน้ตบอททำให้ค่าว่าง จะไม่ทับ remark จริงจากข้อมูลคูปองที่มีอยู่แล้ว
+  - **ข้อมูลเดิมใน `tables/cp_data.xlsx`**: 55 แถวมีโน้ตนี้ — genuine 6 แถว (เลขในโน้ตตรงกับ oc/suggested_oc) vs ถูก propagate 49 แถว (รอเคลียร์ — ดู backlog)
+  - **เทสต์**: เพิ่ม `tests/test_coupon_date_suggestion.py::test_resolve_multi_coupon_info_ignores_bot_auto_suggest_note` (5 เคส) — รันผ่านทั้งชุด 31/31, suites ที่เกี่ยวข้อง 45/45 (`test_accel_multi_qty_sn` 7/7 ยังผ่าน)
 
 ### [ver5.x.x] - 2026-11-12
 

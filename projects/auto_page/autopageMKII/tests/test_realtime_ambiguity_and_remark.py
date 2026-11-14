@@ -93,9 +93,12 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         """
         ทดสอบว่าเมื่อพบทั้งสูตรเก่าจากตาราง (CP2609140012 + OC 5 4)
         และคูปองใหม่สดๆ บน SMCO (CP2610050027 สำหรับราคา 993)
-        ระบบจะตรวจพบ Ambiguity Alert และ raise ValueError เพื่อหยุดบอททันที
+        ระบบจะตรวจพบ Ambiguity และ raise ValueError เพื่อหยุดบอททันที
+        โดยบันทึก suggested_cp ไว้ให้ Admin ยืนยัน ห้ามกดเลือกคูปองเองเด็ดขาด
         """
         sku_key = "SP2-001753+SP2-001755"
+        # วันสั่งซื้อต้องอยู่ในช่วงโปรโมชันของคูปองใหม่ (05/10-31/10) เพื่อให้บันทึก suggested ได้
+        self.mock_app.cus_purchase_time.get.return_value = "2026-10-06 14:00:00"
         verification_result = {
             "all_ok": False,
             "price": {
@@ -132,15 +135,14 @@ class TestRealtimeAmbiguityAndRemark(unittest.TestCase):
         ])
 
         self.reconciler._record_missing_cp_with_dates = MagicMock()
-        self.reconciler.apply_candidate_coupons_if_missing = MagicMock(return_value=True)
+        self.reconciler.apply_chosen_pricing_candidate = MagicMock()
 
-        # Conflict Resolver จะบันทึก conflict และเลือกตัวที่ดีที่สุด (CP2610050027) ออกบิลต่อโดยไม่ Error
-        self.reconciler.process_price_mismatches(verification_result)
+        # ผู้ชนะคือคูปองสดจาก SMCO ที่ยังไม่ยืนยันในตาราง -> ต้องหยุด (ValueError) ห้ามออกบิลต่อเอง
+        with self.assertRaises(ValueError):
+            self.reconciler.process_price_mismatches(verification_result)
 
         self.reconciler._record_missing_cp_with_dates.assert_called()
-        self.reconciler.apply_candidate_coupons_if_missing.assert_called_with(
-            1, "SP2-001753+SP2-001755", "CP2610050027"
-        )
+        self.reconciler.apply_chosen_pricing_candidate.assert_not_called()
 
     def test_add_missing_cp_to_excel_sanitizes_conflicting_remark_and_syncs_gas(self):
         """
