@@ -16,6 +16,8 @@
   - หลังแก้ logic propagation เสร็จแล้ว (ดู changelog 2026-11-13) — ไฟล์มี 55 แถวที่มี "ยิงต่ำกว่า … (auto-suggest)" โดยเป็นของจริงแค่ 6 แถว (เลขในโน้ตตรงกับ oc) อีก 49 แถวถูก propagation ใส่ รอ confirm ก่อนตัดเฉพาะส่วนโน้ตออก
 - [ ] **[Tests: 2 เคสล้ม + 1 loader error (pre-existing)]**:
   - `test_seller_voucher_pricing` (2 เคส), `test_cp_date_auto_correction` (loader error) — ล้มอยู่ก่อนแล้ว (ยืนยันซ้ำแล้วด้วย stash โค้ดแล้วรัน) ไม่เกี่ยวกับการแก้รอบนี้ (เคส `test_realtime_ambiguity_and_remark` ที่เคยล้ม แก้แล้วใน changelog 2026-11-13)
+- [ ] **[CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — input กับ filter ยังแย่งกัน]**:
+  - ตอนพิมพ์ในช่องค้นหายังมีค้างเป็นบางครั้ง — KeyRelease แต่ละตัวอักษรเรียก `populate()` (กรอง + เรียง + ทำลาย/สร้าง widget ใหม่ทั้งแผง) บน main thread เดียวกับ input ไม่ได้แยกงานกัน cache ช่วยฝั่งอ่านไฟล์แล้ว (warm ~1ms) แต่ render ฝั่ง UI ยังชนกับการพิมพ์ — ทางแก้ที่ยังไม่ทำ: debounce/throttle (รอหยุดพิมพ์ ~150ms ค่อย filter) หรือแยก thread ทำ filter แล้วส่งผลกลับมา render
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
 
@@ -64,6 +66,28 @@
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
+
+### [ver5.x.x] - 2026-11-14
+
+- [X] **[CP Pattern Viewer: เรียงลำดับคอลัมน์ + ช่องค้นหา + ลบปุ่ม ✕ ซ้ำ]**:
+
+  - **สาเหตุ**: หน้าต่าง CP Patterns ทั้ง 3 หน้า (SKU list / price list / pattern detail) ไม่มีตัวเรียงลำดับและช่องค้นหา ต้องไล่ดูมือเวลา SKU เยอะ (ตอนนี้ 123 รุ่น) และหัวตารางมีปุ่ม ✕ ซ้ำกับ X ของ title bar Windows (มี 2 จุดปิดหน้าต่าง)
+  - **แก้** (`functions/cp_pattern_viewer.py`):
+    - **เรียงลำดับ**: หัวตารางคลิกได้ทุกคอลัมน์ (คลิก = asc, คลิกซ้ำ = desc, คลิกคอลัมน์อื่น = คอลัมน์ใหม่ asc) พร้อมลูกศร ▲/▼ บอกทิศทาง — หน้า SKU: sku/complete/prc patterns, หน้าราคา: price/complete/patterns (เรียงตัวเลขจริง ไม่ใช่ lexical), หน้า pattern: strip เรียง No./CP-DC/start/end/oc/dc (ค่าว่าง/แปลงค่าไม่ได้ = ท้ายสุดทั้ง asc/desc, No. = ตามตำแหน่งไฟล์)
+    - **ค้นหา**: แถบค้นหาใต้หัวตารางทุกหน้า — หน้า 1-2 ค้น substring ในค่าใดก็ได้ของแถว (ราคารับทั้งแบบมี/ไม่มี comma), หน้า 3 ค้นทุก field ใน `EDITOR_COLS` (รวม remark ไทย และวันที่ dd/mm/yyyy) — footer แสดงจำนวนที่เจอ/ทั้งหมด และข้อความ "ไม่พบ…" เมื่อ search ไม่แมตช์
+    - **ลบปุ่ม ✕** บนหัวตารางของทั้ง 3 หน้า (ใช้ X ของ title bar จุดเดียว)
+  - **เทสต์**: เพิ่ม `tests/test_cp_pattern_viewer_sort_search.py` (17 เคส: filter/sort 3 หน้า + empty-last + numeric sort) — รันรวมกับ `test_cp_pattern_complete` 26/26 OK; GUI smoke เปิดจริง 3 หน้าต่าง + จำลองคลิก sort (▲/▼ สลับจริง) + ค้นหากรองได้/ไม่พบข้อความครบ ผ่านทั้งหมด
+  - **หมายเหตุทดสอบ GUI**: `event_generate` ของ Tk ไม่ fire synthetic `<KeyRelease>` (ต้องเช็ค binding ผ่าน `entry._entry.bind()` แล้วเรียก populate ตรงๆ) และ window ที่ `grab_set()` ค้างจะ redirect event ของหน้าต่างอื่นไปหาตัวเอง — ก่อนจำลอง event ข้ามหน้าต่างต้อง `grab_release()` + `update()` ก่อน
+- [X] **[CP Pattern Viewer: ไม่ต้องโหลด xlsx ใหม่ทุก keystroke — cache ฝั่งอ่าน]**:
+
+  - **สาเหตุ**: ทุกพิมพ์ค้นหา/คลิกเรียงเรียก `populate()` ซึ่งเดิมบังคับอ่านใหม่ทั้งไฟล์ — หน้า 1 `_force_reload_cp` (reset mtime แล้ว `pd.read_excel` ใหม่ + `summarize_cp_data` ~600ms), หน้า 2-3 `read_cp_rows` (openpyxl อ่านทั้งไฟล์ ~57ms) → พิมพ์ค้นหาแต่ละตัวอักษรหน่วง
+  - **แก้** (`functions/cp_pattern_viewer.py`) — filter/sort ยังทำใน memory ฝั่ง UI ล้วน ไม่แตะ xlsx เขียน/เรียงอยู่แล้ว ที่แก้คือฝั่ง "อ่าน":
+    - หน้า 2-3: `_read_rows_cached` — cache rows ด้วย mtime+size ของไฟล์ (`_sku_price_rows` คัดลอก dict ก่อนติด `_price` cache จึงไม่เปื้อน), ไฟล์เปลี่ยน (บอทเขียน/บันทึกจาก viewer) ค่อยอ่านใหม่
+    - หน้า 1: เปลี่ยนจาก `_force_reload_cp` เป็นเรียก `reload_cp_df_if_modified()` ตรงๆ (mtime guard ของ app มีอยู่แล้ว) + `_summarize_cached` (key = df identity + path + mtime — เก็บ df ไว้ใน cache กัน id ถูก reuse หลัง gc; in-place ที่ pricing_engine `.loc[...] =` นั้นมาพร้อมเขียนไฟล์ → mtime เปลี่ยน → cache self-invalidate)
+    - `_force_reload_cp` (ตอนบันทึก/เพิ่ม/ลบจาก viewer) clear ทั้ง 2 cache → อ่านใหม่ทันทีตามเดิม
+  - **ผลวัด**: rows อ่าน 57.7ms → 0.75ms (cache hit), summarize 601ms → 0.2ms — keystroke ตอน warm รวม ~1ms + stat เดียว
+  - **เทสต์**: เพิ่ม 4 เคสใน `tests/test_cp_pattern_viewer_sort_search.py` (อ่านซ้ำไม่ยิง openpyxl ซ้ำ / cache ไม่โดน `_price` เสีย / force clear cache / summary cache รอจน df หรือ mtime เปลี่ยน) — 30/30 OK, GUI smoke ผ่าน
+  - **ยังไม่สมบูรณ์**: พิมพ์ค้นหายังค้างเป็นบางจังหวะ — ทุกตัวอักษรยังรัน `populate()` (กรอง+เรียง+สร้าง widget ใหม่ทั้งแผง) บน main thread เดียวกับ input ไม่ได้แยกงานกัน (ดู backlog: debounce/throttle หรือแยก thread)
 
 ### [ver5.x.x] - 2026-11-13
 
