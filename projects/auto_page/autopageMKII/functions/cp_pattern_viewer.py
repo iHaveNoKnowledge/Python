@@ -489,6 +489,16 @@ def _make_link(parent, text, command, width=None, anchor="w"):
     return lbl
 
 
+def _cancel_pending_debounce(entry):
+    aid = getattr(entry, "_debounce_after_id", None)
+    if aid is not None:
+        try:
+            entry.after_cancel(aid)
+        except Exception:
+            pass
+        entry._debounce_after_id = None
+
+
 def _make_entry(parent, width=120, placeholder=""):
     e = ctk.CTkEntry(parent, width=width, height=26, border_color=INPUT_BORDER,
                      border_width=1, fg_color="#ffffff", text_color="#111111",
@@ -497,7 +507,7 @@ def _make_entry(parent, width=120, placeholder=""):
 
 
 def _make_search_bar(parent, on_change, placeholder: str):
-    """แถบค้นหาใต้หัวตาราง — พิมพ์แล้วเรียก on_change() ทุก key release"""
+    """แถบค้นหาใต้หัวตาราง — debounce ~150ms ก่อนเรียก on_change() เพื่อไม่ให้ render ชนกับการพิมพ์"""
     bar = ctk.CTkFrame(parent, fg_color="#f7f7f7", corner_radius=0, height=34)
     bar.pack(fill="x", side="top")
     bar.pack_propagate(False)
@@ -505,7 +515,44 @@ def _make_search_bar(parent, on_change, placeholder: str):
                          fg_color="#ffffff", text_color="#111111",
                          placeholder_text=placeholder, font=("tahoma", 11))
     entry.pack(side="left", fill="x", expand=True, padx=(10, 10), pady=4)
-    entry.bind("<KeyRelease>", lambda _e: on_change())
+
+    entry._debounce_after_id = None
+
+    def fire():
+        entry._debounce_after_id = None
+        try:
+            on_change()
+        except Exception:
+            pass
+
+    def schedule(_e=None):
+        aid = entry._debounce_after_id
+        if aid is not None:
+            try:
+                entry.after_cancel(aid)
+            except Exception:
+                pass
+            entry._debounce_after_id = None
+        entry._debounce_after_id = entry.after(150, fire)
+
+    def flush(_e=None):
+        aid = entry._debounce_after_id
+        if aid is not None:
+            try:
+                entry.after_cancel(aid)
+            except Exception:
+                pass
+            entry._debounce_after_id = None
+        try:
+            on_change()
+        except Exception:
+            pass
+        return "break"
+
+    entry.bind("<KeyRelease>", schedule)
+    entry.bind("<<Paste>>", schedule)
+    entry.bind("<<Cut>>", schedule)
+    entry.bind("<Return>", flush)
     return entry
 
 
@@ -709,6 +756,8 @@ def open_cp_pattern_window(app):
     footer.pack(fill="x", side="bottom", ipady=4)
 
     def populate():
+        # * ยกเลิก pending debounce จากการพิมพ์ (ถ้ามี) เพื่อไม่ให้ render ซ้ำ
+        _cancel_pending_debounce(search_entry)
         path = _cp_path(app)
         if path and os.path.exists(path):
             try:
@@ -839,6 +888,7 @@ def open_price_list_window(app, sku: str):
     footer.pack(fill="x", side="bottom", ipady=4)
 
     def populate():
+        _cancel_pending_debounce(search_entry)
         rows = _sku_price_rows(app, sku)
         groups = _price_groups(rows)
         items = [
@@ -958,6 +1008,8 @@ def open_pattern_detail_window(app, sku: str, price: float):
     footer.pack(fill="x", side="bottom", ipady=4)
 
     def populate():
+        # * ยกเลิก pending debounce จากการพิมพ์ (ถ้ามี) เพื่อไม่ให้ render ซ้ำ
+        _cancel_pending_debounce(search_entry)
         path = _cp_path(app)
         all_rows = [r for r in _sku_price_rows(app, sku) if r["_price"] == float(price)]
         rows = filter_pattern_rows(all_rows, search_entry.get())

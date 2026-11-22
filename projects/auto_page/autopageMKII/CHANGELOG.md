@@ -16,12 +16,16 @@
   - หลังแก้ logic propagation เสร็จแล้ว (ดู changelog 2026-11-13) — ไฟล์มี 55 แถวที่มี "ยิงต่ำกว่า … (auto-suggest)" โดยเป็นของจริงแค่ 6 แถว (เลขในโน้ตตรงกับ oc) อีก 49 แถวถูก propagation ใส่ รอ confirm ก่อนตัดเฉพาะส่วนโน้ตออก
 - [ ] **[Tests: 2 เคสล้ม + 1 loader error (pre-existing)]**:
   - `test_seller_voucher_pricing` (2 เคส), `test_cp_date_auto_correction` (loader error) — ล้มอยู่ก่อนแล้ว (ยืนยันซ้ำแล้วด้วย stash โค้ดแล้วรัน) ไม่เกี่ยวกับการแก้รอบนี้ (เคส `test_realtime_ambiguity_and_remark` ที่เคยล้ม แก้แล้วใน changelog 2026-11-13)
-- [ ] **[CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — input กับ filter ยังแย่งกัน]**:
-  - ตอนพิมพ์ในช่องค้นหายังมีค้างเป็นบางครั้ง — KeyRelease แต่ละตัวอักษรเรียก `populate()` (กรอง + เรียง + ทำลาย/สร้าง widget ใหม่ทั้งแผง) บน main thread เดียวกับ input ไม่ได้แยกงานกัน cache ช่วยฝั่งอ่านไฟล์แล้ว (warm ~1ms) แต่ render ฝั่ง UI ยังชนกับการพิมพ์ — ทางแก้ที่ยังไม่ทำ: debounce/throttle (รอหยุดพิมพ์ ~150ms ค่อย filter) หรือแยก thread ทำ filter แล้วส่งผลกลับมา render
+- [x] **[CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — debounce/throttle]**:
+  - **สาเหตุ**: `_make_search_bar` bind `<KeyRelease>` → `on_change()` (populate) ทุกตัวอักษร บน main thread เดียวกับ input → rebuild widget ทั้งแผงชนกับการพิมพ์
+  - **แก้** (`functions/cp_pattern_viewer.py`):
+    - `_make_search_bar`: debounce ~150ms ด้วย `entry.after(150, fire)` + `after_cancel` ของ pending id บนทุก keystroke; bind `<<Paste>>`/`<<Cut>>`/`<Return>` (Enter = flush ทันที)
+    - เก็บ pending id ใน `entry._debounce_after_id`; เพิ่ม `_cancel_pending_debounce(entry)` helper เรียกที่ต้น `populate()` ทุกหน้า (SKU list / price list / pattern detail) เพื่อไม่ให้ render ซ้ำเมื่อ sort/refresh
+  - **เทสต์**: `test_cp_pattern_viewer_sort_search` 21/21 OK; `py_compile` OK
 
 ### 🚀 ฟีเจอร์ในอนาคต (Planned Features)
 
-- [ ] **[Auto Export Data]** ระบบดึง Exported Data จาก Marketplace อัตโนมัติด้วย Automation Workflow
+- [ ] **[Auto Export Data]** ระบบดึง Exported Data จาก Marketplace อัตโนมัติด้วย Automation Workflow`CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — input กับ filter ยังแย่งกัน`
 
 ---
 
@@ -63,9 +67,36 @@
    - ใน `OrderFinancials.recalculate()` จะคำนวณ `item_expected_prices` โดยหัก Seller Voucher ออกจากราคา SKU เป้าหมาย ทำให้กระบวนการจับคู่ CP ใน `cp_data.xlsx` และตรวจเช็คราคาบน POS ตะกร้าสินค้าตรงกับราคาที่ได้รับส่วนลดจริง
    - ยอดเงินหน้าสุดท้าย (`#ripCash00` ใน `POSPaymentHandler`) คิดจาก `final_price = sum_price - seller_voucher` ซึ่งตัดยอดพอดีกับยอดรวมตะกร้าบน POS (Grand Total) ทำให้ยอดคงเหลือ (`wrimagecard-lightGray`) เท่ากับ `0.00` บาทอย่างสมบูรณ์
 
+### 🏷️ รูปแบบ SKU & การ parse (SKU Format & Parsing)
+
+1. **รูปแบบ**: `PREFIX-CODE` — prefix ตัวอักษร ≥2 ตัว (ตามด้วย alnum ได้) + `-` + ตัวเลข **ไม่เกิน 6 หลัก** (เกิน = กรอกผิด ไม่ตัดให้)
+2. **สองฟังก์ชัน อย่าสลับ**:
+   - `correct_sku_pattern()` → คืน `list` (ใช้กับ caller เดิมทั้งหมด)
+   - `parse_sku_pattern()` → คืน `(valid, bad)` (ใช้เฉพาะ flow ตรวจ/แก้ SKU)
+   - ห้ามเปลี่ยน signature ของ `correct_sku_pattern` เป็น tuple — `pricing_engine.py` ใช้ `any(variant in div_text ...)` จะพังทันที (`'in <string>' requires string as left operand, not list`)
+3. **การแก้ SKU เป็น in-memory**: `_replace_sku_token()` แก้ `self.data_frame` ไม่ได้เขียนไฟล์ xlsx
+
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
+
+### [ver5.x.x] - 2026-11-20 (debounce)
+- [X] **[CP Pattern Viewer: debounce ช่องค้นหา]**: `_make_search_bar` debounce ~150ms (`after`/`after_cancel`) + bind `<<Paste>>`/`<<Cut>>`/`<Return>` (Enter = flush); `_cancel_pending_debounce()` ที่ต้น `populate()` ทั้ง 3 หน้ากัน render ซ้ำ; tests 21/21 OK, py_compile OK
+
+### [ver5.x.x] - 2026-11-20
+
+- [X] **[SKU: ตรวจ/แก้ SKU ผิดรูปแบบก่อนเริ่มออเดอร์ + popup แก้ในโหมด manual]**:
+  - **สาเหตุ**: `correct_sku_pattern()` เดิมแค่ split `+` แล้ว `zfill(6)` — SKU ที่กรอกเลขเกิน 6 หลัก (เช่น `SP2-0017134`) หลุดเข้า flow ต่อโดยไม่เตือน และ parse พลาดเมื่อมีอักขระแปลก (เลขไทย, dash หลายแบบ, zero-width space) หรือ SKU ติดกันไม่มีตัวคั่น
+  - **แก้** (`autopage_MKII_ver5.x.x.py`):
+    - **parser**: เพิ่ม `parse_sku_pattern()` คืน `(valid, bad)` — normalize ด้วย `NFKC`, แปลงเลขไทย, รวม dash (`-`/`−`/`–`/`—`) และตัด zero-width/BOM, ใช้ `_SKU_RE = ([A-Za-z]{2}[A-Za-z0-9]{0,5})-([0-9]+)`; เลขหลัง `-` เกิน 6 หลัก → `bad` (ไม่ตัด/ไม่เดา), ไม่เกิน → `valid` + `zfill(6)`
+    - **backward-compat**: `correct_sku_pattern()` คงคืน `list` เหมือนเดิม (wrapper เรียก `parse_sku_pattern`) เพราะ caller ในโมดูลร่วม (`functions/pos/pricing_engine.py`, `functions/product_manager.py`, `functions/order_display_manager.py`, `functions/accel_mode.py`) คาดหวัง list
+    - **validate ก่อนออเดอร์**: `_validate_and_fix_order_skus()` ถูกเรียกใน `_order_search_internal()` หลังตั้ง `filter_data`/`target_row` ก่อนสร้าง `raw_items`
+      - `is_auto_invoice_mode` → เจอ SKU ผิด = `raise ValueError` ทันที (order failed)
+      - manual → popup: บอก SKU ที่ผิด + `เนื่องจาก <เหตุผล>` + ช่องใส่ค่าใหม่ + radio (`แก้เฉพาะ order ปัจจุบัน` / `แก้ SKU ที่เหมือนกันทั้งหมด`) + ปุ่ม Y/N
+    - **popup thread-safe**: `_ask_sku_fix()` เรียก `_build_sku_fix_popup()` ผ่าน `self.root.after(0, ...)` + `threading.Event` (validate ทำงานใน worker thread), popup เป็น `CTkToplevel` + `grab_set()` + `wait_window()`
+    - **แทนค่า**: `_replace_sku_token()` ใช้ `str.replace(..., case=False, regex=True)` บน `data_frame` (scope `order` = AND ด้วย `หมายเลขคำสั่งซื้อ`, scope `all` = ทุก order) แล้ว recompute `filter_data`/`target_row`; token ซ้ำใน order เดียวกันถามครั้งเดียว
+  - **เทสต์**: `sku_compat_test.py` (pricing_engine `variant in div_text` + wrapper คืน list + valid/bad split + None/ค่าว่าง) และ `sku_wiring_test.py` (scope order/all, N, auto_inv raise, multi-SKU, lowercase) ผ่านทั้งหมด; `py_compile` OK
+  - **หมายเหตุ**: แก้เป็น in-memory (`self.data_frame`) เท่านั้น ไม่เขียนกลับไฟล์ xlsx ต้นฉบับ; ถ้ารัน accel_mode + manual แบบไม่มีคนเฝ้า popup จะบล็อกรอ (ควร gate เป็น raise ถ้าเป็นงาน unattended)
 
 ### [ver5.x.x] - 2026-11-14
 
@@ -115,10 +146,10 @@
 
   - **สาเหตุ**: หลังกด Verify โค้ดเข้าเส้นทาง "แถวสีแดง" แล้วเก็บ failed_rows ref ไว้ข้ามรอบ — Angular re-render หลังติ๊ก checkbox ทำให้ element เดิม stale exception หลุดออกจากฟังก์ชัน (accel_fill_sku ไม่ได้ catch) จึงไม่มีทางไปกด OK
   - **แก้**: แถวสีแดง: วนตาม index แล้วค้น element ใหม่ทุกครั้ง + retry 3 รอบ ไม่ถือ ref ข้ามรอบ (accel_mode.py:1362)
-  แถวสีแดงต้องคงอยู่ 3 วินาทีจึงถือว่า fail จริง — แถวสีชั่วคราวหลัง Verify จะไม่แย่งทางจากปุ่ม OK อีก (accel_mode.py:1272)
-  ปุ่ม OK: ค้นใหม่ + retry 3 ครั้ง ถ้าล้มเหลวจะวนลูปใหม่แทนที่จะ raise (accel_mode.py:1316)
-  ป้องกัน stale รอบ polls verify/OK, การเช็ค modal, ค้นช่อง input ว่าง, เช็ค class ปุ่ม Serial
-  ตัด SN จาก Excel เฉพาะแถวที่ติ๊ก checkbox สำเร็จแล้วเท่านั้น กันแถวแดงค้างใน Modal
+    แถวสีแดงต้องคงอยู่ 3 วินาทีจึงถือว่า fail จริง — แถวสีชั่วคราวหลัง Verify จะไม่แย่งทางจากปุ่ม OK อีก (accel_mode.py:1272)
+    ปุ่ม OK: ค้นใหม่ + retry 3 ครั้ง ถ้าล้มเหลวจะวนลูปใหม่แทนที่จะ raise (accel_mode.py:1316)
+    ป้องกัน stale รอบ polls verify/OK, การเช็ค modal, ค้นช่อง input ว่าง, เช็ค class ปุ่ม Serial
+    ตัด SN จาก Excel เฉพาะแถวที่ติ๊ก checkbox สำเร็จแล้วเท่านั้น กันแถวแดงค้างใน Modal
 
 ### [ver5.x.x] - 2026-11-11
 

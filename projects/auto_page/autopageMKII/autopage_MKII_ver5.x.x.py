@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import traceback
+import unicodedata
 import winreg
 from tkinter import *
 from tkinter import filedialog, font, messagebox
@@ -86,6 +87,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+# * SKU = prefix (ตัวอักษรอย่างน้อย 2 ตัว + alnum ต่อได้) + "-" + ตัวเลข (ต้องไม่เกิน 6 หลัก)
+_SKU_RE = re.compile(r"([A-Za-z]{2}[A-Za-z0-9]{0,5})-([0-9]+)")
+_THAI_DIGITS = str.maketrans("๐๑๒๓๔๕๖๗๘๙", "0123456789")
 
 
 class RefreshRequiredException(BaseException):
@@ -3150,6 +3155,14 @@ class MyApp:
                     self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)]
                 # ? self.target_row เป็น การหา เอาคอล "หมายเลขคำสั่งซื้อ" ทั้งหมดมาตรวจแล้วคืนค่าเป็น Boolean เท่านั้น ---------ช้ากว่า
                 self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
+
+                # * ตรวจ SKU ของ order ปัจจุบันก่อน (auto_inv = raise, manual = popup แก้)
+                if self._validate_and_fix_order_skus(self.order):
+                    # * data_frame ถูกแก้ -> recompute filter/target ใหม่
+                    self.filter_data = self.data_frame[(
+                        self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order)]
+                    self.target_row = self.data_frame["หมายเลขคำสั่งซื้อ"] == self.order
+
                 self.cus_masked_name = self.data_frame[self.target_row]['ชื่อผู้รับ'].iloc[0]
                 self.cus_masked_tel = self.data_frame[self.target_row]['หมายเลขโทรศัพท์'].iloc[0]
                 self.order_status = self.data_frame[self.target_row]['สถานะการสั่งซื้อ'].iloc[0]
@@ -3963,22 +3976,157 @@ class MyApp:
 
     #! ตัวกากกว่า sku_formater,  sku_formaterเทพกว่า
     def correct_sku_pattern(self, text: str) -> list:
-        result = []
-        text = str(text).replace(" ", "")
-        elements = text.split("+")
+        """คืน list ของ SKU ที่ normalize แล้ว (signature เดิม — caller อื่นใช้อยู่)
 
-        for element in elements:
-            if not element:
-                continue
-            if "-" in element:
-                parts = element.split("-", 1)
-                prefix = parts[0]
-                code = parts[1].zfill(6)
-                result.append(f"{prefix}-{code}")
+        ตัวที่แยก valid/bad ให้ดู parse_sku_pattern()
+        """
+        valid, _ = self.parse_sku_pattern(text)
+        return valid
+
+    def parse_sku_pattern(self, text: str) -> tuple:
+        """แยก SKU ออกจากข้อความ แล้วคืน (valid_skus, bad_skus)
+
+        - valid: SKU ที่ normalize แล้ว (prefix ตัวใหญ่, เลขเติมศูนย์หน้าให้ครบ 6)
+        - bad:   SKU ที่ตัวเลขหลัง '-' เกิน 6 หลัก (ถือว่ากรอกเกิน ไม่เดา ไม่ตัด)
+        """
+        if text is None:
+            return [], []
+
+        s = unicodedata.normalize("NFKC", str(text)).translate(_THAI_DIGITS)
+        s = (s.replace("\u2212", "-").replace("\u2013", "-").replace("\u2014", "-")
+              .replace("\u200b", "").replace("\ufeff", ""))
+        s = re.sub(r"\s*-\s*", "-", s)
+
+        valid, bad = [], []
+        for prefix, code in _SKU_RE.findall(s):
+            sku = f"{prefix.upper()}-{code}"
+            if len(code) > 6:
+                bad.append(sku)
             else:
-                result.append(element)
+                valid.append(f"{prefix.upper()}-{code.zfill(6)}")
+        return valid, bad
 
+    def _replace_sku_token(self, bad_sku: str, new_value: str, scope: str, order: str):
+        """แทนที่ token SKU ที่ผิดใน data_frame
+
+        scope='all'   -> ทุก row ที่มี SKU นี้ (ทุก order)
+        scope='order' -> เฉพาะ row ของ order ปัจจุบัน
+        """
+        sku_col = 'เลขอ้างอิง SKU (SKU Reference No.)'
+        if sku_col not in self.data_frame.columns:
+            return
+        cell = self.data_frame[sku_col].astype(str)
+        mask = cell.str.contains(re.escape(bad_sku), case=False, regex=True, na=False)
+        if scope != "all":
+            mask &= (self.data_frame['หมายเลขคำสั่งซื้อ'] == order)
+        if mask.any():
+            self.data_frame.loc[mask, sku_col] = cell[mask].str.replace(
+                re.escape(bad_sku), new_value, case=False, regex=True)
+
+    def _build_sku_fix_popup(self, order: str, bad_sku: str, reason: str) -> dict:
+        result = {"fix": False, "new_value": "", "scope": "order"}
+
+        popup = CTkToplevel(self)
+        popup.title("SKU ไม่ถูกต้อง")
+        popup.geometry("480x320")
+        popup.attributes('-topmost', True)
+        popup.grab_set()
+        popup.resizable(False, False)
+        popup.protocol("WM_DELETE_WINDOW", lambda: popup.destroy())
+
+        CTkLabel(popup, text=f'SKU "{bad_sku}" ไม่ถูกต้อง',
+                 font=("Kanit", 15, "bold"), text_color="#cf1313").pack(pady=(14, 4))
+        CTkLabel(popup, text=f"เนื่องจาก {reason}\nOrder: {order}",
+                 font=("Kanit", 12), justify="left").pack(pady=(0, 10))
+
+        frame = CTkFrame(popup)
+        frame.pack(fill="x", padx=16)
+        CTkLabel(frame, text="ค่าใหม่ที่ถูกต้อง:").grid(
+            row=0, column=0, padx=(8, 6), pady=8, sticky="w")
+        entry = CTkEntry(frame, width=250)
+        entry.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="ew")
+        entry.insert(0, bad_sku)
+        frame.grid_columnconfigure(1, weight=1)
+
+        scope = StringVar(value="order")
+        scope_frame = CTkFrame(popup)
+        scope_frame.pack(fill="x", padx=16, pady=(6, 0))
+        CTkRadioButton(scope_frame, text="แก้เฉพาะ order ปัจจุบัน",
+                       variable=scope, value="order").pack(anchor="w", padx=10, pady=4)
+        CTkRadioButton(scope_frame, text="แก้ SKU ที่เหมือนกันทั้งหมด",
+                       variable=scope, value="all").pack(anchor="w", padx=10, pady=4)
+
+        def on_yes():
+            result.update(fix=True, new_value=entry.get().strip(), scope=scope.get())
+            popup.destroy()
+
+        def on_no():
+            result.update(fix=False)
+            popup.destroy()
+
+        btn_frame = CTkFrame(popup)
+        btn_frame.pack(pady=14)
+        CTkButton(btn_frame, text="Y  แก้ไข", fg_color="#21a179",
+                  command=on_yes).pack(side="left", padx=10)
+        CTkButton(btn_frame, text="N  ไม่ทำอะไร", fg_color="#7a7a7a",
+                  command=on_no).pack(side="left", padx=10)
+
+        entry.focus_set()
+        popup.wait_window()
         return result
+
+    def _ask_sku_fix(self, order: str, bad_sku: str, reason: str) -> dict:
+        """เรียก popup บน main thread จาก worker thread แล้วรอผล"""
+        box = {}
+        done = threading.Event()
+
+        def show():
+            try:
+                box.update(self._build_sku_fix_popup(order, bad_sku, reason))
+            finally:
+                done.set()
+
+        self.root.after(0, show)
+        done.wait()
+        return box
+
+    def _validate_and_fix_order_skus(self, order: str) -> bool:
+        """ตรวจ SKU ของ order ปัจจุบัน
+
+        - auto_inv mode: เจอ SKU ผิด -> raise ValueError (order failed ทันที)
+        - manual mode:   เปิด popup ให้แก้ (all / order เดียว, y / n)
+        คืน True ถ้ามีการแก้ data_frame
+        """
+        sku_col = 'เลขอ้างอิง SKU (SKU Reference No.)'
+        if sku_col not in self.data_frame.columns:
+            return False
+
+        order_mask = self.data_frame['หมายเลขคำสั่งซื้อ'] == order
+        cells = self.data_frame.loc[order_mask, sku_col].astype(str).tolist()
+
+        seen_bad, changed = set(), False
+        for cell_value in cells:
+            _, bad_tokens = self.parse_sku_pattern(cell_value)
+            for bad_sku in bad_tokens:
+                if bad_sku in seen_bad:
+                    continue
+                seen_bad.add(bad_sku)
+
+                digits = bad_sku.split("-", 1)[1]
+                reason = f"ตัวเลขหลัง '-' มี {len(digits)} หลัก (ต้องไม่เกิน 6 หลัก)"
+
+                if self.is_auto_invoice_mode.get():
+                    raise ValueError(
+                        f"SKU ไม่ถูกต้อง: {bad_sku} ({reason}) [order: {order}]")
+
+                answer = self._ask_sku_fix(order, bad_sku, reason)
+                new_value = (answer.get("new_value") or "").strip()
+                if not answer.get("fix") or not new_value:
+                    continue
+                self._replace_sku_token(
+                    bad_sku, new_value, answer.get("scope", "order"), order)
+                changed = True
+        return changed
 
     def open_subwindow(self):
         self.data_source_selector.create_subwindow()
