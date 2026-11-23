@@ -80,6 +80,28 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-11-23 (CP viewer responsiveness, non-modal, Thai-layout shortcuts)
+- [X] **[CP Pattern Viewer: การค้นหาไม่ค้างแล้ว — row cache]**:
+  - **สาเหตุ**: ทุกครั้งที่ผลค้นหาเปลี่ยน `populate()` destroy แล้วสร้าง CTk widget ของทุกแถวใหม่ (CTkFrame + CTkLabel หลายตัวต่อแถว) บน main thread — วัดได้ GUI ค้าง ~0.9 วินาทีต่อการพิมพ์ 1 ตัว และ ~1.1 วินาทีตอนล้างช่องค้นหา (CP Data 123 SKU)
+  - **แก้** (`functions/cp_pattern_viewer.py`):
+    - เพิ่ม `_CachedRows`: สร้างแถวครั้งเดียว (lazy ตอนแสดงครั้งแรก) แล้วค้นหาด้วย `pack` / `pack_forget` เท่านั้น; `sig` (ค่าของข้อมูลต้นทาง + path) เปลี่ยนเมื่อไรจึงสร้างใหม่ทั้งหมด
+    - หน้า SKU list / price list: แถวและเส้นคั่นเป็น `tk.Frame` / `tk.Label` ธรรมดา (`_tk_cell`, `_paint_tk`) แทน CTk; สีแถวคงที่ตามตำแหน่งในลิสต์เต็ม และ `configure` เฉพาะตอนสีเปลี่ยน
+    - หน้า pattern detail: การ์ด (มีช่องแก้ไข) cache ด้วย — แก้ค่าที่ยังไม่บันทึกแล้วค้นหาไม่หาย; เลข "No. n" อัปเดตตามลำดับที่แสดงผ่าน `on_shown` และปุ่มลบใช้เลขล่าสุด
+  - **ผลวัด** (UI จริง, CP Data 123 SKU): พิมพ์ตัวแรก 0.88s → ~0.14s; พิมพ์ตัวต่อไป ~0.9s → ~0.01s; ล้างช่องค้นหา 1.15s → ~0.34s (ที่เหลือคือ Tk วาด 123 แถวพร้อมกันครั้งเดียว — ยังไม่ทำ virtualization)
+  - **เทสต์**: `test_cp_pattern_viewer_sort_search` + `test_cp_pattern_complete` 30/30 OK; smoke บน GUI: price list ค้นไม่พบ → `แสดง 0/1` และล้างกลับได้; detail: แก้ค่าในการ์ดแล้วค้นหา/ล้าง ค่ายังอยู่, ข้อความ "ไม่พบแถวที่ค้นหา" ขึ้นถูกต้อง
+- [X] **[CP Pattern Viewer: หน้าต่างไม่บล็อกหน้าหลัก]**:
+  - **สาเหตุ**: CP Patterns (SKU list / price list / pattern detail) ตั้ง `grab_set()` และ `-topmost` ทำให้หน้าต่างหลักคลิกไม่ได้จนกว่าจะปิด
+  - **แก้**: เอา `grab_set()` (ทั้ง 3 constructor และใน `_focus_existing_view`) และ `-topmost` ออก — เป็นหน้าต่างปกติ ทดสอบ: เปิดค้างไว้แล้ว paste ในช่องออเดอร์หน้าหลักได้; `root.grab_current()` = None
+  - **หมายเหตุ**: หน้าต่าง "Data Source" ตอนเปิดแอปยัง modal (`grab_set`) ตามเดิม ไม่เกี่ยวกับ CP viewer
+- [X] **[Shortcut Ctrl+X/C/V/A ใช้ได้กับแป้นภาษาไทย และทุกหน้าต่าง]** (`autopage_MKII_ver5.x.x.py`):
+  - **สาเหตุ**: `_onKeyRelease` (จับ shortcut ตาม keycode แล้วส่ง `<<Paste>>` ฯลฯ เมื่อ keysym ไม่ใช่ตัวอังกฤษ) ผูกไว้กับ `root` เท่านั้น และอยู่ใน `if __name__ == "__main__"` — `CTkToplevel` (CP Patterns, popup ต่างๆ) ไม่ได้รับ event เพราะ bindtags ไม่มี `.` ของ root
+  - **ตรวจแล้ว**: รหัส VK ของแป้นไทยตรงกับอังกฤษ (`VkKeyScanExW`: C=0x43, V=0x56, X=0x58, A=0x41) จึงไม่ใช่ปัญหาที่ keycode
+  - **แก้**: ย้าย `_onKeyRelease` เป็นระดับ module, ผูกด้วย `self.root.bind_all("<Key>", _onKeyRelease, add="+")` ใน `_setup_smart_scroll`; ลบ binding ซ้ำที่ root และ `UserAccount.subwindow` (กัน paste ซ้ำสองครั้ง)
+  - **ทดสอบ**: CP window keysym อังกฤษ/ไทย paste ได้ครั้งเดียว; หน้าหลักเช่นกัน
+- [X] **[เครื่องมือทดสอบ GUI — `.claude/skills/run-autopage-mkii/`]** (ไม่กระทบตัวแอป): `driver.py` รันแอปจริงใน process เดียว + control socket (`serve` / `send`), รองรับ attach browser 8989 ที่ login แล้ว (`--chrome-port 8989`), แยก keyring service (`AutoSamaticMKII-driver`), auto-answer messagebox (default No), watchdog dump stack, คำสั่ง `exec` สำหรับ script หลายบรรทัด
+- **ผลเทสต์ทั้งชุด**: 263 ผ่าน / 9 ไม่ผ่าน — 6 เทสต์ (final_page_validator, order_leak_guard, seller_voucher_pricing) และ 3 เทสต์ (test_baseurlfinder) ไม่ผ่านเหมือนก่อนการแก้ครั้งนี้ (ตรวจ 6 เทียบกับ backup ก่อนแก้ shortcut แล้ว)
+- **ยังเหลือ**: ล้างช่องค้นหา ~0.34s (วาดหลายร้อยแถว) — ถ้า CP Data โตมากอาจต้อง virtualization; ยังไม่ได้ทดสอบ CP Data ขนาดใหญ่ และการเรียงหลายการ์ดในหน้า pattern detail บน GUI จริง
+
 ### [ver5.x.x] - 2026-11-20 (debounce)
 - [X] **[CP Pattern Viewer: debounce ช่องค้นหา]**: `_make_search_bar` debounce ~150ms (`after`/`after_cancel`) + bind `<<Paste>>`/`<<Cut>>`/`<Return>` (Enter = flush); `_cancel_pending_debounce()` ที่ต้น `populate()` ทั้ง 3 หน้ากัน render ซ้ำ; tests 21/21 OK, py_compile OK
 

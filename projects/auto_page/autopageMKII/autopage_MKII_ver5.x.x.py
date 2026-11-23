@@ -17,7 +17,6 @@ from tkinter import filedialog, font, messagebox
 from typing import Any, Dict, Optional, Union
 
 import customtkinter as ctk
-import httpcore
 import pandas as pd
 import pdfplumber
 import pytz
@@ -43,7 +42,7 @@ from functions.tracking_manager import TrackingManager
 from functions.utils.crypto import AccountManager
 from functions.utils.helpers import resource_path
 from functions.utils.report_manager import TestReportManager
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from loguru import logger
 from openpyxl import load_workbook
 try:
@@ -321,12 +320,29 @@ directory_of_file = os.path.dirname(file_path)
 print("file located:", directory_of_file)
 load_dotenv()
 
-# * ปรับ https ให้ตัว translate
-setattr(httpcore, 'SyncHTTPTransport', 'AsyncHTTPProxy')
-
 # * splash screen
 if getattr(sys, 'frozen', False):
     import pyi_splash
+
+
+# ตัวจัดการ Ctrl+X/C/V/A แบบอิง keycode (ตำแหน่งปุ่มจริง)
+# เพื่อให้ใช้ได้ทุกภาษาคีย์บอร์ด และทุกหน้าต่าง (ผูกผ่าน bind_all ใน MyApp)
+# * เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
+# / มีไว้รองรับภาษาอื่นๆ ที่ไม่ใช่ภาษาอังกฤษโดยเฉพาะ เช่น ภาษาไทย
+def _onKeyRelease(event):
+    # print("press :", event.keysym)
+    ctrl = (event.state & 0x4) != 0
+    if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
+        event.widget.event_generate("<<Cut>>")
+
+    if event.keycode == 86 and ctrl and event.keysym.lower() != "v":
+        event.widget.event_generate("<<Paste>>")
+
+    if event.keycode == 67 and ctrl and event.keysym.lower() != "c":
+        event.widget.event_generate("<<Copy>>")
+
+    if event.keycode == 65 and ctrl and event.keysym.lower() != "a":
+        event.widget.event_generate("<<SelectAll>>")
 
 
 class MyApp:
@@ -987,6 +1003,8 @@ class MyApp:
         """
         # Bind mouse wheel event to root window
         self.root.bind_all("<MouseWheel>", self._on_mousewheel)
+        # ผูก key shortcut ทุกหน้าต่าง (รวม CTkToplevel) ด้วย add="+" เพื่อไม่ทับ binding เดิม
+        self.root.bind_all("<Key>", _onKeyRelease, add="+")
 
     def _on_mousewheel(self, event):
         """
@@ -2894,13 +2912,9 @@ class MyApp:
         else:
 
             try:
-                translator = Translator()
-                lang_src = translator.detect(text).lang
-                print("Whare are you from: ", lang_src)
-                translation = translator.translate(
-                    text, src=lang_src, dest='en')
-                print("Translated name", translation.text)
-                return translation.text
+                translated = GoogleTranslator(source='auto', target='en').translate(text)
+                print("Translated name", translated)
+                return translated
             except:
                 print("google ก็แปลให้ไม่ได้เอาชื่อ", text, "ไปแทนนะ")
                 return text
@@ -4338,7 +4352,6 @@ class UserAccount:
         # * Event Enter
         self.subwindow.bind(
             "<Return>", lambda event=None: self.submit_btn.invoke())
-        self.subwindow.bind("<Key>", _onKeyRelease)
 
         # * สร้างเฟรม
         self.subwin_frame = CTkFrame(self.subwindow)
@@ -9400,23 +9413,6 @@ if __name__ == "__main__":
     #     if ctrl_state and event.keycode == 67:
     #         event.widget.event_generate("<<Copy>>")
 
-    # * เทคนิคคือ เช็คว่า ascii คือไร แล้วดูด้วยว่า นอกจากรับแบบ ascii แล้วรับแบบ keysym(ตัวอักษรจริง)ว่าตรงกับ ascii ไหม ถ้าไม่ตรงแปลว่าคนละภาษาแน่นอน เพราะ มันจะได้ ??
-    # / มีไว้รองรับภาษาอื่นๆ ที่ไม่ใช่ภาษาอังกฤษโดยเฉพาะ เช่น ภาษาไทย
-    def _onKeyRelease(event):
-        # print("press :", event.keysym)
-        ctrl = (event.state & 0x4) != 0
-        if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
-            event.widget.event_generate("<<Cut>>")
-
-        if event.keycode == 86 and ctrl and event.keysym.lower() != "v":
-            event.widget.event_generate("<<Paste>>")
-
-        if event.keycode == 67 and ctrl and event.keysym.lower() != "c":
-            event.widget.event_generate("<<Copy>>")
-
-        if event.keycode == 65 and ctrl and event.keysym.lower() != "a":
-            event.widget.event_generate("<<SelectAll>>")
-
     root = CTk()
     # * options
     ctk.set_appearance_mode("Light")
@@ -9434,7 +9430,6 @@ if __name__ == "__main__":
     # root.resizable(False, False)
 
     # * > ทำให้กด copy, paste, cut จากภาษาอะไรก็ได้
-    root.bind('<Key>', _onKeyRelease)
 
     # * > ทำให้กด F12 เพื่อกดปุ่ม Finish
     root.bind('<F12>', lambda event: app.finish_order())

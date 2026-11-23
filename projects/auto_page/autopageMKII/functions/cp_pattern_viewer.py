@@ -6,6 +6,7 @@ Page 1 (SKU list) -> Page 2 (price list ของ SKU) -> Page 3 (รายล�
 import os
 import shutil
 from datetime import datetime
+import tkinter as tk
 from tkinter import messagebox, simpledialog
 from typing import cast
 
@@ -50,10 +51,6 @@ def _focus_existing_view(key: tuple) -> bool:
         win.lift()
         try:
             win.focus_force()
-        except Exception:
-            pass
-        try:
-            win.grab_set()
         except Exception:
             pass
         return True
@@ -489,6 +486,20 @@ def _make_link(parent, text, command, width=None, anchor="w"):
     return lbl
 
 
+def _tk_cell(parent, w, text, fg, bg, command=None, anchor="center", font=None):
+    """ช่องข้อความแบบ tk (เร็วกว่า CTkLabel มากเมื่อต้องสร้าง/จัดวางหลายร้อยตัว)
+    w = ความกว้างพิกเซลคงที่ หรือ None ให้ยืดตามคอลัมน์"""
+    f = tk.Frame(parent, bg=bg, width=w or 0, height=26) if w else tk.Frame(parent, bg=bg)
+    if w:
+        f.pack_propagate(False)
+    lbl = tk.Label(f, text=text, fg=fg, bg=bg, anchor=anchor, font=font or ("tahoma", 11))
+    lbl.pack(fill="both", expand=True, padx=(6, 0) if anchor == "w" else 0)
+    if command is not None:
+        lbl.configure(cursor="hand2")
+        lbl.bind("<Button-1>", lambda _e: command())
+    return f
+
+
 def _cancel_pending_debounce(entry):
     aid = getattr(entry, "_debounce_after_id", None)
     if aid is not None:
@@ -504,6 +515,72 @@ def _make_entry(parent, width=120, placeholder=""):
                      border_width=1, fg_color="#ffffff", text_color="#111111",
                      placeholder_text=placeholder)
     return e
+
+
+def _paint_tk(widget, color):
+    """เปลี่ยนสีพื้นของแถว tk (Frame/Label) รวมลูกทั้งหมด"""
+    widget.configure(bg=color)
+    for c in widget.winfo_children():
+        if isinstance(c, (tk.Frame, tk.Label)):
+            _paint_tk(c, color)
+
+
+class _CachedRows:
+    """แสดงรายการแบบ cache เพื่อให้การค้นหาไม่ค้าง
+
+    สร้าง widget ของแถวครั้งเดียว (แถวจะยังคงอยู่ระหว่างค้นหา) แล้วค้นหาด้วย pack / pack_forget
+    sig = ค่าที่บอกว่าข้อมูลต้นทางเปลี่ยนหรือไม่ ถ้าเปลี่ยนจะสร้างแถวใหม่ทั้งหมด
+    """
+
+    def __init__(self, body):
+        self.body = body
+        self.sig = None
+        self.rows = {}
+        self.msgs = {}
+        self.colors = {}
+        self.shown = []
+
+    def show(self, sig, items, key_of, build, empty_msg, paint=None, color_of=None,
+             pack_kw=None, on_shown=None):
+        if sig != self.sig:
+            for w in self.body.winfo_children():
+                w.destroy()
+            self.rows.clear()
+            self.msgs.clear()
+            self.colors.clear()
+            self.shown = []
+            self.sig = sig
+        for w in self.shown:
+            w.pack_forget()
+        self.shown = []
+        if not items:
+            lbl = self.msgs.get(empty_msg)
+            if lbl is None:
+                lbl = ctk.CTkLabel(self.body, text=empty_msg, fg_color="transparent",
+                                   text_color="#666666")
+                self.msgs[empty_msg] = lbl
+            lbl.pack(pady=30)
+            self.shown = [lbl]
+            return
+        for i, it in enumerate(items):
+            k = key_of(it)
+            parts = self.rows.get(k)
+            if parts is None:
+                parts = build(self.body, it)
+                self.rows[k] = parts
+            row, sep = parts
+            if paint is not None and color_of is not None:
+                color = color_of(k)
+                if self.colors.get(k) != color:
+                    paint(row, color)
+                    self.colors[k] = color
+            row.pack(**(pack_kw or {"fill": "x"}))
+            self.shown.append(row)
+            if sep is not None:
+                sep.pack(fill="x")
+                self.shown.append(sep)
+            if on_shown is not None:
+                on_shown(k, it, i)
 
 
 def _make_search_bar(parent, on_change, placeholder: str):
@@ -724,8 +801,7 @@ def open_cp_pattern_window(app):
     win = ctk.CTkToplevel(app.root if hasattr(app, "root") else app)
     win.title("CP Data - SKU Patterns")
     win.geometry("560x520")
-    win.attributes("-topmost", True)
-    win.grab_set()
+    # ไม่ใช้ grab_set / topmost: หน้าต่างนี้ต้องให้ใช้หน้าหลักได้ตามปกติ
     win.configure(fg_color=BG)
 
     header = ctk.CTkFrame(win, fg_color=HEADER_BG, corner_radius=0, height=40)
@@ -750,6 +826,21 @@ def open_cp_pattern_window(app):
     body.pack(fill="both", expand=True)
     _bind_hover_scroll(win, body)
     _register_view(("sku_list",), win)
+    cache = _CachedRows(body)
+
+    def _build_sku_row(parent, item):
+        sku = item["sku"]
+        show_detail = lambda s=sku: open_price_list_window(app, s)
+        row = tk.Frame(parent, bg=BG)
+        row.grid_columnconfigure(0, weight=1)
+        _tk_cell(row, None, sku, LINK_COLOR, BG, show_detail, anchor="w", font=_LINK_FONT).grid(
+            row=0, column=0, sticky="ew", padx=(4, 4), pady=3)
+        _tk_cell(row, 90, str(item["complete"]), LINK_COLOR, BG, show_detail).grid(
+            row=0, column=1, padx=2, pady=3)
+        _tk_cell(row, 90, str(item["prc_patterns"]), LINK_COLOR, BG, show_detail).grid(
+            row=0, column=2, padx=2, pady=3)
+        sep = tk.Frame(parent, height=1, bg=LINE)
+        return row, sep
 
     footer = ctk.CTkLabel(win, text="", fg_color=HEADER_BG, text_color="#444444",
                           corner_radius=0, font=("tahoma", 10))
@@ -770,26 +861,11 @@ def open_cp_pattern_window(app):
         summary = _summarize_cached(df_now, path)
         items = filter_sort_sku_items(summary, search_entry.get(),
                                       sort_state.get("col", "sku"), sort_state.get("asc", True))
-        for child in body.winfo_children():
-            child.destroy()
-        if not items:
-            msg = "ไม่พบรายการที่ค้นหา" if summary else "ไม่มีข้อมูล SKU ใน CP Data"
-            ctk.CTkLabel(body, text=msg, fg_color="transparent",
-                         text_color="#666666").pack(pady=30)
-        else:
-            for i, item in enumerate(items):
-                sku = item["sku"]
-                show_detail = lambda s=sku: open_price_list_window(app, s)
-                row_bg = BG if i % 2 == 0 else "#fafafa"
-                row = ctk.CTkFrame(body, fg_color=row_bg, corner_radius=0)
-                row.pack(fill="x")
-                row.grid_columnconfigure(0, weight=1)
-                _make_link(row, sku, show_detail).grid(row=0, column=0, padx=(10, 4), pady=3, sticky="w")
-                _make_link(row, str(item["complete"]), show_detail, width=90, anchor="center").grid(
-                    row=0, column=1, padx=2, pady=3)
-                _make_link(row, str(item["prc_patterns"]), show_detail, width=90, anchor="center").grid(
-                    row=0, column=2, padx=2, pady=3)
-                ctk.CTkFrame(body, height=1, fg_color=LINE, corner_radius=0).pack(fill="x")
+        sig = tuple((s["sku"], s["complete"], s["prc_patterns"]) for s in summary)
+        pos = {s["sku"]: i for i, s in enumerate(summary)}
+        cache.show(sig, items, key_of=lambda it: it["sku"], build=_build_sku_row,
+                   paint=_paint_tk, color_of=lambda k: BG if pos[k] % 2 == 0 else "#fafafa",
+                   empty_msg="ไม่พบรายการที่ค้นหา" if summary else "ไม่มีข้อมูล SKU ใน CP Data")
         total_patterns = sum(item["prc_patterns"] for item in items)
         q = search_entry.get().strip()
         shown = f" (แสดง {len(items)}/{len(summary)})" if q else ""
@@ -846,8 +922,7 @@ def open_price_list_window(app, sku: str):
     win = ctk.CTkToplevel(app.root if hasattr(app, "root") else app)
     win.title(f"-/{sku}")
     win.geometry("560x480")
-    win.attributes("-topmost", True)
-    win.grab_set()
+    # ไม่ใช้ grab_set / topmost: หน้าต่างนี้ต้องให้ใช้หน้าหลักได้ตามปกติ
     win.configure(fg_color=BG)
 
     header = ctk.CTkFrame(win, fg_color=HEADER_BG, corner_radius=0, height=40)
@@ -882,6 +957,19 @@ def open_price_list_window(app, sku: str):
     body.pack(fill="both", expand=True)
     _bind_hover_scroll(win, body)
     _register_view(key, win)
+    cache = _CachedRows(body)
+
+    def _build_price_row(parent, it):
+        price = it["price"]
+        show_detail = lambda p=price: open_pattern_detail_window(app, sku, p)
+        row = tk.Frame(parent, bg=BG)
+        row.grid_columnconfigure(0, weight=1)
+        _tk_cell(row, None, _fmt_price(price), LINK_COLOR, BG, show_detail, anchor="w", font=_LINK_FONT).grid(
+            row=0, column=0, sticky="ew", padx=(10, 4), pady=4)
+        _tk_cell(row, 90, str(it["complete"]), "#111111", BG).grid(row=0, column=1, padx=2, pady=4)
+        _tk_cell(row, 90, str(it["patterns"]), "#111111", BG).grid(row=0, column=2, padx=2, pady=4)
+        sep = tk.Frame(parent, height=1, bg=LINE)
+        return row, sep
 
     footer = ctk.CTkLabel(win, text="", fg_color=HEADER_BG, text_color="#444444",
                           corner_radius=0, font=("tahoma", 10))
@@ -891,35 +979,19 @@ def open_price_list_window(app, sku: str):
         _cancel_pending_debounce(search_entry)
         rows = _sku_price_rows(app, sku)
         groups = _price_groups(rows)
-        items = [
+        all_items = [
             {"price": p,
              "complete": sum(1 for r in prows if _row_complete(r)),
              "patterns": len({pattern_key(r) for r in prows})}
             for p, prows in groups.items()
         ]
-        items = filter_sort_price_items(items, search_entry.get(),
+        items = filter_sort_price_items(all_items, search_entry.get(),
                                         sort_state.get("col", "price"), sort_state.get("asc", True))
-        for child in body.winfo_children():
-            child.destroy()
-        if not items:
-            msg = "ไม่พบรายการที่ค้นหา" if groups else "ยังไม่มีราคาสำหรับ SKU นี้"
-            ctk.CTkLabel(body, text=msg, fg_color="transparent",
-                         text_color="#666666").pack(pady=30)
-        else:
-            for i, it in enumerate(items):
-                price = it["price"]
-                show_detail = lambda p=price: open_pattern_detail_window(app, sku, p)
-                row_bg = BG if i % 2 == 0 else "#fafafa"
-                row = ctk.CTkFrame(body, fg_color=row_bg, corner_radius=0)
-                row.pack(fill="x")
-                row.grid_columnconfigure(0, weight=1)
-                _make_link(row, _fmt_price(price), show_detail).grid(
-                    row=0, column=0, padx=(14, 4), pady=4, sticky="w")
-                ctk.CTkLabel(row, text=str(it["complete"]), width=90,
-                             fg_color="transparent", text_color="#111111").grid(row=0, column=1, padx=2, pady=4)
-                ctk.CTkLabel(row, text=str(it["patterns"]), width=90,
-                             fg_color="transparent", text_color="#111111").grid(row=0, column=2, padx=2, pady=4)
-                ctk.CTkFrame(body, height=1, fg_color=LINE, corner_radius=0).pack(fill="x")
+        sig = tuple((it["price"], it["complete"], it["patterns"]) for it in all_items)
+        pos = {it["price"]: i for i, it in enumerate(all_items)}
+        cache.show(sig, items, key_of=lambda it: it["price"], build=_build_price_row,
+                   paint=_paint_tk, color_of=lambda k: BG if pos[k] % 2 == 0 else "#fafafa",
+                   empty_msg="ไม่พบรายการที่ค้นหา" if groups else "ยังไม่มีราคาสำหรับ SKU นี้")
         total_patterns = sum(it["patterns"] for it in items)
         q = search_entry.get().strip()
         shown = f" (แสดง {len(items)}/{len(groups)})" if q else ""
@@ -958,8 +1030,7 @@ def open_pattern_detail_window(app, sku: str, price: float):
     win = ctk.CTkToplevel(app.root if hasattr(app, "root") else app)
     win.title(f"-/{sku}/{price_str}")
     win.geometry("720x560")
-    win.attributes("-topmost", True)
-    win.grab_set()
+    # ไม่ใช้ grab_set / topmost: หน้าต่างนี้ต้องให้ใช้หน้าหลักได้ตามปกติ
     win.configure(fg_color=BG)
 
     header = ctk.CTkFrame(win, fg_color=HEADER_BG, corner_radius=0, height=40)
@@ -1002,6 +1073,8 @@ def open_pattern_detail_window(app, sku: str, price: float):
     body.pack(fill="both", expand=True)
     _bind_hover_scroll(win, body)
     _register_view(key, win)
+    cache = _CachedRows(body)
+    numboxes = {}   # excel_row -> {"n": ลำดับที่แสดง, "lbl": CTkLabel ของ "No. n"}
 
     footer = ctk.CTkLabel(win, text="", fg_color=HEADER_BG, text_color="#444444",
                           corner_radius=0, font=("tahoma", 10))
@@ -1014,16 +1087,27 @@ def open_pattern_detail_window(app, sku: str, price: float):
         all_rows = [r for r in _sku_price_rows(app, sku) if r["_price"] == float(price)]
         rows = filter_pattern_rows(all_rows, search_entry.get())
         rows = sort_pattern_rows(rows, sort_state.get("col", "no."), sort_state.get("asc", True))
-        for child in body.winfo_children():
-            child.destroy()
-        if not rows:
-            if all_rows and search_entry.get().strip():
-                msg = "ไม่พบแถวที่ค้นหา"
-            else:
-                msg = "ยังไม่มี pattern สำหรับราคานี้ — กด + Add pattern"
-            ctk.CTkLabel(body, text=msg, fg_color="transparent", text_color="#666666").pack(pady=30)
-        for i, rec in enumerate(rows):
-            _build_pattern_card(body, app, sku, price, rec, i, path)
+        # sig: การ์ดจะถูกสร้างใหม่เฉพาะเมื่อข้อมูลเปลี่ยน (ไม่ใช่ทุกครั้งที่พิมพ์ค้นหา)
+        sig = (path, tuple(
+            (r["_excel_row"], tuple(sorted((k, str(v)) for k, v in r.items())))
+            for r in all_rows))
+
+        def _build(parent, rec):
+            box = numboxes.setdefault(rec["_excel_row"], {"n": 0, "lbl": None})
+            card = _build_pattern_card(parent, app, sku, price, rec, path, box)
+            return card, None
+
+        def _on_shown(k, rec, i):
+            box = numboxes[rec["_excel_row"]]
+            box["n"] = i + 1
+            if box["lbl"] is not None:
+                box["lbl"].configure(text=f"No. {i + 1}")
+
+        empty = ("ไม่พบแถวที่ค้นหา" if (all_rows and search_entry.get().strip())
+                 else "ยังไม่มี pattern สำหรับราคานี้ — กด + Add pattern")
+        cache.show(sig, rows, key_of=lambda r: r["_excel_row"], build=_build,
+                   empty_msg=empty, pack_kw={"fill": "x", "padx": 6, "pady": 5},
+                   on_shown=_on_shown)
         complete = sum(1 for r in rows if _row_complete(r))
         patterns = len({pattern_key(r) for r in rows})
         q = search_entry.get().strip()
@@ -1099,16 +1183,16 @@ def _save_pattern_with_remark(app, path, excel_row, entries: dict, remark_box, s
                             text_color=OK_COLOR if done else BAD_COLOR)
 
 
-def _build_pattern_card(body, app, sku: str, price: float, rec: dict, index: int, path: str):
+def _build_pattern_card(body, app, sku: str, price: float, rec: dict, path: str, numbox: dict):
     excel_row = rec["_excel_row"]
     card = ctk.CTkFrame(body, fg_color="#ffffff", corner_radius=6, border_width=1, border_color=LINE)
-    card.pack(fill="x", padx=6, pady=5)
 
     top = ctk.CTkFrame(card, fg_color="#f7f7f7", corner_radius=6, height=30)
     top.pack(fill="x", padx=6, pady=(6, 2))
     top.pack_propagate(False)
-    ctk.CTkLabel(top, text=f"No. {index + 1}", font=("tahoma", 11, "bold"),
-                 fg_color="transparent", text_color="#111111").pack(side="left", padx=8)
+    numbox["lbl"] = ctk.CTkLabel(top, text="No. -", font=("tahoma", 11, "bold"),
+                                 fg_color="transparent", text_color="#111111")
+    numbox["lbl"].pack(side="left", padx=8)
     state = "complete" if _row_complete(rec) else "incomplete"
     state_lbl = ctk.CTkLabel(top, text=state, font=("tahoma", 9),
                              text_color=OK_COLOR if _row_complete(rec) else BAD_COLOR,
@@ -1116,7 +1200,7 @@ def _build_pattern_card(body, app, sku: str, price: float, rec: dict, index: int
     state_lbl.pack(side="left", padx=4)
     ctk.CTkButton(top, text="ลบ", width=50, height=24, fg_color="#c94f4f",
                   hover_color="#a83e3e", text_color="#ffffff",
-                  command=lambda r=rec, n=index + 1: _delete_pattern(app, sku, price, r, n)).pack(side="right", padx=8, pady=3)
+                  command=lambda r=rec: _delete_pattern(app, sku, price, r, numbox.get("n", 0))).pack(side="right", padx=8, pady=3)
 
     grid = ctk.CTkFrame(card, fg_color="#ffffff")
     grid.pack(fill="x", padx=8, pady=(2, 2))
@@ -1187,3 +1271,4 @@ def _build_pattern_card(body, app, sku: str, price: float, rec: dict, index: int
                                                             remark_box, status_lbl,
                                                             except_win=card.winfo_toplevel(),
                                                             state_lbl=state_lbl)).pack(side="right", padx=4)
+    return card
