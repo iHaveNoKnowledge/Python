@@ -21,3 +21,17 @@ You CAN call it yourself — do so aggressively per this policy. On Windows, inv
 - Score rubrics: 2–10 levels, low→high, each a concrete situation — never bare numbers. Choice: distinct option descriptions + `other` when list may not cover input.
 - MUST NOT use `jev` for: generation/rewriting/summarizing, math/counting/dates/numeric comparison, multi-hop reasoning, double negatives, or one item you can judge in a glance (call costs more than the decision).
 - Cost: ~$0.042/Mtok input, output free. Price big jobs first with `jev cost`. Every request appends to `~/.config/typesafe/usage.jsonl` — check with `jev usage` / `jev usage --tail N`.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues in `iHaveNoKnowledge/Python`, via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
