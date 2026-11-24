@@ -128,6 +128,24 @@ def is_valid_xlsx(path: str) -> bool:
         return False
 
 
+def accel_backup_path(path: str) -> str:
+    """ไฟล์สำรองก่อนการบันทึกล่าสุดของไฟล์ Accel (ชื่อเดิม + .bak)"""
+    return path + ".bak"
+
+
+def restore_accel_backup_if_corrupt(path: str) -> bool:
+    """ถ้าไฟล์ Accel เสีย (เช่น copy ค้างกลางทางตอนโปรแกรมถูกปิด) และมี .bak ที่สมบูรณ์
+    ให้คืนค่าจาก .bak คืน True เมื่อมีการคืนค่า"""
+    if not path or not os.path.exists(path) or is_valid_xlsx(path):
+        return False
+    backup = accel_backup_path(path)
+    if not is_valid_xlsx(backup):
+        return False
+    shutil.copyfile(backup, path)
+    logger.warning(f"ไฟล์ Accel เสียหาย คืนค่าจากสำรอง .bak แล้ว: {path}")
+    return True
+
+
 class AccelMode:
     def __init__(self, main_app):
         self.main_app = main_app
@@ -139,6 +157,9 @@ class AccelMode:
         self.CP_list = []
         self.accel_orders_count = 0
         self.excel_save_failed = False
+        self._save_fail_notified = False
+        # callback(path) ที่หน้าหลักตั้งให้ เพื่อแจ้งผู้ใช้ครั้งเดียวต่อการล้มเหลวหนึ่งช่วง
+        self.on_save_failed = None
         self.used_serials = []
         self.sn_shortage = []
         self._accel_last_mtime = 0
@@ -191,6 +212,10 @@ class AccelMode:
 
     def _read_accel_file_to_state(self, accel_file_dir):
         self.accel_file_dir = accel_file_dir
+        try:
+            restore_accel_backup_if_corrupt(accel_file_dir)
+        except Exception as e:
+            logger.warning(f"คืนค่าไฟล์ Accel จาก .bak ไม่สำเร็จ: {e}")
         self.main_sheet_name = self._get_main_sheet_name(self.accel_file_dir)
         self.accel_df_state = pd.read_excel(self.accel_file_dir, sheet_name=self.main_sheet_name, dtype=str)
         self.accel_df_state.columns = self.accel_df_state.columns.astype(str).str.strip()
@@ -1766,6 +1791,36 @@ class AccelMode:
                 f"rename ทับไฟล์ไม่ได้ (ไฟล์ถูกเปิดอยู่ในโปรแกรมอื่น) -> เขียนทับโดยตรง: {e}")
             shutil.copyfile(tmp_path, path)
 
+    def _commit_with_backup(self, tmp_path: str, path: str) -> None:
+        """สำรองไฟล์เดิมเป็น .bak ก่อนแทนที่ แล้วตรวจไฟล์หลังบันทึก
+
+        ถ้าผลลัพธ์ไม่ใช่ .xlsx ที่สมบูรณ์ (เช่น copy ขาดกลางทาง) จะคืนค่าจาก .bak แล้วโยน OSError
+        เพื่อให้ caller ถือว่าการบันทึกล้มเหลว (excel_save_failed)
+        fallback copyfile ยังคงอยู่สำหรับกรณี LibreOffice เปิดไฟล์ค้างไว้
+        """
+        backup = accel_backup_path(path)
+        # ข้ามการสำรองเมื่อปลายทางเป็นไฟล์ temp ภายในเอง (เช่น _apply_excel_formatting บนไฟล์ชั่วคราว)
+        is_temp_target = os.path.basename(path).startswith(".~accel_")
+        if os.path.exists(path) and not is_temp_target:
+            shutil.copy2(path, backup)
+        self._commit_temp_file(tmp_path, path)
+        if not is_valid_xlsx(path):
+            if is_valid_xlsx(backup):
+                shutil.copyfile(backup, path)
+            raise OSError(f"ไฟล์ Accel ไม่ผ่านการตรวจสอบหลังบันทึก คืนค่าจาก .bak แล้ว: {path}")
+
+    def _notify_save_failed(self, path: str) -> None:
+        """แจ้งผู้ใช้ผ่าน callback ครั้งเดียวต่อการล้มเหลวหนึ่งช่วง (กันป๊อปอัปซ้ำทุกแถว)"""
+        if self._save_fail_notified:
+            return
+        self._save_fail_notified = True
+        callback = self.on_save_failed
+        if callback:
+            try:
+                callback(path)
+            except Exception as e:
+                logger.warning(f"แจ้งเตือนการบันทึก Accel ไม่สำเร็จ: {e}")
+
     def _save_workbook_atomic(self, workbook, path: str) -> None:
         """บันทึก workbook ลงไฟล์ชั่วคราวในโฟลเดอร์เดียวกันแล้วแทนที่ไฟล์จริง
 
@@ -1775,7 +1830,7 @@ class AccelMode:
         tmp_path = self._new_temp_workbook_path(path)
         try:
             workbook.save(tmp_path)
-            self._commit_temp_file(tmp_path, path)
+            self._commit_with_backup(tmp_path, path)
         finally:
             self._remove_quietly(tmp_path)
 
@@ -1823,6 +1878,7 @@ class AccelMode:
                     target_df.to_excel(path, sheet_name=sheet_name, index=False)
                     self._apply_excel_formatting(path)
                     self.excel_save_failed = False
+                    self._save_fail_notified = False
                     return True
 
                 if not is_valid_xlsx(path):
@@ -1851,22 +1907,25 @@ class AccelMode:
                             f"({type(primary_error).__name__}: {primary_error}) -> using openpyxl fallback")
                         self._write_sheet_with_openpyxl(tmp_path, target_df, sheet_name)
                     self._apply_excel_formatting(tmp_path)
-                    self._commit_temp_file(tmp_path, path)
+                    self._commit_with_backup(tmp_path, path)
                 finally:
                     self._remove_quietly(tmp_path)
 
                 self.excel_save_failed = False
+                self._save_fail_notified = False
                 return True
             except PermissionError as e:
                 print(f"Permission denied while saving '{sheet_name}': {e}")
                 logger.warning(
                     f"ไฟล์ Excel ถูกเปิดอยู่ในโปรแกรมอื่น บันทึกชีต '{sheet_name}' ไม่สำเร็จ: {e}")
                 self.excel_save_failed = True
+                self._notify_save_failed(path)
                 return False
             except Exception as e:
                 print(f"Error updating sheet '{sheet_name}' in Excel file: {e}")
                 logger.error(f"Error updating sheet '{sheet_name}' in Excel file: {e}")
                 self.excel_save_failed = True
+                self._notify_save_failed(path)
                 return False
 
     @_serialized_accel_access
