@@ -80,6 +80,18 @@
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
 
+### [ver5.x.x] - 2026-11-24 (Accel Processed_Logs viewer, .bak-safe Accel writes)
+- [X] **[Accel: หน้าต่างดู Processed_Logs (อ่านอย่างเดียว)]**:
+  - **เหตุผล**: ดูผลการออกบิล (bill_no, price, sn, tracking) โดยไม่ต้องเปิด xlsx ด้วย Excel/LibreOffice ซึ่งเสี่ยงให้ไฟล์เสียและเปิดช้า
+  - **แก้**: `functions/accel_viewer.py` (ใหม่) — อ่านด้วย pandas เท่านั้น ไม่เขียนไฟล์ แสดง 9 คอลัมน์, ค้นหาทุกคอลัมน์, คลิกหัวคอลัมน์เพื่อเรียง, โหลดใหม่อัตโนมัติเมื่อ mtime/ขนาดไฟล์เปลี่ยน, แถบเตือนเมื่อ `excel_save_failed`; ลากเลือกช่องแล้ว Ctrl+C คัดลอกเป็นข้อความแยกด้วย tab (ค่าเต็ม ไม่ตัด, รองรับ keycode ของ layout ไทย)
+  - ปุ่ม `View` ใน top frame (คอลัมน์ 10) แสดงเฉพาะตอน Accel mode ทำงาน; หน้าต่างไม่ใช้ grab/topmost
+  - **เทสต์**: `tests/test_accel_viewer.py` (กรอง/เรียง/คัดลอก/ตัดข้อความ) + smoke บน GUI จริง: คลิกหัวคอลัมน์เรียง, ลากเลือก+Ctrl+C ได้ค่าตรงช่วง, ไฟล์เปลี่ยนแล้วโหลดใหม่, แถบเตือนขึ้น
+- [X] **[Accel Excel: สำรอง .bak + ตรวจไฟล์หลังบันทึก + กู้คืนไฟล์เสีย]**:
+  - **แก้** (`functions/accel_mode.py`): `_commit_with_backup` — ก่อนแทนที่ copy ไฟล์เดิมเป็น `<ชื่อ>.xlsx.bak`; หลังเขียนถ้า `is_valid_xlsx` ไม่ผ่านจะคืนค่าจาก .bak และถือว่าบันทึกล้มเหลว; `restore_accel_backup_if_corrupt` ตอนโหลดไฟล์ (กรณีโปรแกรมปิดกลางการ copy จะกู้คืนตอนบันทึกรอบถัดไปหรือเปิดไฟล์ครั้งถัดไป); fallback `copyfile` สำหรับ LibreOffice ยังคงเดิม และไม่สร้าง `.bak` ให้ไฟล์ temp ภายใน
+  - **แจ้งเตือน**: callback `on_save_failed` (ตั้งจากหน้าหลัก `_on_accel_save_failed`) แสดง messagebox ครั้งเดียวต่อการล้มเหลวหนึ่งช่วง ผ่าน `root.after`; ข้อมูลค้างจะถูกบันทึกในรอบที่สำเร็จถัดไป
+  - **เทสต์**: `tests/test_accel_backup_restore.py` (11 เคส); `test_accel_save_atomic` และ test accel อื่นผ่านทั้งหมด (รวม 60 เคส)
+  - **ข้อจำกัด**: ถ้าโปรแกรมถูกปิดกลางการ copy ไฟล์อาจค้างครึ่งเดียว ยังไม่ได้ทดสอบกับ LibreOffice/Excel ที่เปิดไฟล์จริงในรอบนี้ (ทดสอบด้วยไฟล์จำลองเท่านั้น)
+
 ### [ver5.x.x] - 2026-11-23 (CP viewer responsiveness, non-modal, Thai-layout shortcuts)
 - [X] **[CP Pattern Viewer: การค้นหาไม่ค้างแล้ว — row cache]**:
   - **สาเหตุ**: ทุกครั้งที่ผลค้นหาเปลี่ยน `populate()` destroy แล้วสร้าง CTk widget ของทุกแถวใหม่ (CTkFrame + CTkLabel หลายตัวต่อแถว) บน main thread — วัดได้ GUI ค้าง ~0.9 วินาทีต่อการพิมพ์ 1 ตัว และ ~1.1 วินาทีตอนล้างช่องค้นหา (CP Data 123 SKU)

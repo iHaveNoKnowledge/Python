@@ -31,6 +31,7 @@ from functions.accel_mode import AccelMode
 from functions.auto_add_product import AutoAddProduct
 from functions.BaseUrlFinder.BaseUrlFinder import BaseUrlFinder
 from functions.browser_manager import BrowserManager
+from functions.accel_viewer import open_accel_viewer_window
 from functions.cp_pattern_viewer import open_cp_pattern_window
 from functions.marketplace_scraper import MarketplaceScraper
 from functions.pos.customer_test_handler import CustomerModalTestHandler
@@ -401,6 +402,7 @@ class MyApp:
 
         # * Initialize AccelMode instance
         self.accel_mode = AccelMode(self)
+        self.accel_mode.on_save_failed = self._on_accel_save_failed
         if hasattr(self, '_saved_accel_dir') and self._saved_accel_dir:
             try:
                 self.accel_mode.accel_file_dir = self._saved_accel_dir
@@ -1156,6 +1158,7 @@ class MyApp:
             self.accel_del_btn.grid(row=0, column=7, padx=5)
             self.accel_stop_all_btn.grid(row=0, column=8, padx=5)
             self.display_acc_btn.grid(row=0, column=9, padx=5)
+            self.accel_view_btn.grid(row=0, column=10, padx=5)
 
         # * ถ้า Accel mode ไม่ทำงาน
         else:
@@ -1164,6 +1167,7 @@ class MyApp:
             self.accl_dir_namedisplay_on_btn.grid_remove()
             self.open_accel_file_btn.grid_remove()
             self.add_trans_to_accel_file_btn.grid_remove()
+            self.accel_view_btn.grid_remove()
 
             # Remove accel mode buttons from entry_frame
             self.accl_start_btn.grid_remove()
@@ -1299,6 +1303,16 @@ class MyApp:
             fg_color="#2b5b84",
             hover_color="#1e3f5c",
             width=45,
+            height=25
+        )
+
+        self.accel_view_btn = CTkButton(
+            self.entry_frame,
+            text="View",
+            command=lambda: open_accel_viewer_window(self),
+            fg_color="#2b5b84",
+            hover_color="#1e3f5c",
+            width=50,
             height=25
         )
 
@@ -2026,6 +2040,14 @@ class MyApp:
 
     def open_cp_pattern_viewer(self):
         open_cp_pattern_window(self)
+
+    def _on_accel_save_failed(self, path):
+        # เรียกจาก worker thread ผ่าน callback -> ส่งต่อไปเธรด UI ก่อนแสดงป๊อปอัป
+        self.root.after(0, lambda: messagebox.showwarning(
+            "Accel Excel",
+            "บันทึกไฟล์ Accel ไม่ได้ เพราะไฟล์อาจถูกเปิดอยู่ใน Excel\n"
+            "กรุณาปิดไฟล์ Accel ใน Excel ข้อมูลที่ค้างจะถูกบันทึกในรอบบันทึกที่สำเร็จถัดไปโดยอัตโนมัติ\n\n"
+            f"{os.path.basename(path)}"))
 
     def select_cp_excel(self):
         self.cp_table_location = filedialog.askopenfilename(
