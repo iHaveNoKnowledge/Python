@@ -1308,7 +1308,8 @@ class POSPaymentHandler:
             return False
 
         target_price = float(final_price)
-        pos_price = round(target_price - balance_val, 2)
+        # balance = ยอด POS ที่ปรับแล้ว - ยอดที่ลูกค้าต้องชำระจาก platform (ต้องเป็น 0 เสมอสำหรับออนไลน์)
+        pos_price = round(target_price + balance_val, 2)
         diff = round(balance_val, 2)
         diff_sign = f"{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
 
