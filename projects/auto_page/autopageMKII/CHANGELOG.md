@@ -17,10 +17,12 @@
 - [ ] **[Tests: 2 เคสล้ม + 1 loader error (pre-existing)]**:
   - `test_seller_voucher_pricing` (2 เคส), `test_cp_date_auto_correction` (loader error) — ล้มอยู่ก่อนแล้ว (ยืนยันซ้ำแล้วด้วย stash โค้ดแล้วรัน) ไม่เกี่ยวกับการแก้รอบนี้ (เคส `test_realtime_ambiguity_and_remark` ที่เคยล้ม แก้แล้วใน changelog 2026-11-13)
 - [x] **[Payment: สูตร pos_price ของ Price Mismatch ขัดกันในไฟล์เดียว]**:
-  - **สาเหตุ**: `functions/pos/payment_handler.py` บรรทัด pop-up ใช้ `pos_price = target - balance` ขณะที่บรรทัด Verify ใช้ `final_price + bal_val` ทำให้ 3 เคสใน `test_final_page_validator` ล้ม (ล้มอยู่ก่อนงาน accel viewer ทดสอบซ้ำบน `22cec4fc`)
-  - **ความหมายของช่อง `wrimagecard-lightGray` (ยืนยันโดยเจ้าของระบบ)**: ยอด POS ที่ปรับแล้ว − ยอดที่ลูกค้าต้องชำระจาก platform ต้องเป็น 0 เสมอ เพราะออนไลน์ไม่มีเงินทอน
-  - **แก้**: `pos_price = target + balance` (สูตรเดียวกับบรรทัด Verify); การตัดสินใจเตือนใช้ `abs(balance) >= 0.01` เหมือนเดิม เปลี่ยนเฉพาะตัวเลขที่แสดงใน pop-up/log
-  - **เทสต์**: `test_final_page_validator` 13/13 OK; `test_seller_voucher_pricing` ยังล้ม 2 เคสเดิม (รู้อยู่ก่อนแล้ว)
+  - **ความหมายที่ยืนยันแล้ว** (ดูภาพหน้า SMCO): Total Amt = ยอด POS หน้าแรกหลังปรับราคายิง, Receive Amt = ยอดเป้าหมายที่ต้องออกบิลจาก marketplace, Change (`wrimagecard-lightGray`) = Receive − Total = เป้าหมาย − POS
+  - **สูตรที่ถูก**: `pos_price = target − balance` (เป็น POS total)
+  - **แก้**: `functions/pos/payment_handler.py` บรรทัดของ Verify (`~557`) จากเดิม `final_price + bal_val` เป็น `final_price − bal_val` ให้ตรงกับ pop-up path; อัปเดตค่าคาดหวังใน `tests/test_final_page_validator.py` (3 เคส) ให้ตรงกับความหมายนี้
+  - **หมายเหตุ**: commit `b862907f` เคยเปลี่ยนสูตร pop-up เป็น `target + balance` ซึ่งผิด ถูก revert แล้ว
+  - **เทสต์**: `test_final_page_validator` 13/13 OK
+  - ล้มอยู่ก่อนงาน accel viewer (ทดสอบซ้ำบน commit `22cec4fc` แล้ว) — ยังไม่แก้ เพราะเป็นตัวเลขเงิน ต้องยืนยันว่า `_get_remaining_balance` (ค่าใน `wrimagecard-lightGray`) เป็นยอด "ยังต้องชำระ" หรือ "ยอดเกิน" ก่อน
 - [x] **[CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — debounce/throttle]**:
   - **สาเหตุ**: `_make_search_bar` bind `<KeyRelease>` → `on_change()` (populate) ทุกตัวอักษร บน main thread เดียวกับ input → rebuild widget ทั้งแผงชนกับการพิมพ์
   - **แก้** (`functions/cp_pattern_viewer.py`):
@@ -84,10 +86,6 @@
 ---
 
 ## 📦 3. ประวัติการแก้ไขแต่ละเวอร์ชัน (Changelog)
-
-### [ver5.x.x] - 2026-11-24 (Price mismatch pop-up sign fix)
-- [X] **[Payment: pos_price ใน pop-up Price Mismatch กลับเครื่องหมาย]**: `functions/pos/payment_handler.py` `check_and_prompt_price_mismatch` ใช้ `target + balance` แทน `target - balance` ให้ตรงกับความหมายของช่อง diff (POS − platform) และกับการตรวจ Verify; ไม่เปลี่ยนเงื่อนไขการเตือนหรือยอดที่ชำระจริง
-  - **เทสต์**: `test_final_page_validator` 13/13 OK
 
 ### [ver5.x.x] - 2026-11-24 (Accel Processed_Logs viewer, .bak-safe Accel writes)
 - [X] **[Accel: หน้าต่างดู Processed_Logs (อ่านอย่างเดียว)]**:

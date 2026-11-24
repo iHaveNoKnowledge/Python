@@ -263,7 +263,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_price_mismatch_returns_to_page1_when_user_confirms(self):
         """เมื่อราคาไม่ตรง และ user ยืนยันย้อนกลับ (Yes) -> ต้องเรียก return_to_first_page และคืนค่า True"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler._get_remaining_balance = MagicMock(return_value=100.0)  # ยอดเกินมา 100
+        self.handler._get_remaining_balance = MagicMock(return_value=100.0)  # Change +100: POS ต่ำกว่าเป้า 100
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
         self.handler.return_to_first_page = MagicMock()
 
@@ -272,7 +272,7 @@ class TestFinalPageValidator(unittest.TestCase):
         self.assertTrue(res)
         self.handler.prompt_price_mismatch_dialog.assert_called_once_with(
             target_price=1250.0,
-            pos_price=1350.0,
+            pos_price=1150.0,
             diff=100.0,
         )
         self.handler.return_to_first_page.assert_called_once()
@@ -281,7 +281,7 @@ class TestFinalPageValidator(unittest.TestCase):
     def test_check_and_prompt_price_mismatch_stays_when_user_declines(self):
         """เมื่อราคาไม่ตรง และ user ปฏิเสธ (No) -> ต้องไม่เรียก return_to_first_page และคืนค่า False"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
-        self.handler._get_remaining_balance = MagicMock(return_value=-50.0)  # ยอดขาดไป 50
+        self.handler._get_remaining_balance = MagicMock(return_value=-50.0)  # Change -50: POS สูงกว่าเป้า 50
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
         self.handler.return_to_first_page = MagicMock()
 
@@ -290,7 +290,7 @@ class TestFinalPageValidator(unittest.TestCase):
         self.assertFalse(res)
         self.handler.prompt_price_mismatch_dialog.assert_called_once_with(
             target_price=1250.0,
-            pos_price=1200.0,
+            pos_price=1300.0,
             diff=-50.0,
         )
         self.handler.return_to_first_page.assert_not_called()
@@ -366,7 +366,7 @@ class TestFinalPageValidator(unittest.TestCase):
         call_kwargs = self.handler.prompt_price_mismatch_dialog.call_args[1]
         self.assertEqual(call_kwargs["target_price"], 1000.0)
         self.assertEqual(call_kwargs["diff"], 120.0)
-        self.assertEqual(call_kwargs["pos_price"], 1120.0)
+        self.assertEqual(call_kwargs["pos_price"], 880.0)
         self.assertIn("SP2-001845", call_kwargs["mismatched_skus"][0])
         self.handler.return_to_first_page.assert_called_once()
 
