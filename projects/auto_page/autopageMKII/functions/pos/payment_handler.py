@@ -554,8 +554,7 @@ class POSPaymentHandler:
                                         bal_val = verification.get("balance", {}).get("value")
                                         if bal_val is None:
                                             bal_val = self._get_remaining_balance()
-                                        # Change = Receive (เป้าหมาย) - Total (POS) -> POS = เป้าหมาย - Change
-                                        pos_price = round(final_price - bal_val, 2)
+                                        pos_price = self.pos_total_from_change(final_price, bal_val)
                                         diff = round(bal_val, 2)
                                         dialog_kwargs = {
                                             "target_price": final_price,
@@ -1244,6 +1243,16 @@ class POSPaymentHandler:
 
         return result_holder[0]
 
+    @staticmethod
+    def pos_total_from_change(target_price: float, change: float) -> float:
+        """ยอด POS (Total Amt) จากค่า Change บนหน้าชำระเงิน
+
+        Change (wrimagecard-lightGray) = Receive (ยอดเป้าหมายจาก marketplace) - Total (ยอด POS)
+        ดังนั้น POS = เป้าหมาย - Change
+        ตัวอย่างจริง: เป้าหมาย 10740, Change -50 -> POS 10790
+        """
+        return round(float(target_price) - float(change), 2)
+
     def check_and_prompt_price_mismatch(self, final_price: float) -> bool:
         """
         ตรวจสอบ SKU และยอดเงินในโหมด Manual หากไม่ตรงกับคำสั่งซื้อ จะแสดง Pop-up แจ้งเตือน
@@ -1309,7 +1318,7 @@ class POSPaymentHandler:
             return False
 
         target_price = float(final_price)
-        pos_price = round(target_price - balance_val, 2)
+        pos_price = self.pos_total_from_change(target_price, balance_val)
         diff = round(balance_val, 2)
         diff_sign = f"{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
 

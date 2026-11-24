@@ -371,6 +371,36 @@ class TestFinalPageValidator(unittest.TestCase):
         self.handler.return_to_first_page.assert_called_once()
 
 
+class TestPosTotalFromChangeExample(unittest.TestCase):
+    """ตัวอย่างจริงจากหน้าจอ SMCO: เป้าหมาย (Receive) 10740, Change -50, POS (Total) 10790"""
+
+    def test_helper_example(self):
+        self.assertEqual(POSPaymentHandler.pos_total_from_change(10740.0, -50.0), 10790.0)
+
+    def test_helper_opposite_sign(self):
+        self.assertEqual(POSPaymentHandler.pos_total_from_change(10740.0, 50.0), 10690.0)
+
+    def test_popup_path_shows_example_pos_total(self):
+        bot = MagicMock()
+        app = MagicMock()
+        bot.app = app
+        app.is_auto_invoice_mode.get.return_value = False
+        bot.ProductManager.verify_item_qty.return_value = {}
+        handler = POSPaymentHandler(bot)
+        handler._get_remaining_balance = MagicMock(return_value=-50.0)
+        handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
+        handler.return_to_first_page = MagicMock()
+        handler._get_active_order_no = MagicMock(return_value="")
+
+        with patch("functions.pos.payment_handler.time.sleep"):
+            handler.check_and_prompt_price_mismatch(final_price=10740.0)
+
+        kwargs = handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertEqual(kwargs["target_price"], 10740.0)
+        self.assertEqual(kwargs["pos_price"], 10790.0)
+        self.assertEqual(kwargs["diff"], -50.0)
+
+
 if __name__ == "__main__":
     unittest.main()
 

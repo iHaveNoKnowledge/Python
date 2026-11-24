@@ -21,7 +21,8 @@
   - **สูตรที่ถูก**: `pos_price = target − balance` (เป็น POS total)
   - **แก้**: `functions/pos/payment_handler.py` บรรทัดของ Verify (`~557`) จากเดิม `final_price + bal_val` เป็น `final_price − bal_val` ให้ตรงกับ pop-up path; อัปเดตค่าคาดหวังใน `tests/test_final_page_validator.py` (3 เคส) ให้ตรงกับความหมายนี้
   - **หมายเหตุ**: commit `b862907f` เคยเปลี่ยนสูตร pop-up เป็น `target + balance` ซึ่งผิด ถูก revert แล้ว
-  - **เทสต์**: `test_final_page_validator` 13/13 OK
+  - **ดึงสูตรเป็น helper**: `POSPaymentHandler.pos_total_from_change(target, change)` ใช้ทั้งสองเส้นทาง
+  - **เทสต์**: `test_final_page_validator` 16/16 OK รวมตัวอย่างจริง (เป้าหมาย 10740, Change -50 → POS 10790) ทั้ง helper และ pop-up path
   - ล้มอยู่ก่อนงาน accel viewer (ทดสอบซ้ำบน commit `22cec4fc` แล้ว) — ยังไม่แก้ เพราะเป็นตัวเลขเงิน ต้องยืนยันว่า `_get_remaining_balance` (ค่าใน `wrimagecard-lightGray`) เป็นยอด "ยังต้องชำระ" หรือ "ยอดเกิน" ก่อน
 - [x] **[CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — debounce/throttle]**:
   - **สาเหตุ**: `_make_search_bar` bind `<KeyRelease>` → `on_change()` (populate) ทุกตัวอักษร บน main thread เดียวกับ input → rebuild widget ทั้งแผงชนกับการพิมพ์
