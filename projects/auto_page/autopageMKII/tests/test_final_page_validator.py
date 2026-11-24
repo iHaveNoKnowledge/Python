@@ -11,8 +11,18 @@ from functions.pos.payment_handler import POSPaymentHandler
 from selenium.webdriver.common.by import By
 
 
+def _pos_rows(pos_total: float) -> dict:
+    """แถวราคาบน POS ที่รวมกันได้ยอด pos_total (ราคาต่อหน่วย x จำนวน 1)"""
+    return {"ITEM": {"expected": pos_total, "actual": pos_total, "qty": 1, "ok": True}}
+
+
 class TestFinalPageValidator(unittest.TestCase):
     def setUp(self):
+        # กัน messagebox จริงค้างการรันเทสต์
+        warn_patch = patch("tkinter.messagebox.showwarning")
+        warn_patch.start()
+        self.addCleanup(warn_patch.stop)
+
         self.mock_bot = MagicMock()
         self.mock_app = MagicMock()
         self.mock_driver = MagicMock()
@@ -254,6 +264,7 @@ class TestFinalPageValidator(unittest.TestCase):
         """เมื่อยอด balance เป็น 0.00 (ราคาตรงกัน) ต้องไม่แสดง popup"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
         self.handler._get_remaining_balance = MagicMock(return_value=0.0)
+        self.mock_bot.ProductManager.verify_item_price.return_value = _pos_rows(1250.0)
         self.handler.prompt_price_mismatch_dialog = MagicMock()
 
         res = self.handler.check_and_prompt_price_mismatch(final_price=1250.0)
@@ -264,6 +275,7 @@ class TestFinalPageValidator(unittest.TestCase):
         """เมื่อราคาไม่ตรง และ user ยืนยันย้อนกลับ (Yes) -> ต้องเรียก return_to_first_page และคืนค่า True"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
         self.handler._get_remaining_balance = MagicMock(return_value=100.0)  # Change +100: POS ต่ำกว่าเป้า 100
+        self.mock_bot.ProductManager.verify_item_price.return_value = _pos_rows(1150.0)
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
         self.handler.return_to_first_page = MagicMock()
 
@@ -282,6 +294,7 @@ class TestFinalPageValidator(unittest.TestCase):
         """เมื่อราคาไม่ตรง และ user ปฏิเสธ (No) -> ต้องไม่เรียก return_to_first_page และคืนค่า False"""
         self.mock_app.is_auto_invoice_mode.get.return_value = False
         self.handler._get_remaining_balance = MagicMock(return_value=-50.0)  # Change -50: POS สูงกว่าเป้า 50
+        self.mock_bot.ProductManager.verify_item_price.return_value = _pos_rows(1300.0)
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
         self.handler.return_to_first_page = MagicMock()
 
@@ -354,6 +367,7 @@ class TestFinalPageValidator(unittest.TestCase):
         mock_pm.verify_item_qty.return_value = {
             "SP2-001845": {"expected": 1, "actual": 0, "ok": False},
         }
+        mock_pm.verify_item_price.return_value = _pos_rows(880.0)
         self.mock_bot.ProductManager = mock_pm
 
         self.handler.prompt_price_mismatch_dialog = MagicMock(return_value=True)
@@ -388,6 +402,7 @@ class TestPosTotalFromChangeExample(unittest.TestCase):
         bot.ProductManager.verify_item_qty.return_value = {}
         handler = POSPaymentHandler(bot)
         handler._get_remaining_balance = MagicMock(return_value=-50.0)
+        handler.bot.ProductManager.verify_item_price.return_value = _pos_rows(10790.0)
         handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
         handler.return_to_first_page = MagicMock()
         handler._get_active_order_no = MagicMock(return_value="")
@@ -401,8 +416,8 @@ class TestPosTotalFromChangeExample(unittest.TestCase):
         self.assertEqual(kwargs["diff"], -50.0)
 
 
-class TestUnreadableChangeBox(unittest.TestCase):
-    """อ่านกล่อง Change ไม่ได้ -> ต้องไม่ถือว่าราคาตรง และต้องเตือนผู้ใช้ (ไม่ใช่ตั้ง balance เป็น 0 แล้วผ่าน)"""
+class TestPosTotalDecision(unittest.TestCase):
+    """ตัดสินจากยอด POS ที่คำนวณจากราคาบรรทัด (verify_item_price); Change เป็นตัวตรวจซ้ำเท่านั้น"""
 
     def _handler(self):
         bot = MagicMock()
@@ -416,28 +431,90 @@ class TestUnreadableChangeBox(unittest.TestCase):
         handler.return_to_first_page = MagicMock()
         return handler
 
-    def test_unreadable_box_warns_and_does_not_pass_silently(self):
+    def _run(self, handler, final_price):
+        with patch("functions.pos.payment_handler.time.sleep"),                 patch("tkinter.messagebox.showwarning") as warn:
+            res = handler.check_and_prompt_price_mismatch(final_price=final_price)
+        return res, warn
+
+    # --- helper ---
+    def test_helper_sums_actual_times_qty(self):
+        rows = {
+            "A": {"expected": 100, "actual": 100.0, "qty": 2},
+            "B": {"expected": 50, "actual": 50.0, "qty": 1},
+        }
+        self.assertEqual(POSPaymentHandler.pos_total_from_price_rows(rows), 250.0)
+
+    def test_helper_returns_none_when_unknown(self):
+        h = POSPaymentHandler.pos_total_from_price_rows
+        self.assertIsNone(h(None))
+        self.assertIsNone(h({}))
+        self.assertIsNone(h(MagicMock()))
+        self.assertIsNone(h({"A": {"actual": "NOT_FOUND", "qty": 1}}))
+        self.assertIsNone(h({"A": {"actual": 10.0}}))
+
+    # --- decision ---
+    def test_matching_pos_total_and_change_no_dialog(self):
         handler = self._handler()
+        handler.bot.ProductManager.verify_item_price.return_value = _pos_rows(10740.0)
+        handler._get_remaining_balance = MagicMock(return_value=0.0)
+        res, warn = self._run(handler, 10740.0)
+        self.assertFalse(res)
+        handler.prompt_price_mismatch_dialog.assert_not_called()
+        warn.assert_not_called()
+
+    def test_pos_total_differs_from_target_shows_pos_total(self):
+        handler = self._handler()
+        handler.bot.ProductManager.verify_item_price.return_value = _pos_rows(10790.0)
+        handler._get_remaining_balance = MagicMock(return_value=-50.0)
+        res, _ = self._run(handler, 10740.0)
+        self.assertFalse(res)
+        kw = handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertEqual(kw["pos_price"], 10790.0)
+        self.assertEqual(kw["diff"], -50.0)
+
+    def test_change_disagreeing_with_pos_total_is_flagged(self):
+        """POS ตรงกับเป้าหมาย แต่กล่อง Change ไม่เป็น 0 (อาจถูก onblur ปรับ) -> ต้องเตือน"""
+        handler = self._handler()
+        handler.bot.ProductManager.verify_item_price.return_value = _pos_rows(10740.0)
+        handler._get_remaining_balance = MagicMock(return_value=-50.0)
+        handler.prompt_price_mismatch_dialog.assert_not_called()
+        res, _ = self._run(handler, 10740.0)
+        handler.prompt_price_mismatch_dialog.assert_called_once()
+        kw = handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertEqual(kw["pos_price"], 10740.0)
+        self.assertEqual(kw["diff"], 0.0)
+
+    def test_unreadable_change_uses_pos_total(self):
+        handler = self._handler()
+        handler.bot.ProductManager.verify_item_price.return_value = _pos_rows(10790.0)
         handler._get_remaining_balance = MagicMock(side_effect=RuntimeError("element gone"))
-        with patch("functions.pos.payment_handler.time.sleep"), \
-                patch("tkinter.messagebox.showwarning") as warn:
-            res = handler.check_and_prompt_price_mismatch(final_price=10740.0)
+        res, warn = self._run(handler, 10740.0)
+        self.assertFalse(res)
+        warn.assert_not_called()
+        kw = handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertEqual(kw["pos_price"], 10790.0)
+
+    def test_unknown_pos_total_and_no_sku_warns(self):
+        handler = self._handler()
+        handler.bot.ProductManager.verify_item_price.return_value = None
+        handler._get_remaining_balance = MagicMock(return_value=0.0)
+        res, warn = self._run(handler, 10740.0)
         self.assertFalse(res)
         warn.assert_called_once()
         handler.prompt_price_mismatch_dialog.assert_not_called()
-        handler.return_to_first_page.assert_not_called()
 
-    def test_unreadable_box_still_reports_sku_mismatch(self):
+    def test_unknown_pos_total_with_sku_mismatch_still_opens_dialog(self):
         handler = self._handler()
         handler.bot.ProductManager.verify_item_qty.return_value = {
-            "SP2-001845": {"expected": 1, "actual": 0, "ok": False},
+            "SP2-001845": {"expected": 1, "actual": "NOT_FOUND", "ok": False},
         }
-        handler._get_remaining_balance = MagicMock(side_effect=RuntimeError("element gone"))
-        with patch("functions.pos.payment_handler.time.sleep"), \
-                patch("tkinter.messagebox.showwarning") as warn:
-            handler.check_and_prompt_price_mismatch(final_price=10740.0)
-        warn.assert_called_once()
-        self.assertIn("SP2-001845", warn.call_args[0][1])
+        handler.bot.ProductManager.verify_item_price.return_value = None
+        handler._get_remaining_balance = MagicMock(return_value=0.0)
+        res, warn = self._run(handler, 10740.0)
+        warn.assert_not_called()
+        kw = handler.prompt_price_mismatch_dialog.call_args[1]
+        self.assertIsNone(kw["pos_price"])
+        self.assertIn("SP2-001845", kw["mismatched_skus"][0])
 
 
 if __name__ == "__main__":

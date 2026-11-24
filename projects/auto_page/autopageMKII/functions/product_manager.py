@@ -455,7 +455,9 @@ class ProductManager:
             
             ok = (actual == expected) if actual != "NOT_FOUND" else False
             diff = expected - actual if actual != "NOT_FOUND" else "NOT_FOUND"
-            result[sku_key] = {"expected": expected, "actual": actual, "diff": diff, "ok": ok}
+            # qty ใช้คำนวณยอดรวมบน POS = actual (ราคาต่อหน่วย) x qty จากชุดข้อมูลเดียวกัน
+            result[sku_key] = {"expected": expected, "actual": actual, "diff": diff, "ok": ok,
+                               "qty": total_qty}
             status_icon = "[OK]" if ok else "[FAIL]"
             try:
                 print(

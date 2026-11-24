@@ -246,8 +246,7 @@ class POSPaymentHandler:
                         time.sleep(0.75)
                         final_price = 0
                         if self.app.marketplace_target.get() == 'SHOPEE':
-                            final_price = (self.app.sum_price + self.app.cus_ship_cost.get()
-                                           ) - self.app.cus_seller_voucher.get()
+                            final_price = (self.app.sum_price + self.app.cus_ship_cost.get()) - self.app.cus_seller_voucher.get()
                             if self._find_payment_input("IP005", timeout=0.0) is None:
                                 try:
                                     channel_key = f"{self.bot.operation_states.get('purchased_channel')}"
@@ -1253,6 +1252,28 @@ class POSPaymentHandler:
         """
         return round(float(target_price) - float(change), 2)
 
+    @staticmethod
+    def pos_total_from_price_rows(price_result) -> Optional[float]:
+        """ยอด POS รวม = ผลรวม (ราคาต่อหน่วยจริงบน POS x จำนวน) ของทุกแถว SKU
+
+        คืน None เมื่อข้อมูลไม่ครบ (ไม่ใช่ dict, แถวไม่มี actual/qty, หรือ NOT_FOUND)
+        """
+        if not isinstance(price_result, dict) or not price_result:
+            return None
+        total = 0.0
+        for info in price_result.values():
+            if not isinstance(info, dict):
+                return None
+            actual = info.get("actual")
+            qty = info.get("qty")
+            if actual in (None, "NOT_FOUND") or qty in (None, "NOT_FOUND"):
+                return None
+            try:
+                total += float(actual) * float(qty)
+            except (TypeError, ValueError):
+                return None
+        return round(total, 2)
+
     def check_and_prompt_price_mismatch(self, final_price: float) -> bool:
         """
         ตรวจสอบ SKU และยอดเงินในโหมด Manual หากไม่ตรงกับคำสั่งซื้อ จะแสดง Pop-up แจ้งเตือน
@@ -1303,38 +1324,58 @@ class POSPaymentHandler:
             except Exception as pm_err:
                 print("Cannot verify item qty in check_and_prompt_price_mismatch:", pm_err)
 
-        # 2. ตรวจสอบยอดเงินคงเหลือ (Remaining Balance)
+        # 2. ยอด POS คำนวณจากราคาบรรทัด SKU ที่บอทอ่านจากหน้า POS (ตัวตัดสินหลัก)
+        pos_total_calc = None
+        if pm and hasattr(pm, 'verify_item_price'):
+            try:
+                pos_total_calc = self.pos_total_from_price_rows(pm.verify_item_price())
+            except Exception as price_err:
+                print("Cannot verify item price in check_and_prompt_price_mismatch:", price_err)
+
+        # 3. กล่อง Change: ใช้เป็นตัวตรวจซ้ำเท่านั้น (onblur อาจปรับค่าจนผิดได้)
         balance_unreadable = False
         try:
             time.sleep(0.3)
             balance_val: float = self._get_remaining_balance()
         except Exception as b_err:
-            # ห้ามตั้งเป็น 0 แล้วถือว่าราคาตรง: ช่อง Change อาจถูก onblur ปรับจนอ่านไม่ได้
             print("Cannot read remaining balance:", b_err)
             balance_val: float = 0.0
             balance_unreadable = True
 
-        if balance_unreadable:
-            from tkinter import messagebox
-            sku_note = ("\n" + "\n".join(mismatched_skus)) if mismatched_skus else ""
-            warn_msg = (
-                "อ่านค่า Change จากหน้าชำระเงินไม่ได้ จึงตรวจยอดไม่ได้\n"
-                "กรุณาตรวจราคาบนหน้า POS และ Receive Amt ก่อนกดยืนยัน" + sku_note
-            )
-            self.app.update_log(f"⚠️ {warn_msg}")
-            logger.warning(f"Order: {self.cus_order} - Change box unreadable, waiting for operator")
-            messagebox.showwarning("ตรวจยอดไม่ได้", warn_msg)
-            return False
+        target_price = float(final_price)
 
-        price_mismatch: bool = abs(balance_val) >= 0.01
+        if pos_total_calc is None:
+            # ห้ามถือว่าราคาตรงเมื่อไม่รู้ยอด POS
+            if not mismatched_skus:
+                from tkinter import messagebox
+                warn_msg = (
+                    "คำนวณยอด POS จากราคาบนหน้าจอไม่ได้ จึงตรวจยอดไม่ได้\n"
+                    "กรุณาตรวจราคาบนหน้า POS และ Receive Amt ก่อนกดยืนยัน"
+                )
+                self.app.update_log(f"⚠️ {warn_msg}")
+                logger.warning(f"Order: {self.cus_order} - POS total unknown, waiting for operator")
+                messagebox.showwarning("ตรวจยอดไม่ได้", warn_msg)
+                return False
+            # มีสินค้าไม่ตรงอยู่แล้ว: แสดง pop-up เดิม (ย้อนกลับได้) โดยไม่แสดงยอด POS ที่คำนวณไม่ได้
+            self.app.update_log("⚠️ คำนวณยอด POS ไม่ได้ (มีสินค้าไม่ตรง) ตรวจราคาก่อนยืนยัน")
+            pos_price = None
+            diff = 0.0
+            price_mismatch: bool = False
+        else:
+            pos_price = pos_total_calc
+            diff = round(target_price - pos_price, 2)  # Change = เป้าหมาย - ยอด POS
+            pos_mismatch: bool = abs(diff) >= 0.01
+            change_disagrees: bool = (not balance_unreadable) and abs(balance_val - diff) >= 0.01
+            if change_disagrees:
+                logger.warning(
+                    f"Order: {self.cus_order} - Change box {balance_val} ไม่ตรงกับยอด POS ที่คำนวณได้ "
+                    f"(ส่วนต่าง {diff}) อาจถูก onblur ปรับค่า")
+            price_mismatch = pos_mismatch or change_disagrees
 
         # หากทั้ง SKU และราคาถูกต้อง -> ไม่ต้องเตือน
         if not mismatched_skus and not price_mismatch:
             return False
 
-        target_price = float(final_price)
-        pos_price = self.pos_total_from_change(target_price, balance_val)
-        diff = round(balance_val, 2)
         diff_sign = f"{diff:,.2f}" if diff > 0 else f"{diff:,.2f}"
 
         if mismatched_skus:

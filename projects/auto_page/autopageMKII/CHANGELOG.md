@@ -23,7 +23,10 @@
   - **หมายเหตุ**: commit `b862907f` เคยเปลี่ยนสูตร pop-up เป็น `target + balance` ซึ่งผิด ถูก revert แล้ว
   - **ดึงสูตรเป็น helper**: `POSPaymentHandler.pos_total_from_change(target, change)` ใช้ทั้งสองเส้นทาง
   - **อ่าน Change ไม่ได้**: ไม่ตั้ง balance เป็น 0 แล้วถือว่าตรงอีกต่อไป แต่แสดง warning (พร้อมรายการ SKU ที่ไม่ตรง ถ้ามี) และคืน False ให้ผู้ใช้ตรวจเอง
-  - **เทสต์**: `test_final_page_validator` 18/18 OK รวมตัวอย่างจริง (เป้าหมาย 10740, Change -50 → POS 10790) ทั้ง helper และ pop-up path
+  - **ตัดสินจากยอด POS ที่คำนวณได้ (ไม่ใช่ Change)**: `ProductManager.verify_item_price` เพิ่ม `qty` ต่อแถว แล้ว `POSPaymentHandler.pos_total_from_price_rows` รวม (ราคาต่อหน่วยจริง x จำนวน) ทุกแถว; ยอดรวมต่างจากเป้าหมาย = เตือน; Change ที่ไม่ตรงกับ (เป้าหมาย - ยอด POS) = เตือนเป็นตัวตรวจซ้ำ
+  - ถ้าคำนวณยอด POS ไม่ได้: ไม่ถือว่าตรง; ถ้ามี SKU ไม่ตรงให้เปิด pop-up เดิม (ไม่แสดงยอด POS), ถ้าไม่มีให้แจ้งเตือนทั่วไป
+  - **ยังไม่ได้ทดสอบบนหน้า SMCO จริง**: การจับคู่แถวราคา/จำนวนและค่าขนส่ง SV0-000101 ต้องยืนยันบนหน้าจอ
+  - **เทสต์**: `test_final_page_validator` 24/24 OK รวมตัวอย่างจริง และกรณีใหม่ของการตัดสินจากยอด POS (เป้าหมาย 10740, Change -50 → POS 10790) ทั้ง helper และ pop-up path
   - ล้มอยู่ก่อนงาน accel viewer (ทดสอบซ้ำบน commit `22cec4fc` แล้ว) — ยังไม่แก้ เพราะเป็นตัวเลขเงิน ต้องยืนยันว่า `_get_remaining_balance` (ค่าใน `wrimagecard-lightGray`) เป็นยอด "ยังต้องชำระ" หรือ "ยอดเกิน" ก่อน
 - [x] **[CP Pattern Viewer: พิมพ์ค้นหาค้างบางจังหวะ — debounce/throttle]**:
   - **สาเหตุ**: `_make_search_bar` bind `<KeyRelease>` → `on_change()` (populate) ทุกตัวอักษร บน main thread เดียวกับ input → rebuild widget ทั้งแผงชนกับการพิมพ์
