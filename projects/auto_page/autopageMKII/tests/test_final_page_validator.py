@@ -401,6 +401,45 @@ class TestPosTotalFromChangeExample(unittest.TestCase):
         self.assertEqual(kwargs["diff"], -50.0)
 
 
+class TestUnreadableChangeBox(unittest.TestCase):
+    """อ่านกล่อง Change ไม่ได้ -> ต้องไม่ถือว่าราคาตรง และต้องเตือนผู้ใช้ (ไม่ใช่ตั้ง balance เป็น 0 แล้วผ่าน)"""
+
+    def _handler(self):
+        bot = MagicMock()
+        app = MagicMock()
+        bot.app = app
+        app.is_auto_invoice_mode.get.return_value = False
+        bot.ProductManager.verify_item_qty.return_value = {}
+        handler = POSPaymentHandler(bot)
+        handler._get_active_order_no = MagicMock(return_value="")
+        handler.prompt_price_mismatch_dialog = MagicMock(return_value=False)
+        handler.return_to_first_page = MagicMock()
+        return handler
+
+    def test_unreadable_box_warns_and_does_not_pass_silently(self):
+        handler = self._handler()
+        handler._get_remaining_balance = MagicMock(side_effect=RuntimeError("element gone"))
+        with patch("functions.pos.payment_handler.time.sleep"), \
+                patch("tkinter.messagebox.showwarning") as warn:
+            res = handler.check_and_prompt_price_mismatch(final_price=10740.0)
+        self.assertFalse(res)
+        warn.assert_called_once()
+        handler.prompt_price_mismatch_dialog.assert_not_called()
+        handler.return_to_first_page.assert_not_called()
+
+    def test_unreadable_box_still_reports_sku_mismatch(self):
+        handler = self._handler()
+        handler.bot.ProductManager.verify_item_qty.return_value = {
+            "SP2-001845": {"expected": 1, "actual": 0, "ok": False},
+        }
+        handler._get_remaining_balance = MagicMock(side_effect=RuntimeError("element gone"))
+        with patch("functions.pos.payment_handler.time.sleep"), \
+                patch("tkinter.messagebox.showwarning") as warn:
+            handler.check_and_prompt_price_mismatch(final_price=10740.0)
+        warn.assert_called_once()
+        self.assertIn("SP2-001845", warn.call_args[0][1])
+
+
 if __name__ == "__main__":
     unittest.main()
 

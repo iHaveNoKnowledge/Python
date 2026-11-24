@@ -1304,12 +1304,27 @@ class POSPaymentHandler:
                 print("Cannot verify item qty in check_and_prompt_price_mismatch:", pm_err)
 
         # 2. ตรวจสอบยอดเงินคงเหลือ (Remaining Balance)
+        balance_unreadable = False
         try:
             time.sleep(0.3)
             balance_val: float = self._get_remaining_balance()
         except Exception as b_err:
+            # ห้ามตั้งเป็น 0 แล้วถือว่าราคาตรง: ช่อง Change อาจถูก onblur ปรับจนอ่านไม่ได้
             print("Cannot read remaining balance:", b_err)
             balance_val: float = 0.0
+            balance_unreadable = True
+
+        if balance_unreadable:
+            from tkinter import messagebox
+            sku_note = ("\n" + "\n".join(mismatched_skus)) if mismatched_skus else ""
+            warn_msg = (
+                "อ่านค่า Change จากหน้าชำระเงินไม่ได้ จึงตรวจยอดไม่ได้\n"
+                "กรุณาตรวจราคาบนหน้า POS และ Receive Amt ก่อนกดยืนยัน" + sku_note
+            )
+            self.app.update_log(f"⚠️ {warn_msg}")
+            logger.warning(f"Order: {self.cus_order} - Change box unreadable, waiting for operator")
+            messagebox.showwarning("ตรวจยอดไม่ได้", warn_msg)
+            return False
 
         price_mismatch: bool = abs(balance_val) >= 0.01
 
