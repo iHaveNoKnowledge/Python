@@ -287,9 +287,13 @@ class DualSourceCPLoader:
             return pd.DataFrame()
         try:
             xl = pd.ExcelFile(self.local_excel_path)
-            if 'conflict_resolver' in xl.sheet_names:
-                df = pd.read_excel(self.local_excel_path, sheet_name='conflict_resolver')
-                return self._clean_conflict_dataframe(df)
+            try:
+                if 'conflict_resolver' in xl.sheet_names:
+                    df = xl.parse('conflict_resolver')
+                    if isinstance(df, pd.DataFrame):
+                        return self._clean_conflict_dataframe(df)
+            finally:
+                xl.close()
         except Exception as e:
             print(f"[Local Conflict Loader Warning] Failed to read conflict_resolver from local excel: {e}")
         return pd.DataFrame()
@@ -369,7 +373,10 @@ class DualSourceCPLoader:
 
             try:
                 xl = pd.ExcelFile(self.local_excel_path)
-                sheets = {s: xl.parse(s) for s in xl.sheet_names}
+                try:
+                    sheets = {s: xl.parse(s) for s in xl.sheet_names}
+                finally:
+                    xl.close()
             except Exception:
                 sheets = {}
             df_conf = sheets.get('conflict_resolver')
@@ -463,20 +470,57 @@ class DualSourceCPLoader:
             return False
 
     def sync_to_local_excel(self, df_cp: pd.DataFrame, df_conflict: Optional[pd.DataFrame] = None) -> None:
-        """Sync merged CP data (and optional conflict_resolver) down to multi-sheet local excel file"""
+        """Sync merged CP data (and optional conflict_resolver) down to multi-sheet local excel file
+
+        คงแท็บอื่น ๆ ของไฟล์ไว้ครบ และจะไม่เขียน placeholder ทับแท็บ
+        conflict_resolver ที่มีข้อมูลอยู่แล้วเมื่ออ่านค่าเดิมล้มเหลว
+        """
         if not self.local_excel_path or df_cp.empty:
             return
         try:
+            existing_sheets: Dict[str, pd.DataFrame] = {}
+            existing_conflict: Optional[pd.DataFrame] = None
+            main_name = 'cp_data'
+            try:
+                xl = pd.ExcelFile(self.local_excel_path)
+                try:
+                    names = [str(s) for s in xl.sheet_names]
+                    if names:
+                        main_name = 'cp_data' if names[0] == 'conflict_resolver' else names[0]
+                    for s in names:
+                        if s == main_name:
+                            continue
+                        try:
+                            parsed = xl.parse(s)
+                        except Exception as read_sheet_err:
+                            print(f"[GAS CP Loader Warning] Failed to read sheet '{s}': {read_sheet_err}")
+                            continue
+                        if not isinstance(parsed, pd.DataFrame):
+                            continue
+                        if s == 'conflict_resolver':
+                            existing_conflict = parsed
+                        else:
+                            existing_sheets[s] = parsed
+                finally:
+                    xl.close()
+            except Exception:
+                existing_sheets = {}
+
             # Check existing conflict resolver sheet if df_conflict not provided
             if df_conflict is None:
                 df_conflict = self.fetch_conflict_resolver_local()
 
             with pd.ExcelWriter(self.local_excel_path, engine='openpyxl') as writer:
-                df_cp.to_excel(writer, sheet_name='cp_data', index=False)
+                df_cp.to_excel(writer, sheet_name=main_name, index=False)
+                for s_name, s_df in existing_sheets.items():
+                    s_df.to_excel(writer, sheet_name=s_name, index=False)
                 if df_conflict is not None and not df_conflict.empty:
                     df_conflict.to_excel(writer, sheet_name='conflict_resolver', index=False)
+                elif existing_conflict is not None:
+                    # อ่านค่าเดิมไม่สำเร็จ/ได้ค่าว่าง -> คงแถวเดิมไว้ ห้ามทับด้วย placeholder
+                    existing_conflict.to_excel(writer, sheet_name='conflict_resolver', index=False)
                 else:
-                    # Create placeholder conflict resolver sheet (รองรับ Dynamic Candidates)
+                    # ยังไม่เคยมีแท็บ -> สร้าง placeholder ใหม่ (รองรับ Dynamic Candidates)
                     dummy_conflict = pd.DataFrame(columns=[
                         'sku', 'sale_price', 'candidates', 'candidates_count',
                         'candidate_1', 'candidate_2', 'candidate_3',

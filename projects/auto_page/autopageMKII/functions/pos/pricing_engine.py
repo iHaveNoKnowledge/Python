@@ -433,6 +433,48 @@ def format_cp_excel(file_path: str) -> bool:
         return False
 
 
+def write_cp_excel(excel_path: str, df_main: pd.DataFrame) -> bool:
+    """
+    เขียน df ลง "แท็บแรก" ของ excel_path โดยคงแท็บอื่น ๆ ไว้ครบ (รวม conflict_resolver)
+
+    ใช้แทน `df.to_excel(excel_path, index=False)` ซึ่งเขียนไฟล์ทั้งใบเป็นชีตเดียว
+    แล้วลบแท็บอื่นทิ้งทั้งหมด — ทำให้แท็บ conflict_resolver หายทันทีหลังจบแต่ละออเดอร์
+    และ admin อนุมัติสูตรคูปองต่อไม่ได้ (CASE 2 gate หยุดออเดอร์ทุกครั้ง)
+    """
+    if not excel_path:
+        return False
+    other_sheets = {}
+    main_name = "Sheet1"
+    try:
+        xl = pd.ExcelFile(excel_path)
+        try:
+            names = [str(s) for s in xl.sheet_names]
+            if names:
+                main_name = names[0]
+            for s in names[1:]:
+                try:
+                    other_sheets[s] = xl.parse(s)
+                except Exception as read_sheet_err:
+                    logger.warning(f"[write_cp_excel] อ่านแท็บ '{s}' ไม่สำเร็จ ข้ามแท็บนี้: {read_sheet_err}")
+        finally:
+            xl.close()
+    except Exception:
+        other_sheets = {}
+
+    try:
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            df_main.to_excel(writer, sheet_name=main_name, index=False)
+            for s_name, s_df in other_sheets.items():
+                s_df.to_excel(writer, sheet_name=s_name, index=False)
+        return True
+    except PermissionError:
+        logger.warning(f"[write_cp_excel] ไฟล์เปิดในโปรแกรมอื่น บันทึกไม่ได้: {excel_path}")
+        return False
+    except Exception as write_err:
+        logger.warning(f"[write_cp_excel] บันทึกไม่สำเร็จ {excel_path}: {write_err}")
+        return False
+
+
 def is_valid_adjustment(amount_str: Any) -> bool:
     """ตรวจสอบว่าค่าการปรับราคา (OC/DC) มีตัวเลขที่ถูกต้องและมากกว่า 0 หรือไม่"""
     if not amount_str or str(amount_str).strip() == "" or str(amount_str).strip().upper() == "NONE":
@@ -555,6 +597,69 @@ def get_coupon_recency_score(code: str, desc: str = "") -> int:
     return 0
 
 
+PLATFORM_KEYWORDS = {
+    'SHOPEE': ['SHP', 'SHOPEE', 'SP'],
+    'TIKTOK': ['TT', 'TIKTOK', 'TIK TOK'],
+    'LAZADA': ['LZD', 'LAZADA', 'LAZ']
+}
+
+
+def conflict_candidate_sort_key(c_item, calc_net_fn, expected_price, purchased_date, current_mp=""):
+    """
+    คีย์เรียงลำดับ candidate ของ Conflict Resolver — ยิ่งมากยิ่งดี (ใช้กับ sorted(..., reverse=True))
+
+    ลำดับความสำคัญ (มาก -> น้อย):
+      1. ราคาสุทธิตรงเป้าหมาย (Hard Constraint)
+      2. วันที่ใช้ได้จริงในวันสั่งซื้อ (ไม่หมดอายุ, ยังไม่เริ่มก็ถือว่าใช้ไม่ได้)
+      3. ไม่ใช่คูปองของแพลตฟอร์มอื่น (เป็น penalty อย่างเดียว ห้ามให้โบนัส
+         เพราะ candidate ที่มาจากตาราง Excel ไม่มี desc/remark จะเสียเปรียบเสมอ)
+      4. วันเริ่มต้นใหม่กว่าชนะ (กฎ "เลือกวันที่ใหม่กว่า")
+      5. วันสิ้นสุดสั้นกว่าชนะ
+      6. สูตรเรียบง่าย (ไม่มี OC/DC, จำนวนคำในรหัสน้อย) — เฉพาะเมื่อราคาตรงเป๊ะ
+      7. ความใหม่ของรหัสคูปอง (tie-break สุดท้าย)
+    """
+    c_net = calc_net_fn(c_item)
+    price_diff = abs(c_net - float(expected_price)) if c_net is not None else 9999.0
+    if price_diff <= 0.05:
+        price_tier = 2
+    elif price_diff <= 1.0:
+        price_tier = 1
+    else:
+        price_tier = 0
+
+    c_st = parse_smart_date(c_item.get("start_date") or c_item.get("usage_start_date") or c_item.get("suggested_usage_start_date"))
+    c_en = parse_smart_date(c_item.get("end_date") or c_item.get("usage_end_date") or c_item.get("suggested_usage_end_date"))
+    ord_d = parse_smart_date(purchased_date)
+
+    date_ok = 1
+    if c_item.get("is_expired"):
+        date_ok = 0
+    elif ord_d:
+        if c_st and ord_d < c_st:
+            date_ok = 0
+        elif c_en and ord_d > c_en:
+            date_ok = 0
+
+    c_desc_all = f"{c_item.get('desc', '')} {c_item.get('remark', '')}".upper()
+    platform_ok = 1
+    if current_mp:
+        for other_mp, kws in PLATFORM_KEYWORDS.items():
+            if other_mp != current_mp and any(kw in c_desc_all for kw in kws):
+                platform_ok = 0
+                break
+
+    start_key = int(c_st.strftime("%Y%m%d")) if c_st else 0
+    end_key = -int(c_en.strftime("%Y%m%d")) if c_en else -99999999
+
+    simplicity = 0
+    if price_tier == 2:
+        if not is_valid_adjustment(c_item.get("oc_amount")) and not is_valid_adjustment(c_item.get("dc_amount")):
+            simplicity += 20
+        simplicity -= len(str(c_item.get("cp_name") or "").split()) * 5
+
+    recency = get_coupon_recency_score(str(c_item.get("cp_name") or ""), c_desc_all)
+
+    return (price_tier, date_ok, platform_ok, start_key, end_key, simplicity, recency)
 
 
 @dataclass
@@ -930,7 +1035,7 @@ class POSPricingReconciler:
 
         if updated_any:
             try:
-                df.to_excel(excel_path, index=False)
+                write_cp_excel(excel_path, df)
                 format_cp_excel(excel_path)
                 if hasattr(self.app, '_cp_last_mtime'):
                     self.app._cp_last_mtime = os.path.getmtime(excel_path)
@@ -2256,7 +2361,7 @@ class POSPricingReconciler:
                 new_df = pd.DataFrame([new_row]).reindex(columns=df.columns, fill_value="")
                 df_combined = pd.concat([df, new_df], ignore_index=True)
 
-            df_combined.to_excel(excel_path, index=False)
+            write_cp_excel(excel_path, df_combined)
             format_cp_excel(excel_path)
 
             if os.path.exists(excel_path):
@@ -3359,7 +3464,7 @@ class POSPricingReconciler:
                     df = pd.concat([df, new_df], ignore_index=True)
 
             # บันทึกลง Excel
-            df.to_excel(excel_path, index=False)
+            write_cp_excel(excel_path, df)
             format_cp_excel(excel_path)
 
             if os.path.exists(excel_path):
@@ -5818,67 +5923,23 @@ class POSPricingReconciler:
                                 chosen_cand = admin_cand
                                 self.app.update_log(f"🎯 [Conflict Resolver] ใช้สูตรตามที่ Admin อนุมัติ: [{chosen_cand.get('cp_name')}] สำหรับ SKU: {sku_key}")
                             else:
-                                # Smart Tie-Breaker: คัดเลือกตัวที่ดีที่สุด โดยยึด "ความถูกต้องของราคาสุทธิ" เป็นเงื่อนไขสูงสุด (Hard Constraint)
-                                def score_candidate(c_item):
-                                    sc = 0
-                                    # ─── เกณฑ์ที่ 1: ความถูกต้องของราคา (Price Accuracy) ───
-                                    c_net = calc_candidate_net_price(c_item)
-                                    price_diff = abs(c_net - float(expected_price)) if c_net is not None else 9999.0
-                                    if price_diff <= 0.05:
-                                        sc += 2000  # ราคาตรงเป๊ะ ชนะขาด
-                                    elif price_diff <= 1.0:
-                                        sc += 800   # ปัดเศษเล็กน้อย
-                                    else:
-                                        sc -= 5000  # ราคาไม่ตรงเป้าหมาย ตัดแต้มทันที ห้ามเป็นผู้ชนะ
-
-                                    # ─── เกณฑ์ที่ 2: วันที่และระยะเวลาโปรโมชัน ───
-                                    c_st = parse_smart_date(c_item.get("start_date") or c_item.get("usage_start_date") or c_item.get("suggested_usage_start_date"))
-                                    c_en = parse_smart_date(c_item.get("end_date") or c_item.get("usage_end_date") or c_item.get("suggested_usage_end_date"))
-                                    ord_d = parse_smart_date(purchased_date)
-                                    if c_item.get("is_expired"):
-                                        sc -= 100
-                                    if ord_d and c_st and c_en:
-                                        if c_st <= ord_d <= c_en:
-                                            sc += 50
-                                        elif ord_d > c_en:
-                                            sc -= 80
-
-                                    # ─── เกณฑ์ที่ 2.5: ความสอดคล้องกับ Marketplace (Platform Alignment) ───
+                                # Smart Tie-Breaker: เรียงตาม conflict_candidate_sort_key
+                                # ราคา (Hard Constraint) -> วันที่ใช้ได้จริง -> ไม่ใช่แพลตฟอร์มอื่น
+                                # -> วันเริ่มต้นใหม่กว่า -> วันสิ้นสุดสั้นกว่า -> ความเรียบง่าย -> ความใหม่รหัส
+                                current_mp = ""
+                                try:
+                                    if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
+                                        current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
+                                except Exception:
                                     current_mp = ""
-                                    try:
-                                        if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
-                                            current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
-                                    except Exception:
-                                        current_mp = ""
 
-                                    if current_mp:
-                                        PLATFORM_KEYWORDS = {
-                                            'SHOPEE': ['SHP', 'SHOPEE', 'SP'],
-                                            'TIKTOK': ['TT', 'TIKTOK', 'TIK TOK'],
-                                            'LAZADA': ['LZD', 'LAZADA', 'LAZ']
-                                        }
-                                        c_desc_all = f"{c_item.get('desc', '')} {c_item.get('remark', '')}".upper()
-                                        for other_mp, kws in PLATFORM_KEYWORDS.items():
-                                            if other_mp != current_mp and any(kw in c_desc_all for kw in kws):
-                                                sc -= 10000  # ตัดสิทธิ์คูปองของแพลตฟอร์มอื่นทันที
-                                        if current_mp in PLATFORM_KEYWORDS and any(kw in c_desc_all for kw in PLATFORM_KEYWORDS[current_mp]):
-                                            sc += 1500  # ให้คะแนนพิเศษสำหรับคูปองที่ระบุแพลตฟอร์มตรง
-
-                                    # ─── เกณฑ์ที่ 3: ความเรียบง่ายของสูตร (เฉพาะเมื่อราคาถูกต้องเท่านั้น) ───
-                                    if price_diff <= 0.05:
-                                        if not is_valid_adjustment(c_item.get("oc_amount")) and not is_valid_adjustment(c_item.get("dc_amount")):
-                                            sc += 20
-                                        cp_count = len(str(c_item.get("cp_name") or "").split())
-                                        sc -= (cp_count * 5)
-
-                                    if c_st:
-                                        try:
-                                            sc += (c_st - datetime.date(2026, 1, 1)).days * 0.1
-                                        except Exception:
-                                            pass
-                                    return sc
-
-                                sorted_candidates = sorted(unified_candidates, key=score_candidate, reverse=True)
+                                sorted_candidates = sorted(
+                                    unified_candidates,
+                                    key=lambda c: conflict_candidate_sort_key(
+                                        c, calc_candidate_net_price, expected_price, purchased_date, current_mp
+                                    ),
+                                    reverse=True,
+                                )
                                 chosen_cand = sorted_candidates[0]
                                 suggested_winner_code = str(chosen_cand.get("cp_name") or "").strip()
 
@@ -5891,10 +5952,22 @@ class POSPricingReconciler:
 
                                 candidates_multiline = "\n".join(cand_desc_list)
                                 chosen_net = calc_candidate_net_price(chosen_cand)
+
+                                def _start_of(c_item):
+                                    return parse_smart_date(
+                                        c_item.get("start_date") or c_item.get("usage_start_date") or c_item.get("suggested_usage_start_date")
+                                    )
+
+                                chosen_start = _start_of(chosen_cand)
+                                all_starts = [s for s in (_start_of(c) for c in unified_candidates) if s]
+                                newest_note = ""
+                                if chosen_start and all_starts and chosen_start >= max(all_starts):
+                                    newest_note = f" และเป็นวันเริ่มต้นใหม่ที่สุด ({format_smart_datetime_str(chosen_start)})"
+
                                 if chosen_net is not None and abs(chosen_net - float(expected_price)) <= 0.05:
-                                    reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะคำนวณราคาสุทธิได้ {chosen_net:,.2f} บาท ตรงกับราคาขายจริง และช่วงวันที่เหมาะสม"
+                                    reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะคำนวณราคาสุทธิได้ {chosen_net:,.2f} บาท ตรงกับราคาขายจริง{newest_note}"
                                 else:
-                                    reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด"
+                                    reason_str = f"ระบบแนะนำ {suggested_winner_code} เพราะวันที่ตรงกับช่วงโปรโมชันและสูตรเหมาะสมที่สุด{newest_note}"
                                 existing_admin_sel = ""
                                 existing_status = "PENDING"
                                 try:
@@ -5904,13 +5977,6 @@ class POSPricingReconciler:
                                         existing_status = "APPROVED"
                                 except Exception:
                                     pass
-
-                                current_mp = ""
-                                try:
-                                    if hasattr(self.app, 'marketplace_target') and hasattr(self.app.marketplace_target, 'get'):
-                                        current_mp = str(self.app.marketplace_target.get() or '').strip().upper()
-                                except Exception:
-                                    current_mp = ""
 
                                 conflict_payload = {
                                     "sku": str(sku_key).strip().upper(),
@@ -6197,7 +6263,7 @@ class POSPricingReconciler:
                             if 'last_updated' in df_excel.columns:
                                 df_excel.loc[idx, 'last_updated'] = now_str
                             break
-                    df_excel.to_excel(excel_path, index=False)
+                    write_cp_excel(excel_path, df_excel)
                     format_cp_excel(excel_path)
 
                 if os.path.exists(excel_path):
